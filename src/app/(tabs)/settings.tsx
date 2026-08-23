@@ -13,14 +13,10 @@ import {
   Spacer,
 } from "@expo/ui";
 import { Image } from "expo-image";
-import { View, StyleSheet, Text, useColorScheme } from "react-native";
-import { getColors } from "@/theme/colors";
+import { View, StyleSheet, Text } from "react-native";
+import { colors } from "@/theme/colors";
 
 export default function SettingsScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const colors = getColors(isDark);
-
   // State for controls
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);

@@ -1,15 +1,12 @@
 import { router, Stack } from "expo-router";
-import { View, StyleSheet, Text, Pressable, useColorScheme } from "react-native";
+import { View, StyleSheet, Text, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { Host, FieldGroup, ListItem, Switch } from "@expo/ui";
 import { useState } from "react";
-import { getColors } from "@/theme/colors";
+import { colors } from "@/theme/colors";
 
 export default function ModalScreen() {
   const [isUrgent, setIsUrgent] = useState(false);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const colors = getColors(isDark);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.systemBackground }]}>

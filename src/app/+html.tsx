@@ -3,7 +3,7 @@ import { type PropsWithChildren } from "react";
 
 /**
  * Custom root HTML for Expo Router on web.
- * Prevents the white flash (FOUC) during initial page load in dark mode.
+ * Injects CSS variables for instantaneous, zero-flash dark/light mode rendering.
  */
 export default function Root({ children }: PropsWithChildren) {
   return (
@@ -16,22 +16,35 @@ export default function Root({ children }: PropsWithChildren) {
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
         <ScrollViewStyleReset />
-        <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
+        <style dangerouslySetInnerHTML={{ __html: themeStyles }} />
       </head>
       <body>{children}</body>
     </html>
   );
 }
 
-const responsiveBackground = `
-html, body, #root {
-  color-scheme: light dark;
-  background-color: #ffffff;
+const themeStyles = `
+:root {
+  --system-background: #ffffff;
+  --secondary-system-background: #f2f2f7;
+  --label: #000000;
+  --secondary-label: #8e8e93;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  html, body, #root {
-    background-color: #000000;
+  :root {
+    --system-background: #000000;
+    --secondary-system-background: #1c1c1e;
+    --label: #ffffff;
+    --secondary-label: #8e8e93;
+    color-scheme: dark;
   }
+}
+
+html, body, #root, #root > div {
+  background-color: var(--system-background) !important;
+  color: var(--label);
+  min-height: 100%;
 }
 `;

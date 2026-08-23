@@ -1,14 +1,10 @@
 import { Link, Stack } from "expo-router";
-import { View, StyleSheet, ScrollView, Pressable, Text, useColorScheme } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Text } from "react-native";
 import { Image } from "expo-image";
 import { Host, FieldGroup, ListItem } from "@expo/ui";
-import { getColors } from "@/theme/colors";
+import { colors } from "@/theme/colors";
 
 export default function HomeScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const colors = getColors(isDark);
-
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.systemBackground }]}
