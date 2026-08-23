@@ -13,9 +13,14 @@ import {
   Spacer,
 } from "@expo/ui";
 import { Image } from "expo-image";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet, Text, useColorScheme } from "react-native";
+import { getColors } from "@/theme/colors";
 
 export default function SettingsScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const colors = getColors(isDark);
+
   // State for controls
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
@@ -26,7 +31,7 @@ export default function SettingsScreen() {
   const [isAboutSheetOpen, setIsAboutSheetOpen] = useState(false);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.systemBackground }]}>
       <Stack.Screen
         options={{
           title: "Settings",
@@ -55,7 +60,7 @@ export default function SettingsScreen() {
               leading={
                 <Image source="sf:icloud.fill" style={styles.iconSky} />
               }
-              trailing={<Text style={styles.trailingText}>50 GB</Text>}
+              trailing={<Text style={[styles.trailingText, { color: colors.secondaryLabel }]}>50 GB</Text>}
             >
               Cloud Storage
             </ListItem>
@@ -192,11 +197,11 @@ export default function SettingsScreen() {
               style={styles.sheetIcon}
             />
             <Spacer />
-            <Text style={styles.sheetTitle}>Myself App</Text>
-            <Text style={styles.sheetSubtitle}>
+            <Text style={[styles.sheetTitle, { color: colors.label }]}>Myself App</Text>
+            <Text style={[styles.sheetSubtitle, { color: colors.secondaryLabel }]}>
               Version 1.0.0 (Expo SDK 57)
             </Text>
-            <Text style={styles.sheetDescription}>
+            <Text style={[styles.sheetDescription, { color: colors.secondaryLabel }]}>
               Built with native SwiftUI and Jetpack Compose controls powered by
               @expo/ui and Expo Router.
             </Text>
@@ -220,7 +225,6 @@ const styles = StyleSheet.create({
   },
   trailingText: {
     fontSize: 15,
-    color: "#8E8E93",
   },
   iconBlue: {
     width: 28,
@@ -269,18 +273,15 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#000",
   },
   sheetSubtitle: {
     fontSize: 14,
-    color: "#8E8E93",
     marginTop: 4,
   },
   sheetDescription: {
     fontSize: 14,
     textAlign: "center",
     marginTop: 12,
-    color: "#666",
     lineHeight: 20,
   },
 });

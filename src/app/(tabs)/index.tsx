@@ -1,12 +1,17 @@
 import { Link, Stack } from "expo-router";
-import { View, StyleSheet, ScrollView, Pressable, Text } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Text, useColorScheme } from "react-native";
 import { Image } from "expo-image";
 import { Host, FieldGroup, ListItem } from "@expo/ui";
+import { getColors } from "@/theme/colors";
 
 export default function HomeScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const colors = getColors(isDark);
+
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.systemBackground }]}
       contentContainerStyle={styles.contentContainer}
       contentInsetAdjustmentBehavior="automatic"
     >
@@ -18,10 +23,17 @@ export default function HomeScreen() {
         }}
       />
 
-      <View style={styles.heroCard}>
+      <View
+        style={[
+          styles.heroCard,
+          { backgroundColor: colors.secondarySystemBackground },
+        ]}
+      >
         <Image source="sf:sparkles" style={styles.heroIcon} />
-        <Text style={styles.heroTitle}>Welcome to Myself</Text>
-        <Text style={styles.heroSubtitle}>
+        <Text style={[styles.heroTitle, { color: colors.label }]}>
+          Welcome to Myself
+        </Text>
+        <Text style={[styles.heroSubtitle, { color: colors.secondaryLabel }]}>
           Expo SDK 57 app with Native Tabs, native modals, and @expo/ui controls.
         </Text>
 
@@ -38,19 +50,19 @@ export default function HomeScreen() {
           <FieldGroup.Section title="Quick Overview">
             <ListItem
               leading={<Image source="sf:chart.bar.fill" style={styles.iconBlue} />}
-              trailing={<Text style={styles.valueText}>Active</Text>}
+              trailing={<Text style={[styles.valueText, { color: colors.secondaryLabel }]}>Active</Text>}
             >
               System Status
             </ListItem>
             <ListItem
               leading={<Image source="sf:cube.transparent.fill" style={styles.iconGreen} />}
-              trailing={<Text style={styles.valueText}>SDK 57</Text>}
+              trailing={<Text style={[styles.valueText, { color: colors.secondaryLabel }]}>SDK 57</Text>}
             >
               Expo Version
             </ListItem>
             <ListItem
               leading={<Image source="sf:gearshape.fill" style={styles.iconPurple} />}
-              trailing={<Text style={styles.valueText}>Native</Text>}
+              trailing={<Text style={[styles.valueText, { color: colors.secondaryLabel }]}>Native</Text>}
             >
               UI Engine
             </ListItem>
@@ -70,7 +82,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   heroCard: {
-    backgroundColor: "#F2F2F7",
     padding: 24,
     borderRadius: 16,
     alignItems: "center",
@@ -85,11 +96,9 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#000",
   },
   heroSubtitle: {
     fontSize: 14,
-    color: "#8E8E93",
     textAlign: "center",
     lineHeight: 20,
   },
@@ -134,6 +143,5 @@ const styles = StyleSheet.create({
   },
   valueText: {
     fontSize: 14,
-    color: "#8E8E93",
   },
 });

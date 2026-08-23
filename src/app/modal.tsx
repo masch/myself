@@ -1,14 +1,18 @@
 import { router, Stack } from "expo-router";
-import { View, StyleSheet, Text, Pressable } from "react-native";
+import { View, StyleSheet, Text, Pressable, useColorScheme } from "react-native";
 import { Image } from "expo-image";
 import { Host, FieldGroup, ListItem, Switch } from "@expo/ui";
 import { useState } from "react";
+import { getColors } from "@/theme/colors";
 
 export default function ModalScreen() {
   const [isUrgent, setIsUrgent] = useState(false);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const colors = getColors(isDark);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.systemBackground }]}>
       <Stack.Screen
         options={{
           title: "Quick Action",
@@ -37,7 +41,7 @@ export default function ModalScreen() {
             </ListItem>
             <ListItem
               leading={<Image source="sf:calendar" style={styles.iconBlue} />}
-              trailing={<Text style={styles.subText}>Today</Text>}
+              trailing={<Text style={[styles.subText, { color: colors.secondaryLabel }]}>Today</Text>}
             >
               Due Date
             </ListItem>
@@ -81,6 +85,5 @@ const styles = StyleSheet.create({
   },
   subText: {
     fontSize: 14,
-    color: "#8E8E93",
   },
 });
