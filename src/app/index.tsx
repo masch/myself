@@ -1,9 +1,213 @@
-import { Text, View, StyleSheet } from "react-native";
+import { useState } from "react";
+import { Stack } from "expo-router";
+import {
+  Host,
+  FieldGroup,
+  ListItem,
+  Switch,
+  Slider,
+  Picker,
+  BottomSheet,
+  Button,
+  Column,
+  Text as ExpoText,
+  Spacer,
+} from "@expo/ui";
+import { Image } from "expo-image";
+import { View, StyleSheet } from "react-native";
 
-export default function Index() {
+export default function SettingsScreen() {
+  // State for controls
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
+  const [volume, setVolume] = useState(0.75);
+  const [selectedTheme, setSelectedTheme] = useState<string>("system");
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("en");
+  const [isAboutSheetOpen, setIsAboutSheetOpen] = useState(false);
+
   return (
     <View style={styles.container}>
-      <Text>Edit src/app/index.tsx to edit this screen.</Text>
+      <Stack.Screen
+        options={{
+          title: "Settings",
+          headerLargeTitle: true,
+          headerShadowVisible: false,
+        }}
+      />
+
+      <Host style={styles.host}>
+        <FieldGroup>
+          {/* Account Section */}
+          <FieldGroup.Section title="Account">
+            <ListItem
+              leading={
+                <Image
+                  source="sf:person.crop.circle.fill"
+                  style={styles.iconBlue}
+                />
+              }
+              supportingText="alex.developer@example.com"
+              onPress={() => setIsAboutSheetOpen(true)}
+            >
+              Alex Developer
+            </ListItem>
+            <ListItem
+              leading={
+                <Image source="sf:icloud.fill" style={styles.iconSky} />
+              }
+              trailing={<ExpoText>50 GB</ExpoText>}
+            >
+              Cloud Storage
+            </ListItem>
+          </FieldGroup.Section>
+
+          {/* Preferences Section */}
+          <FieldGroup.Section title="Preferences">
+            <ListItem
+              leading={<Image source="sf:bell.fill" style={styles.iconRed} />}
+              trailing={
+                <Switch
+                  value={notificationsEnabled}
+                  onValueChange={setNotificationsEnabled}
+                />
+              }
+            >
+              Push Notifications
+            </ListItem>
+
+            <ListItem
+              leading={
+                <Image source="sf:faceid" style={styles.iconGreen} />
+              }
+              trailing={
+                <Switch
+                  value={biometricsEnabled}
+                  onValueChange={setBiometricsEnabled}
+                />
+              }
+            >
+              Face ID / Biometrics
+            </ListItem>
+
+            <ListItem
+              leading={<Image source="sf:globe" style={styles.iconBlue} />}
+              trailing={
+                <Picker
+                  selectedValue={selectedLanguage}
+                  onValueChange={(val) => setSelectedLanguage(val as string)}
+                  appearance="menu"
+                >
+                  <Picker.Item label="English" value="en" />
+                  <Picker.Item label="Español" value="es" />
+                  <Picker.Item label="Français" value="fr" />
+                  <Picker.Item label="Deutsch" value="de" />
+                </Picker>
+              }
+            >
+              Language
+            </ListItem>
+          </FieldGroup.Section>
+
+          {/* Appearance Section */}
+          <FieldGroup.Section title="Appearance">
+            <ListItem
+              leading={
+                <Image source="sf:paintbrush.fill" style={styles.iconPurple} />
+              }
+              trailing={
+                <Picker
+                  selectedValue={selectedTheme}
+                  onValueChange={(val) => setSelectedTheme(val as string)}
+                  appearance="menu"
+                >
+                  <Picker.Item label="System Auto" value="system" />
+                  <Picker.Item label="Light" value="light" />
+                  <Picker.Item label="Dark" value="dark" />
+                </Picker>
+              }
+            >
+              Theme
+            </ListItem>
+
+            <ListItem
+              leading={
+                <Image
+                  source="sf:speaker.wave.2.fill"
+                  style={styles.iconOrange}
+                />
+              }
+              supportingText={`Sound volume: ${Math.round(volume * 100)}%`}
+            >
+              <Slider
+                value={volume}
+                onValueChange={setVolume}
+                minimumValue={0}
+                maximumValue={1}
+              />
+            </ListItem>
+          </FieldGroup.Section>
+
+          {/* Privacy & Diagnostics */}
+          <FieldGroup.Section title="Privacy & Diagnostics">
+            <ListItem
+              leading={
+                <Image
+                  source="sf:hand.raised.fill"
+                  style={styles.iconOrange}
+                />
+              }
+              trailing={
+                <Switch
+                  value={analyticsEnabled}
+                  onValueChange={setAnalyticsEnabled}
+                />
+              }
+            >
+              Share Analytics
+            </ListItem>
+
+            <ListItem
+              leading={
+                <Image
+                  source="sf:info.circle.fill"
+                  style={styles.iconGray}
+                />
+              }
+              onPress={() => setIsAboutSheetOpen(true)}
+            >
+              About Myself App
+            </ListItem>
+          </FieldGroup.Section>
+        </FieldGroup>
+
+        {/* Native BottomSheet for About Modal */}
+        <BottomSheet
+          isPresented={isAboutSheetOpen}
+          onDismiss={() => setIsAboutSheetOpen(false)}
+          snapPoints={["half"]}
+        >
+          <Column style={styles.sheetContent}>
+            <Image
+              source="sf:app.badge.checkmark.fill"
+              style={styles.sheetIcon}
+            />
+            <Spacer />
+            <ExpoText style={styles.sheetTitle}>Myself App</ExpoText>
+            <ExpoText style={styles.sheetSubtitle}>
+              Version 1.0.0 (Expo SDK 57)
+            </ExpoText>
+            <ExpoText style={styles.sheetDescription}>
+              Built with native SwiftUI and Jetpack Compose controls powered by
+              @expo/ui and Expo Router.
+            </ExpoText>
+            <Spacer />
+            <Button onPress={() => setIsAboutSheetOpen(false)}>
+              Done
+            </Button>
+          </Column>
+        </BottomSheet>
+      </Host>
     </View>
   );
 }
@@ -11,7 +215,67 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  host: {
+    flex: 1,
+  },
+  iconBlue: {
+    width: 28,
+    height: 28,
+    tintColor: "#007AFF",
+  },
+  iconSky: {
+    width: 28,
+    height: 28,
+    tintColor: "#34AADC",
+  },
+  iconGreen: {
+    width: 28,
+    height: 28,
+    tintColor: "#34C759",
+  },
+  iconRed: {
+    width: 28,
+    height: 28,
+    tintColor: "#FF3B30",
+  },
+  iconOrange: {
+    width: 28,
+    height: 28,
+    tintColor: "#FF9500",
+  },
+  iconPurple: {
+    width: 28,
+    height: 28,
+    tintColor: "#AF52DE",
+  },
+  iconGray: {
+    width: 28,
+    height: 28,
+    tintColor: "#8E8E93",
+  },
+  sheetContent: {
+    padding: 24,
     alignItems: "center",
-    justifyContent: "center",
+  },
+  sheetIcon: {
+    width: 60,
+    height: 60,
+    tintColor: "#007AFF",
+  },
+  sheetTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  sheetSubtitle: {
+    fontSize: 14,
+    color: "#8E8E93",
+    marginTop: 4,
+  },
+  sheetDescription: {
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 12,
+    color: "#666",
   },
 });
