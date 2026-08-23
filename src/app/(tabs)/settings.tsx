@@ -10,11 +10,10 @@ import {
   BottomSheet,
   Button,
   Column,
-  Text as ExpoText,
   Spacer,
 } from "@expo/ui";
 import { Image } from "expo-image";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Text } from "react-native";
 
 export default function SettingsScreen() {
   // State for controls
@@ -56,7 +55,7 @@ export default function SettingsScreen() {
               leading={
                 <Image source="sf:icloud.fill" style={styles.iconSky} />
               }
-              trailing={<ExpoText>50 GB</ExpoText>}
+              trailing={<Text style={styles.trailingText}>50 GB</Text>}
             >
               Cloud Storage
             </ListItem>
@@ -142,8 +141,8 @@ export default function SettingsScreen() {
               <Slider
                 value={volume}
                 onValueChange={setVolume}
-                minimumValue={0}
-                maximumValue={1}
+                min={0}
+                max={1}
               />
             </ListItem>
           </FieldGroup.Section>
@@ -193,14 +192,14 @@ export default function SettingsScreen() {
               style={styles.sheetIcon}
             />
             <Spacer />
-            <ExpoText style={styles.sheetTitle}>Myself App</ExpoText>
-            <ExpoText style={styles.sheetSubtitle}>
+            <Text style={styles.sheetTitle}>Myself App</Text>
+            <Text style={styles.sheetSubtitle}>
               Version 1.0.0 (Expo SDK 57)
-            </ExpoText>
-            <ExpoText style={styles.sheetDescription}>
+            </Text>
+            <Text style={styles.sheetDescription}>
               Built with native SwiftUI and Jetpack Compose controls powered by
               @expo/ui and Expo Router.
-            </ExpoText>
+            </Text>
             <Spacer />
             <Button onPress={() => setIsAboutSheetOpen(false)}>
               Done
@@ -218,6 +217,10 @@ const styles = StyleSheet.create({
   },
   host: {
     flex: 1,
+  },
+  trailingText: {
+    fontSize: 15,
+    color: "#8E8E93",
   },
   iconBlue: {
     width: 28,
@@ -266,6 +269,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 20,
     fontWeight: "bold",
+    color: "#000",
   },
   sheetSubtitle: {
     fontSize: 14,
@@ -277,5 +281,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 12,
     color: "#666",
+    lineHeight: 20,
   },
 });
