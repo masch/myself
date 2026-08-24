@@ -75,6 +75,10 @@ export-web:
 .PHONY: ci
 ci: install check export-web
 
+.PHONY: expo-doctor
+expo-doctor: ## Run Expo Doctor to verify dependency compatibility
+	APP_VERSION_NAME="$(APP_VERSION_NAME)" bunx expo-doctor
+
 # ── EAS Deploy ───────────────────────────────
 
 .PHONY: eas-whoami

@@ -30,10 +30,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-distribute:
-    name: Build APK & Distribute to Firebase
+  build-apk:
+    name: Build Android APK
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -70,6 +69,27 @@ jobs:
           name: android-apk
           path: myself-*.apk
           retention-days: 7
+
+  distribute-firebase:
+    name: Distribute to Firebase App Distribution
+    runs-on: ubuntu-latest
+    needs: build-apk
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Download APK Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
 
       - name: Distribute APK to Firebase App Distribution
         env:
