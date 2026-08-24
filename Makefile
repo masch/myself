@@ -99,10 +99,6 @@ eas-prod-build-web: eas-whoami ## Export web app and deploy to EAS Hosting produ
 
 # ── Android & Firebase Distribution ─────────
 
-.PHONY: eas-build-android-preview
-eas-build-android-preview: eas-whoami ## Build APK via EAS Cloud
-	bunx eas-cli@$(EAS_CLI_VERSION) build -p android --profile preview --wait
-
 .PHONY: eas-build-android-preview-local
 eas-build-android-preview-local: eas-whoami ## Build APK locally inside runner/machine
 	bunx eas-cli@$(EAS_CLI_VERSION) build -p android --profile preview --local $(if $(OUTPUT_APK),--output="$(OUTPUT_APK)")
