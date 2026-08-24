@@ -68,11 +68,11 @@ jobs:
           retention-days: 7
 
       - name: Distribute APK to Firebase App Distribution
-        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
         env:
           FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_APK: myself-${{ github.sha }}.apk
           RELEASE_NOTES: ${{ inputs.release_notes }}
+        if: ${{ env.FIREBASE_SA_KEY != '' }}
         run: |
           echo "$FIREBASE_SA_KEY" > firebase-sa-key.json
           make firebase-distribute \
