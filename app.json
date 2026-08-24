@@ -8,9 +8,11 @@
     "scheme": "myself",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.masch.myself",
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.masch.myself",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
