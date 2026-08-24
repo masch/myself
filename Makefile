@@ -96,3 +96,24 @@ eas-staging-build-web: eas-whoami ## Export web app and deploy to EAS Hosting st
 .PHONY: eas-prod-build-web
 eas-prod-build-web: eas-whoami ## Export web app and deploy to EAS Hosting production
 	bunx expo export --clear --platform web && bunx eas-cli@$(EAS_CLI_VERSION) deploy --prod
+
+# ── Android & Firebase Distribution ─────────
+
+.PHONY: eas-build-android-preview
+eas-build-android-preview: eas-whoami ## Build APK via EAS Cloud
+	bunx eas-cli@$(EAS_CLI_VERSION) build -p android --profile preview --wait
+
+.PHONY: eas-build-android-preview-local
+eas-build-android-preview-local: eas-whoami ## Build APK locally inside runner/machine
+	bunx eas-cli@$(EAS_CLI_VERSION) build -p android --profile preview --local $(if $(OUTPUT_APK),--output="$(OUTPUT_APK)")
+
+.PHONY: firebase-distribute
+firebase-distribute: ## Upload APK to Firebase App Distribution (Requires: GROUPS, FIREBASE_APP_ID, APK_PATH)
+	@if [ -z "$(GROUPS)" ]; then echo "Error: GROUPS parameter is required (e.g. GROUPS=dev-team)"; exit 1; fi
+	@if [ -z "$(FIREBASE_APP_ID)" ]; then echo "Error: FIREBASE_APP_ID is required"; exit 1; fi
+	@if [ -z "$(APK_PATH)" ]; then echo "Error: APK_PATH is required (e.g. APK_PATH=myself.apk)"; exit 1; fi
+	bunx firebase-tools appdistribution:distribute "$(APK_PATH)" \
+		--app "$(FIREBASE_APP_ID)" \
+		--groups "$(GROUPS)" \
+		$(if $(RELEASE_NOTES),--release-notes "$(RELEASE_NOTES)") \
+		--non-interactive

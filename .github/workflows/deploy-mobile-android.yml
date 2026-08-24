@@ -1,0 +1,72 @@
+name: Build & Distribute Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      firebase_groups:
+        description: "Firebase App Distribution Groups (comma-separated)"
+        required: true
+        type: string
+        default: "dev-team"
+      release_notes:
+        description: "Release notes for this build"
+        required: false
+        type: string
+        default: "Manual build from GitHub Actions"
+
+concurrency:
+  group: deploy-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-distribute:
+    name: Build APK & Distribute to Firebase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Java SDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Install dependencies
+        run: make install
+
+      - name: Code Quality Checks
+        run: make check
+
+      - name: Build Android Preview APK
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_NO_INTERACTIVE: "1"
+        run: |
+          make eas-build-android-preview-local OUTPUT_APK="myself-${{ github.sha }}.apk"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: myself-*.apk
+          retention-days: 7
+
+      - name: Distribute APK to Firebase App Distribution
+        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' && secrets.FIREBASE_APP_ID != '' }}
+        env:
+          FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          GROUPS: ${{ inputs.firebase_groups || 'dev-team' }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          APK_PATH: myself-${{ github.sha }}.apk
+        run: |
+          echo "$FIREBASE_SA_KEY" > firebase-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/firebase-key.json"
+          make firebase-distribute
+          rm -f firebase-key.json
