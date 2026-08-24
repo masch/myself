@@ -1,3 +1,5 @@
+EAS_CLI_VERSION ?= 20.1.0
+
 # Dependencies
 .PHONY: install
 install:
@@ -72,3 +74,25 @@ export-web:
 # Complete CI validation pipeline
 .PHONY: ci
 ci: install check export-web
+
+# ── EAS Deploy ───────────────────────────────
+
+.PHONY: eas-whoami
+eas-whoami: ## Verify EAS authentication (uses EXPO_TOKEN from .env or CI)
+	bunx eas-cli@$(EAS_CLI_VERSION) whoami
+
+.PHONY: eas-list
+eas-list: ## List recent EAS builds
+	bunx eas-cli@$(EAS_CLI_VERSION) build:list
+
+.PHONY: eas-init
+eas-init: ## Initialize EAS for this project (first-time setup)
+	bunx eas-cli@$(EAS_CLI_VERSION) init
+
+.PHONY: eas-staging-build-web
+eas-staging-build-web: eas-whoami ## Export web app and deploy to EAS Hosting staging (alias: staging)
+	export APP_ENV=staging APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_PUBLIC_API_URL="$(API_STAGING_URL)" && bunx expo export --clear --platform web && bunx eas-cli@$(EAS_CLI_VERSION) deploy --alias staging
+
+.PHONY: eas-prod-build-web
+eas-prod-build-web: eas-whoami ## Export web app and deploy to EAS Hosting production
+	bunx expo export --clear --platform web && bunx eas-cli@$(EAS_CLI_VERSION) deploy --prod
