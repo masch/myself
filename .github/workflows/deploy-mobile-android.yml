@@ -33,6 +33,7 @@ jobs:
   build-and-distribute:
     name: Build APK & Distribute to Firebase
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
