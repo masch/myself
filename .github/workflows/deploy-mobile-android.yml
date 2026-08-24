@@ -1,0 +1,83 @@
+name: Build & Distribute Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target Environment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+      firebase_groups:
+        description: "Firebase App Distribution Groups (comma-separated)"
+        required: true
+        type: string
+        default: "dev-team"
+      release_notes:
+        description: "Release notes for this build (leave empty to use commit messages)"
+        required: false
+        type: string
+        default: ""
+
+concurrency:
+  group: deploy-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-distribute:
+    name: Build APK & Distribute to Firebase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Java SDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Install dependencies
+        run: make install
+
+      - name: Code Quality Checks
+        run: make check
+
+      - name: Build Android Preview APK
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_NO_INTERACTIVE: "1"
+        run: |
+          make eas-build-android-preview-local OUTPUT_APK="myself-${{ github.sha }}.apk"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: myself-*.apk
+          retention-days: 7
+
+      - name: Distribute APK to Firebase App Distribution
+        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        env:
+          FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_APK: myself-${{ github.sha }}.apk
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          echo "$FIREBASE_SA_KEY" > firebase-sa-key.json
+          make firebase-distribute \
+            APP_ENV="${{ inputs.environment }}" \
+            GROUPS="${{ inputs.firebase_groups }}" \
+            FIREBASE_APK_PATH="$FIREBASE_APK" \
+            $(if [ -n "$RELEASE_NOTES" ]; then echo "FIREBASE_RELEASE_NOTES=\"$RELEASE_NOTES\""; fi)
+          rm -f firebase-sa-key.json
