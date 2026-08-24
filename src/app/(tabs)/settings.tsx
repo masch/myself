@@ -13,10 +13,13 @@ import {
   Spacer,
 } from "@expo/ui";
 import { Image } from "expo-image";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet, Text, Alert, TextInput } from "react-native";
+import { useAuth } from "@/context/auth-context";
 import { colors } from "@/theme/colors";
 
 export default function SettingsScreen() {
+  const { currentUser, users, switchUser, registerUser } = useAuth();
+
   // State for controls
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
@@ -25,6 +28,26 @@ export default function SettingsScreen() {
   const [selectedTheme, setSelectedTheme] = useState<string>("system");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("en");
   const [isAboutSheetOpen, setIsAboutSheetOpen] = useState(false);
+  const [isNewUserSheetOpen, setIsNewUserSheetOpen] = useState(false);
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+
+  const handleCreateUser = async () => {
+    if (!newUserName.trim() || !newUserEmail.trim()) {
+      Alert.alert("Required fields", "Please enter both name and email.");
+      return;
+    }
+
+    try {
+      await registerUser(newUserName.trim(), newUserEmail.trim());
+      setNewUserName("");
+      setNewUserEmail("");
+      setIsNewUserSheetOpen(false);
+    } catch (error) {
+      console.error("Failed to create user:", error);
+      Alert.alert("Error", "Email must be unique.");
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.systemBackground }]}>
@@ -39,7 +62,7 @@ export default function SettingsScreen() {
       <Host style={styles.host}>
         <FieldGroup>
           {/* Account Section */}
-          <FieldGroup.Section title="Account">
+          <FieldGroup.Section title="Active Profile">
             <ListItem
               leading={
                 <Image
@@ -47,18 +70,35 @@ export default function SettingsScreen() {
                   style={styles.iconBlue}
                 />
               }
-              supportingText="alex.developer@example.com"
-              onPress={() => setIsAboutSheetOpen(true)}
+              supportingText={currentUser?.email ?? "No email"}
             >
-              Alex Developer
+              {currentUser?.name ?? "No user"}
             </ListItem>
+
+            {users.length > 1 && (
+              <ListItem
+                leading={<Image source="sf:person.2.fill" style={styles.iconGreen} />}
+                trailing={
+                  <Picker
+                    selectedValue={currentUser?.id ?? 1}
+                    onValueChange={(val) => switchUser(Number(val))}
+                    appearance="menu"
+                  >
+                    {users.map((u) => (
+                      <Picker.Item key={u.id} label={u.name} value={u.id} />
+                    ))}
+                  </Picker>
+                }
+              >
+                Switch Account
+              </ListItem>
+            )}
+
             <ListItem
-              leading={
-                <Image source="sf:icloud.fill" style={styles.iconSky} />
-              }
-              trailing={<Text style={[styles.trailingText, { color: colors.secondaryLabel }]}>50 GB</Text>}
+              leading={<Image source="sf:person.badge.plus" style={styles.iconSky} />}
+              onPress={() => setIsNewUserSheetOpen(true)}
             >
-              Cloud Storage
+              Add New User Account
             </ListItem>
           </FieldGroup.Section>
 
@@ -181,6 +221,46 @@ export default function SettingsScreen() {
           </FieldGroup.Section>
         </FieldGroup>
 
+        {/* Native BottomSheet for New User */}
+        <BottomSheet
+          isPresented={isNewUserSheetOpen}
+          onDismiss={() => setIsNewUserSheetOpen(false)}
+          snapPoints={["half"]}
+        >
+          <Column style={styles.sheetContent}>
+            <Image
+              source="sf:person.badge.plus"
+              style={styles.sheetIcon}
+            />
+            <Spacer />
+            <Text style={[styles.sheetTitle, { color: colors.label }]}>Create User</Text>
+            
+            <View style={styles.sheetInputWrapper}>
+              <TextInput
+                placeholder="Full Name (e.g. Maria Perez)"
+                placeholderTextColor="#8E8E93"
+                value={newUserName}
+                onChangeText={setNewUserName}
+                style={[styles.sheetInput, { color: colors.label }]}
+              />
+              <TextInput
+                placeholder="Email (e.g. maria@example.com)"
+                placeholderTextColor="#8E8E93"
+                value={newUserEmail}
+                onChangeText={setNewUserEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={[styles.sheetInput, { color: colors.label }]}
+              />
+            </View>
+
+            <Spacer />
+            <Button onPress={handleCreateUser}>
+              Create & Switch
+            </Button>
+          </Column>
+        </BottomSheet>
+
         {/* Native BottomSheet for About Modal */}
         <BottomSheet
           isPresented={isAboutSheetOpen}
@@ -198,8 +278,7 @@ export default function SettingsScreen() {
               Version 1.0.0 (Expo SDK 57)
             </Text>
             <Text style={[styles.sheetDescription, { color: colors.secondaryLabel }]}>
-              Built with native SwiftUI and Jetpack Compose controls powered by
-              @expo/ui and Expo Router.
+              Multi-user SQLite database with scoped tasks and native @expo/ui controls.
             </Text>
             <Spacer />
             <Button onPress={() => setIsAboutSheetOpen(false)}>
@@ -218,9 +297,6 @@ const styles = StyleSheet.create({
   },
   host: {
     flex: 1,
-  },
-  trailingText: {
-    fontSize: 15,
   },
   iconBlue: {
     width: 28,
@@ -262,8 +338,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sheetIcon: {
-    width: 60,
-    height: 60,
+    width: 52,
+    height: 52,
     tintColor: "#007AFF",
   },
   sheetTitle: {
@@ -279,5 +355,18 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 12,
     lineHeight: 20,
+  },
+  sheetInputWrapper: {
+    width: "100%",
+    gap: 10,
+    marginTop: 14,
+  },
+  sheetInput: {
+    borderWidth: 1,
+    borderColor: "#38383A",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
   },
 });
