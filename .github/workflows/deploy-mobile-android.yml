@@ -3,16 +3,24 @@ name: Build & Distribute Android APK
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: "Target Environment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
       firebase_groups:
         description: "Firebase App Distribution Groups (comma-separated)"
         required: true
         type: string
         default: "dev-team"
       release_notes:
-        description: "Release notes for this build"
+        description: "Release notes for this build (leave empty to use commit messages)"
         required: false
         type: string
-        default: "Manual build from GitHub Actions"
+        default: ""
 
 concurrency:
   group: deploy-android-${{ github.ref }}
@@ -25,6 +33,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -58,15 +68,16 @@ jobs:
           retention-days: 7
 
       - name: Distribute APK to Firebase App Distribution
-        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' && secrets.FIREBASE_APP_ID != '' }}
+        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
         env:
           FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
-          GROUPS: ${{ inputs.firebase_groups || 'dev-team' }}
+          FIREBASE_APK: myself-${{ github.sha }}.apk
           RELEASE_NOTES: ${{ inputs.release_notes }}
-          APK_PATH: myself-${{ github.sha }}.apk
         run: |
-          echo "$FIREBASE_SA_KEY" > firebase-key.json
-          export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/firebase-key.json"
-          make firebase-distribute
-          rm -f firebase-key.json
+          echo "$FIREBASE_SA_KEY" > firebase-sa-key.json
+          make firebase-distribute \
+            APP_ENV="${{ inputs.environment }}" \
+            GROUPS="${{ inputs.firebase_groups }}" \
+            FIREBASE_APK_PATH="$FIREBASE_APK" \
+            $(if [ -n "$RELEASE_NOTES" ]; then echo "FIREBASE_RELEASE_NOTES=\"$RELEASE_NOTES\""; fi)
+          rm -f firebase-sa-key.json
