@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { router, Stack } from "expo-router";
-import { View, StyleSheet, Text, Pressable, TextInput, Alert } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Text,
+  Pressable,
+  TextInput,
+  Alert,
+} from "react-native";
 import { Image } from "expo-image";
 import { Host, FieldGroup, ListItem, Picker } from "@expo/ui";
 import { useTasks } from "@/hooks/use-tasks";
@@ -32,13 +39,18 @@ export default function ModalScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.systemBackground }]}>
+    <View
+      style={[styles.container, { backgroundColor: colors.systemBackground }]}
+    >
       <Stack.Screen
         options={{
           title: "New Task",
           presentation: "modal",
           headerLeft: () => (
-            <Pressable onPress={() => router.back()} style={styles.headerButton}>
+            <Pressable
+              onPress={() => router.back()}
+              style={styles.headerButton}
+            >
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
           ),
@@ -70,7 +82,11 @@ export default function ModalScreen() {
                 placeholderTextColor="#8E8E93"
                 value={description}
                 onChangeText={setDescription}
-                style={[styles.input, styles.descInput, { color: colors.label }]}
+                style={[
+                  styles.input,
+                  styles.descInput,
+                  { color: colors.label },
+                ]}
                 multiline
               />
             </View>

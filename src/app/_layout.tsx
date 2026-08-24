@@ -1,6 +1,16 @@
 import { Stack, type ErrorBoundaryProps } from "expo-router";
-import { ThemeProvider, DarkTheme, DefaultTheme } from "expo-router/react-navigation";
-import { useColorScheme, View, Text, StyleSheet, Pressable } from "react-native";
+import {
+  ThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+} from "expo-router/react-navigation";
+import {
+  useColorScheme,
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+} from "react-native";
 import { SQLiteProvider } from "expo-sqlite";
 import { Image } from "expo-image";
 import { initDatabase } from "@/db/database";
@@ -13,8 +23,16 @@ import { colors } from "@/theme/colors";
  */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return (
-    <View style={[styles.errorContainer, { backgroundColor: colors.systemBackground }]}>
-      <Image source="sf:exclamationmark.triangle.fill" style={styles.errorIcon} />
+    <View
+      style={[
+        styles.errorContainer,
+        { backgroundColor: colors.systemBackground },
+      ]}
+    >
+      <Image
+        source="sf:exclamationmark.triangle.fill"
+        style={styles.errorIcon}
+      />
       <Text style={[styles.errorTitle, { color: colors.label }]}>
         Something went wrong
       </Text>
@@ -38,7 +56,9 @@ export default function RootLayout() {
       useSuspense={false}
     >
       <AuthProvider>
-        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        >
           <Stack
             screenOptions={{
               contentStyle: { backgroundColor: "transparent" },

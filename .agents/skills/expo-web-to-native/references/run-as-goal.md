@@ -10,7 +10,7 @@ Harnesses with a goal/loop command (Claude Code `/goal`, Codex CLI, or any harne
 
 ## Mode B — the agent can't loop itself
 
-Write the filled-in objective to `migration-goal.md` in the project, then give the user the one-line instruction to launch it (e.g. *"run your agent's goal loop with the objective in `migration-goal.md`"*). The objective is plain text and portable, so the user runs it in whatever harness they have.
+Write the filled-in objective to `migration-goal.md` in the project, then give the user the one-line instruction to launch it (e.g. _"run your agent's goal loop with the objective in `migration-goal.md`"_). The objective is plain text and portable, so the user runs it in whatever harness they have.
 
 ## The objective (template)
 

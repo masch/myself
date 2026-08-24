@@ -44,8 +44,37 @@ export function useTasks() {
   }, [db, currentUser]);
 
   useEffect(() => {
-    refreshTasks();
-  }, [refreshTasks]);
+    let isMounted = true;
+
+    async function loadInitialTasks() {
+      if (!currentUser) {
+        if (isMounted) {
+          setTasks([]);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const data = await getTasksByUserId(db, currentUser.id);
+        if (isMounted) {
+          setTasks(data);
+        }
+      } catch (error) {
+        console.error("Failed to load user tasks:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadInitialTasks();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [db, currentUser]);
 
   const addTask = useCallback(
     async (input: CreateTaskInput) => {
@@ -58,11 +87,11 @@ export function useTasks() {
         currentUser.id,
         input.title,
         input.category ?? "General",
-        input.description ?? ""
+        input.description ?? "",
       );
       await refreshTasks();
     },
-    [db, currentUser, refreshTasks]
+    [db, currentUser, refreshTasks],
   );
 
   const toggleTask = useCallback(
@@ -70,7 +99,7 @@ export function useTasks() {
       await dbToggleTask(db, id, isDone);
       await refreshTasks();
     },
-    [db, refreshTasks]
+    [db, refreshTasks],
   );
 
   const deleteTask = useCallback(
@@ -78,7 +107,7 @@ export function useTasks() {
       await dbDeleteTask(db, id);
       await refreshTasks();
     },
-    [db, refreshTasks]
+    [db, refreshTasks],
   );
 
   return {

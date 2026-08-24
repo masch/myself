@@ -264,12 +264,12 @@ Keep UIKit `View`, `Prop`, view `Events`, and `OnViewDidUpdateProps` DSL entries
 
 Module lifecycle is core-owned rather than macro-generated. The DSL components map to hook methods with no-op defaults:
 
-| 1.0 | 2.0 |
-| --- | --- |
-| `OnCreate` | `didCreate()` |
-| `OnDestroy` | `willDestroy()` |
+| 1.0                | 2.0                         |
+| ------------------ | --------------------------- |
+| `OnCreate`         | `didCreate()`               |
+| `OnDestroy`        | `willDestroy()`             |
 | `OnStartObserving` | `didStartListening(event:)` |
-| `OnStopObserving` | `didStopListening(event:)` |
+| `OnStopObserving`  | `didStopListening(event:)`  |
 
 Rules:
 
@@ -295,12 +295,12 @@ Before deleting `definition()`, verify that it contains no:
 
 For every migrated member compare before and after:
 
-| Concern | Must remain stable |
-| --- | --- |
-| Module | registration name and `requireNativeModule` key |
-| Function | JS name, accepted arity, omitted/default behavior, sync/Promise result |
-| Property | JS name, read/write behavior, evaluation/caching |
-| Event | listener string, payload shape, timing |
-| Record | field names, requiredness, nullability, defaults |
-| Shared object | constructor shape, prototype vs constructor placement, identity |
-| Execution | JS actor, main actor, background queue, ordering |
+| Concern       | Must remain stable                                                     |
+| ------------- | ---------------------------------------------------------------------- |
+| Module        | registration name and `requireNativeModule` key                        |
+| Function      | JS name, accepted arity, omitted/default behavior, sync/Promise result |
+| Property      | JS name, read/write behavior, evaluation/caching                       |
+| Event         | listener string, payload shape, timing                                 |
+| Record        | field names, requiredness, nullability, defaults                       |
+| Shared object | constructor shape, prototype vs constructor placement, identity        |
+| Execution     | JS actor, main actor, background queue, ordering                       |

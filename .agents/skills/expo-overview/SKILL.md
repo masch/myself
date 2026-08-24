@@ -26,6 +26,7 @@ the filesystem but need different skills.
 Match the goal to a category, then the skill, then load that leaf's `SKILL.md`.
 
 **Build the app**
+
 - `expo-project-structure` — folder layout for a **new** Expo Router project: where screens, components, and config live (never restructure an existing app to match)
 - `expo-native-ui` — screens, styling, semantic colors, native controls, SF Symbols, media, animations, layout
 - `expo-router` — navigation: file-based routes, tabs / stacks / modals / sheets, links, headers
@@ -40,6 +41,7 @@ Match the goal to a category, then the skill, then load that leaf's `SKILL.md`.
 > **Component selection rule:** whenever you need a UI component (list rows, bottom sheets, pickers, sliders, menus, buttons, segmented controls, toggles), **consult `expo-ui` first** to check whether `@expo/ui` has a native equivalent before reaching for a React Native built-in or a community library. Native `@expo/ui` components give the best platform fit, and on SDK 56+ the universal ones run in Expo Go with no custom build. Load `expo-ui` alongside `expo-native-ui` for any app that renders lists, detail sheets, or form controls. One exception: `@expo/ui` `List` renders native grouped rows (an iOS Settings screen), **not** a virtualized list — use `FlatList` / `FlashList` for large datasets.
 
 **Ship & operate**
+
 - `eas-app-stores` — build and submit to the App Store / Play Store / TestFlight, versions, and store metadata
 - `eas-hosting` — deploy the web bundle to EAS Hosting; also author Expo Router API routes (`+api.ts` handlers) and their environments / domains
 - `eas-workflows` — EAS Workflow YAML and CI/CD pipelines
@@ -49,11 +51,13 @@ Match the goal to a category, then the skill, then load that leaf's `SKILL.md`.
 - `eas-observe` — startup / launch / TTI performance with EAS Observe
 
 **Extend natively**
+
 - `expo-module` — native modules and views (Swift / Kotlin) with the Expo Modules API
 - `expo-brownfield` — embed Expo / React Native in an existing native app
 - `expo-app-clip` — iOS App Clip target (AASA, smart app banner)
 
 **Maintain & learn**
+
 - `expo-upgrade` — upgrade the Expo SDK and fix dependency conflicts
 - `expo-examples` — canonical, version-matched integration examples (Stripe, Clerk, Supabase, …)
 - `expo-skill-feedback` — send feedback on an Expo skill or on Expo itself; enable / disable the anonymous usage telemetry
@@ -102,9 +106,12 @@ in each leaf.
   to the matching leaf skill.
 
 ## Submitting Feedback
+
 If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
+
 ```bash
 npx --yes submit-expo-feedback@latest --category skills --subject "expo-overview" "<actionable feedback>"
 ```
+
 Only submit when you have something specific and actionable to report. Include as much relevant context as possible.
 If an AI agent repeatedly failed or the user had to take over an Expo task, load the expo-skill-feedback skill and follow its eval-candidate flow instead of reusing the command above.

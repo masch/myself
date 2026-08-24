@@ -148,7 +148,7 @@ import {
 
 // CSS-enabled Link
 export const Link = (
-  props: React.ComponentProps<typeof RouterLink> & { className?: string }
+  props: React.ComponentProps<typeof RouterLink> & { className?: string },
 ) => {
   return useCssElement(RouterLink, props, { className: "style" });
 };
@@ -176,7 +176,7 @@ View.displayName = "CSS(View)";
 
 // Text
 export const Text = (
-  props: React.ComponentProps<typeof RNText> & { className?: string }
+  props: React.ComponentProps<typeof RNText> & { className?: string },
 ) => {
   return useCssElement(RNText, props, { className: "style" });
 };
@@ -187,7 +187,7 @@ export const ScrollView = (
   props: React.ComponentProps<typeof RNScrollView> & {
     className?: string;
     contentContainerClassName?: string;
-  }
+  },
 ) => {
   return useCssElement(RNScrollView, props, {
     className: "style",
@@ -198,7 +198,7 @@ ScrollView.displayName = "CSS(ScrollView)";
 
 // Pressable
 export const Pressable = (
-  props: React.ComponentProps<typeof RNPressable> & { className?: string }
+  props: React.ComponentProps<typeof RNPressable> & { className?: string },
 ) => {
   return useCssElement(RNPressable, props, { className: "style" });
 };
@@ -206,7 +206,7 @@ Pressable.displayName = "CSS(Pressable)";
 
 // TextInput
 export const TextInput = (
-  props: React.ComponentProps<typeof RNTextInput> & { className?: string }
+  props: React.ComponentProps<typeof RNTextInput> & { className?: string },
 ) => {
   return useCssElement(RNTextInput, props, { className: "style" });
 };
@@ -218,7 +218,7 @@ export const AnimatedScrollView = (
     className?: string;
     contentClassName?: string;
     contentContainerClassName?: string;
-  }
+  },
 ) => {
   return useCssElement(Animated.ScrollView, props, {
     className: "style",
@@ -229,7 +229,7 @@ export const AnimatedScrollView = (
 
 // TouchableHighlight with underlayColor extraction
 function XXTouchableHighlight(
-  props: React.ComponentProps<typeof RNTouchableHighlight>
+  props: React.ComponentProps<typeof RNTouchableHighlight>,
 ) {
   const { underlayColor, ...style } = StyleSheet.flatten(props.style) || {};
   return (
@@ -242,7 +242,7 @@ function XXTouchableHighlight(
 }
 
 export const TouchableHighlight = (
-  props: React.ComponentProps<typeof RNTouchableHighlight>
+  props: React.ComponentProps<typeof RNTouchableHighlight>,
 ) => {
   return useCssElement(XXTouchableHighlight, props, { className: "style" });
 };
@@ -282,7 +282,7 @@ function CSSImage(props: React.ComponentProps<typeof AnimatedExpoImage>) {
 }
 
 export const Image = (
-  props: React.ComponentProps<typeof CSSImage> & { className?: string }
+  props: React.ComponentProps<typeof CSSImage> & { className?: string },
 ) => {
   return useCssElement(CSSImage, props, { className: "style" });
 };
@@ -480,9 +480,12 @@ type Props = React.ComponentProps<typeof RNView> & { className?: string };
 ```
 
 ## Submitting Feedback
+
 If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
+
 ```bash
 npx --yes submit-expo-feedback@latest --category skills --subject "expo-tailwind-setup" "<actionable feedback>"
 ```
+
 Only submit when you have something specific and actionable to report. Include as much relevant context as possible.
 If an AI agent repeatedly failed or the user had to take over an Expo task, load the expo-skill-feedback skill and follow its eval-candidate flow instead of reusing the command above.

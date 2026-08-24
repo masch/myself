@@ -58,17 +58,17 @@ public final class DownloaderModule: Module {
 
 The observable contract to preserve:
 
-| Member | JS name | Contract |
-| --- | --- | --- |
-| Module | `Downloader` | `requireNativeModule("Downloader")` |
-| `clamp` | `clamp` | sync, 1 arg, returns number |
-| `volume` | `volume` | read/write number |
-| `buildInfo` | `buildInfo` | read-only constant |
-| `download` | `download` | async, 1 record arg, returns string |
-| `clearCache` | `clearCache` | async, no args, blocking work runs off the JS thread |
-| `onProgress` | `onProgress` | event, payload `{ percent }` |
-| observing hooks | n/a | progress updates start/stop with the listener count |
-| `DownloadOptions` | n/a | `url` required; `retries` default 3; `label` nullable |
+| Member            | JS name      | Contract                                              |
+| ----------------- | ------------ | ----------------------------------------------------- |
+| Module            | `Downloader` | `requireNativeModule("Downloader")`                   |
+| `clamp`           | `clamp`      | sync, 1 arg, returns number                           |
+| `volume`          | `volume`     | read/write number                                     |
+| `buildInfo`       | `buildInfo`  | read-only constant                                    |
+| `download`        | `download`   | async, 1 record arg, returns string                   |
+| `clearCache`      | `clearCache` | async, no args, blocking work runs off the JS thread  |
+| `onProgress`      | `onProgress` | event, payload `{ percent }`                          |
+| observing hooks   | n/a          | progress updates start/stop with the listener count   |
+| `DownloadOptions` | n/a          | `url` required; `retries` default 3; `label` nullable |
 
 ## Intermediate: mixed mode
 

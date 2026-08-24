@@ -246,7 +246,12 @@ Every design-system primitive defines, explicitly:
 
 ```tsx
 // components/button.tsx
-import { Pressable, ActivityIndicator, ViewStyle, StyleProp } from "react-native";
+import {
+  Pressable,
+  ActivityIndicator,
+  ViewStyle,
+  StyleProp,
+} from "react-native";
 import { colors, spacing, radius } from "@/theme";
 import { ThemedText } from "./themed-text";
 
@@ -297,7 +302,10 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={variants[variant].color as string} />
       ) : (
-        <ThemedText variant="headline" style={{ color: variants[variant].color }}>
+        <ThemedText
+          variant="headline"
+          style={{ color: variants[variant].color }}
+        >
           {title}
         </ThemedText>
       )}
@@ -308,7 +316,7 @@ export function Button({
 
 ### Composition over configuration
 
-When a component's props start describing *content* (`leftIcon`, `subtitle`, `footerText`, `badgeCount`), stop adding props and accept `children` instead. A `Card` that renders `children` with token padding outlives any `Card` with twelve content props. Reserve props for the contract above: variant, size, state, style.
+When a component's props start describing _content_ (`leftIcon`, `subtitle`, `footerText`, `badgeCount`), stop adding props and accept `children` instead. A `Card` that renders `children` with token padding outlives any `Card` with twelve content props. Reserve props for the contract above: variant, size, state, style.
 
 ### When to extract - and when not to
 
@@ -320,17 +328,17 @@ Promote a view into `src/components/` when **all** of these hold:
 
 Promotion path: inline JSX → component in `screens/<name>/` → `src/components/`. Move one step at a time, when the trigger fires - never speculatively. Wrong abstractions cost more than duplication; a second copy of a view is cheaper than a primitive with a bad API.
 
-Do **not** wrap platform components that already carry the design language (`Switch`, `DateTimePicker`, stack headers, `@expo/ui` views) just to route them through the system. Native styling *is* the design system for those.
+Do **not** wrap platform components that already carry the design language (`Switch`, `DateTimePicker`, stack headers, `@expo/ui` views) just to route them through the system. Native styling _is_ the design system for those.
 
 ## Where Decisions Live
 
-| Decision | Lives in | Example |
-|---|---|---|
-| A visual value used anywhere twice | `src/theme/` | brand accent, spacing step |
-| Structure + variants of a reused element | `src/components/` | Button, Card, EmptyState |
-| One screen's private composition | `screens/<name>/` | profile header layout |
-| One-off local adjustment | inline, with a comment | optical nudge on an icon |
-| Screen titles, top-level chrome | navigation stack options | header title, large title |
+| Decision                                 | Lives in                 | Example                    |
+| ---------------------------------------- | ------------------------ | -------------------------- |
+| A visual value used anywhere twice       | `src/theme/`             | brand accent, spacing step |
+| Structure + variants of a reused element | `src/components/`        | Button, Card, EmptyState   |
+| One screen's private composition         | `screens/<name>/`        | profile header layout      |
+| One-off local adjustment                 | inline, with a comment   | optical nudge on an icon   |
+| Screen titles, top-level chrome          | navigation stack options | header title, large title  |
 
 ## Self-Critique Pass
 
@@ -348,9 +356,12 @@ The pass is complete only when all four checks pass, or every failing value has 
 To measure drift in an app that already has screens - hardcoded hex values, arbitrary spacing, inconsistent component APIs - follow `./references/audit.md`. It contains grep-based checks, a scoring rubric, an incremental adoption order for fixing a drifted app, and templates for documenting existing components and proposing new ones.
 
 ## Submitting Feedback
+
 If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
+
 ```bash
 npx --yes submit-expo-feedback@latest --category skills --subject "expo-design-system" "<actionable feedback>"
 ```
+
 Only submit when you have something specific and actionable to report. Include as much relevant context as possible.
 If an AI agent repeatedly failed or the user had to take over an Expo task, load the expo-skill-feedback skill and follow its eval-candidate flow instead of reusing the command above.

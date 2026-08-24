@@ -8,11 +8,11 @@ EAS Observe collects app-startup performance metrics (cold launch, warm launch, 
 
 The library exports differ between SDK versions. Pick the right one for the project's SDK before copying any snippet below.
 
-| Concern | SDK 55 | SDK 56 and later |
-|---|---|---|
-| Root layout HOC | `AppMetricsRoot.wrap(...)` | `ObserveRoot.wrap(...)` |
+| Concern                 | SDK 55                                 | SDK 56 and later                                 |
+| ----------------------- | -------------------------------------- | ------------------------------------------------ |
+| Root layout HOC         | `AppMetricsRoot.wrap(...)`             | `ObserveRoot.wrap(...)`                          |
 | `markInteractive()` API | Global: `AppMetrics.markInteractive()` | Hook: `const { markInteractive } = useObserve()` |
-| Import source | `expo-observe` | `expo-observe` (same package) |
+| Import source           | `expo-observe`                         | `expo-observe` (same package)                    |
 
 Everything else — package name, build process, dashboard, debug-mode behavior — is the same across versions.
 
@@ -42,8 +42,8 @@ The HOC automatically measures **Time to First Render (TTR)**. Apply it to the f
 
 ```tsx
 // app/_layout.tsx
-import { Stack } from 'expo-router';
-import { AppMetricsRoot } from 'expo-observe';
+import { Stack } from "expo-router";
+import { AppMetricsRoot } from "expo-observe";
 
 function RootLayout() {
   return <Stack />;
@@ -56,8 +56,8 @@ export default AppMetricsRoot.wrap(RootLayout);
 
 ```tsx
 // app/_layout.tsx
-import { Stack } from 'expo-router';
-import { ObserveRoot } from 'expo-observe';
+import { Stack } from "expo-router";
+import { ObserveRoot } from "expo-observe";
 
 function RootLayout() {
   return <Stack />;
@@ -76,10 +76,10 @@ TTI is **not** collected automatically. Signal it once the screen is genuinely r
 
 ```tsx
 // app/_layout.tsx
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { AppMetrics, AppMetricsRoot } from 'expo-observe';
-import { useEffect, useState } from 'react';
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { AppMetrics, AppMetricsRoot } from "expo-observe";
+import { useEffect, useState } from "react";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -118,10 +118,10 @@ export default AppMetricsRoot.wrap(RootLayout);
 
 ```tsx
 // app/_layout.tsx
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { ObserveRoot, useObserve } from 'expo-observe';
-import { useEffect, useState } from 'react';
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { ObserveRoot, useObserve } from "expo-observe";
+import { useEffect, useState } from "react";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -171,8 +171,8 @@ export default ObserveRoot.wrap(RootLayout);
 // SDK 56+: const { markInteractive } = useObserve();
 // SDK 55:  AppMetrics.markInteractive({ ... })
 markInteractive({
-  routeName: '/feed',
-  params: { tenant: 'acme', cohort: 'beta', cacheHit: true },
+  routeName: "/feed",
+  params: { tenant: "acme", cohort: "beta", cacheHit: true },
 });
 ```
 
@@ -181,7 +181,7 @@ markInteractive({
 Instead of calling `markInteractive()` from an effect, render the marker component at the point the screen becomes interactive. It renders nothing and calls `markInteractive()` once on mount.
 
 ```tsx
-import { ObserveInteractiveMarker } from 'expo-observe';
+import { ObserveInteractiveMarker } from "expo-observe";
 
 function Feed({ items }) {
   if (!items) return <Spinner />;
@@ -227,10 +227,10 @@ Docs: https://docs.expo.dev/eas/observe/integrations/expo-router/
 
    ```tsx
    // app/_layout.tsx
-   import { Observe } from 'expo-observe';
+   import { Observe } from "expo-observe";
 
    Observe.configure({
-     integrations: { 'expo-router': true },
+     integrations: { "expo-router": true },
    });
    ```
 
@@ -263,10 +263,10 @@ Requires `@react-navigation/native` 7.0.0 or later. Same `useObserve()` screen u
 
    ```tsx
    // App.tsx
-   import { Observe } from 'expo-observe';
+   import { Observe } from "expo-observe";
 
    Observe.configure({
-     integrations: { 'react-navigation': true },
+     integrations: { "react-navigation": true },
    });
    ```
 
@@ -275,18 +275,25 @@ Requires `@react-navigation/native` 7.0.0 or later. Same `useObserve()` screen u
    **Dynamic configuration** — replace the top-level `<NavigationContainer>` with `<ObserveNavigationContainer>`. It is a drop-in replacement that accepts the same props and forwards the same ref. If you pass a `linking` config it is used to resolve a human-readable screen path; otherwise the metric falls back to `route.name`.
 
    ```tsx
-   import { ObserveNavigationContainer } from 'expo-observe/integrations/react-navigation';
+   import { ObserveNavigationContainer } from "expo-observe/integrations/react-navigation";
 
    export default function App() {
-     return <ObserveNavigationContainer>{/* navigators */}</ObserveNavigationContainer>;
+     return (
+       <ObserveNavigationContainer>
+         {/* navigators */}
+       </ObserveNavigationContainer>
+     );
    }
    ```
 
    **Static configuration** — `createStaticNavigation()` renders the container for you, so there is nothing to replace. Create the navigation ref yourself, pass it to both `<Navigation>` and `<ObserveNavigationProvider>`, and the provider records the same timings by listening through that ref.
 
    ```tsx
-   import { createStaticNavigation, useNavigationContainerRef } from '@react-navigation/native';
-   import { ObserveNavigationProvider } from 'expo-observe/integrations/react-navigation';
+   import {
+     createStaticNavigation,
+     useNavigationContainerRef,
+   } from "@react-navigation/native";
+   import { ObserveNavigationProvider } from "expo-observe/integrations/react-navigation";
 
    const Navigation = createStaticNavigation(RootStack);
 
@@ -311,13 +318,13 @@ In both integrations, `useObserve()` is safe to leave in place even when the int
 
 Navigation events carry these params in addition to any custom ones passed to `markInteractive`:
 
-| Param | Type | Notes |
-|---|---|---|
-| `routeName` | string | Route pattern (`/(tabs)/sessions/[sessionId]`) with Expo Router, route-name path (`/Tabs/Sessions`) with React Navigation. Never contains param values. |
-| `url` | string | Resolved pathname. Expo Router only. |
-| `routeParams` | object | Resolved route params, e.g. `{ sessionId: 'abc' }`. |
-| `isAppLaunch` | boolean | `cold_ttr` only. `true` when measured from process start rather than from a navigation action. |
-| `urlHidden` | boolean | Present as `true` when a filtered param caused `url` to be omitted. See below. |
+| Param         | Type    | Notes                                                                                                                                                   |
+| ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `routeName`   | string  | Route pattern (`/(tabs)/sessions/[sessionId]`) with Expo Router, route-name path (`/Tabs/Sessions`) with React Navigation. Never contains param values. |
+| `url`         | string  | Resolved pathname. Expo Router only.                                                                                                                    |
+| `routeParams` | object  | Resolved route params, e.g. `{ sessionId: 'abc' }`.                                                                                                     |
+| `isAppLaunch` | boolean | `cold_ttr` only. `true` when measured from process start rather than from a navigation action.                                                          |
+| `urlHidden`   | boolean | Present as `true` when a filtered param caused `url` to be omitted. See below.                                                                          |
 
 ### Filter sensitive params (SDK 57+)
 
@@ -326,7 +333,7 @@ By default the integrations export the resolved URL and every serializable route
 ```tsx
 Observe.configure({
   integrations: {
-    'expo-router': { filteredParams: ['userId', 'token'] },
+    "expo-router": { filteredParams: ["userId", "token"] },
     // or: 'react-navigation': { filteredParams: ['userId', 'token'] },
   },
 });
@@ -348,10 +355,10 @@ Beyond the automatic startup and navigation metrics, you can record your own nam
 > Source: https://docs.expo.dev/eas/observe/events/ — consult this page for the latest guidance.
 
 ```tsx
-import { Observe } from 'expo-observe';
+import { Observe } from "expo-observe";
 
 function handleOnboardingComplete() {
-  Observe.logEvent('onboarding.completed');
+  Observe.logEvent("onboarding.completed");
 }
 ```
 
@@ -359,23 +366,23 @@ function handleOnboardingComplete() {
 
 ### Parameters
 
-| Parameter | Type | Required | Notes |
-|---|---|---|---|
-| `name` | `string` | yes | Stable, dot-separated identifier, e.g. `'report.exported'`. |
-| `options.attributes` | `Record<string, string \| number \| boolean \| array \| nested object>` | no | Structured context attached to the event. Other JS values (`Date`, `undefined`, functions) are dropped. |
-| `options.body` | `string` | no | Free-form message complementing the structured attributes. |
-| `options.severity` | `'trace' \| 'debug' \| 'info' \| 'warn' \| 'error' \| 'fatal'` | no | Defaults to `'info'`. |
-| `options.displayName` | `string` | no | Human-friendly label, e.g. `'Onboarding completed'`. Used **only** in the dashboard's session timeline view; grouping still keys off `name`. |
+| Parameter             | Type                                                                    | Required | Notes                                                                                                                                        |
+| --------------------- | ----------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                | `string`                                                                | yes      | Stable, dot-separated identifier, e.g. `'report.exported'`.                                                                                  |
+| `options.attributes`  | `Record<string, string \| number \| boolean \| array \| nested object>` | no       | Structured context attached to the event. Other JS values (`Date`, `undefined`, functions) are dropped.                                      |
+| `options.body`        | `string`                                                                | no       | Free-form message complementing the structured attributes.                                                                                   |
+| `options.severity`    | `'trace' \| 'debug' \| 'info' \| 'warn' \| 'error' \| 'fatal'`          | no       | Defaults to `'info'`.                                                                                                                        |
+| `options.displayName` | `string`                                                                | no       | Human-friendly label, e.g. `'Onboarding completed'`. Used **only** in the dashboard's session timeline view; grouping still keys off `name`. |
 
 **Attributes** are the primary way to make an event queryable — attach the identifiers and measurements you'll want to filter or break down by:
 
 ```tsx
-Observe.logEvent('report.exported', {
+Observe.logEvent("report.exported", {
   attributes: {
-    format: 'csv',
+    format: "csv",
     rowCount: 1248,
     durationMs: 532,
-    filters: ['status:active', 'region:us-west'],
+    filters: ["status:active", "region:us-west"],
   },
 });
 ```
@@ -383,9 +390,9 @@ Observe.logEvent('report.exported', {
 **Severity and body** may be used for operational events you may want to triage by level:
 
 ```tsx
-Observe.logEvent('cache.evicted', {
-  body: 'Cache evicted because disk pressure exceeded the configured threshold.',
-  severity: 'warn',
+Observe.logEvent("cache.evicted", {
+  body: "Cache evicted because disk pressure exceeded the configured threshold.",
+  severity: "warn",
   attributes: { evictedItemCount: 42, freedBytes: 1048576 },
 });
 ```
@@ -414,10 +421,13 @@ User-defined events appear under the **Events** tab in the Observe dashboard, an
 **2. Render-phase errors — `<ObserveErrorBoundary>`.** Render errors never reach `ErrorUtils`, so a boundary is the only way to capture them with the React component stack. The boundary records the error and then renders `fallback` in place of the subtree.
 
 ```tsx
-import { ObserveErrorBoundary } from 'expo-observe';
+import { ObserveErrorBoundary } from "expo-observe";
 
 <ObserveErrorBoundary
-  fallback={({ error, resetError }) => <ErrorScreen error={error} onRetry={resetError} />}>
+  fallback={({ error, resetError }) => (
+    <ErrorScreen error={error} onRetry={resetError} />
+  )}
+>
   <Feed />
 </ObserveErrorBoundary>;
 ```
@@ -440,14 +450,14 @@ The value is normalized before it is sent: an `Error` contributes `name`, `messa
 
 `Observe.configure()` controls collection and dispatch. Call it at module scope, before mount. Integration flags in particular cannot be toggled at runtime.
 
-| Option | Type | Default | What it does |
-|---|---|---|---|
-| `environment` | string | `process.env.NODE_ENV`, falling back to `'production'` | Metadata tag used to group metrics; filterable in the dashboard. Does not gate dispatch. |
-| `dispatchingEnabled` | boolean | `true` | Master switch. While `false`, pending metrics are dropped, not queued. |
-| `dispatchInDebug` | boolean | `false` | Dispatch metrics collected from debug builds. No effect on release builds. |
-| `sampleRate` | number | `undefined` (all installations) | Fraction of installations that dispatch, in `[0, 1]`. |
-| `errorHandlingEnabled` | boolean | `true` | Record unhandled JS errors as `exception` events. |
-| `integrations` | object | `undefined` | Opt in to `expo-router`, `react-navigation`, or a third-party integration. |
+| Option                 | Type    | Default                                                | What it does                                                                             |
+| ---------------------- | ------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `environment`          | string  | `process.env.NODE_ENV`, falling back to `'production'` | Metadata tag used to group metrics; filterable in the dashboard. Does not gate dispatch. |
+| `dispatchingEnabled`   | boolean | `true`                                                 | Master switch. While `false`, pending metrics are dropped, not queued.                   |
+| `dispatchInDebug`      | boolean | `false`                                                | Dispatch metrics collected from debug builds. No effect on release builds.               |
+| `sampleRate`           | number  | `undefined` (all installations)                        | Fraction of installations that dispatch, in `[0, 1]`.                                    |
+| `errorHandlingEnabled` | boolean | `true`                                                 | Record unhandled JS errors as `exception` events.                                        |
+| `integrations`         | object  | `undefined`                                            | Opt in to `expo-router`, `react-navigation`, or a third-party integration.               |
 
 **Network request monitoring is automatic and has no off switch.** `expo-observe` observes `URLSession` traffic on iOS and `OkHttpClient` traffic on Android from launch, and attaches a rollup of the launch window to the TTI event — including the **host** of the slowest request (see [`./metrics.md`](./metrics.md)). Observe's own uploads are excluded. No `configure()` option disables it as of `expo-observe` 57.0.9, so treat request hosts as data that leaves the device.
 
@@ -458,7 +468,13 @@ The value is normalized before it is sent: an `Error` contributes `name`, `messa
 **Custom endpoint.** EAS Observe sends OTLP over HTTP with a JSON payload, posting to `<endpointUrl>/<project-id>/v1/metrics` and `<endpointUrl>/<project-id>/v1/logs`. Point it at any OpenTelemetry-compatible backend or collector through the **app config**, not `configure()`:
 
 ```json
-{ "expo": { "extra": { "eas": { "observe": { "endpointUrl": "https://your-endpoint.com" } } } } }
+{
+  "expo": {
+    "extra": {
+      "eas": { "observe": { "endpointUrl": "https://your-endpoint.com" } }
+    }
+  }
+}
 ```
 
 The URL is baked into the native layer at build time, so run `npx expo prebuild` and rebuild after changing it. If the backend expects standard OTLP paths without the project-ID prefix, route through a collector.

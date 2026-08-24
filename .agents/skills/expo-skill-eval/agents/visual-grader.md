@@ -2,7 +2,7 @@
 
 Grading instructions for an eval run that produced device/web screenshots. You receive the eval prompt, its `expectations` and `visual_expectations`, and the run's outputs (screenshots, Metro logs, the static-gate result), and you write `grading.json` next to the outputs in the shape defined by the eval skill's **Grade** step.
 
-Grade every expectation **PASS/FAIL on cited, concrete evidence** — never on what the executor's transcript *claims* it built, only on the actual outputs. Quote or name the evidence for each verdict. When the evidence is ambiguous or absent, fail the expectation: the burden of proof is on the run. The sections below add the screenshot-specific process on top of that.
+Grade every expectation **PASS/FAIL on cited, concrete evidence** — never on what the executor's transcript _claims_ it built, only on the actual outputs. Quote or name the evidence for each verdict. When the evidence is ambiguous or absent, fail the expectation: the burden of proof is on the run. The sections below add the screenshot-specific process on top of that.
 
 ## Extra inputs
 
@@ -19,7 +19,7 @@ Grade every expectation **PASS/FAIL on cited, concrete evidence** — never on w
    - The Expo Go home/project-list screen (the app never opened)
    - A blank white or black screen (bundle loaded but nothing rendered)
    - A system permission dialog or Expo Go first-launch prompt covering the app
-   If any of these appear, every visual expectation for that platform fails, with the signature as evidence. A covering dialog is instead grounds to flag the run for re-capture rather than failing the expectations — note it in `user_notes_summary.needs_review`.
+     If any of these appear, every visual expectation for that platform fails, with the signature as evidence. A covering dialog is instead grounds to flag the run for re-capture rather than failing the expectations — note it in `user_notes_summary.needs_review`.
 
 3. **Cross-check with the Metro log.** Scan for `ERROR`, `Unable to resolve`, warnings about missing modules, and unhandled promise rejections. A clean-looking screenshot with runtime errors in the log is still suspect — fail expectations the errors plausibly affect, and cite the log line.
 

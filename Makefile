@@ -1,3 +1,8 @@
+# Dependencies
+.PHONY: install
+install:
+	bun install --frozen-lockfile
+
 # Start Expo dev server normally
 .PHONY: start
 start:
@@ -51,3 +56,19 @@ lint:
 .PHONY: typecheck
 typecheck:
 	bunx tsc --noEmit
+
+.PHONY: format
+format:
+	bunx prettier --write .
+
+.PHONY: check
+check: lint typecheck
+
+# Build & Export
+.PHONY: export-web
+export-web:
+	bunx expo export --platform web
+
+# Complete CI validation pipeline
+.PHONY: ci
+ci: install check export-web

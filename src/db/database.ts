@@ -49,10 +49,14 @@ export async function initDatabase(db: SQLiteDatabase) {
 
   // Migration: Check if user_id column exists from an older database version
   try {
-    const columns = await db.getAllAsync<{ name: string }>("PRAGMA table_info(tasks)");
+    const columns = await db.getAllAsync<{ name: string }>(
+      "PRAGMA table_info(tasks)",
+    );
     const hasUserId = columns.some((col) => col.name === "user_id");
     if (!hasUserId) {
-      await db.execAsync("ALTER TABLE tasks ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1");
+      await db.execAsync(
+        "ALTER TABLE tasks ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1",
+      );
     }
   } catch (error) {
     console.warn("Migration check error:", error);
@@ -72,7 +76,7 @@ export async function getUsers(db: SQLiteDatabase): Promise<User[]> {
 
 export async function getUserById(
   db: SQLiteDatabase,
-  id: number
+  id: number,
 ): Promise<User | null> {
   return await db.getFirstAsync<User>("SELECT * FROM users WHERE id = ?", [id]);
 }
@@ -80,11 +84,11 @@ export async function getUserById(
 export async function createUser(
   db: SQLiteDatabase,
   name: string,
-  email: string
+  email: string,
 ): Promise<number> {
   const result = await db.runAsync(
     "INSERT INTO users (name, email) VALUES (?, ?)",
-    [name, email]
+    [name, email],
   );
   return result.lastInsertRowId;
 }
@@ -95,11 +99,11 @@ export async function createUser(
 
 export async function getTasksByUserId(
   db: SQLiteDatabase,
-  userId: number
+  userId: number,
 ): Promise<TaskItem[]> {
   return await db.getAllAsync<TaskItem>(
     "SELECT * FROM tasks WHERE user_id = ? ORDER BY is_done ASC, id DESC",
-    [userId]
+    [userId],
   );
 }
 
@@ -108,11 +112,11 @@ export async function addTask(
   userId: number,
   title: string,
   category: string = "General",
-  description: string = ""
+  description: string = "",
 ): Promise<number> {
   const result = await db.runAsync(
     "INSERT INTO tasks (user_id, title, category, description, is_done) VALUES (?, ?, ?, ?, 0)",
-    [userId, title, category, description]
+    [userId, title, category, description],
   );
   return result.lastInsertRowId;
 }
@@ -120,7 +124,7 @@ export async function addTask(
 export async function toggleTask(
   db: SQLiteDatabase,
   id: number,
-  isDone: boolean
+  isDone: boolean,
 ): Promise<void> {
   await db.runAsync("UPDATE tasks SET is_done = ? WHERE id = ?", [
     isDone ? 1 : 0,
@@ -130,7 +134,7 @@ export async function toggleTask(
 
 export async function deleteTask(
   db: SQLiteDatabase,
-  id: number
+  id: number,
 ): Promise<void> {
   await db.runAsync("DELETE FROM tasks WHERE id = ?", [id]);
 }

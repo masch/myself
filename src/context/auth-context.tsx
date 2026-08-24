@@ -7,12 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { useSQLiteContext } from "expo-sqlite";
-import {
-  getUsers,
-  getUserById,
-  createUser,
-  type User,
-} from "@/db/database";
+import { getUsers, getUserById, createUser, type User } from "@/db/database";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -36,7 +31,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const allUsers = await getUsers(db);
       setUsers(allUsers);
       if (allUsers.length > 0) {
-        // Default to first user if none selected
         setCurrentUser((prev) => prev ?? allUsers[0]);
       }
     } catch (error) {
@@ -47,8 +41,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [db]);
 
   useEffect(() => {
-    loadAuth();
-  }, [loadAuth]);
+    let isMounted = true;
+
+    async function fetchInitialUsers() {
+      try {
+        const allUsers = await getUsers(db);
+        if (isMounted) {
+          setUsers(allUsers);
+          if (allUsers.length > 0) {
+            setCurrentUser((prev) => prev ?? allUsers[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load auth users:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoadingAuth(false);
+        }
+      }
+    }
+
+    fetchInitialUsers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [db]);
 
   const switchUser = async (id: number) => {
     const user = await getUserById(db, id);

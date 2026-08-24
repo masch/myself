@@ -32,18 +32,18 @@ Use compile errors and symbol call sites to confirm signatures. The macros plugi
 
 Treat these as independent capabilities:
 
-| Capability | Evidence required before migration |
-| --- | --- |
-| Module functions/properties | `@ExpoModule`/`@JS`, generated `_decorateModule`, and the core call site |
-| Module name | generated `_jsName` and core registration/name lookup that reads it |
-| Records | `@Record`, coding conformance/assertions, and field decode/encode support |
-| Async events | `@Event`, `EventEmitter`, and `BaseModule`/`SharedObject` conformance |
-| Shared-object instances | `_decorateSharedObject`, construction hook, and core invocation |
-| Shared-object static functions | constructor object passed to decoration and static function routing |
-| Synchronous events | `@Event(sync:)` plus core `emitSync` overloads |
-| Task-returning functions | `JavaScriptEncodable` conformance for `Task` in core (encode-only) |
-| Views | `@ViewProps`/`@ExpoView` plus the complete typed props update and event runtime |
-| Module lifecycle methods | `AnyModule` requirements/base implementations and holder call sites |
+| Capability                     | Evidence required before migration                                              |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| Module functions/properties    | `@ExpoModule`/`@JS`, generated `_decorateModule`, and the core call site        |
+| Module name                    | generated `_jsName` and core registration/name lookup that reads it             |
+| Records                        | `@Record`, coding conformance/assertions, and field decode/encode support       |
+| Async events                   | `@Event`, `EventEmitter`, and `BaseModule`/`SharedObject` conformance           |
+| Shared-object instances        | `_decorateSharedObject`, construction hook, and core invocation                 |
+| Shared-object static functions | constructor object passed to decoration and static function routing             |
+| Synchronous events             | `@Event(sync:)` plus core `emitSync` overloads                                  |
+| Task-returning functions       | `JavaScriptEncodable` conformance for `Task` in core (encode-only)              |
+| Views                          | `@ViewProps`/`@ExpoView` plus the complete typed props update and event runtime |
+| Module lifecycle methods       | `AnyModule` requirements/base implementations and holder call sites             |
 
 If any required evidence is absent, keep that item in the 1.0 DSL.
 

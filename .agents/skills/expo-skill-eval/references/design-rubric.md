@@ -1,11 +1,11 @@
 # Design-quality rubric
 
-Applied by the grader when scoring an app's visual quality — primarily for **image-prompt cases** (`reference_image`), and any time a quality grade is requested — on top of the pass/fail expectations, not instead of them. It answers "how *good* is this app?", scored from the captured screenshots and the implementation diff. Combine it with the failure-signature checks in `agents/visual-grader.md`: a redbox, blank screen, or wrong-screen capture caps every visual dimension at 0 for that platform regardless of intent.
+Applied by the grader when scoring an app's visual quality — primarily for **image-prompt cases** (`reference_image`), and any time a quality grade is requested — on top of the pass/fail expectations, not instead of them. It answers "how _good_ is this app?", scored from the captured screenshots and the implementation diff. Combine it with the failure-signature checks in `agents/visual-grader.md`: a redbox, blank screen, or wrong-screen capture caps every visual dimension at 0 for that platform regardless of intent.
 
 ## How to score
 
-- **Judge visuals only from the pixels.** Read every screenshot with the Read tool; never infer a visual score from the transcript or from what the code *intended* to render.
-- **Grade per platform, then take the worst.** If the case ran ios + android, a dimension's score is the lower of the two — unless the gap is a legitimate platform difference (see *Platform conventions*).
+- **Judge visuals only from the pixels.** Read every screenshot with the Read tool; never infer a visual score from the transcript or from what the code _intended_ to render.
+- **Grade per platform, then take the worst.** If the case ran ios + android, a dimension's score is the lower of the two — unless the gap is a legitimate platform difference (see _Platform conventions_).
 - Each dimension is **0–3**. The seven visual dimensions sum to a max of 21; with the code-quality dimension (also 0–3) the built-in rubric max is **24**.
 - If a config/platform screenshot is **missing**, score only the platforms present, note the gap, and do **not** penalize for the absence.
 - Cite concrete evidence per dimension, naming the file: e.g. `ios.png: 16px gutters, consistent 12px row spacing, large-title nav bar`.
@@ -27,7 +27,7 @@ Applied by the grader when scoring an app's visual quality — primarily for **i
    - **iOS** — large titles / nav bars, grouped/inset lists, SF-style controls, standard tab bars, system spacing.
    - **Android** — Material surfaces, app bar, FAB where appropriate, ripple/elevation cues, Material controls.
    - **web** — sensible responsive layout, real cursor/hover affordances, no mobile-only chrome stranded on a wide canvas.
-   A genuine platform difference (status bar, system fonts, control styling, safe areas) is **not** a defect; shipping an iOS-only pattern verbatim on Android **is**.
+     A genuine platform difference (status bar, system fonts, control styling, safe areas) is **not** a defect; shipping an iOS-only pattern verbatim on Android **is**.
 6. **Polish & states** — pixel alignment, crisp icons/images at the correct density, no stray debug text or placeholder lorem, sensible empty/loading states where the screen implies them.
 7. **Visual accessibility** — tap targets look ≥44pt, text isn't clipped at default scale, contrast meets a rough WCAG-AA bar, interactive elements are visually distinguishable from static content.
 

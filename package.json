@@ -30,7 +30,10 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "eslint": "^9.20.0",
+    "eslint-config-expo": "^57.0.1",
     "expo-mcp": "~0.2.1",
+    "prettier": "^3.9.6",
     "typescript": "~6.0.3"
   },
   "scripts": {

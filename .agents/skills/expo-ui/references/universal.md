@@ -9,26 +9,26 @@ Universal components are a single-API layer over the platform-native UI toolkits
 Import everything, including `Host`, from the package root (`@expo/ui`). Every tree must be wrapped in `Host`.
 
 ```tsx
-import { Host, Column, Button, Text } from '@expo/ui';
+import { Host, Column, Button, Text } from "@expo/ui";
 
 <Host matchContents>
   <Column>
     <Text>Hello</Text>
-    <Button onPress={() => alert('Pressed!')}>Press me</Button>
+    <Button onPress={() => alert("Pressed!")}>Press me</Button>
   </Column>
 </Host>;
 ```
 
 ## Components
 
-| Category | Components |
-|----------|------------|
-| Container | `Host` (required root wrapper) |
-| Layout | `Column`, `Row`, `Spacer`, `ScrollView` |
-| Display | `Text`, `Icon` |
-| Controls | `Button`, `Switch`, `Checkbox`, `Slider`, `TextInput`, `Picker` |
-| Disclosure & presentation | `BottomSheet`, `Collapsible` |
-| Collections & forms | `List` (with `ListItem`), `FieldGroup` |
+| Category                  | Components                                                      |
+| ------------------------- | --------------------------------------------------------------- |
+| Container                 | `Host` (required root wrapper)                                  |
+| Layout                    | `Column`, `Row`, `Spacer`, `ScrollView`                         |
+| Display                   | `Text`, `Icon`                                                  |
+| Controls                  | `Button`, `Switch`, `Checkbox`, `Slider`, `TextInput`, `Picker` |
+| Disclosure & presentation | `BottomSheet`, `Collapsible`                                    |
+| Collections & forms       | `List` (with `ListItem`), `FieldGroup`                          |
 
 > **`List` is not suitable for large lists.** Each `ListItem` is a JSX node processed on the JS thread — for large datasets this causes noticeable slowdowns.
 
@@ -39,21 +39,28 @@ import { Host, Column, Button, Text } from '@expo/ui';
 Requires `react-native-worklets`. Without it the worklet directive has no effect and flickering remains.
 
 ```tsx
-import { Host, TextInput, useNativeState } from '@expo/ui';
-import { useCallback } from 'react';
+import { Host, TextInput, useNativeState } from "@expo/ui";
+import { useCallback } from "react";
 
 export default function MyInput() {
-  const text = useNativeState('');
+  const text = useNativeState("");
 
-  const handleChangeText = useCallback((value: string) => {
-    'worklet';
-    // transform synchronously on the UI thread — no React re-render
-    text.value = value === 'Hello' ? 'World' : value;
-  }, [text]);
+  const handleChangeText = useCallback(
+    (value: string) => {
+      "worklet";
+      // transform synchronously on the UI thread — no React re-render
+      text.value = value === "Hello" ? "World" : value;
+    },
+    [text],
+  );
 
   return (
     <Host matchContents>
-      <TextInput value={text} onChangeText={handleChangeText} placeholder="Type here" />
+      <TextInput
+        value={text}
+        onChangeText={handleChangeText}
+        placeholder="Type here"
+      />
     </Host>
   );
 }
@@ -66,8 +73,8 @@ Docs — https://docs.expo.dev/versions/latest/sdk/ui/universal/textinput/index.
 `BottomSheet` is a universal slide-up sheet. Control it with `isPresented` / `onDismiss` — **not** `isOpen`, `isOpened`, `onIsOpenedChange`, or `onChange` (those belong to other sheet APIs; the universal `BottomSheet` does not accept them). `snapPoints` is optional and accepts `'half'`, `'full'`, `{ fraction }`, or `{ height }`; when omitted the sheet auto-sizes to its content.
 
 ```tsx
-import { Host, BottomSheet, Column, Button, Text } from '@expo/ui';
-import { useState } from 'react';
+import { Host, BottomSheet, Column, Button, Text } from "@expo/ui";
+import { useState } from "react";
 
 export default function MapScreen() {
   const [isOpen, setIsOpen] = useState(false);
@@ -78,7 +85,7 @@ export default function MapScreen() {
       <BottomSheet
         isPresented={isOpen}
         onDismiss={() => setIsOpen(false)}
-        snapPoints={['half', 'full']}
+        snapPoints={["half", "full"]}
       >
         <Column>
           <Text>Sheet content</Text>

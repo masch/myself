@@ -313,7 +313,7 @@ API routes run on Cloudflare Workers. Key limitations:
 // Use Web Crypto instead of Node crypto
 const hash = await crypto.subtle.digest(
   "SHA-256",
-  new TextEncoder().encode("data")
+  new TextEncoder().encode("data"),
 );
 
 // Use fetch instead of node-fetch
@@ -405,7 +405,7 @@ export async function GET(request: Request) {
   const city = url.searchParams.get("city");
 
   const response = await fetch(
-    `https://api.weather.com/v1/current?city=${city}&key=${process.env.WEATHER_API_KEY}`
+    `https://api.weather.com/v1/current?city=${city}&key=${process.env.WEATHER_API_KEY}`,
   );
 
   return Response.json(await response.json());
@@ -423,9 +423,12 @@ export async function GET(request: Request) {
 - Log errors server-side for debugging
 
 ## Submitting Feedback
+
 If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
+
 ```bash
 npx --yes submit-expo-feedback@latest --category skills --subject "eas-hosting" "<actionable feedback>"
 ```
+
 Only submit when you have something specific and actionable to report. Include as much relevant context as possible.
 If an AI agent repeatedly failed or the user had to take over an Expo task, load the expo-skill-feedback skill and follow its eval-candidate flow instead of reusing the command above.

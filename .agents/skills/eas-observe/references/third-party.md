@@ -37,10 +37,10 @@ Load it with `require()` inside `try/catch`, and type it with `typeof import()` 
 
 ```ts
 // observe.ts
-let observeModule: typeof import('expo-observe') | undefined;
+let observeModule: typeof import("expo-observe") | undefined;
 
 try {
-  observeModule = require('expo-observe') as typeof import('expo-observe');
+  observeModule = require("expo-observe") as typeof import("expo-observe");
 } catch {
   // The integration stays disabled when expo-observe is not installed.
 }
@@ -56,9 +56,9 @@ export type YourPackageIntegrationConfig = {
   thresholdMs?: number;
 };
 
-declare module 'expo-observe' {
+declare module "expo-observe" {
   interface ObserveIntegrationsConfig {
-    'your-package'?: boolean | YourPackageIntegrationConfig;
+    "your-package"?: boolean | YourPackageIntegrationConfig;
   }
 }
 ```
@@ -68,7 +68,7 @@ Export this declaration from the package entry point so TypeScript loads it when
 ```tsx
 Observe.configure({
   integrations: {
-    'your-package': true,
+    "your-package": true,
     // or, with options:
     // 'your-package': { thresholdMs: 1500 },
   },
@@ -83,10 +83,10 @@ Observe.configure({
 // observe.ts
 export function initObserveIntegration() {
   // The `typeof window` check skips initialization during server-side rendering on web.
-  if (typeof window !== 'undefined' && observeModule) {
+  if (typeof window !== "undefined" && observeModule) {
     const { Observe } = observeModule;
 
-    Observe.registerIntegration('your-package', config => {
+    Observe.registerIntegration("your-package", (config) => {
       if (config) {
         enableObserveIntegration(config === true ? {} : config);
       }
@@ -99,9 +99,9 @@ Call the initializer from the package entry point:
 
 ```ts
 // index.ts
-import { initObserveIntegration } from './observe';
+import { initObserveIntegration } from "./observe";
 
-export type { YourPackageIntegrationConfig } from './observe.types';
+export type { YourPackageIntegrationConfig } from "./observe.types";
 
 initObserveIntegration();
 ```
@@ -120,9 +120,9 @@ export function logExpensiveOperation(durationMs: number, thresholdMs: number) {
 
   const { Observe } = observeModule;
 
-  Observe.logEvent('your-package.expensive-operation', {
-    severity: 'warn',
-    body: 'Reduce the work performed by this operation or increase the configured threshold.',
+  Observe.logEvent("your-package.expensive-operation", {
+    severity: "warn",
+    body: "Reduce the work performed by this operation or increase the configured threshold.",
     attributes: { durationMs, thresholdMs },
   });
 }

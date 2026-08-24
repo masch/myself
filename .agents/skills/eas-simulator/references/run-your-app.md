@@ -65,7 +65,7 @@ The `install` here **uploads** the (~90MB) `.app` to the remote daemon over the 
 
 ## Mode B — EAS build (the VM downloads it; no credentials)
 
-**Explicit-only** (see the SKILL.md mode picker): a *static* EAS artifact for CI/sharing, or when the user names an existing EAS build. For no-Mac **live** iteration use Mode C with an EAS dev-client build (see Mode C below), not this. **Simulator builds are unsigned, so EAS asks for no credentials.**
+**Explicit-only** (see the SKILL.md mode picker): a _static_ EAS artifact for CI/sharing, or when the user names an existing EAS build. For no-Mac **live** iteration use Mode C with an EAS dev-client build (see Mode C below), not this. **Simulator builds are unsigned, so EAS asks for no credentials.**
 
 ⚠️ **Check for an existing build first.** Before triggering a new build, check if a fingerprint-matched one already exists — it saves ~15-20 min:
 
@@ -186,5 +186,6 @@ npx --yes eas-cli@latest simulator:stop          # omit --id → stops the doten
 ```
 
 Notes:
+
 - The launcher's auto-discovery only scans the LAN, so a remote Metro must be entered via "Enter URL manually" — that's why this is the connect step.
 - **This "Enter URL manually" + public tunnel URL flow is the ONLY connect path.** If it fails, don't switch mechanisms or reconnect in a loop — reset to baseline and redo Mode C once (SKILL.md principle 1). (`agent-device`'s `metro prepare --proxy-base-url` bridge exists but is not part of this loop.)

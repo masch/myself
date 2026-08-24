@@ -96,7 +96,9 @@ export const SEED_DATA: SeedUser[] = [
  * Seeds the database with the explicit SEED_DATA if no users exist.
  */
 export async function seedDatabase(db: SQLiteDatabase) {
-  const existingUsers = await db.getAllAsync<User>("SELECT * FROM users LIMIT 1");
+  const existingUsers = await db.getAllAsync<User>(
+    "SELECT * FROM users LIMIT 1",
+  );
 
   if (existingUsers.length > 0) {
     return;
@@ -105,14 +107,14 @@ export async function seedDatabase(db: SQLiteDatabase) {
   for (const user of SEED_DATA) {
     const userInsertResult = await db.runAsync(
       "INSERT INTO users (name, email) VALUES (?, ?)",
-      [user.name, user.email]
+      [user.name, user.email],
     );
     const userId = userInsertResult.lastInsertRowId;
 
     for (const task of user.tasks) {
       await db.runAsync(
         "INSERT INTO tasks (user_id, title, category, description, is_done) VALUES (?, ?, ?, ?, ?)",
-        [userId, task.title, task.category, task.description, task.is_done]
+        [userId, task.title, task.category, task.description, task.is_done],
       );
     }
   }

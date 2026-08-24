@@ -15,12 +15,19 @@ import { type TaskItem } from "@/db/database";
 import { colors } from "@/theme/colors";
 
 export default function HomeScreen() {
-  const { currentUser, tasks, isLoading, refreshTasks, toggleTask, deleteTask } = useTasks();
+  const {
+    currentUser,
+    tasks,
+    isLoading,
+    refreshTasks,
+    toggleTask,
+    deleteTask,
+  } = useTasks();
 
   useFocusEffect(
     useCallback(() => {
       refreshTasks();
-    }, [refreshTasks])
+    }, [refreshTasks]),
   );
 
   const handleToggle = (task: TaskItem) => {
@@ -28,14 +35,18 @@ export default function HomeScreen() {
   };
 
   const handleDelete = (task: TaskItem) => {
-    Alert.alert("Delete Task", `Are you sure you want to delete "${task.title}"?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => deleteTask(task.id),
-      },
-    ]);
+    Alert.alert(
+      "Delete Task",
+      `Are you sure you want to delete "${task.title}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteTask(task.id),
+        },
+      ],
+    );
   };
 
   const pendingTasks = tasks.filter((t) => !t.is_done);
@@ -70,12 +81,17 @@ export default function HomeScreen() {
         ]}
       >
         <View style={styles.userHeaderRow}>
-          <Image source="sf:person.crop.circle.fill" style={styles.userAvatarIcon} />
+          <Image
+            source="sf:person.crop.circle.fill"
+            style={styles.userAvatarIcon}
+          />
           <View>
             <Text style={[styles.userNameText, { color: colors.label }]}>
               {currentUser?.name ?? "Alex Developer"}
             </Text>
-            <Text style={[styles.userEmailText, { color: colors.secondaryLabel }]}>
+            <Text
+              style={[styles.userEmailText, { color: colors.secondaryLabel }]}
+            >
               {currentUser?.email ?? "alex.developer@example.com"}
             </Text>
           </View>
@@ -117,24 +133,14 @@ export default function HomeScreen() {
               {pendingTasks.map((task) => (
                 <ListItem
                   key={task.id}
-                  leading={
-                    <Image
-                      source="sf:circle"
-                      style={styles.iconBlue}
-                    />
-                  }
+                  leading={<Image source="sf:circle" style={styles.iconBlue} />}
                   supportingText={
-                    task.category + (task.description ? ` • ${task.description}` : "")
+                    task.category +
+                    (task.description ? ` • ${task.description}` : "")
                   }
                   trailing={
-                    <Pressable
-                      onPress={() => handleDelete(task)}
-                      hitSlop={8}
-                    >
-                      <Image
-                        source="sf:trash"
-                        style={styles.iconTrash}
-                      />
+                    <Pressable onPress={() => handleDelete(task)} hitSlop={8}>
+                      <Image source="sf:trash" style={styles.iconTrash} />
                     </Pressable>
                   }
                   onPress={() => handleToggle(task)}
@@ -158,14 +164,8 @@ export default function HomeScreen() {
                   }
                   supportingText={task.category}
                   trailing={
-                    <Pressable
-                      onPress={() => handleDelete(task)}
-                      hitSlop={8}
-                    >
-                      <Image
-                        source="sf:trash"
-                        style={styles.iconTrash}
-                      />
+                    <Pressable onPress={() => handleDelete(task)} hitSlop={8}>
+                      <Image source="sf:trash" style={styles.iconTrash} />
                     </Pressable>
                   }
                   onPress={() => handleToggle(task)}
@@ -180,9 +180,12 @@ export default function HomeScreen() {
             <FieldGroup.Section title="Tasks">
               <ListItem
                 leading={<Image source="sf:tray" style={styles.iconGray} />}
-                trailing={<Text style={{ color: colors.secondaryLabel }}>Empty</Text>}
+                trailing={
+                  <Text style={{ color: colors.secondaryLabel }}>Empty</Text>
+                }
               >
-                No tasks found for this user. Tap "New Task" to create one.
+                No tasks found for this user. Tap &apos;New Task&apos; to create
+                one.
               </ListItem>
             </FieldGroup.Section>
           )}

@@ -24,24 +24,24 @@ Every `@expo/ui` tree — universal or platform-specific — must be wrapped in 
 
 **Before using Reanimated, `@gorhom/bottom-sheet`, React Native's built-in `Switch`/`Picker`, or any community UI library for the items below, use `@expo/ui` instead.** Only fall back to RN built-ins when `@expo/ui` is missing the component.
 
-| Need | Use |
-|------|-----|
-| Slide-up sheet / bottom sheet | `BottomSheet` from `@expo/ui` — **not** Reanimated or `@gorhom/bottom-sheet` |
-| Grouped native list rows (settings/form-style) | `List` + `ListItem` from `@expo/ui` — **not** `FlatList` (see note below) |
-| Toggle | `Switch` from `@expo/ui` |
-| Slider | `Slider` from `@expo/ui` |
-| Date/time picker | `@expo/ui/community/datetimepicker` |
-| Menu | `Menu` from `@expo/ui` |
-| Form section with label | `FieldGroup` from `@expo/ui` |
-| Collapsible section | `Collapsible` from `@expo/ui` |
+| Need                                           | Use                                                                          |
+| ---------------------------------------------- | ---------------------------------------------------------------------------- |
+| Slide-up sheet / bottom sheet                  | `BottomSheet` from `@expo/ui` — **not** Reanimated or `@gorhom/bottom-sheet` |
+| Grouped native list rows (settings/form-style) | `List` + `ListItem` from `@expo/ui` — **not** `FlatList` (see note below)    |
+| Toggle                                         | `Switch` from `@expo/ui`                                                     |
+| Slider                                         | `Slider` from `@expo/ui`                                                     |
+| Date/time picker                               | `@expo/ui/community/datetimepicker`                                          |
+| Menu                                           | `Menu` from `@expo/ui`                                                       |
+| Form section with label                        | `FieldGroup` from `@expo/ui`                                                 |
+| Collapsible section                            | `Collapsible` from `@expo/ui`                                                |
 
 > **`List` is NOT a virtualized scrolling list.** It renders native grouped table rows — the visual look of an iOS Settings screen or a form section, with disclosure indicators and native row styling. Each `ListItem` is a native node on the JS thread; rows are not recycled. For any list with large or unknown-length data (feeds, search results, catalogs), use **`FlatList`** or **`FlashList`** instead. `List` is the right choice for short, fixed-length groups: a settings screen, a detail panel's rows, a fixed menu.
 
 **`BottomSheet` example** (use this for map pin details, action sheets, detail panels — not Reanimated):
 
 ```tsx
-import { Host, BottomSheet, Column, Text } from '@expo/ui';
-import { useState } from 'react';
+import { Host, BottomSheet, Column, Text } from "@expo/ui";
+import { useState } from "react";
 
 export default function MapScreen() {
   const [isOpen, setIsOpen] = useState(false);
@@ -53,7 +53,7 @@ export default function MapScreen() {
         <BottomSheet
           isPresented={isOpen}
           onDismiss={() => setIsOpen(false)}
-          snapPoints={['half', 'full']}
+          snapPoints={["half", "full"]}
         >
           <Column>
             <Text>Café name</Text>
@@ -93,9 +93,12 @@ references/
 ```
 
 ## Submitting Feedback
+
 If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
+
 ```bash
 npx --yes submit-expo-feedback@latest --category skills --subject "expo-ui" "<actionable feedback>"
 ```
+
 Only submit when you have something specific and actionable to report. Include as much relevant context as possible.
 If an AI agent repeatedly failed or the user had to take over an Expo task, load the expo-skill-feedback skill and follow its eval-candidate flow instead of reusing the command above.

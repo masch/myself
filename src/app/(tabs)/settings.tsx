@@ -50,7 +50,9 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.systemBackground }]}>
+    <View
+      style={[styles.container, { backgroundColor: colors.systemBackground }]}
+    >
       <Stack.Screen
         options={{
           title: "Settings",
@@ -77,7 +79,9 @@ export default function SettingsScreen() {
 
             {users.length > 1 && (
               <ListItem
-                leading={<Image source="sf:person.2.fill" style={styles.iconGreen} />}
+                leading={
+                  <Image source="sf:person.2.fill" style={styles.iconGreen} />
+                }
                 trailing={
                   <Picker
                     selectedValue={currentUser?.id ?? 1}
@@ -95,7 +99,9 @@ export default function SettingsScreen() {
             )}
 
             <ListItem
-              leading={<Image source="sf:person.badge.plus" style={styles.iconSky} />}
+              leading={
+                <Image source="sf:person.badge.plus" style={styles.iconSky} />
+              }
               onPress={() => setIsNewUserSheetOpen(true)}
             >
               Add New User Account
@@ -117,9 +123,7 @@ export default function SettingsScreen() {
             </ListItem>
 
             <ListItem
-              leading={
-                <Image source="sf:faceid" style={styles.iconGreen} />
-              }
+              leading={<Image source="sf:faceid" style={styles.iconGreen} />}
               trailing={
                 <Switch
                   value={biometricsEnabled}
@@ -192,10 +196,7 @@ export default function SettingsScreen() {
           <FieldGroup.Section title="Privacy & Diagnostics">
             <ListItem
               leading={
-                <Image
-                  source="sf:hand.raised.fill"
-                  style={styles.iconOrange}
-                />
+                <Image source="sf:hand.raised.fill" style={styles.iconOrange} />
               }
               trailing={
                 <Switch
@@ -209,10 +210,7 @@ export default function SettingsScreen() {
 
             <ListItem
               leading={
-                <Image
-                  source="sf:info.circle.fill"
-                  style={styles.iconGray}
-                />
+                <Image source="sf:info.circle.fill" style={styles.iconGray} />
               }
               onPress={() => setIsAboutSheetOpen(true)}
             >
@@ -228,13 +226,12 @@ export default function SettingsScreen() {
           snapPoints={["half"]}
         >
           <Column style={styles.sheetContent}>
-            <Image
-              source="sf:person.badge.plus"
-              style={styles.sheetIcon}
-            />
+            <Image source="sf:person.badge.plus" style={styles.sheetIcon} />
             <Spacer />
-            <Text style={[styles.sheetTitle, { color: colors.label }]}>Create User</Text>
-            
+            <Text style={[styles.sheetTitle, { color: colors.label }]}>
+              Create User
+            </Text>
+
             <View style={styles.sheetInputWrapper}>
               <TextInput
                 placeholder="Full Name (e.g. Maria Perez)"
@@ -255,9 +252,7 @@ export default function SettingsScreen() {
             </View>
 
             <Spacer />
-            <Button onPress={handleCreateUser}>
-              Create & Switch
-            </Button>
+            <Button onPress={handleCreateUser}>Create & Switch</Button>
           </Column>
         </BottomSheet>
 
@@ -273,17 +268,25 @@ export default function SettingsScreen() {
               style={styles.sheetIcon}
             />
             <Spacer />
-            <Text style={[styles.sheetTitle, { color: colors.label }]}>Myself App</Text>
-            <Text style={[styles.sheetSubtitle, { color: colors.secondaryLabel }]}>
+            <Text style={[styles.sheetTitle, { color: colors.label }]}>
+              Myself App
+            </Text>
+            <Text
+              style={[styles.sheetSubtitle, { color: colors.secondaryLabel }]}
+            >
               Version 1.0.0 (Expo SDK 57)
             </Text>
-            <Text style={[styles.sheetDescription, { color: colors.secondaryLabel }]}>
-              Multi-user SQLite database with scoped tasks and native @expo/ui controls.
+            <Text
+              style={[
+                styles.sheetDescription,
+                { color: colors.secondaryLabel },
+              ]}
+            >
+              Multi-user SQLite database with scoped tasks and native @expo/ui
+              controls.
             </Text>
             <Spacer />
-            <Button onPress={() => setIsAboutSheetOpen(false)}>
-              Done
-            </Button>
+            <Button onPress={() => setIsAboutSheetOpen(false)}>Done</Button>
           </Column>
         </BottomSheet>
       </Host>
