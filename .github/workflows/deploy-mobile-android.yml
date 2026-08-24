@@ -99,6 +99,7 @@ jobs:
         if: ${{ env.FIREBASE_SA_KEY != '' }}
         run: |
           echo "$FIREBASE_SA_KEY" > firebase-sa-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/firebase-sa-key.json"
           make firebase-distribute \
             APP_ENV="${{ inputs.environment }}" \
             GROUPS="${{ inputs.firebase_groups }}" \
