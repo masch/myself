@@ -22,13 +22,16 @@ on:
         type: string
         default: ""
 
+permissions:
+  contents: write
+
 concurrency:
   group: deploy-android-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-and-distribute:
-    name: Build APK & Distribute to Firebase
+  build-apk:
+    name: Build Android APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -67,17 +70,50 @@ jobs:
           path: myself-*.apk
           retention-days: 7
 
+  distribute-firebase:
+    name: Distribute to Firebase App Distribution
+    runs-on: ubuntu-latest
+    needs: build-apk
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Download APK Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+
       - name: Distribute APK to Firebase App Distribution
-        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
         env:
           FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_APK: myself-${{ github.sha }}.apk
           RELEASE_NOTES: ${{ inputs.release_notes }}
+        if: ${{ env.FIREBASE_SA_KEY != '' }}
         run: |
           echo "$FIREBASE_SA_KEY" > firebase-sa-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/firebase-sa-key.json"
           make firebase-distribute \
             APP_ENV="${{ inputs.environment }}" \
             GROUPS="${{ inputs.firebase_groups }}" \
             FIREBASE_APK_PATH="$FIREBASE_APK" \
             $(if [ -n "$RELEASE_NOTES" ]; then echo "FIREBASE_RELEASE_NOTES=\"$RELEASE_NOTES\""; fi)
           rm -f firebase-sa-key.json
+
+      - name: Upload APK to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          APK_PATH: myself-${{ github.sha }}.apk
+        run: |
+          TAG_NAME="${{ inputs.environment }}-v$(date +'%Y.%m.%d-%H%M')"
+          gh release create "$TAG_NAME" "$APK_PATH" \
+            --title "Android Build $TAG_NAME" \
+            --notes "${{ inputs.release_notes || 'Automated Android APK build from GitHub Actions' }}" \
+            || gh release upload "$TAG_NAME" "$APK_PATH" --clobber
