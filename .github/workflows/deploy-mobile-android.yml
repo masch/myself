@@ -22,6 +22,9 @@ on:
         type: string
         default: ""
 
+permissions:
+  contents: write
+
 concurrency:
   group: deploy-android-${{ github.ref }}
   cancel-in-progress: true
@@ -81,3 +84,14 @@ jobs:
             FIREBASE_APK_PATH="$FIREBASE_APK" \
             $(if [ -n "$RELEASE_NOTES" ]; then echo "FIREBASE_RELEASE_NOTES=\"$RELEASE_NOTES\""; fi)
           rm -f firebase-sa-key.json
+
+      - name: Upload APK to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          APK_PATH: myself-${{ github.sha }}.apk
+        run: |
+          TAG_NAME="${{ inputs.environment }}-v$(date +'%Y.%m.%d-%H%M')"
+          gh release create "$TAG_NAME" "$APK_PATH" \
+            --title "Android Build $TAG_NAME" \
+            --notes "${{ inputs.release_notes || 'Automated Android APK build from GitHub Actions' }}" \
+            --clobber || gh release upload "$TAG_NAME" "$APK_PATH" --clobber
