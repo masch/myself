@@ -29,10 +29,8 @@ jobs:
   deploy_staging:
     name: Deploy to EAS Hosting (PR Preview)
     needs: validate
-    if: github.event_name == 'pull_request' && secrets.EXPO_TOKEN != ''
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -46,15 +44,16 @@ jobs:
         run: make install
 
       - name: Deploy Staging to EAS Hosting
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        if: ${{ env.EXPO_TOKEN != '' }}
         run: make eas-staging-build-web
 
   deploy_production:
     name: Deploy to EAS Hosting (Production)
     needs: validate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.EXPO_TOKEN != ''
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -68,4 +67,7 @@ jobs:
         run: make install
 
       - name: Deploy Production to EAS Hosting
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        if: ${{ env.EXPO_TOKEN != '' }}
         run: make eas-prod-build-web
