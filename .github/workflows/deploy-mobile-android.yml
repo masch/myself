@@ -116,4 +116,4 @@ jobs:
           gh release create "$TAG_NAME" "$APK_PATH" \
             --title "Android Build $TAG_NAME" \
             --notes "${{ inputs.release_notes || 'Automated Android APK build from GitHub Actions' }}" \
-            --clobber || gh release upload "$TAG_NAME" "$APK_PATH" --clobber
+            || gh release upload "$TAG_NAME" "$APK_PATH" --clobber
