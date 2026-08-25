@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { type SQLiteDatabase } from "expo-sqlite";
 import { seedDatabase } from "./seed";
 
@@ -23,8 +24,11 @@ export interface TaskItem {
  * Initializes database schema, foreign keys, auto-migrations, and seed data.
  */
 export async function initDatabase(db: SQLiteDatabase) {
+  if (Platform.OS !== "web") {
+    await db.execAsync("PRAGMA journal_mode = WAL;");
+  }
+
   await db.execAsync(`
-    PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
 
     CREATE TABLE IF NOT EXISTS users (
