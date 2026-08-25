@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Stack } from "expo-router";
 import {
   Host,
   FieldGroup,
@@ -14,10 +13,12 @@ import {
 } from "@expo/ui";
 import { Image } from "expo-image";
 import { View, StyleSheet, Text, Alert, TextInput } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/auth-context";
 import { colors } from "@/theme/colors";
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   const { currentUser, users, switchUser, registerUser } = useAuth();
 
   // State for controls
@@ -51,16 +52,15 @@ export default function SettingsScreen() {
 
   return (
     <View
-      style={[styles.container, { backgroundColor: colors.systemBackground }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.systemBackground,
+          paddingTop: insets.top + 8,
+          paddingBottom: insets.bottom + 8,
+        },
+      ]}
     >
-      <Stack.Screen
-        options={{
-          title: "Settings",
-          headerLargeTitle: true,
-          headerShadowVisible: false,
-        }}
-      />
-
       <Host style={styles.host}>
         <FieldGroup>
           {/* Account Section */}
@@ -252,7 +252,7 @@ export default function SettingsScreen() {
             </View>
 
             <Spacer />
-            <Button onPress={handleCreateUser}>Create & Switch</Button>
+            <Button label="Create & Switch" onPress={handleCreateUser} />
           </Column>
         </BottomSheet>
 
@@ -286,7 +286,7 @@ export default function SettingsScreen() {
               controls.
             </Text>
             <Spacer />
-            <Button onPress={() => setIsAboutSheetOpen(false)}>Done</Button>
+            <Button label="Done" onPress={() => setIsAboutSheetOpen(false)} />
           </Column>
         </BottomSheet>
       </Host>
