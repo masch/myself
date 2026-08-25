@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Link, Stack, useFocusEffect } from "expo-router";
+import { Link, useFocusEffect } from "expo-router";
 import {
   View,
   StyleSheet,
@@ -9,12 +9,13 @@ import {
   Alert,
 } from "react-native";
 import { Image } from "expo-image";
-import { Host, FieldGroup, ListItem } from "@expo/ui";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTasks } from "@/hooks/use-tasks";
 import { type TaskItem } from "@/db/database";
 import { colors } from "@/theme/colors";
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const {
     currentUser,
     tasks,
@@ -55,24 +56,15 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.systemBackground }]}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[
+        styles.contentContainer,
+        {
+          paddingTop: insets.top + 8,
+          paddingBottom: insets.bottom + 16,
+        },
+      ]}
       contentInsetAdjustmentBehavior="automatic"
     >
-      <Stack.Screen
-        options={{
-          title: "Tasks",
-          headerLargeTitle: true,
-          headerShadowVisible: false,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable style={styles.headerAddButton}>
-                <Image source="sf:plus" style={styles.headerAddIcon} />
-              </Pressable>
-            </Link>
-          ),
-        }}
-      />
-
       {/* Summary Card */}
       <View
         style={[
@@ -125,72 +117,129 @@ export default function HomeScreen() {
         </Link>
       </View>
 
-      {/* Tasks List */}
-      <Host style={styles.host}>
-        <FieldGroup>
-          {pendingTasks.length > 0 && (
-            <FieldGroup.Section title="To Do">
-              {pendingTasks.map((task) => (
-                <ListItem
-                  key={task.id}
-                  leading={<Image source="sf:circle" style={styles.iconBlue} />}
-                  supportingText={
-                    task.category +
-                    (task.description ? ` • ${task.description}` : "")
-                  }
-                  trailing={
-                    <Pressable onPress={() => handleDelete(task)} hitSlop={8}>
+      {/* Tasks Section */}
+      <View style={styles.tasksSection}>
+        {pendingTasks.length > 0 && (
+          <View style={styles.groupContainer}>
+            <Text
+              style={[styles.sectionTitle, { color: colors.secondaryLabel }]}
+            >
+              TO DO
+            </Text>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: colors.secondarySystemBackground },
+              ]}
+            >
+              {pendingTasks.map((task, index) => (
+                <View key={task.id}>
+                  {index > 0 && <View style={styles.divider} />}
+                  <Pressable
+                    style={styles.taskRow}
+                    onPress={() => handleToggle(task)}
+                  >
+                    <Image source="sf:circle" style={styles.iconBlue} />
+                    <View style={styles.taskContent}>
+                      <Text style={[styles.taskTitle, { color: colors.label }]}>
+                        {task.title}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.taskSubtitle,
+                          { color: colors.secondaryLabel },
+                        ]}
+                      >
+                        {task.category}
+                        {task.description ? ` • ${task.description}` : ""}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => handleDelete(task)}
+                      hitSlop={12}
+                      style={styles.deleteButton}
+                    >
                       <Image source="sf:trash" style={styles.iconTrash} />
                     </Pressable>
-                  }
-                  onPress={() => handleToggle(task)}
-                >
-                  {task.title}
-                </ListItem>
+                  </Pressable>
+                </View>
               ))}
-            </FieldGroup.Section>
-          )}
+            </View>
+          </View>
+        )}
 
-          {completedTasks.length > 0 && (
-            <FieldGroup.Section title="Completed">
-              {completedTasks.map((task) => (
-                <ListItem
-                  key={task.id}
-                  leading={
+        {completedTasks.length > 0 && (
+          <View style={styles.groupContainer}>
+            <Text
+              style={[styles.sectionTitle, { color: colors.secondaryLabel }]}
+            >
+              COMPLETED
+            </Text>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: colors.secondarySystemBackground },
+              ]}
+            >
+              {completedTasks.map((task, index) => (
+                <View key={task.id}>
+                  {index > 0 && <View style={styles.divider} />}
+                  <Pressable
+                    style={styles.taskRow}
+                    onPress={() => handleToggle(task)}
+                  >
                     <Image
                       source="sf:checkmark.circle.fill"
                       style={styles.iconGreen}
                     />
-                  }
-                  supportingText={task.category}
-                  trailing={
-                    <Pressable onPress={() => handleDelete(task)} hitSlop={8}>
+                    <View style={styles.taskContent}>
+                      <Text
+                        style={[
+                          styles.taskTitle,
+                          styles.completedTitle,
+                          { color: colors.secondaryLabel },
+                        ]}
+                      >
+                        {task.title}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.taskSubtitle,
+                          { color: colors.secondaryLabel },
+                        ]}
+                      >
+                        {task.category}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => handleDelete(task)}
+                      hitSlop={12}
+                      style={styles.deleteButton}
+                    >
                       <Image source="sf:trash" style={styles.iconTrash} />
                     </Pressable>
-                  }
-                  onPress={() => handleToggle(task)}
-                >
-                  {task.title}
-                </ListItem>
+                  </Pressable>
+                </View>
               ))}
-            </FieldGroup.Section>
-          )}
+            </View>
+          </View>
+        )}
 
-          {tasks.length === 0 && !isLoading && (
-            <FieldGroup.Section title="Tasks">
-              <ListItem
-                leading={<Image source="sf:tray" style={styles.iconGray} />}
-                trailing={
-                  <Text style={{ color: colors.secondaryLabel }}>Empty</Text>
-                }
-              >
-                No tasks found for this user. Tap &apos;New Task&apos; to create
-                one.
-              </ListItem>
-            </FieldGroup.Section>
-          )}
-        </FieldGroup>
-      </Host>
+        {tasks.length === 0 && !isLoading && (
+          <View
+            style={[
+              styles.card,
+              styles.emptyCard,
+              { backgroundColor: colors.secondarySystemBackground },
+            ]}
+          >
+            <Image source="sf:tray" style={styles.iconGray} />
+            <Text style={[styles.emptyText, { color: colors.secondaryLabel }]}>
+              No tasks found. Tap &apos;New Task&apos; to create one.
+            </Text>
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -277,8 +326,61 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 15,
   },
-  host: {
+  tasksSection: {
+    gap: 16,
+  },
+  groupContainer: {
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.6,
+    marginLeft: 4,
+  },
+  card: {
+    borderRadius: 16,
+    overflow: "hidden",
+    borderCurve: "continuous",
+  },
+  taskRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    gap: 12,
+  },
+  taskContent: {
     flex: 1,
+    gap: 2,
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  completedTitle: {
+    textDecorationLine: "line-through",
+    opacity: 0.8,
+  },
+  taskSubtitle: {
+    fontSize: 13,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "rgba(142, 142, 147, 0.2)",
+    marginLeft: 50,
+  },
+  deleteButton: {
+    padding: 4,
+  },
+  emptyCard: {
+    padding: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: "center",
   },
   iconBlue: {
     width: 24,
@@ -291,8 +393,8 @@ const styles = StyleSheet.create({
     tintColor: "#34C759",
   },
   iconGray: {
-    width: 24,
-    height: 24,
+    width: 28,
+    height: 28,
     tintColor: "#8E8E93",
   },
   iconTrash: {

@@ -7,6 +7,7 @@
       "dependencies": {
         "@expo/ui": "~57.0.12",
         "expo": "~57.0.15",
+        "expo-audio": "~57.0.4",
         "expo-constants": "~57.0.13",
         "expo-device": "~57.0.1",
         "expo-font": "~57.0.1",
@@ -1021,6 +1022,8 @@
     "expo": ["expo@57.0.15", "", { "dependencies": { "@babel/runtime": "^7.20.0", "@expo/cli": "^57.0.17", "@expo/config": "~57.0.8", "@expo/config-plugins": "~57.0.8", "@expo/devtools": "~57.0.1", "@expo/dom-webview": "~57.0.1", "@expo/fingerprint": "^0.20.9", "@expo/local-build-cache-provider": "^57.0.7", "@expo/log-box": "^57.0.3", "@expo/metro": "~56.0.0", "@expo/metro-config": "~57.0.9", "@ungap/structured-clone": "^1.3.0", "babel-preset-expo": "~57.0.7", "expo-asset": "~57.0.13", "expo-constants": "~57.0.13", "expo-file-system": "~57.0.5", "expo-font": "~57.0.1", "expo-keep-awake": "~57.0.1", "expo-modules-autolinking": "~57.0.10", "expo-modules-core": "~57.0.12", "pretty-format": "^29.7.0", "react-refresh": "^0.14.2", "whatwg-url-minimum": "^0.1.2" }, "peerDependencies": { "@expo/metro-runtime": "*", "react": "*", "react-dom": "*", "react-native": "*", "react-native-web": "*", "react-native-webview": "*" }, "optionalPeers": ["@expo/metro-runtime", "react-dom", "react-native-web", "react-native-webview"], "bin": { "expo": "bin/cli", "fingerprint": "bin/fingerprint", "expo-modules-autolinking": "bin/autolinking" } }, "sha512-9UooISw8S8Gxo9wpsPcGkyRlf2UzNr+F26LSU2+M8iaiZ1WAjPR0I75NKFX8ETbrSgthZ2lQHgy5IU2KE/mpBA=="],
 
     "expo-asset": ["expo-asset@57.0.13", "", { "dependencies": { "@expo/image-utils": "^0.11.4", "expo-constants": "~57.0.13" }, "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-RPjMcmPXRMb6UbQdTIkmSDEnQL5LKGTu7ZXatq3U67V6ldlSdQeQ9pQV7zlmk0DrbnaMEh3HYiEh2YxWLNyCzA=="],
+
+    "expo-audio": ["expo-audio@57.0.4", "", { "peerDependencies": { "expo": "*", "expo-asset": "*", "react": "*", "react-native": "*" } }, "sha512-TLP8rt1UvUDzgxGnyQ0TR9hV6tNP/UJQdDu7mSK+dgEydMFoptq55D3hcUoB1gF39f3/3AUuWfOtpGM+4N4X1A=="],
 
     "expo-constants": ["expo-constants@57.0.13", "", { "dependencies": { "@expo/env": "~2.4.2" }, "peerDependencies": { "expo": "*", "react-native": "*" } }, "sha512-eB5AHp7kKxsVIBjTetUgj5WQSw8joI2ekzgTlcUv+Hc0x2t0jZU6IiL4DpyOT2yZQ71n0WJZCkmOKLgxlajIzg=="],
 
