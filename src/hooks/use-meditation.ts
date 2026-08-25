@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
 import { useAudioPlayer } from "expo-audio";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface MeditationState {
   status: "idle" | "running" | "paused" | "completed";
@@ -20,10 +20,10 @@ const DEFAULT_MOMENTS = [
 
 export function useMeditation() {
   const singleGongPlayer = useAudioPlayer(
-    require("@/assets/sounds/gong-single.mp3"),
+    require("@/assets/sounds/bowl_1.m4a"),
   );
   const tripleGongPlayer = useAudioPlayer(
-    require("@/assets/sounds/gong-triple.mp3"),
+    require("@/assets/sounds/bowl_3.m4a"),
   );
 
   const [status, setStatus] = useState<
