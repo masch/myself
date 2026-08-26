@@ -10,22 +10,22 @@ class DndStatusModule : Module() {
     Name("DndStatus")
 
     Function("isDndActive") {
-      try {
-        val context = appContext.reactContext ?: return@Function false
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-          ?: return@Function false
+      val context = appContext.reactContext ?: return@Function false
+      val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        ?: return@Function false
 
+      return@Function try {
         val filter = notificationManager.currentInterruptionFilter
         // INTERRUPTION_FILTER_ALL = 1 (Normal / Not in DND)
         // INTERRUPTION_FILTER_PRIORITY = 2 (Priority DND)
         // INTERRUPTION_FILTER_NONE = 3 (Total silence DND)
         // INTERRUPTION_FILTER_ALARMS = 4 (Alarms only DND)
         // INTERRUPTION_FILTER_UNKNOWN = 0
-        return@Function filter == NotificationManager.INTERRUPTION_FILTER_PRIORITY ||
+        filter == NotificationManager.INTERRUPTION_FILTER_PRIORITY ||
           filter == NotificationManager.INTERRUPTION_FILTER_NONE ||
           filter == NotificationManager.INTERRUPTION_FILTER_ALARMS
       } catch (e: Exception) {
-        return@Function false
+        false
       }
     }
 
@@ -34,21 +34,23 @@ class DndStatusModule : Module() {
     }
 
     Function("openDndSettings") {
-      try {
-        val context = appContext.reactContext ?: return@Function
-        val intent = android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
-          addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(intent)
-      } catch (e: Exception) {
+      val context = appContext.reactContext
+      if (context != null) {
         try {
-          val context = appContext.reactContext ?: return@Function
-          val fallbackIntent = android.content.Intent(android.provider.Settings.ACTION_SOUND_SETTINGS).apply {
+          val intent = android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
             addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
           }
-          context.startActivity(fallbackIntent)
-        } catch (_: Exception) {}
+          context.startActivity(intent)
+        } catch (e: Exception) {
+          try {
+            val fallbackIntent = android.content.Intent(android.provider.Settings.ACTION_SOUND_SETTINGS).apply {
+              addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(fallbackIntent)
+          } catch (_: Exception) {}
+        }
       }
+      return@Function Unit
     }
   }
 }
