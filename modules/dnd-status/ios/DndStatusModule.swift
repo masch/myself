@@ -11,5 +11,9 @@ public class DndStatusModule: Module {
     Function("isSupported") { () -> Bool in
       return false
     }
+
+    Function("openDndSettings") { () -> Void in
+      // No-op on iOS
+    }
   }
 }

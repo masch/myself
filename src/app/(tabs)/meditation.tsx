@@ -1,9 +1,20 @@
 import { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, ScrollView, Text, Switch } from "react-native";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Text,
+  Switch,
+  Alert,
+} from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useKeepAwake } from "expo-keep-awake";
-import { isDndActive, isDndCheckSupported } from "@/modules/dnd-status";
+import {
+  isDndActive,
+  isDndCheckSupported,
+  openDndSettings,
+} from "@/modules/dnd-status";
 import { useMeditation } from "@/hooks/use-meditation";
 import { useReadings } from "@/hooks/use-readings";
 import { AppButton, ChipButton, StepperButton } from "@/components";
@@ -93,16 +104,31 @@ export default function MeditationScreen() {
   };
 
   const handleStartSession = () => {
-    recordedSessionReadingIdRef.current = null;
-    startSession();
     if (isDndCheckSupported()) {
-      // In Android: only show notice if DND is NOT active
       const dnd = isDndActive();
-      setShowDndNotice(!dnd);
-    } else {
-      // On iOS/Web: show reminder tip
-      setShowDndNotice(true);
+      if (!dnd) {
+        Alert.alert(
+          "Modo No Molestar Requerido",
+          "Para comenzar la meditación es obligatorio activar el modo No Molestar en tu teléfono para no recibir interrupciones.",
+          [
+            {
+              text: "Abrir Ajustes",
+              onPress: () => openDndSettings(),
+            },
+            {
+              text: "Cancelar",
+              style: "cancel",
+            },
+          ],
+          { cancelable: false },
+        );
+        return;
+      }
     }
+
+    recordedSessionReadingIdRef.current = null;
+    setShowDndNotice(false);
+    startSession();
   };
 
   return (
@@ -218,9 +244,7 @@ export default function MeditationScreen() {
                 ]}
               />
               <View style={{ flex: 1 }}>
-                <Text
-                  style={[styles.dndNoticeTitle, { color: colors.label }]}
-                >
+                <Text style={[styles.dndNoticeTitle, { color: colors.label }]}>
                   {isDndCheckSupported()
                     ? "Modo No Molestar desactivado"
                     : "Sugerencia: activá No Molestar"}

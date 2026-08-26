@@ -1,4 +1,4 @@
-import DndStatusModule from './src/DndStatusModule';
+import DndStatusModule from "./src/DndStatusModule";
 
 export function isDndActive(): boolean {
   try {
@@ -14,4 +14,10 @@ export function isDndCheckSupported(): boolean {
   } catch {
     return false;
   }
+}
+
+export function openDndSettings(): void {
+  try {
+    DndStatusModule.openDndSettings();
+  } catch {}
 }

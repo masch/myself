@@ -1,4 +1,4 @@
-import { registerWebModule, NativeModule } from 'expo';
+import { registerWebModule, NativeModule } from "expo";
 
 class DndStatusModule extends NativeModule<{}> {
   isDndActive(): boolean {
@@ -7,6 +7,7 @@ class DndStatusModule extends NativeModule<{}> {
   isSupported(): boolean {
     return false;
   }
+  openDndSettings(): void {}
 }
 
-export default registerWebModule(DndStatusModule, 'DndStatus');
+export default registerWebModule(DndStatusModule, "DndStatus");

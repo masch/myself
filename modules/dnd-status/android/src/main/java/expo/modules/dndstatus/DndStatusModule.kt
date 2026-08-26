@@ -32,5 +32,23 @@ class DndStatusModule : Module() {
     Function("isSupported") {
       return@Function true
     }
+
+    Function("openDndSettings") {
+      try {
+        val context = appContext.reactContext ?: return@Function
+        val intent = android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
+          addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+      } catch (e: Exception) {
+        try {
+          val context = appContext.reactContext ?: return@Function
+          val fallbackIntent = android.content.Intent(android.provider.Settings.ACTION_SOUND_SETTINGS).apply {
+            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+          }
+          context.startActivity(fallbackIntent)
+        } catch (_: Exception) {}
+      }
+    }
   }
 }

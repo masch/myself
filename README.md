@@ -44,6 +44,7 @@ This command will move the starter code to the **app-example** directory and cre
 ## Authentication Flow (Stateless Challenge-Response with ECDSA)
 
 Este flujo implementa una autenticación **Challenge-Response criptográfica y 100% Stateless** optimizada para baja latencia:
+
 - **Cliente**: App móvil con su Clave Privada ECDSA.
 - **Perfil API**: Backend público (Gateway/BFF) que genera el desafío (`nonce` en JWT) de forma inmediata en Fase 1 sin llamadas internas.
 - **Auth Manager API**: Servicio interno que custodia las **Claves Públicas ECDSA** de los clientes. **Perfil API nunca conoce ni almacena las claves públicas.**
@@ -75,6 +76,7 @@ sequenceDiagram
 ### Detalle de Implementación
 
 #### 1. Fase 1: Solicitud del Desafío (`POST /auth/challenge`)
+
 El cliente solicita un desafío enviando su `clientId`. **Perfil API** genera el `nonce` criptográficamente seguro y lo sella en un JWT de corta duración (60s) firmado con `PERFIL_SECRET_KEY` **sin consultar a Auth Manager** (ahorrando latencia de red):
 
 ```js
@@ -89,7 +91,7 @@ const nonce = crypto.randomBytes(32).toString("hex");
 const challengeJwt = jwt.sign(
   { clientId, nonce },
   PERFIL_SECRET_KEY,
-  { expiresIn: "60s" } // Ventana de 60 segundos
+  { expiresIn: "60s" }, // Ventana de 60 segundos
 );
 
 // 3. Responde directamente al cliente (Stateless, sin persistencia en BD)
@@ -97,6 +99,7 @@ res.json({ jwt: challengeJwt });
 ```
 
 #### 2. Fase 2: Firma y Verificación (`POST /auth/verify`)
+
 1. **Cliente**: Decodifica el JWT, extrae el `nonce`, lo firma con su **Clave Privada ECDSA**, y envía `{ jwt, signature }` a **Perfil API**.
 2. **Perfil API**:
    - Valida la firma del JWT con su `PERFIL_SECRET_KEY` y comprueba que no haya expirado (`exp`).
@@ -132,7 +135,11 @@ res.json({ token: createSessionToken(clientId) });
 const clientPublicKey = await authDb.getPublicKeyByClientId(req.body.clientId);
 
 // 2. Valida matemáticamente la firma contra el nonce
-const isValid = verifyEcdsaSignature(clientPublicKey, req.body.nonce, req.body.signature);
+const isValid = verifyEcdsaSignature(
+  clientPublicKey,
+  req.body.nonce,
+  req.body.signature,
+);
 
 if (!isValid) {
   return res.status(401).json({ valid: false, error: "Invalid signature" });
@@ -143,6 +150,7 @@ res.json({ valid: true, clientId: req.body.clientId });
 ```
 
 ### Principios de Arquitectura y Seguridad
+
 - **Menor Latencia**: La Fase 1 es inmediata (1 solo salto de red: Cliente ➔ Perfil API) sin cargar a Auth Manager.
 - **Aislamiento de Claves**: **Perfil API** nunca tiene acceso a las Claves Públicas ECDSA; toda la custodia de claves públicas y validación asimétrica vive exclusivamente en **Auth Manager API**.
 - **100% Stateless en Handshake**: Ni Perfil API ni Auth Manager almacenan estado intermedio; el `nonce` viaja protegido dentro del JWT sellado.
