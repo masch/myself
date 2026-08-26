@@ -11,7 +11,8 @@ interface SeedTask {
 interface SeedReading {
   authorName: string;
   content: string;
-  initialReadCount?: number;
+  createdAt: string;
+  readDates: string[];
 }
 
 interface SeedUser {
@@ -48,31 +49,40 @@ export const SEED_READINGS: SeedReading[] = [
     authorName: "Marcus Aurelius",
     content:
       "You have power over your mind - not outside events. Realize this, and you will find strength.",
-    initialReadCount: 2,
+    createdAt: "2026-08-15 08:00:00",
+    readDates: ["2026-08-20 08:30:00", "2026-08-24 07:45:00"],
   },
   {
     authorName: "Seneca",
     content:
       "We suffer more often in imagination than in reality. True happiness is to enjoy the present, without anxious dependence upon the future.",
-    initialReadCount: 0,
+    createdAt: "2026-08-16 09:00:00",
+    readDates: [],
   },
   {
     authorName: "Thich Nhat Hanh",
     content:
       "Smile, breathe and go slowly. Breath is the bridge which connects life to consciousness, which unites your body to your thoughts.",
-    initialReadCount: 1,
+    createdAt: "2026-08-17 07:30:00",
+    readDates: ["2026-08-25 08:00:00"],
   },
   {
     authorName: "Epictetus",
     content:
       "Don't explain your philosophy. Embody it. Wealth consists not in having great possessions, but in having few wants.",
-    initialReadCount: 0,
+    createdAt: "2026-08-18 10:00:00",
+    readDates: [],
   },
   {
     authorName: "Lao Tzu",
     content:
       "Silence is a source of great strength. Nature does not hurry, yet everything is accomplished.",
-    initialReadCount: 3,
+    createdAt: "2026-08-14 06:45:00",
+    readDates: [
+      "2026-08-18 09:00:00",
+      "2026-08-21 08:15:00",
+      "2026-08-23 07:30:00",
+    ],
   },
 ];
 
@@ -174,16 +184,15 @@ export async function seedDatabase(db: SQLiteDatabase) {
       const authorId = authorIdMap[reading.authorName];
       if (authorId) {
         await db.runAsync(
-          "INSERT INTO meditation_readings (id, author_id, content, created_at) VALUES (?, ?, ?, datetime('now'))",
-          [readingId, authorId, reading.content],
+          "INSERT INTO meditation_readings (id, author_id, content, created_at) VALUES (?, ?, ?, ?)",
+          [readingId, authorId, reading.content, reading.createdAt],
         );
 
-        const logsCount = reading.initialReadCount || 0;
-        for (let i = 0; i < logsCount; i++) {
+        for (const readDate of reading.readDates) {
           const logId = generateUUID();
           await db.runAsync(
-            "INSERT INTO reading_logs (id, reading_id, read_at) VALUES (?, ?, datetime('now'))",
-            [logId, readingId],
+            "INSERT INTO reading_logs (id, reading_id, read_at) VALUES (?, ?, ?)",
+            [logId, readingId, readDate],
           );
         }
       }
