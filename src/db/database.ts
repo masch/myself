@@ -1,9 +1,12 @@
-import { Platform } from "react-native";
 import { type SQLiteDatabase } from "expo-sqlite";
+import { Platform } from "react-native";
 import { seedDatabase } from "./seed";
 
+import { generateUUID } from "@/utils/uuid";
+export { generateUUID };
+
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   avatar_url?: string;
@@ -11,8 +14,8 @@ export interface User {
 }
 
 export interface TaskItem {
-  id: number;
-  user_id: number;
+  id: string;
+  user_id: string;
   title: string;
   category: string;
   description: string;
@@ -20,8 +23,35 @@ export interface TaskItem {
   created_at: string;
 }
 
+export interface Author {
+  id: string;
+  name: string;
+  bio?: string;
+  created_at: string;
+}
+
+export interface MeditationReading {
+  id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+}
+
+export interface ReadingLog {
+  id: string;
+  reading_id: string;
+  read_at: string;
+}
+
+export interface MeditationReadingWithAuthor extends MeditationReading {
+  author_name: string;
+  author_bio?: string;
+  times_read: number;
+  last_read_at: string | null;
+}
+
 /**
- * Initializes database schema, foreign keys, auto-migrations, and seed data.
+ * Initializes database schema with UUID keys, foreign keys, and seed data.
  */
 export async function initDatabase(db: SQLiteDatabase) {
   if (Platform.OS !== "web") {
@@ -32,7 +62,7 @@ export async function initDatabase(db: SQLiteDatabase) {
     PRAGMA foreign_keys = ON;
 
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id TEXT PRIMARY KEY NOT NULL,
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       avatar_url TEXT DEFAULT '',
@@ -40,8 +70,8 @@ export async function initDatabase(db: SQLiteDatabase) {
     );
 
     CREATE TABLE IF NOT EXISTS tasks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL DEFAULT 1,
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
       title TEXT NOT NULL,
       category TEXT NOT NULL DEFAULT 'General',
       description TEXT DEFAULT '',
@@ -49,22 +79,29 @@ export async function initDatabase(db: SQLiteDatabase) {
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
-  `);
 
-  // Migration: Check if user_id column exists from an older database version
-  try {
-    const columns = await db.getAllAsync<{ name: string }>(
-      "PRAGMA table_info(tasks)",
+    CREATE TABLE IF NOT EXISTS authors (
+      id TEXT PRIMARY KEY NOT NULL,
+      name TEXT NOT NULL UNIQUE,
+      bio TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now'))
     );
-    const hasUserId = columns.some((col) => col.name === "user_id");
-    if (!hasUserId) {
-      await db.execAsync(
-        "ALTER TABLE tasks ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1",
-      );
-    }
-  } catch (error) {
-    console.warn("Migration check error:", error);
-  }
+
+    CREATE TABLE IF NOT EXISTS meditation_readings (
+      id TEXT PRIMARY KEY NOT NULL,
+      author_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE RESTRICT
+    );
+
+    CREATE TABLE IF NOT EXISTS reading_logs (
+      id TEXT PRIMARY KEY NOT NULL,
+      reading_id TEXT NOT NULL,
+      read_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (reading_id) REFERENCES meditation_readings(id) ON DELETE CASCADE
+    );
+  `);
 
   // Populate seed data
   await seedDatabase(db);
@@ -75,59 +112,66 @@ export async function initDatabase(db: SQLiteDatabase) {
  */
 
 export async function getUsers(db: SQLiteDatabase): Promise<User[]> {
-  return await db.getAllAsync<User>("SELECT * FROM users ORDER BY id ASC");
+  return await db.getAllAsync<User>(
+    "SELECT * FROM users ORDER BY created_at ASC",
+  );
 }
 
 export async function getUserById(
   db: SQLiteDatabase,
-  id: number,
+  id: string,
 ): Promise<User | null> {
   return await db.getFirstAsync<User>("SELECT * FROM users WHERE id = ?", [id]);
 }
 
-export async function createUser(
+export async function addUser(
   db: SQLiteDatabase,
   name: string,
   email: string,
-): Promise<number> {
-  const result = await db.runAsync(
-    "INSERT INTO users (name, email) VALUES (?, ?)",
-    [name, email],
+  avatarUrl: string = "",
+): Promise<string> {
+  const id = generateUUID();
+  await db.runAsync(
+    "INSERT INTO users (id, name, email, avatar_url, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
+    [id, name, email, avatarUrl],
   );
-  return result.lastInsertRowId;
+  return id;
 }
 
+export const createUser = addUser;
+
 /**
- * Task Operations (Scoped by User)
+ * Task Operations
  */
 
 export async function getTasksByUserId(
   db: SQLiteDatabase,
-  userId: number,
+  userId: string,
 ): Promise<TaskItem[]> {
   return await db.getAllAsync<TaskItem>(
-    "SELECT * FROM tasks WHERE user_id = ? ORDER BY is_done ASC, id DESC",
+    "SELECT * FROM tasks WHERE user_id = ? ORDER BY is_done ASC, created_at DESC",
     [userId],
   );
 }
 
 export async function addTask(
   db: SQLiteDatabase,
-  userId: number,
+  userId: string,
   title: string,
   category: string = "General",
   description: string = "",
-): Promise<number> {
-  const result = await db.runAsync(
-    "INSERT INTO tasks (user_id, title, category, description, is_done) VALUES (?, ?, ?, ?, 0)",
-    [userId, title, category, description],
+): Promise<string> {
+  const id = generateUUID();
+  await db.runAsync(
+    "INSERT INTO tasks (id, user_id, title, category, description, is_done, created_at) VALUES (?, ?, ?, ?, ?, 0, datetime('now'))",
+    [id, userId, title, category, description],
   );
-  return result.lastInsertRowId;
+  return id;
 }
 
-export async function toggleTask(
+export async function toggleTaskStatus(
   db: SQLiteDatabase,
-  id: number,
+  id: string,
   isDone: boolean,
 ): Promise<void> {
   await db.runAsync("UPDATE tasks SET is_done = ? WHERE id = ?", [
@@ -136,9 +180,164 @@ export async function toggleTask(
   ]);
 }
 
+export const toggleTask = toggleTaskStatus;
+
 export async function deleteTask(
   db: SQLiteDatabase,
-  id: number,
+  id: string,
 ): Promise<void> {
   await db.runAsync("DELETE FROM tasks WHERE id = ?", [id]);
+}
+
+/**
+ * Authors Operations (Independent normalized entity)
+ */
+
+export async function getAuthors(db: SQLiteDatabase): Promise<Author[]> {
+  return await db.getAllAsync<Author>(
+    "SELECT * FROM authors ORDER BY name ASC",
+  );
+}
+
+export async function getAuthorById(
+  db: SQLiteDatabase,
+  id: string,
+): Promise<Author | null> {
+  return await db.getFirstAsync<Author>("SELECT * FROM authors WHERE id = ?", [
+    id,
+  ]);
+}
+
+export async function addAuthor(
+  db: SQLiteDatabase,
+  name: string,
+  bio: string = "",
+): Promise<string> {
+  const id = generateUUID();
+  await db.runAsync(
+    "INSERT INTO authors (id, name, bio, created_at) VALUES (?, ?, ?, datetime('now'))",
+    [id, name, bio],
+  );
+  return id;
+}
+
+export const createAuthor = addAuthor;
+
+export async function updateAuthor(
+  db: SQLiteDatabase,
+  id: string,
+  name: string,
+  bio: string = "",
+): Promise<void> {
+  await db.runAsync("UPDATE authors SET name = ?, bio = ? WHERE id = ?", [
+    name,
+    bio,
+    id,
+  ]);
+}
+
+export async function deleteAuthor(
+  db: SQLiteDatabase,
+  id: string,
+): Promise<void> {
+  await db.runAsync("DELETE FROM authors WHERE id = ?", [id]);
+}
+
+/**
+ * Meditation Readings Operations (Global Catalog with 1-to-N Reading Logs)
+ */
+
+export async function getAllReadings(
+  db: SQLiteDatabase,
+): Promise<MeditationReadingWithAuthor[]> {
+  return await db.getAllAsync<MeditationReadingWithAuthor>(
+    `SELECT 
+       r.id,
+       r.author_id,
+       r.content,
+       r.created_at,
+       a.name AS author_name,
+       a.bio AS author_bio,
+       COUNT(l.id) AS times_read,
+       MAX(l.read_at) AS last_read_at
+     FROM meditation_readings r
+     INNER JOIN authors a ON r.author_id = a.id
+     LEFT JOIN reading_logs l ON r.id = l.reading_id
+     GROUP BY r.id, r.author_id, r.content, r.created_at, a.name, a.bio
+     ORDER BY (COUNT(l.id) > 0) ASC, r.created_at DESC`,
+  );
+}
+
+export async function addReading(
+  db: SQLiteDatabase,
+  authorId: string,
+  content: string,
+): Promise<string> {
+  const id = generateUUID();
+  await db.runAsync(
+    "INSERT INTO meditation_readings (id, author_id, content, created_at) VALUES (?, ?, ?, datetime('now'))",
+    [id, authorId, content],
+  );
+  return id;
+}
+
+export async function updateReading(
+  db: SQLiteDatabase,
+  id: string,
+  authorId: string,
+  content: string,
+): Promise<void> {
+  await db.runAsync(
+    "UPDATE meditation_readings SET author_id = ?, content = ? WHERE id = ?",
+    [authorId, content, id],
+  );
+}
+
+export async function deleteReading(
+  db: SQLiteDatabase,
+  id: string,
+): Promise<void> {
+  await db.runAsync("DELETE FROM meditation_readings WHERE id = ?", [id]);
+}
+
+/**
+ * Reading Logs Operations (1-to-N History of Reads)
+ */
+
+export async function recordReadingLog(
+  db: SQLiteDatabase,
+  readingId: string,
+): Promise<string> {
+  const id = generateUUID();
+  await db.runAsync(
+    "INSERT INTO reading_logs (id, reading_id, read_at) VALUES (?, ?, datetime('now'))",
+    [id, readingId],
+  );
+  return id;
+}
+
+export async function deleteLastReadingLog(
+  db: SQLiteDatabase,
+  readingId: string,
+): Promise<void> {
+  await db.runAsync(
+    `DELETE FROM reading_logs 
+     WHERE id = (
+       SELECT id FROM reading_logs 
+       WHERE reading_id = ? 
+       ORDER BY read_at DESC 
+       LIMIT 1
+     )`,
+    [readingId],
+  );
+}
+
+export async function getReadingLogs(
+  db: SQLiteDatabase,
+  readingId: string,
+): Promise<ReadingLog[]> {
+  return await db.getAllAsync<ReadingLog>(
+    "SELECT * FROM reading_logs WHERE reading_id = ? ORDER BY read_at DESC",
+    [readingId],
+  );
 }

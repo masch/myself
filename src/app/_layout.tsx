@@ -4,17 +4,12 @@ import {
   DarkTheme,
   DefaultTheme,
 } from "expo-router/react-navigation";
-import {
-  useColorScheme,
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-} from "react-native";
+import { useColorScheme, View, Text, StyleSheet } from "react-native";
 import { SQLiteProvider } from "expo-sqlite";
 import { Image } from "expo-image";
 import { initDatabase } from "@/db/database";
 import { AuthProvider } from "@/context/auth-context";
+import { AppButton } from "@/components";
 import { colors } from "@/theme/colors";
 
 /**
@@ -39,9 +34,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
       <Text style={[styles.errorMessage, { color: colors.secondaryLabel }]}>
         {error.message}
       </Text>
-      <Pressable onPress={retry} style={styles.retryButton}>
-        <Text style={styles.retryText}>Try Again</Text>
-      </Pressable>
+      <AppButton title="Try Again" variant="primary" onPress={retry} />
     </View>
   );
 }
@@ -70,6 +63,13 @@ export default function RootLayout() {
               options={{
                 presentation: "modal",
                 headerTitle: "New Task",
+              }}
+            />
+            <Stack.Screen
+              name="reading-modal"
+              options={{
+                presentation: "modal",
+                headerTitle: "Meditation Reading",
               }}
             />
           </Stack>

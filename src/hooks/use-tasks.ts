@@ -82,7 +82,7 @@ export function useTasks() {
         throw new Error("Cannot add task without an active user");
       }
 
-      await dbAddTask(
+      const id = await dbAddTask(
         db,
         currentUser.id,
         input.title,
@@ -90,12 +90,13 @@ export function useTasks() {
         input.description ?? "",
       );
       await refreshTasks();
+      return id;
     },
     [db, currentUser, refreshTasks],
   );
 
   const toggleTask = useCallback(
-    async (id: number, isDone: boolean) => {
+    async (id: string, isDone: boolean) => {
       await dbToggleTask(db, id, isDone);
       await refreshTasks();
     },
@@ -103,7 +104,7 @@ export function useTasks() {
   );
 
   const deleteTask = useCallback(
-    async (id: number) => {
+    async (id: string) => {
       await dbDeleteTask(db, id);
       await refreshTasks();
     },

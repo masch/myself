@@ -4,7 +4,7 @@ import { Color } from "expo-router";
 /**
  * Universal semantic colors.
  * - iOS: UIKit semantic colors
- * - Android: Material 3 dynamic colors
+ * - Android: Material 3 dynamic colors & fallbacks
  * - Web: CSS variables that resolve instantaneously via CSS media queries (0ms flash)
  */
 export const colors = {
@@ -32,5 +32,27 @@ export const colors = {
     ios: Color.ios.systemBlue,
     android: Color.android.dynamic.primary,
     default: "#007AFF",
+  })!,
+  systemPurple: Platform.select({
+    ios: Color.ios.systemPurple,
+    android: Color.android.dynamic.tertiary,
+    default: "#AF52DE",
+  })!,
+  systemGreen: Platform.select({
+    ios: Color.ios.systemGreen,
+    default: "#34C759",
+  })!,
+  systemRed: Platform.select({
+    ios: Color.ios.systemRed,
+    android: Color.android.dynamic.error,
+    default: "#FF3B30",
+  })!,
+  systemOrange: Platform.select({
+    ios: Color.ios.systemOrange,
+    default: "#FF9500",
+  })!,
+  systemGray: Platform.select({
+    ios: Color.ios.systemGray,
+    default: "#8E8E93",
   })!,
 };

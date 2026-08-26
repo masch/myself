@@ -1,11 +1,17 @@
 import { type SQLiteDatabase } from "expo-sqlite";
-import { type User } from "./database";
+import { generateUUID } from "@/utils/uuid";
 
 interface SeedTask {
   title: string;
   category: "Work" | "Personal" | "Shopping" | "Design" | "General";
   description: string;
-  is_done: number; // 0 = pending, 1 = completed
+  is_done: number;
+}
+
+interface SeedReading {
+  authorName: string;
+  content: string;
+  initialReadCount?: number;
 }
 
 interface SeedUser {
@@ -14,10 +20,63 @@ interface SeedUser {
   tasks: SeedTask[];
 }
 
-/**
- * Explicit seed dataset defining each user and their corresponding tasks.
- */
-export const SEED_DATA: SeedUser[] = [
+export const SEED_AUTHORS: { name: string; bio: string }[] = [
+  {
+    name: "Marcus Aurelius",
+    bio: "Roman Emperor and Stoic philosopher, author of Meditations.",
+  },
+  {
+    name: "Seneca",
+    bio: "Stoic philosopher, statesman, and dramatist of the Roman Silver Age.",
+  },
+  {
+    name: "Epictetus",
+    bio: "Greek Stoic philosopher born into slavery in Hierapolis.",
+  },
+  {
+    name: "Lao Tzu",
+    bio: "Ancient Chinese philosopher and writer, founder of philosophical Taoism.",
+  },
+  {
+    name: "Thich Nhat Hanh",
+    bio: "Vietnamese Thiền Buddhist monk, peace activist, and author.",
+  },
+];
+
+export const SEED_READINGS: SeedReading[] = [
+  {
+    authorName: "Marcus Aurelius",
+    content:
+      "You have power over your mind - not outside events. Realize this, and you will find strength.",
+    initialReadCount: 2,
+  },
+  {
+    authorName: "Seneca",
+    content:
+      "We suffer more often in imagination than in reality. True happiness is to enjoy the present, without anxious dependence upon the future.",
+    initialReadCount: 0,
+  },
+  {
+    authorName: "Thich Nhat Hanh",
+    content:
+      "Smile, breathe and go slowly. Breath is the bridge which connects life to consciousness, which unites your body to your thoughts.",
+    initialReadCount: 1,
+  },
+  {
+    authorName: "Epictetus",
+    content:
+      "Don't explain your philosophy. Embody it. Wealth consists not in having great possessions, but in having few wants.",
+    initialReadCount: 0,
+  },
+  {
+    authorName: "Lao Tzu",
+    content:
+      "Silence is a source of great strength. Nature does not hurry, yet everything is accomplished.",
+    initialReadCount: 3,
+  },
+];
+
+export const SEED_USERS: SeedUser[] = [
   {
     name: "My self",
     email: "the.masch@gmail.com",
@@ -64,12 +123,6 @@ export const SEED_DATA: SeedUser[] = [
         description: "Interview 5 mobile beta testers on tabs navigation",
         is_done: 0,
       },
-      {
-        title: "Renew gym membership",
-        category: "Personal",
-        description: "Annual subscription renewal",
-        is_done: 0,
-      },
     ],
   },
   {
@@ -82,40 +135,88 @@ export const SEED_DATA: SeedUser[] = [
         description: "Showcase multi-user database switching and SQLite CRUD",
         is_done: 0,
       },
-      {
-        title: "Order team lunch",
-        category: "Personal",
-        description: "Check dietary preferences on Slack",
-        is_done: 1,
-      },
     ],
   },
 ];
 
 /**
- * Seeds the database with the explicit SEED_DATA if no users exist.
+ * Seeds the database with users, tasks, authors, readings, and reading logs.
  */
 export async function seedDatabase(db: SQLiteDatabase) {
-  const existingUsers = await db.getAllAsync<User>(
-    "SELECT * FROM users LIMIT 1",
+  // 1. Seed Authors & Global Readings if readings are empty
+  const existingReadings = await db.getAllAsync<{ id: string }>(
+    "SELECT id FROM meditation_readings LIMIT 1",
   );
 
-  if (existingUsers.length > 0) {
-    return;
+  if (existingReadings.length === 0) {
+    const authorIdMap: Record<string, string> = {};
+
+    for (const author of SEED_AUTHORS) {
+      const existingAuthor = await db.getFirstAsync<{ id: string }>(
+        "SELECT id FROM authors WHERE name = ?",
+        [author.name],
+      );
+
+      if (existingAuthor) {
+        authorIdMap[author.name] = existingAuthor.id;
+      } else {
+        const authorId = generateUUID();
+        await db.runAsync(
+          "INSERT INTO authors (id, name, bio) VALUES (?, ?, ?)",
+          [authorId, author.name, author.bio],
+        );
+        authorIdMap[author.name] = authorId;
+      }
+    }
+
+    for (const reading of SEED_READINGS) {
+      const readingId = generateUUID();
+      const authorId = authorIdMap[reading.authorName];
+      if (authorId) {
+        await db.runAsync(
+          "INSERT INTO meditation_readings (id, author_id, content, created_at) VALUES (?, ?, ?, datetime('now'))",
+          [readingId, authorId, reading.content],
+        );
+
+        const logsCount = reading.initialReadCount || 0;
+        for (let i = 0; i < logsCount; i++) {
+          const logId = generateUUID();
+          await db.runAsync(
+            "INSERT INTO reading_logs (id, reading_id, read_at) VALUES (?, ?, datetime('now'))",
+            [logId, readingId],
+          );
+        }
+      }
+    }
   }
 
-  for (const user of SEED_DATA) {
-    const userInsertResult = await db.runAsync(
-      "INSERT INTO users (name, email) VALUES (?, ?)",
-      [user.name, user.email],
-    );
-    const userId = userInsertResult.lastInsertRowId;
+  // 2. Seed Users & Tasks if users are empty
+  const existingUsers = await db.getAllAsync<{ id: string }>(
+    "SELECT id FROM users LIMIT 1",
+  );
 
-    for (const task of user.tasks) {
+  if (existingUsers.length === 0) {
+    for (const user of SEED_USERS) {
+      const userId = generateUUID();
       await db.runAsync(
-        "INSERT INTO tasks (user_id, title, category, description, is_done) VALUES (?, ?, ?, ?, ?)",
-        [userId, task.title, task.category, task.description, task.is_done],
+        "INSERT INTO users (id, name, email) VALUES (?, ?, ?)",
+        [userId, user.name, user.email],
       );
+
+      for (const task of user.tasks) {
+        const taskId = generateUUID();
+        await db.runAsync(
+          "INSERT INTO tasks (id, user_id, title, category, description, is_done) VALUES (?, ?, ?, ?, ?, ?)",
+          [
+            taskId,
+            userId,
+            task.title,
+            task.category,
+            task.description,
+            task.is_done,
+          ],
+        );
+      }
     }
   }
 }

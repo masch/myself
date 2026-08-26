@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { View, StyleSheet, ScrollView, Text, Pressable } from "react-native";
+import { useState, useEffect, useRef } from "react";
+import { View, StyleSheet, ScrollView, Text, Switch } from "react-native";
 import { Image } from "expo-image";
-import { Host, Switch, Button } from "@expo/ui";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMeditation } from "@/hooks/use-meditation";
+import { useReadings } from "@/hooks/use-readings";
+import { AppButton, ChipButton, StepperButton } from "@/components";
 import { colors } from "@/theme/colors";
 
 function formatTime(totalSeconds: number): string {
@@ -30,7 +31,6 @@ export default function MeditationScreen() {
     targetHour,
     targetMinute,
     alarmEnabled,
-    hasAlarmTriggered,
     setTargetHour,
     setTargetMinute,
     setAlarmEnabled,
@@ -43,7 +43,11 @@ export default function MeditationScreen() {
     playTripleGong,
   } = useMeditation();
 
+  const { readings, recordRead } = useReadings();
+  const [currentReadingOffset, setCurrentReadingOffset] = useState(0);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+
+  const recordedSessionReadingIdRef = useRef<string | null>(null);
 
   const incrementHour = () => setTargetHour((prev) => (prev + 1) % 24);
   const decrementHour = () => setTargetHour((prev) => (prev - 1 + 24) % 24);
@@ -54,6 +58,39 @@ export default function MeditationScreen() {
   const isPaused = status === "paused";
   const isCompleted = status === "completed";
   const isIdle = status === "idle";
+
+  // Prioritize unread readings (times_read === 0), fallback to all readings
+  const unreadReadings = readings.filter((r) => r.times_read === 0);
+  const candidateReadings =
+    unreadReadings.length > 0 ? unreadReadings : readings;
+  const activeReading =
+    candidateReadings.length > 0
+      ? candidateReadings[currentReadingOffset % candidateReadings.length]
+      : null;
+
+  // Auto-record reading log as read when transitioning to Moment 2 (index 1) or beyond
+  useEffect(() => {
+    if (
+      currentMomentIndex >= 1 &&
+      activeReading &&
+      recordedSessionReadingIdRef.current !== activeReading.id
+    ) {
+      recordedSessionReadingIdRef.current = activeReading.id;
+      recordRead(activeReading.id).catch((err) => {
+        console.error("Failed to auto-record reading log on Moment 2:", err);
+      });
+    }
+  }, [currentMomentIndex, activeReading, recordRead]);
+
+  const handleResetSession = () => {
+    recordedSessionReadingIdRef.current = null;
+    resetSession();
+  };
+
+  const handleStartSession = () => {
+    recordedSessionReadingIdRef.current = null;
+    startSession();
+  };
 
   return (
     <ScrollView
@@ -147,112 +184,218 @@ export default function MeditationScreen() {
         </View>
       </View>
 
+      {/* Reading Card: Selected before starting OR during Moment 1 */}
+      {(isIdle || (!isCompleted && currentMomentIndex === 0)) && (
+        <View
+          style={[
+            styles.readingStepCard,
+            {
+              backgroundColor: colors.secondarySystemBackground,
+              borderLeftColor: colors.systemPurple,
+            },
+          ]}
+        >
+          {activeReading ? (
+            <>
+              <View style={styles.readingStepHeader}>
+                <View style={styles.readingAuthorInfo}>
+                  <Image
+                    source="sf:book.closed.fill"
+                    style={[
+                      styles.readingStepIcon,
+                      { tintColor: colors.systemPurple },
+                    ]}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.readingCardTag,
+                        { color: colors.systemPurple },
+                      ]}
+                    >
+                      {isIdle
+                        ? "LECTURA SELECCIONADA PARA LA SESIÓN"
+                        : "MOMENTO 1: LECTURA Y REFLEXIÓN"}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.readingAuthorName,
+                        { color: colors.label },
+                      ]}
+                    >
+                      {activeReading.author_name}
+                    </Text>
+                    {activeReading.author_bio ? (
+                      <Text
+                        style={[
+                          styles.readingAuthorBio,
+                          { color: colors.secondaryLabel },
+                        ]}
+                      >
+                        {activeReading.author_bio}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+
+                {candidateReadings.length > 1 && (
+                  <ChipButton
+                    title="Elegir otra"
+                    icon="sf:arrow.triangle.2.circlepath"
+                    variant="purple"
+                    onPress={() => setCurrentReadingOffset((prev) => prev + 1)}
+                  />
+                )}
+              </View>
+
+              <View style={styles.quoteBox}>
+                <Text
+                  style={[styles.quoteSign, { color: colors.systemPurple }]}
+                >
+                  “
+                </Text>
+                <Text style={[styles.reflectionText, { color: colors.label }]}>
+                  {activeReading.content}
+                </Text>
+              </View>
+
+              <View style={styles.readingFooter}>
+                <Text
+                  style={[
+                    styles.readCountBadge,
+                    { color: colors.secondaryLabel },
+                  ]}
+                >
+                  {activeReading.times_read === 0
+                    ? "✨ Texto nuevo (sin leer)"
+                    : `📖 Leído ${activeReading.times_read} ${activeReading.times_read === 1 ? "vez" : "veces"}`}
+                </Text>
+
+                <Text
+                  style={[
+                    styles.autoRecordHint,
+                    { color: colors.secondaryLabel },
+                  ]}
+                >
+                  {isIdle
+                    ? "Se marcará como leído al pasar al Momento 2"
+                    : "Pasa al Momento 2 para registrarla como leída"}
+                </Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.emptyReadingBox}>
+              <Image
+                source="sf:book.closed"
+                style={[
+                  styles.emptyReadingIcon,
+                  { tintColor: colors.systemPurple },
+                ]}
+              />
+              <Text style={[styles.emptyReadingTitle, { color: colors.label }]}>
+                Sin textos en la biblioteca
+              </Text>
+              <Text
+                style={[
+                  styles.emptyReadingSubtitle,
+                  { color: colors.secondaryLabel },
+                ]}
+              >
+                Podés crear nuevas lecturas en la pestaña &apos;Lecturas&apos;.
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Moment 2 & 3: Badge confirming read has been registered */}
+      {!isIdle && !isCompleted && currentMomentIndex >= 1 && activeReading && (
+        <View
+          style={[
+            styles.readRegisteredBadge,
+            { backgroundColor: colors.secondarySystemBackground },
+          ]}
+        >
+          <Image
+            source="sf:checkmark.circle.fill"
+            style={[styles.checkIcon, { tintColor: colors.systemGreen }]}
+          />
+          <Text style={[styles.readRegisteredText, { color: colors.label }]}>
+            Lectura de{" "}
+            <Text style={{ fontWeight: "600" }}>
+              {activeReading.author_name}
+            </Text>{" "}
+            registrada como leída en esta sesión.
+          </Text>
+        </View>
+      )}
+
       {/* Primary Actions */}
       <View style={styles.actionSection}>
         {isIdle && (
-          <Pressable
-            style={[
-              styles.primaryButton,
-              { backgroundColor: colors.systemBlue },
-            ]}
-            onPress={startSession}
-          >
-            <Text style={styles.primaryButtonText}>Iniciar Meditación</Text>
-            <Text style={styles.primaryButtonSubtext}>
-              Suena 1 gong y comienza el Momento 1
-            </Text>
-          </Pressable>
+          <AppButton
+            title="Iniciar Meditación"
+            subtitle="Suena 1 gong y comienza el Momento 1 con la lectura elegida"
+            variant="primary"
+            onPress={handleStartSession}
+          />
         )}
 
         {(isRunning || isPaused) && (
           <View style={styles.runningControls}>
             {/* Context-aware Next/Finish Button */}
             {currentMomentIndex === 0 && (
-              <Pressable
-                style={[
-                  styles.primaryButton,
-                  { backgroundColor: colors.systemBlue },
-                ]}
+              <AppButton
+                title="Pasar a Meditación Programada (Momento 2)"
+                subtitle="Registra la lectura como leída y suena 1 gong"
+                variant="purple"
                 onPress={nextMoment}
-              >
-                <Text style={styles.primaryButtonText}>Siguiente Momento</Text>
-                <Text style={styles.primaryButtonSubtext}>
-                  Suena 1 gong y pasa al Momento 2
-                </Text>
-              </Pressable>
+              />
             )}
 
             {currentMomentIndex === 1 && (
-              <Pressable
-                style={[styles.primaryButton, { backgroundColor: "#6C757D" }]}
+              <AppButton
+                title="Avanzar a Momento 3 (Manual)"
+                subtitle={`O esperar a las ${formatClock(targetHour, targetMinute)} para pase automático con 1 gong`}
+                variant="gray"
                 onPress={nextMoment}
-              >
-                <Text style={styles.primaryButtonText}>
-                  Avanzar a Momento 3 (Manual)
-                </Text>
-                <Text style={styles.primaryButtonSubtext}>
-                  O esperar a las {formatClock(targetHour, targetMinute)} para
-                  pase automático con 1 gong
-                </Text>
-              </Pressable>
+              />
             )}
 
             {currentMomentIndex === 2 && (
-              <Pressable
-                style={[styles.primaryButton, { backgroundColor: "#34C759" }]}
+              <AppButton
+                title="Finalizar Meditación (3 Gongs)"
+                subtitle="Suena triple gong de cierre"
+                variant="green"
                 onPress={nextMoment}
-              >
-                <Text style={styles.primaryButtonText}>
-                  Finalizar Meditación (3 Gongs)
-                </Text>
-                <Text style={styles.primaryButtonSubtext}>
-                  Suena triple gong de cierre
-                </Text>
-              </Pressable>
+              />
             )}
 
             <View style={styles.secondaryControlsRow}>
-              <Pressable
-                style={[
-                  styles.secondaryButton,
-                  { backgroundColor: colors.secondarySystemBackground },
-                ]}
+              <AppButton
+                title={isRunning ? "Pausar" : "Reanudar"}
+                variant="secondary"
+                style={styles.flex1}
                 onPress={isRunning ? pauseSession : resumeSession}
-              >
-                <Text
-                  style={[styles.secondaryButtonText, { color: colors.label }]}
-                >
-                  {isRunning ? "Pausar" : "Reanudar"}
-                </Text>
-              </Pressable>
+              />
 
-              <Pressable
-                style={[
-                  styles.secondaryButton,
-                  { backgroundColor: colors.secondarySystemBackground },
-                ]}
-                onPress={resetSession}
-              >
-                <Text
-                  style={[styles.secondaryButtonText, { color: "#FF3B30" }]}
-                >
-                  Reiniciar
-                </Text>
-              </Pressable>
+              <AppButton
+                title="Reiniciar"
+                variant="secondary"
+                titleStyle={{ color: colors.systemRed }}
+                style={styles.flex1}
+                onPress={handleResetSession}
+              />
             </View>
           </View>
         )}
 
         {isCompleted && (
-          <Pressable
-            style={[
-              styles.primaryButton,
-              { backgroundColor: colors.systemBlue },
-            ]}
-            onPress={resetSession}
-          >
-            <Text style={styles.primaryButtonText}>Nueva Meditación</Text>
-          </Pressable>
+          <AppButton
+            title="Nueva Meditación"
+            variant="primary"
+            onPress={handleResetSession}
+          />
         )}
       </View>
 
@@ -260,19 +403,24 @@ export default function MeditationScreen() {
       <View style={styles.settingsSection}>
         <View style={styles.groupContainer}>
           <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-            PASO AUTOMÁTICO POR HORA (MOMENTO 2 → 3)
+            CONFIGURACIÓN DE ALARMA Y SONIDOS
           </Text>
+
           <View
             style={[
               styles.card,
               { backgroundColor: colors.secondarySystemBackground },
             ]}
           >
+            {/* Alarm Active Switch */}
             <View style={styles.settingRow}>
-              <Image source="sf:bell.fill" style={styles.iconGold} />
+              <Image
+                source="sf:bell.fill"
+                style={[styles.iconSetting, { tintColor: colors.systemOrange }]}
+              />
               <View style={styles.settingContent}>
                 <Text style={[styles.settingTitle, { color: colors.label }]}>
-                  Transición a hora exacta
+                  Alarma de Pared Programada
                 </Text>
                 <Text
                   style={[
@@ -280,188 +428,30 @@ export default function MeditationScreen() {
                     { color: colors.secondaryLabel },
                   ]}
                 >
-                  {alarmEnabled
-                    ? `Avanza y suena 1 gong a las ${formatClock(targetHour, targetMinute)} hs${hasAlarmTriggered ? " • Disparado hoy" : ""}`
-                    : "Desactivado (requerirá paso manual)"}
+                  Suena 1 gong al llegar a la hora objetivo
                 </Text>
               </View>
-              <Host matchContents>
-                <Switch
-                  value={alarmEnabled}
-                  onValueChange={(val) => setAlarmEnabled(val)}
-                />
-              </Host>
-            </View>
-
-            {alarmEnabled && (
-              <>
-                <View style={styles.divider} />
-                <View style={styles.settingRow}>
-                  <Image source="sf:clock.fill" style={styles.iconBlue} />
-                  <View style={styles.settingContent}>
-                    <Text
-                      style={[styles.settingTitle, { color: colors.label }]}
-                    >
-                      Hora programada
-                    </Text>
-                  </View>
-                  <Pressable
-                    style={styles.timeBadge}
-                    onPress={() => setIsConfigOpen((prev) => !prev)}
-                  >
-                    <Text
-                      style={[
-                        styles.timeBadgeText,
-                        { color: colors.systemBlue },
-                      ]}
-                    >
-                      {formatClock(targetHour, targetMinute)}{" "}
-                      {isConfigOpen ? "▲" : "▼"}
-                    </Text>
-                  </Pressable>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-
-        {alarmEnabled && isConfigOpen && (
-          <View style={styles.groupContainer}>
-            <Text
-              style={[styles.sectionTitle, { color: colors.secondaryLabel }]}
-            >
-              AJUSTAR HORA Y MINUTOS
-            </Text>
-            <View
-              style={[
-                styles.card,
-                styles.timePickerContainer,
-                { backgroundColor: colors.secondarySystemBackground },
-              ]}
-            >
-              {/* Hour control */}
-              <View style={styles.pickerColumn}>
-                <Text
-                  style={[styles.pickerLabel, { color: colors.secondaryLabel }]}
-                >
-                  HORA
-                </Text>
-                <Pressable
-                  style={[
-                    styles.stepperButton,
-                    { borderColor: colors.secondaryLabel },
-                  ]}
-                  onPress={incrementHour}
-                >
-                  <Text
-                    style={[styles.stepperButtonText, { color: colors.label }]}
-                  >
-                    +
-                  </Text>
-                </Pressable>
-                <Text style={[styles.pickerValue, { color: colors.label }]}>
-                  {targetHour.toString().padStart(2, "0")}
-                </Text>
-                <Pressable
-                  style={[
-                    styles.stepperButton,
-                    { borderColor: colors.secondaryLabel },
-                  ]}
-                  onPress={decrementHour}
-                >
-                  <Text
-                    style={[styles.stepperButtonText, { color: colors.label }]}
-                  >
-                    -
-                  </Text>
-                </Pressable>
-              </View>
-
-              <Text style={[styles.colonSeparator, { color: colors.label }]}>
-                :
-              </Text>
-
-              {/* Minute control */}
-              <View style={styles.pickerColumn}>
-                <Text
-                  style={[styles.pickerLabel, { color: colors.secondaryLabel }]}
-                >
-                  MINUTOS
-                </Text>
-                <Pressable
-                  style={[
-                    styles.stepperButton,
-                    { borderColor: colors.secondaryLabel },
-                  ]}
-                  onPress={incrementMinute}
-                >
-                  <Text
-                    style={[styles.stepperButtonText, { color: colors.label }]}
-                  >
-                    +
-                  </Text>
-                </Pressable>
-                <Text style={[styles.pickerValue, { color: colors.label }]}>
-                  {targetMinute.toString().padStart(2, "0")}
-                </Text>
-                <Pressable
-                  style={[
-                    styles.stepperButton,
-                    { borderColor: colors.secondaryLabel },
-                  ]}
-                  onPress={decrementMinute}
-                >
-                  <Text
-                    style={[styles.stepperButtonText, { color: colors.label }]}
-                  >
-                    -
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        )}
-
-        <View style={styles.groupContainer}>
-          <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-            PRUEBA DE SONIDO
-          </Text>
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: colors.secondarySystemBackground },
-            ]}
-          >
-            <View style={styles.settingRow}>
-              <Image source="sf:speaker.wave.2.fill" style={styles.iconGreen} />
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, { color: colors.label }]}>
-                  Gong Simple (1 toque)
-                </Text>
-                <Text
-                  style={[
-                    styles.settingSubtitle,
-                    { color: colors.secondaryLabel },
-                  ]}
-                >
-                  Inicio, siguiente y alarma horaria
-                </Text>
-              </View>
-              <Host matchContents>
-                <Button label="Probar" onPress={() => playSingleGong()} />
-              </Host>
+              <Switch
+                value={alarmEnabled}
+                onValueChange={setAlarmEnabled}
+                trackColor={{
+                  false: "rgba(142, 142, 147, 0.3)",
+                  true: colors.systemGreen as any,
+                }}
+              />
             </View>
 
             <View style={styles.divider} />
 
+            {/* Target Time Setting Row */}
             <View style={styles.settingRow}>
               <Image
-                source="sf:speaker.wave.3.fill"
-                style={styles.iconPurple}
+                source="sf:clock.fill"
+                style={[styles.iconSetting, { tintColor: colors.systemBlue }]}
               />
               <View style={styles.settingContent}>
                 <Text style={[styles.settingTitle, { color: colors.label }]}>
-                  Gong Triple (3 toques)
+                  Hora Objetivo
                 </Text>
                 <Text
                   style={[
@@ -469,12 +459,118 @@ export default function MeditationScreen() {
                     { color: colors.secondaryLabel },
                   ]}
                 >
-                  Finalización de sesión
+                  {formatClock(targetHour, targetMinute)} hs
                 </Text>
               </View>
-              <Host matchContents>
-                <Button label="Probar" onPress={() => playTripleGong()} />
-              </Host>
+              <ChipButton
+                title={isConfigOpen ? "Cerrar" : "Editar"}
+                variant="blue"
+                onPress={() => setIsConfigOpen((prev) => !prev)}
+              />
+            </View>
+
+            {/* Stepper Inline Time Picker */}
+            {isConfigOpen && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.timePickerContainer}>
+                  {/* Hours column */}
+                  <View style={styles.pickerColumn}>
+                    <Text
+                      style={[
+                        styles.pickerLabel,
+                        { color: colors.secondaryLabel },
+                      ]}
+                    >
+                      HORA
+                    </Text>
+                    <StepperButton direction="up" onPress={incrementHour} />
+                    <Text style={[styles.pickerValue, { color: colors.label }]}>
+                      {targetHour.toString().padStart(2, "0")}
+                    </Text>
+                    <StepperButton direction="down" onPress={decrementHour} />
+                  </View>
+
+                  <Text
+                    style={[styles.colonSeparator, { color: colors.label }]}
+                  >
+                    :
+                  </Text>
+
+                  {/* Minutes column */}
+                  <View style={styles.pickerColumn}>
+                    <Text
+                      style={[
+                        styles.pickerLabel,
+                        { color: colors.secondaryLabel },
+                      ]}
+                    >
+                      MINUTO
+                    </Text>
+                    <StepperButton direction="up" onPress={incrementMinute} />
+                    <Text style={[styles.pickerValue, { color: colors.label }]}>
+                      {targetMinute.toString().padStart(2, "0")}
+                    </Text>
+                    <StepperButton direction="down" onPress={decrementMinute} />
+                  </View>
+                </View>
+              </>
+            )}
+
+            <View style={styles.divider} />
+
+            {/* Test Single Gong */}
+            <View style={styles.settingRow}>
+              <Image
+                source="sf:speaker.wave.2.fill"
+                style={[styles.iconSetting, { tintColor: colors.systemPurple }]}
+              />
+              <View style={styles.settingContent}>
+                <Text style={[styles.settingTitle, { color: colors.label }]}>
+                  Probar Gong Simple
+                </Text>
+                <Text
+                  style={[
+                    styles.settingSubtitle,
+                    { color: colors.secondaryLabel },
+                  ]}
+                >
+                  Sonido de inicio y cambio de fase
+                </Text>
+              </View>
+              <ChipButton
+                title="1 Gong"
+                variant="blue"
+                onPress={playSingleGong}
+              />
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* Test Triple Gong */}
+            <View style={styles.settingRow}>
+              <Image
+                source="sf:speaker.wave.3.fill"
+                style={[styles.iconSetting, { tintColor: colors.systemGreen }]}
+              />
+              <View style={styles.settingContent}>
+                <Text style={[styles.settingTitle, { color: colors.label }]}>
+                  Probar Triple Gong
+                </Text>
+                <Text
+                  style={[
+                    styles.settingSubtitle,
+                    { color: colors.secondaryLabel },
+                  ]}
+                >
+                  Sonido de cierre de meditación
+                </Text>
+              </View>
+              <ChipButton
+                title="3 Gongs"
+                variant="success"
+                onPress={playTripleGong}
+              />
             </View>
           </View>
         </View>
@@ -488,19 +584,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
-    paddingBottom: 48,
+    paddingHorizontal: 20,
+    gap: 16,
   },
   timerCard: {
     borderRadius: 24,
-    paddingVertical: 32,
+    paddingVertical: 28,
     paddingHorizontal: 20,
     alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    justifyContent: "center",
+    borderCurve: "continuous",
+    boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)",
     elevation: 3,
   },
   statusBadge: {
@@ -554,25 +648,108 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  actionSection: {
-    marginBottom: 20,
+  readingStepCard: {
+    borderRadius: 20,
+    padding: 18,
+    gap: 12,
+    borderCurve: "continuous",
+    borderLeftWidth: 4,
   },
-  primaryButton: {
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+  readingStepHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  readingAuthorInfo: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    flex: 1,
+  },
+  readingStepIcon: {
+    width: 24,
+    height: 24,
+    marginTop: 2,
+  },
+  readingCardTag: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    marginBottom: 2,
+  },
+  readingAuthorName: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  readingAuthorBio: {
+    fontSize: 12,
+  },
+  quoteBox: {
+    paddingLeft: 4,
+  },
+  quoteSign: {
+    fontSize: 22,
+    fontWeight: "700",
+    lineHeight: 22,
+  },
+  reflectionText: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontStyle: "italic",
+    marginTop: -6,
+  },
+  readingFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(142, 142, 147, 0.2)",
+    gap: 8,
   },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 17,
+  readCountBadge: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  autoRecordHint: {
+    fontSize: 11,
+    fontStyle: "italic",
+  },
+  readRegisteredBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 14,
+    gap: 10,
+    borderCurve: "continuous",
+  },
+  checkIcon: {
+    width: 20,
+    height: 20,
+  },
+  readRegisteredText: {
+    fontSize: 13,
+    flex: 1,
+  },
+  emptyReadingBox: {
+    alignItems: "center",
+    paddingVertical: 14,
+    gap: 6,
+  },
+  emptyReadingIcon: {
+    width: 32,
+    height: 32,
+  },
+  emptyReadingTitle: {
+    fontSize: 15,
     fontWeight: "600",
   },
-  primaryButtonSubtext: {
-    color: "rgba(255, 255, 255, 0.8)",
-    fontSize: 12,
-    marginTop: 4,
+  emptyReadingSubtitle: {
+    fontSize: 13,
+    textAlign: "center",
+  },
+  actionSection: {
+    marginBottom: 20,
   },
   runningControls: {
     gap: 12,
@@ -581,16 +758,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
   },
-  secondaryButton: {
+  flex1: {
     flex: 1,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
   },
   settingsSection: {
     gap: 16,
@@ -631,26 +800,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(142, 142, 147, 0.2)",
     marginLeft: 52,
   },
-  soundTestButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  soundTestText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  timeBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  timeBadgeText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
   timePickerContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -672,41 +821,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontVariant: ["tabular-nums"],
   },
-  stepperButton: {
-    width: 36,
-    height: 28,
-    borderRadius: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stepperButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
   colonSeparator: {
     fontSize: 32,
     fontWeight: "300",
     marginTop: 14,
   },
-  iconBlue: {
+  iconSetting: {
     width: 26,
     height: 26,
-    tintColor: "#007AFF",
-  },
-  iconGreen: {
-    width: 26,
-    height: 26,
-    tintColor: "#34C759",
-  },
-  iconPurple: {
-    width: 26,
-    height: 26,
-    tintColor: "#AF52DE",
-  },
-  iconGold: {
-    width: 26,
-    height: 26,
-    tintColor: "#FF9500",
   },
 });

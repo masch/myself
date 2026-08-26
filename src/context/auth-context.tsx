@@ -13,7 +13,7 @@ interface AuthContextType {
   currentUser: User | null;
   users: User[];
   isLoadingAuth: boolean;
-  switchUser: (id: number) => Promise<void>;
+  switchUser: (id: string) => Promise<void>;
   registerUser: (name: string, email: string) => Promise<void>;
 }
 
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [db]);
 
-  const switchUser = async (id: number) => {
+  const switchUser = async (id: string) => {
     const user = await getUserById(db, id);
     if (user) {
       setCurrentUser(user);

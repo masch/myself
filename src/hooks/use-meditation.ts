@@ -13,7 +13,7 @@ export interface MeditationState {
 }
 
 const DEFAULT_MOMENTS = [
-  "Momento 1: Inicio y Silencio",
+  "Momento 1: Lectura y Reflexión",
   "Momento 2: Meditación hacia Hora Programada",
   "Momento 3: Cierre e Integración",
 ];
