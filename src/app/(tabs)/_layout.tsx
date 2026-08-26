@@ -11,6 +11,10 @@ export default function TabLayout() {
         <NativeTabs.Trigger.Icon sf="sparkles" md="self_improvement" />
         <NativeTabs.Trigger.Label>Meditación</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="readings">
+        <NativeTabs.Trigger.Icon sf="book.closed.fill" md="menu_book" />
+        <NativeTabs.Trigger.Label>Lecturas</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
         <NativeTabs.Trigger.Icon sf="gearshape.fill" md="settings" />
         <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>

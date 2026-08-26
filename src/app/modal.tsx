@@ -3,15 +3,17 @@ import { router, Stack } from "expo-router";
 import {
   View,
   StyleSheet,
-  Text,
-  Pressable,
   TextInput,
+  Text,
   Alert,
+  ScrollView,
 } from "react-native";
 import { Image } from "expo-image";
-import { Host, FieldGroup, ListItem, Picker } from "@expo/ui";
 import { useTasks } from "@/hooks/use-tasks";
+import { HeaderButton, ChipButton } from "@/components";
 import { colors } from "@/theme/colors";
+
+const CATEGORIES = ["Work", "Personal", "Shopping", "Design", "Urgent"];
 
 export default function ModalScreen() {
   const { addTask } = useTasks();
@@ -39,118 +41,151 @@ export default function ModalScreen() {
   };
 
   return (
-    <View
+    <ScrollView
       style={[styles.container, { backgroundColor: colors.systemBackground }]}
+      contentContainerStyle={styles.contentContainer}
+      contentInsetAdjustmentBehavior="automatic"
     >
       <Stack.Screen
         options={{
           title: "New Task",
           presentation: "modal",
           headerLeft: () => (
-            <Pressable
+            <HeaderButton
+              title="Cancel"
+              variant="cancel"
               onPress={() => router.back()}
-              style={styles.headerButton}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </Pressable>
+            />
           ),
           headerRight: () => (
-            <Pressable onPress={handleSave} style={styles.headerButton}>
-              <Text style={styles.doneText}>Save</Text>
-            </Pressable>
+            <HeaderButton title="Save" variant="primary" onPress={handleSave} />
           ),
         }}
       />
 
-      <Host style={styles.host}>
-        <FieldGroup>
-          <FieldGroup.Section title="Task Details">
-            <View style={styles.inputRow}>
-              <TextInput
-                placeholder="Task title"
-                placeholderTextColor="#8E8E93"
-                value={title}
-                onChangeText={setTitle}
-                style={[styles.input, { color: colors.label }]}
-                autoFocus
+      {/* Category selector chips */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+          CATEGORY
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesRow}
+        >
+          {CATEGORIES.map((cat) => {
+            const isSelected = category === cat;
+            return (
+              <ChipButton
+                key={cat}
+                title={cat}
+                variant={isSelected ? "blue" : "secondary"}
+                onPress={() => setCategory(cat)}
               />
-            </View>
+            );
+          })}
+        </ScrollView>
+      </View>
 
-            <View style={styles.inputRow}>
-              <TextInput
-                placeholder="Description (optional)"
-                placeholderTextColor="#8E8E93"
-                value={description}
-                onChangeText={setDescription}
-                style={[
-                  styles.input,
-                  styles.descInput,
-                  { color: colors.label },
-                ]}
-                multiline
-              />
-            </View>
+      {/* Task input card */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+          TASK DETAILS
+        </Text>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.secondarySystemBackground },
+          ]}
+        >
+          <View style={styles.inputRow}>
+            <Image
+              source="sf:text.badge.plus"
+              style={[styles.inputIcon, { tintColor: colors.systemBlue }]}
+            />
+            <TextInput
+              placeholder="Task title"
+              placeholderTextColor={colors.secondaryLabel}
+              value={title}
+              onChangeText={setTitle}
+              style={[styles.input, { color: colors.label }]}
+              autoFocus
+            />
+          </View>
 
-            <ListItem
-              leading={<Image source="sf:tag.fill" style={styles.iconBlue} />}
-              trailing={
-                <Picker
-                  selectedValue={category}
-                  onValueChange={(val) => setCategory(val as string)}
-                  appearance="menu"
-                >
-                  <Picker.Item label="Work" value="Work" />
-                  <Picker.Item label="Personal" value="Personal" />
-                  <Picker.Item label="Shopping" value="Shopping" />
-                  <Picker.Item label="Urgent" value="Urgent" />
-                </Picker>
-              }
-            >
-              Category
-            </ListItem>
-          </FieldGroup.Section>
-        </FieldGroup>
-      </Host>
-    </View>
+          <View style={styles.divider} />
+
+          <View style={styles.inputRow}>
+            <Image
+              source="sf:note.text"
+              style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
+            />
+            <TextInput
+              placeholder="Description or notes (optional)"
+              placeholderTextColor={colors.secondaryLabel}
+              value={description}
+              onChangeText={setDescription}
+              style={[styles.input, styles.descInput, { color: colors.label }]}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 12,
   },
-  host: {
-    flex: 1,
+  contentContainer: {
+    padding: 16,
+    gap: 20,
   },
-  headerButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  section: {
+    gap: 8,
   },
-  cancelText: {
-    color: "#FF3B30",
-    fontSize: 16,
-  },
-  doneText: {
-    color: "#007AFF",
-    fontSize: 16,
+  sectionTitle: {
+    fontSize: 12,
     fontWeight: "600",
+    letterSpacing: 0.6,
+    paddingHorizontal: 4,
+  },
+  categoriesRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 2,
+  },
+  card: {
+    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 16,
+    borderCurve: "continuous",
   },
   inputRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    gap: 12,
+  },
+  inputIcon: {
+    width: 22,
+    height: 22,
   },
   input: {
+    flex: 1,
     fontSize: 16,
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   descInput: {
-    minHeight: 48,
+    minHeight: 60,
     textAlignVertical: "top",
   },
-  iconBlue: {
-    width: 24,
-    height: 24,
-    tintColor: "#007AFF",
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "rgba(142, 142, 147, 0.2)",
+    marginLeft: 34,
   },
 });

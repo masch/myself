@@ -43,6 +43,7 @@ example
 /android
 # Local Pi runtime state
 .atl/
+.codegraph/
 
 # Secrets & Local builds
 firebase-sa-key*.json

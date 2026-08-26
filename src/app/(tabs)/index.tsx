@@ -1,17 +1,11 @@
 import { useCallback } from "react";
-import { Link, useFocusEffect } from "expo-router";
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Text,
-  Alert,
-} from "react-native";
+import { router, useFocusEffect } from "expo-router";
+import { View, StyleSheet, ScrollView, Text, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTasks } from "@/hooks/use-tasks";
 import { type TaskItem } from "@/db/database";
+import { AppButton, TaskRow } from "@/components";
 import { colors } from "@/theme/colors";
 
 export default function HomeScreen() {
@@ -77,14 +71,14 @@ export default function HomeScreen() {
             source="sf:person.crop.circle.fill"
             style={styles.userAvatarIcon}
           />
-          <View>
-            <Text style={[styles.userNameText, { color: colors.label }]}>
-              {currentUser?.name ?? "Alex Developer"}
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.greetingText, { color: colors.label }]}>
+              {currentUser ? currentUser.name : "Mindful User"}
             </Text>
             <Text
-              style={[styles.userEmailText, { color: colors.secondaryLabel }]}
+              style={[styles.emailSubtext, { color: colors.secondaryLabel }]}
             >
-              {currentUser?.email ?? "alex.developer@example.com"}
+              {currentUser ? currentUser.email : "Local-First Storage Active"}
             </Text>
           </View>
         </View>
@@ -100,7 +94,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: "#34C759" }]}>
+            <Text style={[styles.statNumber, { color: colors.systemGreen }]}>
               {completedTasks.length}
             </Text>
             <Text style={[styles.statLabel, { color: colors.secondaryLabel }]}>
@@ -109,12 +103,12 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <Link href="/modal" asChild>
-          <Pressable style={styles.modalButton}>
-            <Image source="sf:plus.circle.fill" style={styles.buttonIcon} />
-            <Text style={styles.modalButtonText}>New Task</Text>
-          </Pressable>
-        </Link>
+        <AppButton
+          title="New Task"
+          icon="sf:plus.circle.fill"
+          variant="primary"
+          onPress={() => router.push("/modal")}
+        />
       </View>
 
       {/* Tasks Section */}
@@ -133,36 +127,13 @@ export default function HomeScreen() {
               ]}
             >
               {pendingTasks.map((task, index) => (
-                <View key={task.id}>
-                  {index > 0 && <View style={styles.divider} />}
-                  <Pressable
-                    style={styles.taskRow}
-                    onPress={() => handleToggle(task)}
-                  >
-                    <Image source="sf:circle" style={styles.iconBlue} />
-                    <View style={styles.taskContent}>
-                      <Text style={[styles.taskTitle, { color: colors.label }]}>
-                        {task.title}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.taskSubtitle,
-                          { color: colors.secondaryLabel },
-                        ]}
-                      >
-                        {task.category}
-                        {task.description ? ` • ${task.description}` : ""}
-                      </Text>
-                    </View>
-                    <Pressable
-                      onPress={() => handleDelete(task)}
-                      hitSlop={12}
-                      style={styles.deleteButton}
-                    >
-                      <Image source="sf:trash" style={styles.iconTrash} />
-                    </Pressable>
-                  </Pressable>
-                </View>
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  showDivider={index > 0}
+                  onToggle={() => handleToggle(task)}
+                  onDelete={() => handleDelete(task)}
+                />
               ))}
             </View>
           </View>
@@ -182,44 +153,13 @@ export default function HomeScreen() {
               ]}
             >
               {completedTasks.map((task, index) => (
-                <View key={task.id}>
-                  {index > 0 && <View style={styles.divider} />}
-                  <Pressable
-                    style={styles.taskRow}
-                    onPress={() => handleToggle(task)}
-                  >
-                    <Image
-                      source="sf:checkmark.circle.fill"
-                      style={styles.iconGreen}
-                    />
-                    <View style={styles.taskContent}>
-                      <Text
-                        style={[
-                          styles.taskTitle,
-                          styles.completedTitle,
-                          { color: colors.secondaryLabel },
-                        ]}
-                      >
-                        {task.title}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.taskSubtitle,
-                          { color: colors.secondaryLabel },
-                        ]}
-                      >
-                        {task.category}
-                      </Text>
-                    </View>
-                    <Pressable
-                      onPress={() => handleDelete(task)}
-                      hitSlop={12}
-                      style={styles.deleteButton}
-                    >
-                      <Image source="sf:trash" style={styles.iconTrash} />
-                    </Pressable>
-                  </Pressable>
-                </View>
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  showDivider={index > 0}
+                  onToggle={() => handleToggle(task)}
+                  onDelete={() => handleDelete(task)}
+                />
               ))}
             </View>
           </View>
@@ -233,7 +173,10 @@ export default function HomeScreen() {
               { backgroundColor: colors.secondarySystemBackground },
             ]}
           >
-            <Image source="sf:tray" style={styles.iconGray} />
+            <Image
+              source="sf:tray"
+              style={[styles.iconGray, { tintColor: colors.secondaryLabel }]}
+            />
             <Text style={[styles.emptyText, { color: colors.secondaryLabel }]}>
               No tasks found. Tap &apos;New Task&apos; to create one.
             </Text>
@@ -249,85 +192,55 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
-    gap: 16,
-  },
-  headerAddButton: {
-    padding: 6,
-  },
-  headerAddIcon: {
-    width: 22,
-    height: 22,
-    tintColor: "#007AFF",
+    paddingHorizontal: 16,
+    gap: 20,
   },
   heroCard: {
     padding: 20,
     borderRadius: 16,
-    gap: 14,
+    gap: 16,
     borderCurve: "continuous",
   },
   userHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingBottom: 4,
   },
   userAvatarIcon: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     tintColor: "#007AFF",
   },
-  userNameText: {
-    fontSize: 17,
+  greetingText: {
+    fontSize: 18,
     fontWeight: "700",
   },
-  userEmailText: {
+  emailSubtext: {
     fontSize: 13,
   },
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    paddingTop: 4,
   },
   statItem: {
     alignItems: "center",
   },
   statNumber: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: "700",
   },
   statLabel: {
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 2,
   },
   statDivider: {
     width: 1,
     height: 32,
-    backgroundColor: "#38383A",
-  },
-  modalButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#007AFF",
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
-    borderCurve: "continuous",
-  },
-  buttonIcon: {
-    width: 18,
-    height: 18,
-    tintColor: "#FFF",
-  },
-  modalButtonText: {
-    color: "#FFF",
-    fontWeight: "600",
-    fontSize: 15,
+    backgroundColor: "rgba(142, 142, 147, 0.3)",
   },
   tasksSection: {
-    gap: 16,
+    gap: 20,
   },
   groupContainer: {
     gap: 8,
@@ -336,70 +249,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     letterSpacing: 0.6,
-    marginLeft: 4,
+    paddingHorizontal: 4,
   },
   card: {
     borderRadius: 16,
     overflow: "hidden",
     borderCurve: "continuous",
   },
-  taskRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    gap: 12,
-  },
-  taskContent: {
-    flex: 1,
-    gap: 2,
-  },
-  taskTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  completedTitle: {
-    textDecorationLine: "line-through",
-    opacity: 0.8,
-  },
-  taskSubtitle: {
-    fontSize: 13,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(142, 142, 147, 0.2)",
-    marginLeft: 50,
-  },
-  deleteButton: {
-    padding: 4,
-  },
   emptyCard: {
-    padding: 24,
+    padding: 32,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
+  iconGray: {
+    width: 36,
+    height: 36,
+  },
   emptyText: {
     fontSize: 14,
     textAlign: "center",
-  },
-  iconBlue: {
-    width: 24,
-    height: 24,
-    tintColor: "#007AFF",
-  },
-  iconGreen: {
-    width: 24,
-    height: 24,
-    tintColor: "#34C759",
-  },
-  iconGray: {
-    width: 28,
-    height: 28,
-    tintColor: "#8E8E93",
-  },
-  iconTrash: {
-    width: 20,
-    height: 20,
-    tintColor: "#FF3B30",
   },
 });
