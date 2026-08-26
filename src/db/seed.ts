@@ -1,6 +1,15 @@
 import { type SQLiteDatabase } from "expo-sqlite";
 import { generateUUID } from "@/utils/uuid";
 
+// Deterministic UUIDs for seed authors
+export const SEED_AUTHOR_IDS = {
+  MARCUS_AURELIUS: "a0000000-0000-4000-8000-000000000001",
+  SENECA: "a0000000-0000-4000-8000-000000000002",
+  EPICTETUS: "a0000000-0000-4000-8000-000000000003",
+  LAO_TZU: "a0000000-0000-4000-8000-000000000004",
+  THICH_NHAT_HANH: "a0000000-0000-4000-8000-000000000005",
+} as const;
+
 interface SeedTask {
   title: string;
   category: "Work" | "Personal" | "Shopping" | "Design" | "General";
@@ -8,37 +17,50 @@ interface SeedTask {
   is_done: number;
 }
 
+interface SeedAuthor {
+  id: string;
+  name: string;
+  bio: string;
+}
+
 interface SeedReading {
-  authorName: string;
+  id: string;
+  author_id: string;
   content: string;
   createdAt: string;
   readDates: string[];
 }
 
 interface SeedUser {
+  id: string;
   name: string;
   email: string;
   tasks: SeedTask[];
 }
 
-export const SEED_AUTHORS: { name: string; bio: string }[] = [
+export const SEED_AUTHORS: SeedAuthor[] = [
   {
+    id: SEED_AUTHOR_IDS.MARCUS_AURELIUS,
     name: "Marcus Aurelius",
     bio: "Roman Emperor and Stoic philosopher, author of Meditations.",
   },
   {
+    id: SEED_AUTHOR_IDS.SENECA,
     name: "Seneca",
     bio: "Stoic philosopher, statesman, and dramatist of the Roman Silver Age.",
   },
   {
+    id: SEED_AUTHOR_IDS.EPICTETUS,
     name: "Epictetus",
     bio: "Greek Stoic philosopher born into slavery in Hierapolis.",
   },
   {
+    id: SEED_AUTHOR_IDS.LAO_TZU,
     name: "Lao Tzu",
     bio: "Ancient Chinese philosopher and writer, founder of philosophical Taoism.",
   },
   {
+    id: SEED_AUTHOR_IDS.THICH_NHAT_HANH,
     name: "Thich Nhat Hanh",
     bio: "Vietnamese Thiền Buddhist monk, peace activist, and author.",
   },
@@ -46,35 +68,40 @@ export const SEED_AUTHORS: { name: string; bio: string }[] = [
 
 export const SEED_READINGS: SeedReading[] = [
   {
-    authorName: "Marcus Aurelius",
+    id: "r0000000-0000-4000-8000-000000000001",
+    author_id: SEED_AUTHOR_IDS.MARCUS_AURELIUS,
     content:
       "You have power over your mind - not outside events. Realize this, and you will find strength.",
     createdAt: "2026-08-15 08:00:00",
     readDates: ["2026-08-20 08:30:00", "2026-08-24 07:45:00"],
   },
   {
-    authorName: "Seneca",
+    id: "r0000000-0000-4000-8000-000000000002",
+    author_id: SEED_AUTHOR_IDS.SENECA,
     content:
       "We suffer more often in imagination than in reality. True happiness is to enjoy the present, without anxious dependence upon the future.",
     createdAt: "2026-08-16 09:00:00",
     readDates: [],
   },
   {
-    authorName: "Thich Nhat Hanh",
+    id: "r0000000-0000-4000-8000-000000000003",
+    author_id: SEED_AUTHOR_IDS.THICH_NHAT_HANH,
     content:
       "Smile, breathe and go slowly. Breath is the bridge which connects life to consciousness, which unites your body to your thoughts.",
     createdAt: "2026-08-17 07:30:00",
     readDates: ["2026-08-25 08:00:00"],
   },
   {
-    authorName: "Epictetus",
+    id: "r0000000-0000-4000-8000-000000000004",
+    author_id: SEED_AUTHOR_IDS.EPICTETUS,
     content:
       "Don't explain your philosophy. Embody it. Wealth consists not in having great possessions, but in having few wants.",
     createdAt: "2026-08-18 10:00:00",
     readDates: [],
   },
   {
-    authorName: "Lao Tzu",
+    id: "r0000000-0000-4000-8000-000000000005",
+    author_id: SEED_AUTHOR_IDS.LAO_TZU,
     content:
       "Silence is a source of great strength. Nature does not hurry, yet everything is accomplished.",
     createdAt: "2026-08-14 06:45:00",
@@ -88,6 +115,7 @@ export const SEED_READINGS: SeedReading[] = [
 
 export const SEED_USERS: SeedUser[] = [
   {
+    id: "u0000000-0000-4000-8000-000000000001",
     name: "My self",
     email: "the.masch@gmail.com",
     tasks: [
@@ -118,6 +146,7 @@ export const SEED_USERS: SeedUser[] = [
     ],
   },
   {
+    id: "u0000000-0000-4000-8000-000000000002",
     name: "Elena Gómez",
     email: "elena.gomez@example.com",
     tasks: [
@@ -136,6 +165,7 @@ export const SEED_USERS: SeedUser[] = [
     ],
   },
   {
+    id: "u0000000-0000-4000-8000-000000000003",
     name: "Lucas Rossi",
     email: "lucas.rossi@example.com",
     tasks: [
@@ -159,42 +189,27 @@ export async function seedDatabase(db: SQLiteDatabase) {
   );
 
   if (existingReadings.length === 0) {
-    const authorIdMap: Record<string, string> = {};
-
+    // Insert authors
     for (const author of SEED_AUTHORS) {
-      const existingAuthor = await db.getFirstAsync<{ id: string }>(
-        "SELECT id FROM authors WHERE name = ?",
-        [author.name],
+      await db.runAsync(
+        "INSERT OR IGNORE INTO authors (id, name, bio) VALUES (?, ?, ?)",
+        [author.id, author.name, author.bio],
       );
-
-      if (existingAuthor) {
-        authorIdMap[author.name] = existingAuthor.id;
-      } else {
-        const authorId = generateUUID();
-        await db.runAsync(
-          "INSERT INTO authors (id, name, bio) VALUES (?, ?, ?)",
-          [authorId, author.name, author.bio],
-        );
-        authorIdMap[author.name] = authorId;
-      }
     }
 
+    // Insert readings using explicit author_id FK
     for (const reading of SEED_READINGS) {
-      const readingId = generateUUID();
-      const authorId = authorIdMap[reading.authorName];
-      if (authorId) {
-        await db.runAsync(
-          "INSERT INTO meditation_readings (id, author_id, content, created_at) VALUES (?, ?, ?, ?)",
-          [readingId, authorId, reading.content, reading.createdAt],
-        );
+      await db.runAsync(
+        "INSERT OR IGNORE INTO meditation_readings (id, author_id, content, created_at) VALUES (?, ?, ?, ?)",
+        [reading.id, reading.author_id, reading.content, reading.createdAt],
+      );
 
-        for (const readDate of reading.readDates) {
-          const logId = generateUUID();
-          await db.runAsync(
-            "INSERT INTO reading_logs (id, reading_id, read_at) VALUES (?, ?, ?)",
-            [logId, readingId, readDate],
-          );
-        }
+      for (const readDate of reading.readDates) {
+        const logId = generateUUID();
+        await db.runAsync(
+          "INSERT INTO reading_logs (id, reading_id, read_at) VALUES (?, ?, ?)",
+          [logId, reading.id, readDate],
+        );
       }
     }
   }
@@ -206,10 +221,9 @@ export async function seedDatabase(db: SQLiteDatabase) {
 
   if (existingUsers.length === 0) {
     for (const user of SEED_USERS) {
-      const userId = generateUUID();
       await db.runAsync(
-        "INSERT INTO users (id, name, email) VALUES (?, ?, ?)",
-        [userId, user.name, user.email],
+        "INSERT OR IGNORE INTO users (id, name, email) VALUES (?, ?, ?)",
+        [user.id, user.name, user.email],
       );
 
       for (const task of user.tasks) {
@@ -218,7 +232,7 @@ export async function seedDatabase(db: SQLiteDatabase) {
           "INSERT INTO tasks (id, user_id, title, category, description, is_done) VALUES (?, ?, ?, ?, ?, ?)",
           [
             taskId,
-            userId,
+            user.id,
             task.title,
             task.category,
             task.description,
