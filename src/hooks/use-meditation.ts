@@ -1,6 +1,7 @@
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import * as Notifications from "expo-notifications";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, type AppStateStatus } from "react-native";
+import { AppState, Platform, type AppStateStatus } from "react-native";
 
 export interface MeditationState {
   status: "idle" | "running" | "paused" | "completed";
@@ -18,6 +19,18 @@ const DEFAULT_MOMENTS = [
   "Momento 2: Meditación hacia Hora Programada",
   "Momento 3: Cierre e Integración",
 ];
+
+// Configure global notification presentation
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    priority: Notifications.AndroidNotificationPriority.MAX,
+  }),
+});
 
 function getTargetDate(baseDate: Date, hour: number, minute: number): Date {
   const target = new Date(baseDate);
@@ -51,6 +64,7 @@ export function useMeditation() {
   const [hasAlarmTriggered, setHasAlarmTriggered] = useState(false);
 
   const sessionStartTimeRef = useRef<Date | null>(null);
+  const scheduledNotificationIdRef = useRef<string | null>(null);
 
   // Configure audio session to play in silent mode and background
   useEffect(() => {
@@ -61,6 +75,20 @@ export function useMeditation() {
     }).catch((err) => {
       console.warn("Failed to set audio mode:", err);
     });
+
+    if (Platform.OS === "android") {
+      Notifications.setNotificationChannelAsync("meditation_alarm_channel", {
+        name: "Meditation Alarms",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        enableLights: true,
+        enableVibrate: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        bypassDnd: true,
+      }).catch((err) => {
+        console.warn("Failed to create Android notification channel:", err);
+      });
+    }
   }, []);
 
   const playSingleGong = useCallback(async () => {
@@ -85,6 +113,111 @@ export function useMeditation() {
     }
   }, [tripleGongPlayer]);
 
+  const cancelScheduledAlarm = useCallback(async () => {
+    if (scheduledNotificationIdRef.current) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(
+          scheduledNotificationIdRef.current,
+        );
+      } catch {}
+      scheduledNotificationIdRef.current = null;
+    }
+  }, []);
+
+  const scheduleTargetAlarm = useCallback(async () => {
+    await cancelScheduledAlarm();
+    if (!alarmEnabled || status !== "running" || currentMomentIndex !== 1) {
+      return;
+    }
+
+    try {
+      const { status: permStatus } = await Notifications.getPermissionsAsync();
+      if (permStatus !== "granted") {
+        await Notifications.requestPermissionsAsync();
+      }
+
+      const now = new Date();
+      const baseDate = sessionStartTimeRef.current || now;
+      const targetDate = getTargetDate(baseDate, targetHour, targetMinute);
+
+      if (targetDate.getTime() > now.getTime()) {
+        const id = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "Momento 3: Cierre e Integración",
+            body: "Se cumplió la hora programada de la meditación.",
+            data: { type: "meditation_alarm" },
+            ...(Platform.OS === "android"
+              ? { channelId: "meditation_alarm_channel" }
+              : {}),
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: targetDate,
+          },
+        });
+        scheduledNotificationIdRef.current = id;
+      }
+    } catch (err) {
+      console.warn("Failed to schedule target notification:", err);
+    }
+  }, [
+    alarmEnabled,
+    status,
+    currentMomentIndex,
+    targetHour,
+    targetMinute,
+    cancelScheduledAlarm,
+  ]);
+
+  // Synchronize OS-level scheduled alarm with active state in Moment 2
+  useEffect(() => {
+    if (
+      status === "running" &&
+      currentMomentIndex === 1 &&
+      alarmEnabled &&
+      !hasAlarmTriggered
+    ) {
+      scheduleTargetAlarm();
+    } else {
+      cancelScheduledAlarm();
+    }
+  }, [
+    status,
+    currentMomentIndex,
+    alarmEnabled,
+    hasAlarmTriggered,
+    scheduleTargetAlarm,
+    cancelScheduledAlarm,
+  ]);
+
+  // Listen for OS notification arrivals to advance state
+  useEffect(() => {
+    const subReceived = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        if (notification.request.content.data?.type === "meditation_alarm") {
+          setHasAlarmTriggered(true);
+          setCurrentMomentIndex((prev) => (prev === 1 ? 2 : prev));
+        }
+      },
+    );
+
+    const subResponse = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        if (
+          response.notification.request.content.data?.type === "meditation_alarm"
+        ) {
+          setHasAlarmTriggered(true);
+          setCurrentMomentIndex((prev) => (prev === 1 ? 2 : prev));
+        }
+      },
+    );
+
+    return () => {
+      subReceived.remove();
+      subResponse.remove();
+    };
+  }, []);
+
   // Elapsed timer interval
   useEffect(() => {
     if (status !== "running") return;
@@ -96,7 +229,7 @@ export function useMeditation() {
     return () => clearInterval(interval);
   }, [status]);
 
-  // Real-time clock check for scheduled wall-clock alarm (automatic transition 2 -> 3)
+  // Real-time clock check for scheduled wall-clock alarm (automatic transition 2 -> 3 in foreground)
   useEffect(() => {
     if (status !== "running" || !alarmEnabled || hasAlarmTriggered) return;
 
@@ -107,6 +240,7 @@ export function useMeditation() {
 
       if (now.getTime() >= targetDate.getTime()) {
         setHasAlarmTriggered(true);
+        cancelScheduledAlarm();
 
         // Disparar gong simple
         playSingleGong();
@@ -137,6 +271,7 @@ export function useMeditation() {
     hasAlarmTriggered,
     targetHour,
     targetMinute,
+    cancelScheduledAlarm,
     playSingleGong,
   ]);
 
@@ -152,8 +287,9 @@ export function useMeditation() {
   const pauseSession = useCallback(() => {
     if (status === "running") {
       setStatus("paused");
+      cancelScheduledAlarm();
     }
-  }, [status]);
+  }, [status, cancelScheduledAlarm]);
 
   const resumeSession = useCallback(() => {
     if (status === "paused") {
@@ -168,8 +304,10 @@ export function useMeditation() {
 
     if (isLast) {
       setStatus("completed");
+      await cancelScheduledAlarm();
       await playTripleGong();
     } else {
+      await cancelScheduledAlarm();
       setCurrentMomentIndex((prev) => prev + 1);
       setStatus("running");
       await playSingleGong();
@@ -178,17 +316,19 @@ export function useMeditation() {
     status,
     currentMomentIndex,
     moments.length,
+    cancelScheduledAlarm,
     playSingleGong,
     playTripleGong,
   ]);
 
-  const resetSession = useCallback(() => {
+  const resetSession = useCallback(async () => {
     setStatus("idle");
     setElapsedSeconds(0);
     setCurrentMomentIndex(0);
     setHasAlarmTriggered(false);
     sessionStartTimeRef.current = null;
-  }, []);
+    await cancelScheduledAlarm();
+  }, [cancelScheduledAlarm]);
 
   return {
     status,
