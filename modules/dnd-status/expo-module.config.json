@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["DndStatusModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.dndstatus.DndStatusModule"]
+  }
+}

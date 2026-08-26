@@ -1,5 +1,6 @@
-import { useAudioPlayer } from "expo-audio";
+import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState, type AppStateStatus } from "react-native";
 
 export interface MeditationState {
   status: "idle" | "running" | "paused" | "completed";
@@ -17,6 +18,16 @@ const DEFAULT_MOMENTS = [
   "Momento 2: Meditación hacia Hora Programada",
   "Momento 3: Cierre e Integración",
 ];
+
+function getTargetDate(baseDate: Date, hour: number, minute: number): Date {
+  const target = new Date(baseDate);
+  target.setHours(hour, minute, 0, 0);
+  // If target time is earlier than baseDate, it is meant for tomorrow
+  if (target.getTime() < baseDate.getTime()) {
+    target.setDate(target.getDate() + 1);
+  }
+  return target;
+}
 
 export function useMeditation() {
   const singleGongPlayer = useAudioPlayer(
@@ -39,7 +50,18 @@ export function useMeditation() {
   const [alarmEnabled, setAlarmEnabled] = useState(true);
   const [hasAlarmTriggered, setHasAlarmTriggered] = useState(false);
 
-  const lastTriggeredKeyRef = useRef<string | null>(null);
+  const sessionStartTimeRef = useRef<Date | null>(null);
+
+  // Configure audio session to play in silent mode and background
+  useEffect(() => {
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: "mixWithOthers",
+    }).catch((err) => {
+      console.warn("Failed to set audio mode:", err);
+    });
+  }, []);
 
   const playSingleGong = useCallback(async () => {
     try {
@@ -76,21 +98,14 @@ export function useMeditation() {
 
   // Real-time clock check for scheduled wall-clock alarm (automatic transition 2 -> 3)
   useEffect(() => {
-    if (status !== "running" || !alarmEnabled) return;
+    if (status !== "running" || !alarmEnabled || hasAlarmTriggered) return;
 
     const checkAlarm = () => {
       const now = new Date();
-      const currentHour = now.getHours();
-      const currentMin = now.getMinutes();
+      const baseDate = sessionStartTimeRef.current || now;
+      const targetDate = getTargetDate(baseDate, targetHour, targetMinute);
 
-      const minuteKey = `${now.toDateString()} ${currentHour}:${currentMin}`;
-
-      if (
-        currentHour === targetHour &&
-        currentMin === targetMinute &&
-        lastTriggeredKeyRef.current !== minuteKey
-      ) {
-        lastTriggeredKeyRef.current = minuteKey;
+      if (now.getTime() >= targetDate.getTime()) {
         setHasAlarmTriggered(true);
 
         // Disparar gong simple
@@ -103,14 +118,33 @@ export function useMeditation() {
 
     checkAlarm();
     const interval = setInterval(checkAlarm, 1000);
-    return () => clearInterval(interval);
-  }, [status, alarmEnabled, targetHour, targetMinute, playSingleGong]);
+
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === "active") {
+        checkAlarm();
+      }
+    };
+
+    const sub = AppState.addEventListener("change", handleAppStateChange);
+
+    return () => {
+      clearInterval(interval);
+      sub.remove();
+    };
+  }, [
+    status,
+    alarmEnabled,
+    hasAlarmTriggered,
+    targetHour,
+    targetMinute,
+    playSingleGong,
+  ]);
 
   const startSession = useCallback(async () => {
     setElapsedSeconds(0);
     setCurrentMomentIndex(0);
     setHasAlarmTriggered(false);
-    lastTriggeredKeyRef.current = null;
+    sessionStartTimeRef.current = new Date();
     setStatus("running");
     await playSingleGong();
   }, [playSingleGong]);
@@ -153,7 +187,7 @@ export function useMeditation() {
     setElapsedSeconds(0);
     setCurrentMomentIndex(0);
     setHasAlarmTriggered(false);
-    lastTriggeredKeyRef.current = null;
+    sessionStartTimeRef.current = null;
   }, []);
 
   return {
