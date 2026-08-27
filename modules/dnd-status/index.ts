@@ -16,6 +16,22 @@ export function isDndCheckSupported(): boolean {
   }
 }
 
+export function isNotificationPolicyAccessGranted(): boolean {
+  try {
+    return DndStatusModule.isNotificationPolicyAccessGranted();
+  } catch {
+    return false;
+  }
+}
+
+export function setDndActive(active: boolean): boolean {
+  try {
+    return DndStatusModule.setDndActive(active);
+  } catch {
+    return false;
+  }
+}
+
 export function openDndSettings(): void {
   try {
     DndStatusModule.openDndSettings();

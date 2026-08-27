@@ -33,6 +33,38 @@ class DndStatusModule : Module() {
       return@Function true
     }
 
+    Function("isNotificationPolicyAccessGranted") {
+      val context = appContext.reactContext ?: return@Function false
+      val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        ?: return@Function false
+      return@Function try {
+        notificationManager.isNotificationPolicyAccessGranted
+      } catch (e: Exception) {
+        false
+      }
+    }
+
+    Function("setDndActive") { active: Boolean ->
+      val context = appContext.reactContext ?: return@Function false
+      val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        ?: return@Function false
+
+      return@Function try {
+        if (notificationManager.isNotificationPolicyAccessGranted) {
+          if (active) {
+            notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+          } else {
+            notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+          }
+          true
+        } else {
+          false
+        }
+      } catch (e: Exception) {
+        false
+      }
+    }
+
     Function("openDndSettings") {
       val context = appContext.reactContext
       if (context != null) {

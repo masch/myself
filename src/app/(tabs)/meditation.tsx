@@ -13,6 +13,8 @@ import { useKeepAwake } from "expo-keep-awake";
 import {
   isDndActive,
   isDndCheckSupported,
+  isNotificationPolicyAccessGranted,
+  setDndActive,
   openDndSettings,
 } from "@/modules/dnd-status";
 import { useMeditation } from "@/hooks/use-meditation";
@@ -97,32 +99,51 @@ export default function MeditationScreen() {
     }
   }, [currentMomentIndex, activeReading, recordRead]);
 
+  // Turn off DND when session is completed
+  useEffect(() => {
+    if (
+      status === "completed" &&
+      isDndCheckSupported() &&
+      isNotificationPolicyAccessGranted()
+    ) {
+      setDndActive(false);
+    }
+  }, [status]);
+
   const handleResetSession = () => {
     recordedSessionReadingIdRef.current = null;
     setShowDndNotice(false);
+    if (isDndCheckSupported() && isNotificationPolicyAccessGranted()) {
+      setDndActive(false);
+    }
     resetSession();
   };
 
   const handleStartSession = () => {
     if (isDndCheckSupported()) {
-      const dnd = isDndActive();
-      if (!dnd) {
-        Alert.alert(
-          "Modo No Molestar Requerido",
-          "Para comenzar la meditación es obligatorio activar el modo No Molestar en tu teléfono para no recibir interrupciones.",
-          [
-            {
-              text: "Abrir Ajustes",
-              onPress: () => openDndSettings(),
-            },
-            {
-              text: "Cancelar",
-              style: "cancel",
-            },
-          ],
-          { cancelable: false },
-        );
-        return;
+      if (isNotificationPolicyAccessGranted()) {
+        // Granted: silence automatically
+        setDndActive(true);
+      } else {
+        const dnd = isDndActive();
+        if (!dnd) {
+          Alert.alert(
+            "Modo No Molestar Requerido",
+            "Para no recibir interrupciones durante la meditación, permitile el acceso a No Molestar a la app Myself en los ajustes o activalo manualmente.",
+            [
+              {
+                text: "Abrir Ajustes",
+                onPress: () => openDndSettings(),
+              },
+              {
+                text: "Cancelar",
+                style: "cancel",
+              },
+            ],
+            { cancelable: false },
+          );
+          return;
+        }
       }
     }
 

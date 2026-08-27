@@ -12,6 +12,14 @@ public class DndStatusModule: Module {
       return false
     }
 
+    Function("isNotificationPolicyAccessGranted") { () -> Bool in
+      return false
+    }
+
+    Function("setDndActive") { (active: Bool) -> Bool in
+      return false
+    }
+
     Function("openDndSettings") { () -> Void in
       // No-op on iOS
     }

@@ -7,6 +7,12 @@ class DndStatusModule extends NativeModule<{}> {
   isSupported(): boolean {
     return false;
   }
+  isNotificationPolicyAccessGranted(): boolean {
+    return false;
+  }
+  setDndActive(_active: boolean): boolean {
+    return false;
+  }
   openDndSettings(): void {}
 }
 
