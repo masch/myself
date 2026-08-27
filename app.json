@@ -44,7 +44,17 @@
       ],
       "expo-sqlite",
       "expo-audio",
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#ffffff",
+          "sounds": [
+            "./assets/sounds/bowl_1.m4a",
+            "./assets/sounds/bowl_3.m4a"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -41,15 +41,15 @@ This command will move the starter code to the **app-example** directory and cre
 - If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
 - Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
 
-## Authentication Flow (Stateless Challenge-Response with ECDSA)
+## Security & Authentication Flow (ECDSA)
 
-Este flujo implementa una autenticación **Challenge-Response criptográfica y 100% Stateless** optimizada para baja latencia:
+Este flujo integra tanto el **enrolamiento inicial del dispositivo (registro de clave pública)** como la posterior **autenticación stateless Challenge-Response** basada en ECDSA:
 
-- **Cliente**: App móvil con su Clave Privada ECDSA.
-- **Perfil API**: Backend público (Gateway/BFF) que genera el desafío (`nonce` en JWT) de forma inmediata en Fase 1 sin llamadas internas.
-- **Auth Manager API**: Servicio interno que custodia las **Claves Públicas ECDSA** de los clientes. **Perfil API nunca conoce ni almacena las claves públicas.**
+- **Cliente**: App móvil con su par de claves ECDSA (Clave Privada en Secure Enclave / Keystore).
+- **Perfil API**: Backend público (Gateway/BFF) que actúa como punto de entrada y genera desafíos (`nonce` en JWT) de forma inmediata y stateless.
+- **Auth Manager API**: Servicio interno que custodia las **Claves Públicas ECDSA** de los clientes y valida las firmas. **Perfil API nunca almacena claves públicas ni privadas.**
 
-### Diagrama de Secuencia
+### Diagrama de Secuencia Unificado
 
 ```mermaid
 sequenceDiagram
@@ -58,24 +58,64 @@ sequenceDiagram
     participant PerfilAPI as Perfil API
     participant AuthManager as Auth Manager API
 
-    Note over Cliente, PerfilAPI: Fase 1: Solicitud del Desafío (Directa)
+    Note over Cliente, AuthManager: 1. Enrolamiento / Registro de Clave Pública (Una sola vez o rotación)
+    Cliente->>Cliente: 1. Genera par de claves ECDSA en Secure Enclave / Keystore<br/>2. Guarda Clave Privada en hardware seguro
+    Cliente->>PerfilAPI: POST /profile/keys/register { clientId, publicKey, enrollmentToken }
+    PerfilAPI->>PerfilAPI: 1. Valida enrollmentToken / sesión inicial<br/>2. Valida formato de la publicKey ECDSA
+    PerfilAPI->>AuthManager: POST /auth/keys { clientId, publicKey }
+    AuthManager->>AuthManager: Persiste publicKey asociada al clientId en Active Directory (AD)
+    AuthManager-->>PerfilAPI: 201 Created { success: true }
+    PerfilAPI-->>Cliente: 200 OK { message: "Dispositivo enrolado exitosamente" }
+
+    Note over Cliente, PerfilAPI: 2. Autenticación - Fase 1: Solicitud de Desafío (Stateless)
     Cliente->>PerfilAPI: POST /auth/challenge { clientId }
-    PerfilAPI->>PerfilAPI: 1. Genera desafío aleatorio (nonce)<br/>2. Crea JWT: { clientId, nonce, exp }<br/>3. Firma JWT con PERFIL_SECRET_KEY
+    PerfilAPI->>PerfilAPI: 1. Genera nonce aleatorio seguro<br/>2. Empaqueta JWT: { clientId, nonce, exp: 60s }<br/>3. Firma JWT con PERFIL_SECRET_KEY
     PerfilAPI-->>Cliente: Retorna { jwt: "eyJhbG..." }
 
-    Note over Cliente, AuthManager: Fase 2: Firma y Verificación
-    Cliente->>Cliente: 1. Extrae el nonce del JWT<br/>2. Firma el nonce con su Clave Privada ECDSA
+    Note over Cliente, AuthManager: 3. Autenticación - Fase 2: Firma y Verificación Criptográfica
+    Cliente->>Cliente: 1. Extrae nonce del JWT<br/>2. Firma el nonce con su Clave Privada ECDSA
     Cliente->>PerfilAPI: POST /auth/verify { jwt: "eyJhbG...", signature: "3045022100..." }
     PerfilAPI->>PerfilAPI: 1. Valida firma del JWT con PERFIL_SECRET_KEY<br/>2. Comprueba expiración (exp: 60s)<br/>3. Extrae nonce y clientId
     PerfilAPI->>AuthManager: POST /auth/verify-signature { clientId, nonce, signature }
-    AuthManager->>AuthManager: 1. Busca Clave Pública ECDSA del clientId<br/>2. Valida 'signature' contra 'nonce' con Clave Pública ECDSA
+    AuthManager->>AuthManager: 1. Busca Clave Pública ECDSA en Active Directory (AD)<br/>2. Valida 'signature' contra 'nonce' con Clave Pública
     AuthManager-->>PerfilAPI: 200 OK (Válido + Datos de Usuario) / 401 Unauthorized
     PerfilAPI-->>Cliente: 200 OK (Token de Sesión) / 401 Unauthorized
 ```
 
 ### Detalle de Implementación
 
-#### 1. Fase 1: Solicitud del Desafío (`POST /auth/challenge`)
+#### 1. Enrolamiento de Clave Pública (`POST /profile/keys/register`)
+
+```js
+// Perfil API
+// 1. Valida credenciales iniciales / token de enrolamiento
+const user = await validateEnrollmentToken(req.body.enrollmentToken);
+
+// 2. Delega la custodia de la clave pública a Auth Manager API
+const response = await authManagerClient.post("/auth/keys", {
+  clientId: user.clientId,
+  publicKey: req.body.publicKey,
+});
+
+if (response.status !== 201) {
+  return res.status(500).json({ error: "Error al registrar la clave pública" });
+}
+
+res.json({ success: true });
+```
+
+```js
+// Auth Manager API
+// 1. Persiste la clave pública en el registro del usuario en Active Directory (AD)
+await activeDirectoryService.saveUserPublicKey({
+  clientId: req.body.clientId,
+  publicKey: req.body.publicKey,
+});
+
+res.status(201).json({ success: true });
+```
+
+#### 2. Autenticación - Fase 1: Solicitud del Desafío (`POST /auth/challenge`)
 
 El cliente solicita un desafío enviando su `clientId`. **Perfil API** genera el `nonce` criptográficamente seguro y lo sella en un JWT de corta duración (60s) firmado con `PERFIL_SECRET_KEY` **sin consultar a Auth Manager** (ahorrando latencia de red):
 
@@ -98,7 +138,7 @@ const challengeJwt = jwt.sign(
 res.json({ jwt: challengeJwt });
 ```
 
-#### 2. Fase 2: Firma y Verificación (`POST /auth/verify`)
+#### 3. Autenticación - Fase 2: Firma y Verificación (`POST /auth/verify`)
 
 1. **Cliente**: Decodifica el JWT, extrae el `nonce`, lo firma con su **Clave Privada ECDSA**, y envía `{ jwt, signature }` a **Perfil API**.
 2. **Perfil API**:
@@ -106,7 +146,7 @@ res.json({ jwt: challengeJwt });
    - Extrae `nonce` y `clientId`.
    - Llama internamente a **Auth Manager API** con `{ clientId, nonce, signature }`.
 3. **Auth Manager API**:
-   - Recupera la **Clave Pública ECDSA** exclusiva de ese `clientId` (almacenada únicamente en Auth Manager).
+   - Recupera la **Clave Pública ECDSA** asociada al `clientId` desde **Active Directory (AD)**.
    - Valida la `signature` del cliente contra el `nonce`.
 
 ```js
@@ -131,8 +171,8 @@ res.json({ token: createSessionToken(clientId) });
 
 ```js
 // Auth Manager API
-// 1. Consulta la Clave Pública ECDSA asociada al clientId
-const clientPublicKey = await authDb.getPublicKeyByClientId(req.body.clientId);
+// 1. Consulta la Clave Pública ECDSA asociada al clientId en Active Directory (AD)
+const clientPublicKey = await activeDirectoryService.getPublicKeyByClientId(req.body.clientId);
 
 // 2. Valida matemáticamente la firma contra el nonce
 const isValid = verifyEcdsaSignature(
@@ -151,11 +191,13 @@ res.json({ valid: true, clientId: req.body.clientId });
 
 ### Principios de Arquitectura y Seguridad
 
-- **Menor Latencia**: La Fase 1 es inmediata (1 solo salto de red: Cliente ➔ Perfil API) sin cargar a Auth Manager.
+- **Menor Latencia**: La Fase 1 de autenticación es inmediata (1 solo salto de red: Cliente ➔ Perfil API) sin consultar a Auth Manager.
 - **Aislamiento de Claves**: **Perfil API** nunca tiene acceso a las Claves Públicas ECDSA; toda la custodia de claves públicas y validación asimétrica vive exclusivamente en **Auth Manager API**.
 - **100% Stateless en Handshake**: Ni Perfil API ni Auth Manager almacenan estado intermedio; el `nonce` viaja protegido dentro del JWT sellado.
 - **Inmutabilidad y Replay Resistance**: Si el cliente modifica el JWT, la firma con `PERFIL_SECRET_KEY` se invalida. El `exp: "60s"` restringe el desafío a 1 minuto.
 - **Clave Privada Segura**: La clave privada del cliente reside exclusivamente en el enclave seguro del dispositivo móvil.
+
+
 
 ## Learn more
 

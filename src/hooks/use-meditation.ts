@@ -81,7 +81,7 @@ export function useMeditation() {
         name: "Meditation Alarms",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 500, 200, 500],
-        sound: "default",
+        sound: "bowl_1.m4a",
         enableLights: true,
         enableVibrate: true,
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
@@ -154,7 +154,7 @@ export function useMeditation() {
           content: {
             title: "Momento 3: Cierre e Integración",
             body: "Se cumplió la hora programada de la meditación.",
-            sound: "default",
+            sound: "bowl_1.m4a",
             categoryIdentifier: "alarm",
             priority: Notifications.AndroidNotificationPriority.MAX,
             data: { type: "meditation_alarm" },
@@ -254,8 +254,11 @@ export function useMeditation() {
         setHasAlarmTriggered(true);
         cancelScheduledAlarm();
 
-        // Disparar gong simple
-        playSingleGong();
+        // Solo sonar el gong en JS si se dispara en tiempo real (evitando sonar duplicado si el usuario abre la app tarde desde el bloqueo)
+        const timeDiff = now.getTime() - targetDate.getTime();
+        if (timeDiff < 3000) {
+          playSingleGong();
+        }
 
         // Si estamos en el Momento 2 (índice 1), avanzar automáticamente al Momento 3 (índice 2)
         setCurrentMomentIndex((prev) => (prev === 1 ? 2 : prev));
