@@ -77,7 +77,7 @@ export function useMeditation() {
     });
 
     if (Platform.OS === "android") {
-      Notifications.setNotificationChannelAsync("meditation_alarm_channel", {
+      Notifications.setNotificationChannelAsync("meditation_alarm_channel_v2", {
         name: "Meditation Alarms",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 500, 200, 500],
@@ -159,7 +159,7 @@ export function useMeditation() {
             priority: Notifications.AndroidNotificationPriority.MAX,
             data: { type: "meditation_alarm" },
             ...(Platform.OS === "android"
-              ? { channelId: "meditation_alarm_channel" }
+              ? { channelId: "meditation_alarm_channel_v2" }
               : {}),
           },
           trigger: {
