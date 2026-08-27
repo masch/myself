@@ -80,11 +80,20 @@ export function useMeditation() {
       Notifications.setNotificationChannelAsync("meditation_alarm_channel", {
         name: "Meditation Alarms",
         importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
+        vibrationPattern: [0, 500, 200, 500],
+        sound: "default",
         enableLights: true,
         enableVibrate: true,
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
         bypassDnd: true,
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.ALARM,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+          flags: {
+            enforceAudibility: true,
+            requestHardwareAudioVideoSynchronization: false,
+          },
+        },
       }).catch((err) => {
         console.warn("Failed to create Android notification channel:", err);
       });
@@ -145,6 +154,9 @@ export function useMeditation() {
           content: {
             title: "Momento 3: Cierre e Integración",
             body: "Se cumplió la hora programada de la meditación.",
+            sound: "default",
+            categoryIdentifier: "alarm",
+            priority: Notifications.AndroidNotificationPriority.MAX,
             data: { type: "meditation_alarm" },
             ...(Platform.OS === "android"
               ? { channelId: "meditation_alarm_channel" }
