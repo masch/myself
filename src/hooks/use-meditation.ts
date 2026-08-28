@@ -208,7 +208,16 @@ export function useMeditation() {
       (notification) => {
         if (notification.request.content.data?.type === "meditation_alarm") {
           setHasAlarmTriggered(true);
-          setCurrentMomentIndex((prev) => (prev === 1 ? 2 : prev));
+          setCurrentMomentIndex((prev) => {
+            if (prev === 1) {
+              // Si la app está activa en primer plano, hacemos sonar el gong desde JS
+              if (AppState.currentState === "active") {
+                playSingleGong();
+              }
+              return 2;
+            }
+            return prev;
+          });
         }
       },
     );
@@ -228,7 +237,7 @@ export function useMeditation() {
       subReceived.remove();
       subResponse.remove();
     };
-  }, []);
+  }, [playSingleGong]);
 
   // Elapsed timer interval
   useEffect(() => {
