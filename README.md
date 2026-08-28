@@ -172,7 +172,9 @@ res.json({ token: createSessionToken(clientId) });
 ```js
 // Auth Manager API
 // 1. Consulta la Clave Pública ECDSA asociada al clientId en Active Directory (AD)
-const clientPublicKey = await activeDirectoryService.getPublicKeyByClientId(req.body.clientId);
+const clientPublicKey = await activeDirectoryService.getPublicKeyByClientId(
+  req.body.clientId,
+);
 
 // 2. Valida matemáticamente la firma contra el nonce
 const isValid = verifyEcdsaSignature(
@@ -196,8 +198,6 @@ res.json({ valid: true, clientId: req.body.clientId });
 - **100% Stateless en Handshake**: Ni Perfil API ni Auth Manager almacenan estado intermedio; el `nonce` viaja protegido dentro del JWT sellado.
 - **Inmutabilidad y Replay Resistance**: Si el cliente modifica el JWT, la firma con `PERFIL_SECRET_KEY` se invalida. El `exp: "60s"` restringe el desafío a 1 minuto.
 - **Clave Privada Segura**: La clave privada del cliente reside exclusivamente en el enclave seguro del dispositivo móvil.
-
-
 
 ## Learn more
 

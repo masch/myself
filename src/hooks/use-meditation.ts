@@ -1,7 +1,8 @@
+import { MEDITATION_SOUNDS } from "@/constants/sounds";
+import { MeditationAlarmService } from "@/services/meditation-alarm.service";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
-import * as Notifications from "expo-notifications";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, Platform, type AppStateStatus } from "react-native";
+import { AppState, type AppStateStatus } from "react-native";
 
 export interface MeditationState {
   status: "idle" | "running" | "paused" | "completed";
@@ -20,18 +21,6 @@ const DEFAULT_MOMENTS = [
   "Momento 3: Cierre e Integración",
 ];
 
-// Configure global notification presentation
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    priority: Notifications.AndroidNotificationPriority.MAX,
-  }),
-});
-
 function getTargetDate(baseDate: Date, hour: number, minute: number): Date {
   const target = new Date(baseDate);
   target.setHours(hour, minute, 0, 0);
@@ -43,12 +32,8 @@ function getTargetDate(baseDate: Date, hour: number, minute: number): Date {
 }
 
 export function useMeditation() {
-  const singleGongPlayer = useAudioPlayer(
-    require("@/assets/sounds/bowl_1.m4a"),
-  );
-  const tripleGongPlayer = useAudioPlayer(
-    require("@/assets/sounds/bowl_3.m4a"),
-  );
+  const singleGongPlayer = useAudioPlayer(MEDITATION_SOUNDS.SINGLE_GONG.asset);
+  const tripleGongPlayer = useAudioPlayer(MEDITATION_SOUNDS.TRIPLE_GONG.asset);
 
   const [status, setStatus] = useState<
     "idle" | "running" | "paused" | "completed"
@@ -66,7 +51,7 @@ export function useMeditation() {
   const sessionStartTimeRef = useRef<Date | null>(null);
   const scheduledNotificationIdRef = useRef<string | null>(null);
 
-  // Configure audio session to play in silent mode and background
+  // Configure audio session to play in silent mode and setup Android alarm channel
   useEffect(() => {
     setAudioModeAsync({
       playsInSilentMode: true,
@@ -76,28 +61,7 @@ export function useMeditation() {
       console.warn("Failed to set audio mode:", err);
     });
 
-    if (Platform.OS === "android") {
-      Notifications.setNotificationChannelAsync("meditation_alarm_channel_v2", {
-        name: "Meditation Alarms",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 500, 200, 500],
-        sound: "bowl_1.m4a",
-        enableLights: true,
-        enableVibrate: true,
-        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-        bypassDnd: true,
-        audioAttributes: {
-          usage: Notifications.AndroidAudioUsage.ALARM,
-          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
-          flags: {
-            enforceAudibility: true,
-            requestHardwareAudioVideoSynchronization: false,
-          },
-        },
-      }).catch((err) => {
-        console.warn("Failed to create Android notification channel:", err);
-      });
-    }
+    MeditationAlarmService.setupNotificationChannel();
   }, []);
 
   const playSingleGong = useCallback(async () => {
@@ -124,11 +88,9 @@ export function useMeditation() {
 
   const cancelScheduledAlarm = useCallback(async () => {
     if (scheduledNotificationIdRef.current) {
-      try {
-        await Notifications.cancelScheduledNotificationAsync(
-          scheduledNotificationIdRef.current,
-        );
-      } catch {}
+      await MeditationAlarmService.cancelAlarm(
+        scheduledNotificationIdRef.current,
+      );
       scheduledNotificationIdRef.current = null;
     }
   }, []);
@@ -139,38 +101,13 @@ export function useMeditation() {
       return;
     }
 
-    try {
-      const { status: permStatus } = await Notifications.getPermissionsAsync();
-      if (permStatus !== "granted") {
-        await Notifications.requestPermissionsAsync();
-      }
+    const now = new Date();
+    const baseDate = sessionStartTimeRef.current || now;
+    const targetDate = getTargetDate(baseDate, targetHour, targetMinute);
 
-      const now = new Date();
-      const baseDate = sessionStartTimeRef.current || now;
-      const targetDate = getTargetDate(baseDate, targetHour, targetMinute);
-
-      if (targetDate.getTime() > now.getTime()) {
-        const id = await Notifications.scheduleNotificationAsync({
-          content: {
-            title: "Momento 3: Cierre e Integración",
-            body: "Se cumplió la hora programada de la meditación.",
-            sound: "bowl_1.m4a",
-            categoryIdentifier: "alarm",
-            priority: Notifications.AndroidNotificationPriority.MAX,
-            data: { type: "meditation_alarm" },
-            ...(Platform.OS === "android"
-              ? { channelId: "meditation_alarm_channel_v2" }
-              : {}),
-          },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DATE,
-            date: targetDate,
-          },
-        });
-        scheduledNotificationIdRef.current = id;
-      }
-    } catch (err) {
-      console.warn("Failed to schedule target notification:", err);
+    const id = await MeditationAlarmService.scheduleAlarm(targetDate);
+    if (id) {
+      scheduledNotificationIdRef.current = id;
     }
   }, [
     alarmEnabled,
@@ -202,41 +139,22 @@ export function useMeditation() {
     cancelScheduledAlarm,
   ]);
 
-  // Listen for OS notification arrivals to advance state
+  // Listen for OS notification events or user interaction to advance state
   useEffect(() => {
-    const subReceived = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        if (notification.request.content.data?.type === "meditation_alarm") {
-          setHasAlarmTriggered(true);
-          setCurrentMomentIndex((prev) => {
-            if (prev === 1) {
-              // Si la app está activa en primer plano, hacemos sonar el gong desde JS
-              if (AppState.currentState === "active") {
-                playSingleGong();
-              }
-              return 2;
-            }
-            return prev;
-          });
+    const handleAlarmEvent = () => {
+      setHasAlarmTriggered(true);
+      setCurrentMomentIndex((prev) => {
+        if (prev === 1) {
+          if (AppState.currentState === "active") {
+            playSingleGong();
+          }
+          return 2;
         }
-      },
-    );
-
-    const subResponse = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        if (
-          response.notification.request.content.data?.type === "meditation_alarm"
-        ) {
-          setHasAlarmTriggered(true);
-          setCurrentMomentIndex((prev) => (prev === 1 ? 2 : prev));
-        }
-      },
-    );
-
-    return () => {
-      subReceived.remove();
-      subResponse.remove();
+        return prev;
+      });
     };
+
+    return MeditationAlarmService.subscribeAlarmEvents(handleAlarmEvent);
   }, [playSingleGong]);
 
   // Elapsed timer interval
@@ -250,7 +168,7 @@ export function useMeditation() {
     return () => clearInterval(interval);
   }, [status]);
 
-  // Real-time clock check for scheduled wall-clock alarm (automatic transition 2 -> 3 in foreground)
+  // Real-time clock check for scheduled wall-clock alarm (deterministic transition 2 -> 3)
   useEffect(() => {
     if (status !== "running" || !alarmEnabled || hasAlarmTriggered) return;
 
@@ -263,13 +181,15 @@ export function useMeditation() {
         setHasAlarmTriggered(true);
         cancelScheduledAlarm();
 
-        // Solo sonar el gong en JS si se dispara en tiempo real (evitando sonar duplicado si el usuario abre la app tarde desde el bloqueo)
-        const timeDiff = now.getTime() - targetDate.getTime();
-        if (timeDiff < 3000) {
-          playSingleGong();
+        // Si la app está en primer plano en el momento exacto, reproducir el gong en JS
+        if (AppState.currentState === "active") {
+          const timeDiff = now.getTime() - targetDate.getTime();
+          if (timeDiff < 3000) {
+            playSingleGong();
+          }
         }
 
-        // Si estamos en el Momento 2 (índice 1), avanzar automáticamente al Momento 3 (índice 2)
+        // Si estamos en el Momento 2 (índice 1), avanzar de forma determinista al Momento 3 (índice 2)
         setCurrentMomentIndex((prev) => (prev === 1 ? 2 : prev));
       }
     };
