@@ -2,7 +2,7 @@ import { MEDITATION_SOUNDS } from "@/constants/sounds";
 import { MeditationAlarmService } from "@/services/meditation-alarm.service";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, type AppStateStatus } from "react-native";
+import { AppState, Platform, type AppStateStatus } from "react-native";
 
 export interface MeditationState {
   status: "idle" | "running" | "paused" | "completed";
@@ -67,7 +67,9 @@ export function useMeditation() {
   const playSingleGong = useCallback(async () => {
     try {
       if (singleGongPlayer) {
-        await singleGongPlayer.seekTo(0);
+        try {
+          await singleGongPlayer.seekTo(0);
+        } catch {}
         singleGongPlayer.play();
       }
     } catch (err) {
@@ -78,7 +80,9 @@ export function useMeditation() {
   const playTripleGong = useCallback(async () => {
     try {
       if (tripleGongPlayer) {
-        await tripleGongPlayer.seekTo(0);
+        try {
+          await tripleGongPlayer.seekTo(0);
+        } catch {}
         tripleGongPlayer.play();
       }
     } catch (err) {
@@ -145,7 +149,9 @@ export function useMeditation() {
       setHasAlarmTriggered(true);
       setCurrentMomentIndex((prev) => {
         if (prev === 1) {
-          if (AppState.currentState === "active") {
+          const isAppInForeground =
+            Platform.OS === "web" || AppState.currentState === "active";
+          if (isAppInForeground) {
             playSingleGong();
           }
           return 2;
@@ -170,7 +176,14 @@ export function useMeditation() {
 
   // Real-time clock check for scheduled wall-clock alarm (deterministic transition 2 -> 3)
   useEffect(() => {
-    if (status !== "running" || !alarmEnabled || hasAlarmTriggered) return;
+    if (
+      status !== "running" ||
+      currentMomentIndex !== 1 ||
+      !alarmEnabled ||
+      hasAlarmTriggered
+    ) {
+      return;
+    }
 
     const checkAlarm = () => {
       const now = new Date();
@@ -181,15 +194,17 @@ export function useMeditation() {
         setHasAlarmTriggered(true);
         cancelScheduledAlarm();
 
-        // Si la app está en primer plano en el momento exacto, reproducir el gong en JS
-        if (AppState.currentState === "active") {
+        // En Web o cuando la app está en primer plano, reproducir el gong
+        const isAppInForeground =
+          Platform.OS === "web" || AppState.currentState === "active";
+        if (isAppInForeground) {
           const timeDiff = now.getTime() - targetDate.getTime();
-          if (timeDiff < 3000) {
+          if (timeDiff < 5000) {
             playSingleGong();
           }
         }
 
-        // Si estamos en el Momento 2 (índice 1), avanzar de forma determinista al Momento 3 (índice 2)
+        // Avanzar de forma determinista al Momento 3 (índice 2)
         setCurrentMomentIndex((prev) => (prev === 1 ? 2 : prev));
       }
     };
@@ -211,6 +226,7 @@ export function useMeditation() {
     };
   }, [
     status,
+    currentMomentIndex,
     alarmEnabled,
     hasAlarmTriggered,
     targetHour,
