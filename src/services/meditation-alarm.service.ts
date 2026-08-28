@@ -63,13 +63,21 @@ export const MeditationAlarmService = {
     try {
       const { status: permStatus } = await Notifications.getPermissionsAsync();
       if (permStatus !== "granted") {
-        await Notifications.requestPermissionsAsync();
+        const requested = await Notifications.requestPermissionsAsync();
+        if (requested.status !== "granted") {
+          console.warn("Notification permissions not granted on Android/iOS");
+          return null;
+        }
       }
 
       const now = new Date();
       if (targetDate.getTime() <= now.getTime()) {
+        console.warn("Target date is in the past, skipping schedule:", targetDate);
         return null;
       }
+
+      // Ensure channel is ready before scheduling
+      await this.setupNotificationChannel();
 
       const id = await Notifications.scheduleNotificationAsync({
         content: {
@@ -83,12 +91,16 @@ export const MeditationAlarmService = {
             ? {
                 channelId: MEDITATION_ALARM_CHANNEL_ID,
                 color: "#208AEF",
+                vibrationPattern: [0, 500, 200, 500],
               }
             : {}),
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: targetDate,
+          ...(Platform.OS === "android"
+            ? { channelId: MEDITATION_ALARM_CHANNEL_ID }
+            : {}),
         },
       });
 

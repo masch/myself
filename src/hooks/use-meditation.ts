@@ -21,11 +21,11 @@ const DEFAULT_MOMENTS = [
   "Momento 3: Cierre e Integración",
 ];
 
-function getTargetDate(baseDate: Date, hour: number, minute: number): Date {
-  const target = new Date(baseDate);
+function getTargetDate(now: Date, hour: number, minute: number): Date {
+  const target = new Date(now);
   target.setHours(hour, minute, 0, 0);
-  // If target time is earlier than baseDate, it is meant for tomorrow
-  if (target.getTime() < baseDate.getTime()) {
+  // Si la hora objetivo es igual o anterior al instante actual, programar para mañana a esa hora
+  if (target.getTime() <= now.getTime()) {
     target.setDate(target.getDate() + 1);
   }
   return target;
@@ -106,8 +106,7 @@ export function useMeditation() {
     }
 
     const now = new Date();
-    const baseDate = sessionStartTimeRef.current || now;
-    const targetDate = getTargetDate(baseDate, targetHour, targetMinute);
+    const targetDate = getTargetDate(now, targetHour, targetMinute);
 
     const id = await MeditationAlarmService.scheduleAlarm(targetDate);
     if (id) {
@@ -187,24 +186,20 @@ export function useMeditation() {
 
     const checkAlarm = () => {
       const now = new Date();
-      const baseDate = sessionStartTimeRef.current || now;
-      const targetDate = getTargetDate(baseDate, targetHour, targetMinute);
+      const todayTarget = new Date(now);
+      todayTarget.setHours(targetHour, targetMinute, 0, 0);
 
-      if (now.getTime() >= targetDate.getTime()) {
+      // Si el reloj alcanzó o superó el horario objetivo
+      if (now.getTime() >= todayTarget.getTime()) {
         setHasAlarmTriggered(true);
         cancelScheduledAlarm();
 
-        // En Web o cuando la app está en primer plano, reproducir el gong
         const isAppInForeground =
           Platform.OS === "web" || AppState.currentState === "active";
         if (isAppInForeground) {
-          const timeDiff = now.getTime() - targetDate.getTime();
-          if (timeDiff < 5000) {
-            playSingleGong();
-          }
+          playSingleGong();
         }
 
-        // Avanzar de forma determinista al Momento 3 (índice 2)
         setCurrentMomentIndex((prev) => (prev === 1 ? 2 : prev));
       }
     };
