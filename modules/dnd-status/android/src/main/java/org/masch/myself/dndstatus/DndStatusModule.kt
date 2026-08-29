@@ -1,4 +1,4 @@
-package expo.modules.dndstatus
+package org.masch.myself.dndstatus
 
 import android.app.NotificationManager
 import android.content.Context
@@ -66,23 +66,19 @@ class DndStatusModule : Module() {
     }
 
     Function("openDndSettings") {
-      val context = appContext.reactContext
-      if (context != null) {
-        try {
-          val intent = android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
-            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-          }
-          context.startActivity(intent)
-        } catch (e: Exception) {
-          try {
-            val fallbackIntent = android.content.Intent(android.provider.Settings.ACTION_SOUND_SETTINGS).apply {
-              addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(fallbackIntent)
-          } catch (_: Exception) {}
-        }
+      val context = appContext.reactContext ?: return@Function
+      val intent = android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
       }
-      return@Function Unit
+      try {
+        context.startActivity(intent)
+      } catch (e: Exception) {
+        // Fallback to generic settings
+        val genericIntent = android.content.Intent(android.provider.Settings.ACTION_SETTINGS).apply {
+          addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(genericIntent)
+      }
     }
   }
 }

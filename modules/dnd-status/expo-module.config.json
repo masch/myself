@@ -4,6 +4,6 @@
     "modules": ["DndStatusModule"]
   },
   "android": {
-    "modules": ["expo.modules.dndstatus.DndStatusModule"]
+    "modules": ["org.masch.myself.dndstatus.DndStatusModule"]
   }
 }

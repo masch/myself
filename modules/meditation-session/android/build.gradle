@@ -3,11 +3,11 @@ plugins {
   id 'expo-module-gradle-plugin'
 }
 
-group = 'org.masch.myself.dndstatus'
+group = 'org.masch.myself.meditationsession'
 version = '0.1.0'
 
 android {
-  namespace "org.masch.myself.dndstatus"
+  namespace "org.masch.myself.meditationsession"
   defaultConfig {
     versionCode 1
     versionName "0.1.0"

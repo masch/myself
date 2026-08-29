@@ -1,7 +1,7 @@
 import { MEDITATION_SOUNDS } from "@/constants/sounds";
-import { MeditationNotificationService } from "@/services/meditation-notification.service";
+import { MeditationSessionService } from "@/services/meditation-session";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppState, type AppStateStatus } from "react-native";
 
 export interface MeditationState {
@@ -34,7 +34,6 @@ function getTargetDate(now: Date, hour: number, minute: number): Date {
 export function useMeditation() {
   const singleGongPlayer = useAudioPlayer(MEDITATION_SOUNDS.SINGLE_GONG);
   const tripleGongPlayer = useAudioPlayer(MEDITATION_SOUNDS.TRIPLE_GONG);
-  const silencePlayer = useAudioPlayer(MEDITATION_SOUNDS.SILENCE);
 
   const [status, setStatus] = useState<
     "idle" | "running" | "paused" | "completed"
@@ -49,9 +48,7 @@ export function useMeditation() {
   const [alarmEnabled, setAlarmEnabled] = useState(true);
   const [hasAlarmTriggered, setHasAlarmTriggered] = useState(false);
 
-  const scheduledNotificationIdRef = useRef<string | null>(null);
-
-  // Configure audio session to play in silent mode, loop silence and setup Android notification channel
+  // Configure global audio session
   useEffect(() => {
     setAudioModeAsync({
       playsInSilentMode: true,
@@ -60,35 +57,7 @@ export function useMeditation() {
     }).catch((err) => {
       console.warn("Failed to set audio mode:", err);
     });
-
-    if (silencePlayer) {
-      // eslint-disable-next-line react-hooks/immutability
-      silencePlayer.loop = true;
-    }
-
-    MeditationNotificationService.setupNotificationChannel();
-  }, [silencePlayer]);
-
-  const startSilenceLoop = useCallback(() => {
-    try {
-      if (silencePlayer) {
-        silencePlayer.play();
-      }
-    } catch (err) {
-      console.warn("Failed to start silence keep-alive loop:", err);
-    }
-  }, [silencePlayer]);
-
-  const stopSilenceLoop = useCallback(() => {
-    try {
-      if (silencePlayer) {
-        silencePlayer.pause();
-        silencePlayer.seekTo(0).catch(() => {});
-      }
-    } catch (err) {
-      console.warn("Failed to stop silence loop:", err);
-    }
-  }, [silencePlayer]);
+  }, []);
 
   const playSingleGong = useCallback(async () => {
     try {
@@ -116,39 +85,12 @@ export function useMeditation() {
     }
   }, [tripleGongPlayer]);
 
-  const cancelScheduledNotification = useCallback(async () => {
-    if (scheduledNotificationIdRef.current) {
-      await MeditationNotificationService.cancelNotification(
-        scheduledNotificationIdRef.current,
-      );
-      scheduledNotificationIdRef.current = null;
-    }
-  }, []);
-
-  const scheduleTargetNotification = useCallback(
-    async (hour: number, minute: number) => {
-      await cancelScheduledNotification();
-      if (!alarmEnabled) return;
-
-      const now = new Date();
-      const targetDate = getTargetDate(now, hour, minute);
-
-      const id =
-        await MeditationNotificationService.scheduleNotification(targetDate);
-      if (id) {
-        scheduledNotificationIdRef.current = id;
-      }
-    },
-    [alarmEnabled, cancelScheduledNotification],
-  );
-
-  // Listen for OS notification interactions to advance state
+  // Subscribe to platform-agnostic session completion events
   useEffect(() => {
-    const handleNotificationEvent = () => {
+    const handleCompletion = () => {
       setHasAlarmTriggered(true);
       setCurrentMomentIndex((prev) => {
         if (prev === 1) {
-          stopSilenceLoop();
           playSingleGong();
           return 2;
         }
@@ -156,10 +98,8 @@ export function useMeditation() {
       });
     };
 
-    return MeditationNotificationService.subscribeNotificationEvents(
-      handleNotificationEvent,
-    );
-  }, [playSingleGong, stopSilenceLoop]);
+    return MeditationSessionService.subscribeCompletion(handleCompletion);
+  }, [playSingleGong]);
 
   // Elapsed timer interval
   useEffect(() => {
@@ -190,8 +130,7 @@ export function useMeditation() {
 
       if (now.getTime() >= todayTarget.getTime()) {
         setHasAlarmTriggered(true);
-        cancelScheduledNotification();
-        stopSilenceLoop();
+        MeditationSessionService.stopSession();
         playSingleGong();
         setCurrentMomentIndex((prev) => (prev === 1 ? 2 : prev));
       }
@@ -219,9 +158,7 @@ export function useMeditation() {
     hasAlarmTriggered,
     targetHour,
     targetMinute,
-    cancelScheduledNotification,
     playSingleGong,
-    stopSilenceLoop,
   ]);
 
   const startSession = useCallback(async () => {
@@ -229,25 +166,24 @@ export function useMeditation() {
     setCurrentMomentIndex(0);
     setHasAlarmTriggered(false);
     setStatus("running");
-    stopSilenceLoop();
-    await cancelScheduledNotification();
+    await MeditationSessionService.stopSession();
     await playSingleGong();
-  }, [playSingleGong, cancelScheduledNotification, stopSilenceLoop]);
+  }, [playSingleGong]);
 
   const pauseSession = useCallback(() => {
     if (status === "running") {
       setStatus("paused");
-      stopSilenceLoop();
-      cancelScheduledNotification();
+      MeditationSessionService.stopSession();
     }
-  }, [status, cancelScheduledNotification, stopSilenceLoop]);
+  }, [status]);
 
   const resumeSession = useCallback(() => {
     if (status === "paused") {
       setStatus("running");
       if (currentMomentIndex === 1 && alarmEnabled && !hasAlarmTriggered) {
-        startSilenceLoop();
-        scheduleTargetNotification(targetHour, targetMinute);
+        const now = new Date();
+        const targetDate = getTargetDate(now, targetHour, targetMinute);
+        MeditationSessionService.startSession({ targetDate });
       }
     }
   }, [
@@ -257,8 +193,6 @@ export function useMeditation() {
     hasAlarmTriggered,
     targetHour,
     targetMinute,
-    scheduleTargetNotification,
-    startSilenceLoop,
   ]);
 
   const nextMoment = useCallback(async () => {
@@ -269,21 +203,20 @@ export function useMeditation() {
 
     if (isLast) {
       setStatus("completed");
-      stopSilenceLoop();
-      await cancelScheduledNotification();
+      await MeditationSessionService.stopSession();
       await playTripleGong();
     } else {
       setCurrentMomentIndex(nextIndex);
       setStatus("running");
       await playSingleGong();
 
-      // Al ingresar al Momento 2, iniciar loop de silencio y agendar notificación de aviso
+      // Al ingresar al Momento 2, iniciar la sesión en segundo plano en la plataforma correspondiente
       if (nextIndex === 1 && alarmEnabled && !hasAlarmTriggered) {
-        startSilenceLoop();
-        await scheduleTargetNotification(targetHour, targetMinute);
+        const now = new Date();
+        const targetDate = getTargetDate(now, targetHour, targetMinute);
+        await MeditationSessionService.startSession({ targetDate });
       } else {
-        stopSilenceLoop();
-        await cancelScheduledNotification();
+        await MeditationSessionService.stopSession();
       }
     }
   }, [
@@ -294,12 +227,8 @@ export function useMeditation() {
     hasAlarmTriggered,
     targetHour,
     targetMinute,
-    scheduleTargetNotification,
-    cancelScheduledNotification,
     playSingleGong,
     playTripleGong,
-    startSilenceLoop,
-    stopSilenceLoop,
   ]);
 
   const resetSession = useCallback(async () => {
@@ -307,9 +236,8 @@ export function useMeditation() {
     setElapsedSeconds(0);
     setCurrentMomentIndex(0);
     setHasAlarmTriggered(false);
-    stopSilenceLoop();
-    await cancelScheduledNotification();
-  }, [cancelScheduledNotification, stopSilenceLoop]);
+    await MeditationSessionService.stopSession();
+  }, []);
 
   return {
     status,
