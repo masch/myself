@@ -1,9 +1,8 @@
-import { MEDITATION_SOUNDS } from "@/constants/sounds";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
-export const MEDITATION_ALARM_CHANNEL_ID = "meditation_alarm_channel_v3";
-export const MEDITATION_ALARM_TYPE = "meditation_alarm";
+export const MEDITATION_NOTIFICATION_CHANNEL_ID = "meditation_notifications_v1";
+export const MEDITATION_NOTIFICATION_TYPE = "meditation_session_complete";
 
 // Configure global notification presentation
 Notifications.setNotificationHandler({
@@ -11,51 +10,40 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
-    shouldPlaySound: true,
+    shouldPlaySound: false, // Audio is managed directly by expo-audio
     shouldSetBadge: false,
-    priority: Notifications.AndroidNotificationPriority.MAX,
+    priority: Notifications.AndroidNotificationPriority.HIGH,
   }),
 });
 
-export const MeditationAlarmService = {
+export const MeditationNotificationService = {
   /**
-   * Configures the native Android alarm notification channel.
+   * Configures standard Android notification channel.
    */
   async setupNotificationChannel(): Promise<void> {
     if (Platform.OS !== "android") return;
 
     try {
       await Notifications.setNotificationChannelAsync(
-        MEDITATION_ALARM_CHANNEL_ID,
+        MEDITATION_NOTIFICATION_CHANNEL_ID,
         {
-          name: "Meditation Alarms",
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 500, 200, 500],
-          sound: MEDITATION_SOUNDS.SINGLE_GONG.fileName,
+          name: "Notificaciones de Meditación",
+          importance: Notifications.AndroidImportance.HIGH,
           enableLights: true,
           enableVibrate: true,
           lockscreenVisibility:
             Notifications.AndroidNotificationVisibility.PUBLIC,
-          bypassDnd: true,
-          audioAttributes: {
-            usage: Notifications.AndroidAudioUsage.ALARM,
-            contentType: Notifications.AndroidAudioContentType.SONIFICATION,
-            flags: {
-              enforceAudibility: true,
-              requestHardwareAudioVideoSynchronization: false,
-            },
-          },
         },
       );
     } catch (err) {
-      console.warn("Failed to create Android meditation alarm channel:", err);
+      console.warn("Failed to create Android notification channel:", err);
     }
   },
 
   /**
-   * Schedules a high-priority exact alarm notification for full-screen wake.
+   * Schedules a standard notification when meditation target time is reached.
    */
-  async scheduleAlarm(
+  async scheduleNotification(
     targetDate: Date,
     title = "Momento 3: Cierre e Integración",
     body = "Se cumplió la hora programada de la meditación.",
@@ -65,7 +53,6 @@ export const MeditationAlarmService = {
       if (permStatus !== "granted") {
         const requested = await Notifications.requestPermissionsAsync();
         if (requested.status !== "granted") {
-          console.warn("Notification permissions not granted on Android/iOS");
           return null;
         }
       }
@@ -75,25 +62,19 @@ export const MeditationAlarmService = {
         Math.round((targetDate.getTime() - Date.now()) / 1000),
       );
 
-      // Cancel any existing scheduled alarms first to avoid conflicts
-      await this.cancelAllAlarms();
-
-      // Ensure channel is ready before scheduling
+      await this.cancelAllNotifications();
       await this.setupNotificationChannel();
 
       const id = await Notifications.scheduleNotificationAsync({
         content: {
           title,
           body,
-          sound: MEDITATION_SOUNDS.SINGLE_GONG.fileName,
-          categoryIdentifier: "alarm",
-          priority: Notifications.AndroidNotificationPriority.MAX,
-          data: { type: MEDITATION_ALARM_TYPE },
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+          data: { type: MEDITATION_NOTIFICATION_TYPE },
           ...(Platform.OS === "android"
             ? {
-                channelId: MEDITATION_ALARM_CHANNEL_ID,
+                channelId: MEDITATION_NOTIFICATION_CHANNEL_ID,
                 color: "#208AEF",
-                vibrationPattern: [0, 500, 200, 500],
               }
             : {}),
         },
@@ -102,49 +83,52 @@ export const MeditationAlarmService = {
           seconds: diffSeconds,
           repeats: false,
           ...(Platform.OS === "android"
-            ? { channelId: MEDITATION_ALARM_CHANNEL_ID }
+            ? { channelId: MEDITATION_NOTIFICATION_CHANNEL_ID }
             : {}),
         },
       });
 
       return id;
     } catch (err) {
-      console.warn("Failed to schedule meditation alarm:", err);
+      console.warn("Failed to schedule meditation notification:", err);
       return null;
     }
   },
 
   /**
-   * Cancels all scheduled alarm notifications.
+   * Cancels all scheduled meditation notifications.
    */
-  async cancelAllAlarms(): Promise<void> {
+  async cancelAllNotifications(): Promise<void> {
     try {
       await Notifications.cancelAllScheduledNotificationsAsync();
     } catch (err) {
-      console.warn("Failed to cancel scheduled alarms:", err);
+      console.warn("Failed to cancel scheduled notifications:", err);
     }
   },
 
   /**
-   * Cancels a scheduled alarm notification by ID.
+   * Cancels a scheduled notification by ID.
    */
-  async cancelAlarm(scheduledId: string | null): Promise<void> {
+  async cancelNotification(scheduledId: string | null): Promise<void> {
     if (!scheduledId) return;
     try {
       await Notifications.cancelScheduledNotificationAsync(scheduledId);
     } catch (err) {
-      console.warn("Failed to cancel scheduled meditation alarm:", err);
+      console.warn("Failed to cancel scheduled notification:", err);
     }
   },
 
   /**
-   * Subscribes to notification arrivals and responses.
+   * Subscribes to notification arrivals and interactions.
    */
-  subscribeAlarmEvents(onAlarmTriggered: () => void): () => void {
+  subscribeNotificationEvents(onTriggered: () => void): () => void {
     const subReceived = Notifications.addNotificationReceivedListener(
       (notification) => {
-        if (notification.request.content.data?.type === MEDITATION_ALARM_TYPE) {
-          onAlarmTriggered();
+        if (
+          notification.request.content.data?.type ===
+          MEDITATION_NOTIFICATION_TYPE
+        ) {
+          onTriggered();
         }
       },
     );
@@ -153,9 +137,9 @@ export const MeditationAlarmService = {
       (response) => {
         if (
           response.notification.request.content.data?.type ===
-          MEDITATION_ALARM_TYPE
+          MEDITATION_NOTIFICATION_TYPE
         ) {
-          onAlarmTriggered();
+          onTriggered();
         }
       },
     );

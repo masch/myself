@@ -19,22 +19,13 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "SCHEDULE_EXACT_ALARM",
-        "USE_EXACT_ALARM",
-        "USE_FULL_SCREEN_INTENT",
-        "ACCESS_NOTIFICATION_POLICY",
-        "VIBRATE",
-        "WAKE_LOCK"
-      ]
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "./plugins/with-full-screen-intent.js",
       "expo-router",
       [
         "expo-splash-screen",
@@ -50,8 +41,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#ffffff",
-          "sounds": ["./assets/sounds/bowl_1.m4a", "./assets/sounds/bowl_3.m4a"]
+          "color": "#ffffff"
         }
       ]
     ],
