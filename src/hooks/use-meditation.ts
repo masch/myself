@@ -99,48 +99,21 @@ export function useMeditation() {
     }
   }, []);
 
-  const scheduleTargetAlarm = useCallback(async () => {
-    await cancelScheduledAlarm();
-    if (!alarmEnabled || status !== "running" || currentMomentIndex !== 1) {
-      return;
-    }
+  const scheduleTargetAlarm = useCallback(
+    async (hour: number, minute: number) => {
+      await cancelScheduledAlarm();
+      if (!alarmEnabled) return;
 
-    const now = new Date();
-    const targetDate = getTargetDate(now, targetHour, targetMinute);
+      const now = new Date();
+      const targetDate = getTargetDate(now, hour, minute);
 
-    const id = await MeditationAlarmService.scheduleAlarm(targetDate);
-    if (id) {
-      scheduledNotificationIdRef.current = id;
-    }
-  }, [
-    alarmEnabled,
-    status,
-    currentMomentIndex,
-    targetHour,
-    targetMinute,
-    cancelScheduledAlarm,
-  ]);
-
-  // Synchronize OS-level scheduled alarm with active state in Moment 2
-  useEffect(() => {
-    if (
-      status === "running" &&
-      currentMomentIndex === 1 &&
-      alarmEnabled &&
-      !hasAlarmTriggered
-    ) {
-      scheduleTargetAlarm();
-    } else {
-      cancelScheduledAlarm();
-    }
-  }, [
-    status,
-    currentMomentIndex,
-    alarmEnabled,
-    hasAlarmTriggered,
-    scheduleTargetAlarm,
-    cancelScheduledAlarm,
-  ]);
+      const id = await MeditationAlarmService.scheduleAlarm(targetDate);
+      if (id) {
+        scheduledNotificationIdRef.current = id;
+      }
+    },
+    [alarmEnabled, cancelScheduledAlarm],
+  );
 
   // Listen for OS notification events or user interaction to advance state
   useEffect(() => {
@@ -148,9 +121,7 @@ export function useMeditation() {
       setHasAlarmTriggered(true);
       setCurrentMomentIndex((prev) => {
         if (prev === 1) {
-          const isAppInForeground =
-            Platform.OS === "web" || AppState.currentState === "active";
-          if (isAppInForeground) {
+          if (Platform.OS === "web") {
             playSingleGong();
           }
           return 2;
@@ -194,9 +165,8 @@ export function useMeditation() {
         setHasAlarmTriggered(true);
         cancelScheduledAlarm();
 
-        const isAppInForeground =
-          Platform.OS === "web" || AppState.currentState === "active";
-        if (isAppInForeground) {
+        // Solo hacer sonar el gong por JS en Web (en Android/iOS ya sonó la notificación del sistema)
+        if (Platform.OS === "web") {
           playSingleGong();
         }
 
@@ -236,8 +206,9 @@ export function useMeditation() {
     setHasAlarmTriggered(false);
     sessionStartTimeRef.current = new Date();
     setStatus("running");
+    await cancelScheduledAlarm();
     await playSingleGong();
-  }, [playSingleGong]);
+  }, [playSingleGong, cancelScheduledAlarm]);
 
   const pauseSession = useCallback(() => {
     if (status === "running") {
@@ -249,28 +220,51 @@ export function useMeditation() {
   const resumeSession = useCallback(() => {
     if (status === "paused") {
       setStatus("running");
+      if (currentMomentIndex === 1 && alarmEnabled && !hasAlarmTriggered) {
+        scheduleTargetAlarm(targetHour, targetMinute);
+      }
     }
-  }, [status]);
+  }, [
+    status,
+    currentMomentIndex,
+    alarmEnabled,
+    hasAlarmTriggered,
+    targetHour,
+    targetMinute,
+    scheduleTargetAlarm,
+  ]);
 
   const nextMoment = useCallback(async () => {
     if (status !== "running" && status !== "paused") return;
 
-    const isLast = currentMomentIndex >= moments.length - 1;
+    const nextIndex = currentMomentIndex + 1;
+    const isLast = nextIndex >= moments.length;
 
     if (isLast) {
       setStatus("completed");
       await cancelScheduledAlarm();
       await playTripleGong();
     } else {
-      await cancelScheduledAlarm();
-      setCurrentMomentIndex((prev) => prev + 1);
+      setCurrentMomentIndex(nextIndex);
       setStatus("running");
       await playSingleGong();
+
+      // Si entramos al Momento 2 (índice 1), armar la alarma en el sistema operativo
+      if (nextIndex === 1 && alarmEnabled && !hasAlarmTriggered) {
+        await scheduleTargetAlarm(targetHour, targetMinute);
+      } else {
+        await cancelScheduledAlarm();
+      }
     }
   }, [
     status,
     currentMomentIndex,
     moments.length,
+    alarmEnabled,
+    hasAlarmTriggered,
+    targetHour,
+    targetMinute,
+    scheduleTargetAlarm,
     cancelScheduledAlarm,
     playSingleGong,
     playTripleGong,

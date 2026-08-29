@@ -70,11 +70,13 @@ export const MeditationAlarmService = {
         }
       }
 
-      const now = new Date();
-      if (targetDate.getTime() <= now.getTime()) {
-        console.warn("Target date is in the past, skipping schedule:", targetDate);
-        return null;
-      }
+      const diffSeconds = Math.max(
+        1,
+        Math.round((targetDate.getTime() - Date.now()) / 1000),
+      );
+
+      // Cancel any existing scheduled alarms first to avoid conflicts
+      await this.cancelAllAlarms();
 
       // Ensure channel is ready before scheduling
       await this.setupNotificationChannel();
@@ -96,8 +98,9 @@ export const MeditationAlarmService = {
             : {}),
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: targetDate,
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: diffSeconds,
+          repeats: false,
           ...(Platform.OS === "android"
             ? { channelId: MEDITATION_ALARM_CHANNEL_ID }
             : {}),
@@ -108,6 +111,17 @@ export const MeditationAlarmService = {
     } catch (err) {
       console.warn("Failed to schedule meditation alarm:", err);
       return null;
+    }
+  },
+
+  /**
+   * Cancels all scheduled alarm notifications.
+   */
+  async cancelAllAlarms(): Promise<void> {
+    try {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    } catch (err) {
+      console.warn("Failed to cancel scheduled alarms:", err);
     }
   },
 
