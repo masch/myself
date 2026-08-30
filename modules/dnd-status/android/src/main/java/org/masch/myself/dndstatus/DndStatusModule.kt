@@ -66,7 +66,7 @@ class DndStatusModule : Module() {
     }
 
     Function("openDndSettings") {
-      val context = appContext.reactContext ?: return@Function
+      val context = appContext.reactContext ?: return@Function Unit
       val intent = android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
         addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
       }
@@ -79,6 +79,7 @@ class DndStatusModule : Module() {
         }
         context.startActivity(genericIntent)
       }
+      Unit
     }
   }
 }
