@@ -1,6 +1,6 @@
 import { NativeModule, requireNativeModule } from "expo";
 
-declare class DndStatusModule extends NativeModule<{}> {
+declare class DndStatusModuleType extends NativeModule<{}> {
   isDndActive(): boolean;
   isSupported(): boolean;
   isNotificationPolicyAccessGranted(): boolean;
@@ -8,4 +8,20 @@ declare class DndStatusModule extends NativeModule<{}> {
   openDndSettings(): void;
 }
 
-export default requireNativeModule<DndStatusModule>("DndStatus");
+let DndStatusModule: DndStatusModuleType;
+
+try {
+  DndStatusModule = requireNativeModule<DndStatusModuleType>("DndStatus");
+} catch {
+  DndStatusModule = {
+    isDndActive: () => false,
+    isSupported: () => false,
+    isNotificationPolicyAccessGranted: () => false,
+    setDndActive: () => false,
+    openDndSettings: () => {},
+    addListener: () => ({ remove: () => {} }),
+    removeListeners: () => {},
+  } as unknown as DndStatusModuleType;
+}
+
+export default DndStatusModule;

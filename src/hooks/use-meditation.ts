@@ -28,7 +28,7 @@ const DEFAULT_MOMENTS = [
  * (e.g. starting a session at 23:55 targeting 00:15, or starting at 10:00 targeting 08:00),
  * it rolls over the target date to tomorrow to prevent negative durations or immediate firing.
  */
-function getTargetDate(now: Date, hour: number, minute: number): Date {
+export function getTargetDate(now: Date, hour: number, minute: number): Date {
   const target = new Date(now);
   target.setHours(hour, minute, 0, 0);
 
