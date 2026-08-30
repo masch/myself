@@ -21,10 +21,17 @@ const DEFAULT_MOMENTS = [
   "Momento 3: Cierre e Integración",
 ];
 
+/**
+ * Calculates the next upcoming Date instance for a configured wall-clock time (hour & minute).
+ *
+ * If the target time for the current calendar day has already passed or crosses midnight
+ * (e.g. starting a session at 23:55 targeting 00:15, or starting at 10:00 targeting 08:00),
+ * it rolls over the target date to tomorrow to prevent negative durations or immediate firing.
+ */
 function getTargetDate(now: Date, hour: number, minute: number): Date {
   const target = new Date(now);
   target.setHours(hour, minute, 0, 0);
-  // Si la hora objetivo es igual o anterior al instante actual, programar para mañana a esa hora
+
   if (target.getTime() <= now.getTime()) {
     target.setDate(target.getDate() + 1);
   }
@@ -100,6 +107,15 @@ export function useMeditation() {
 
     return MeditationSessionService.subscribeCompletion(handleCompletion);
   }, [playSingleGong]);
+
+  // Subscribe to platform-agnostic session error events
+  useEffect(() => {
+    const handleError = (error: string) => {
+      console.error("[MeditationSession]", error);
+    };
+
+    return MeditationSessionService.subscribeError(handleError);
+  }, []);
 
   // Elapsed timer interval
   useEffect(() => {

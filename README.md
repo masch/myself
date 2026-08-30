@@ -94,7 +94,7 @@ sequenceDiagram
     User->>UI: Taps 'Next Moment'
     Hook->>Hook: Transitions to Moment 2 (Meditation)
     Hook->>Service: startSession({ targetDate })
-    
+
     alt Android (Foreground Service)
         Service->>Native: startMeditationSession(targetEpochMs, "08:58")
         Native->>OS: startForeground(Notification) + WakeLock.acquire()
@@ -107,7 +107,7 @@ sequenceDiagram
     end
 
     Note over User, OS: User locks device screen
-    
+
     alt Target Time Reached
         Native->>Native: Target time reached in background
         Native->>Hook: Dispatches 'onSessionCompleted' event
@@ -122,37 +122,37 @@ sequenceDiagram
 
 #### A. Android (`modules/meditation-session/android`)
 
-* **`MeditationForegroundService.kt`**:
-  * Foreground Service Type: `android:foregroundServiceType="mediaPlayback"`.
-  * **Partial WakeLock**: Acquires `PowerManager.PARTIAL_WAKE_LOCK` with a safety timeout, ensuring the CPU is never suspended by Android Doze Mode during active meditation.
-  * **Persistent Notification**: Constructed using `NotificationCompat.Builder`:
-    * `ongoing = true` and `visibility = NotificationCompat.VISIBILITY_PUBLIC`.
-    * Title: *"Meditación en curso"*.
-    * Subtitle: *"Momento 2 · Finaliza a las HH:mm"*.
-    * **No Interactive Actions**: Excludes play/pause/skip actions.
-  * **Native Timer**: Kotlin coroutine on `Dispatchers.Default` using `delay(remainingMs)`. Upon completion, invokes `onSessionCompletedListener` and terminates with `stopSelf()`.
-* **`MeditationSessionModule.kt`**:
-  * Expo Modules API implementation under namespace `org.masch.myself.meditationsession`.
-  * Exposes `startSession`, `stopSession`, `isSessionActive` and emits `onSessionCompleted`.
+- **`MeditationForegroundService.kt`**:
+  - Foreground Service Type: `android:foregroundServiceType="mediaPlayback"`.
+  - **Partial WakeLock**: Acquires `PowerManager.PARTIAL_WAKE_LOCK` with a safety timeout, ensuring the CPU is never suspended by Android Doze Mode during active meditation.
+  - **Persistent Notification**: Constructed using `NotificationCompat.Builder`:
+    - `ongoing = true` and `visibility = NotificationCompat.VISIBILITY_PUBLIC`.
+    - Title: _"Meditación en curso"_.
+    - Subtitle: _"Momento 2 · Finaliza a las HH:mm"_.
+    - **No Interactive Actions**: Excludes play/pause/skip actions.
+  - **Native Timer**: Kotlin coroutine on `Dispatchers.Default` using `delay(remainingMs)`. Upon completion, invokes `onSessionCompletedListener` and terminates with `stopSelf()`.
+- **`MeditationSessionModule.kt`**:
+  - Expo Modules API implementation under namespace `org.masch.myself.meditationsession`.
+  - Exposes `startSession`, `stopSession`, `isSessionActive` and emits `onSessionCompleted`.
 
 #### B. iOS (`modules/meditation-session/ios`)
 
-* **`MeditationSessionModule.swift`**:
-  * Manages countdown timers on the main thread via `Timer.scheduledTimer`.
-  * Dispatches `onSessionCompleted` events to JavaScript.
-* **`IosMeditationSessionService.ts`**:
-  * Configures background audio category (`AVAudioSession.playback`).
-  * Schedules local notification in `UNUserNotificationCenter` as an OS-level fallback.
+- **`MeditationSessionModule.swift`**:
+  - Manages countdown timers on the main thread via `Timer.scheduledTimer`.
+  - Dispatches `onSessionCompleted` events to JavaScript.
+- **`IosMeditationSessionService.ts`**:
+  - Configures background audio category (`AVAudioSession.playback`).
+  - Schedules local notification in `UNUserNotificationCenter` as an OS-level fallback.
 
 #### C. Web (`src/services/meditation-session/web-strategy.ts`)
 
-* Uses browser `setTimeout` timers and Web Notification API.
-* **Lazy Loading & Safe Fallbacks**:
-  * `MeditationSessionModule.web.ts` provides a mock module registered via `registerWebModule`.
-  * `index.web.ts` and `LazyMeditationSessionService` guarantee that Metro web bundlers never execute native binary calls.
+- Uses browser `setTimeout` timers and Web Notification API.
+- **Lazy Loading & Safe Fallbacks**:
+  - `MeditationSessionModule.web.ts` provides a mock module registered via `registerWebModule`.
+  - `index.web.ts` and `LazyMeditationSessionService` guarantee that Metro web bundlers never execute native binary calls.
 
 #### D. Do Not Disturb Module (`modules/dnd-status`)
 
-* Queries and manages Android DND state via `NotificationManager.currentInterruptionFilter` and `NotificationManager.setInterruptionFilter()`, backed by `ACCESS_NOTIFICATION_POLICY` permission under namespace `org.masch.myself.dndstatus`.
+- Queries and manages Android DND state via `NotificationManager.currentInterruptionFilter` and `NotificationManager.setInterruptionFilter()`, backed by `ACCESS_NOTIFICATION_POLICY` permission under namespace `org.masch.myself.dndstatus`.
 
 ---

@@ -1,5 +1,6 @@
 import {
   addSessionCompletedListener,
+  addSessionErrorListener,
   startMeditationSession,
   stopMeditationSession,
 } from "@/modules/meditation-session";
@@ -16,13 +17,13 @@ export class AndroidMeditationSessionService implements IMeditationSessionServic
   async startSession(params: SessionParams): Promise<void> {
     await this.stopSession();
 
-    // 1. Iniciar Foreground Service de Android con WakeLock y notificación continua en Lockscreen
+    // 1. Start Android Foreground Service with WakeLock and ongoing lockscreen notification
     startMeditationSession({
       targetEpochMs: params.targetDate.getTime(),
       targetTimeFormatted: formatClock(params.targetDate),
     });
 
-    // 2. Programar notificación de aviso de respaldo
+    // 2. Schedule fallback local notification
     await MeditationNotificationService.scheduleNotification(params.targetDate);
   }
 
@@ -39,6 +40,16 @@ export class AndroidMeditationSessionService implements IMeditationSessionServic
     return () => {
       subNative.remove();
       unsubNotifications();
+    };
+  }
+
+  subscribeError(onError: (error: string) => void): () => void {
+    const subNative = addSessionErrorListener((event) => {
+      onError(event.error);
+    });
+
+    return () => {
+      subNative.remove();
     };
   }
 }

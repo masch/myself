@@ -31,6 +31,10 @@ class LazyMeditationSessionService implements IMeditationSessionService {
   subscribeCompletion(onCompleted: () => void): () => void {
     return this.getService().subscribeCompletion(onCompleted);
   }
+
+  subscribeError(onError: (error: string) => void): () => void {
+    return this.getService().subscribeError(onError);
+  }
 }
 
 export const MeditationSessionService: IMeditationSessionService =

@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,13 +22,17 @@ class MeditationForegroundService : Service() {
   private var wakeLock: PowerManager.WakeLock? = null
 
   companion object {
+    private const val TAG = "MeditationForegroundService"
     const val CHANNEL_ID = "meditation_session_foreground_channel"
-    const val NOTIFICATION_ID = 44210
+    val NOTIFICATION_ID = "org.masch.myself.meditationsession.MeditationForegroundService"
+      .hashCode()
+      .let { kotlin.math.abs(it).coerceAtLeast(1) }
     const val EXTRA_TARGET_EPOCH_MS = "target_epoch_ms"
     const val EXTRA_TARGET_TIME_FORMATTED = "target_time_formatted"
     const val ACTION_STOP = "org.masch.myself.meditationsession.ACTION_STOP"
 
     var onSessionCompletedListener: (() -> Unit)? = null
+    var onSessionErrorListener: ((String) -> Unit)? = null
     var isServiceActive: Boolean = false
       private set
   }
@@ -114,7 +119,9 @@ class MeditationForegroundService : Service() {
         acquire(4 * 60 * 60 * 1000L)
       }
     } catch (e: Exception) {
-      // Best-effort lock
+      val msg = "Failed to acquire WakeLock: ${e.message}"
+      Log.e(TAG, msg, e)
+      onSessionErrorListener?.invoke(msg)
     }
   }
 
@@ -125,7 +132,7 @@ class MeditationForegroundService : Service() {
       }
       wakeLock = null
     } catch (e: Exception) {
-      // Best-effort release
+      Log.e(TAG, "Failed to release WakeLock: ${e.message}", e)
     }
   }
 }

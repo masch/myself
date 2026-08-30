@@ -35,4 +35,8 @@ export class WebMeditationSessionService implements IMeditationSessionService {
       unsubNotifications();
     };
   }
+
+  subscribeError(_onError: (error: string) => void): () => void {
+    return () => {};
+  }
 }

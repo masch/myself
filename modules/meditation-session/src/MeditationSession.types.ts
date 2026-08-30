@@ -5,4 +5,5 @@ export interface StartSessionOptions {
 
 export type MeditationSessionEvents = {
   onSessionCompleted: () => void;
+  onSessionError: (event: { error: string }) => void;
 };

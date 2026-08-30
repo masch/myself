@@ -20,16 +20,20 @@ class MeditationSessionModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("MeditationSession")
 
-    Events("onSessionCompleted")
+    Events("onSessionCompleted", "onSessionError")
 
     OnCreate {
       MeditationForegroundService.onSessionCompletedListener = {
         sendEvent("onSessionCompleted")
       }
+      MeditationForegroundService.onSessionErrorListener = { errorMsg ->
+        sendEvent("onSessionError", mapOf("error" to errorMsg))
+      }
     }
 
     OnDestroy {
       MeditationForegroundService.onSessionCompletedListener = null
+      MeditationForegroundService.onSessionErrorListener = null
     }
 
     Function("startSession") { options: StartSessionOptionsRecord ->

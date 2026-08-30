@@ -36,5 +36,15 @@ export function addSessionCompletedListener(listener: () => void) {
   }
 }
 
+export function addSessionErrorListener(
+  listener: (event: { error: string }) => void,
+) {
+  try {
+    return MeditationSessionModule.addListener("onSessionError", listener);
+  } catch {
+    return { remove: () => {} };
+  }
+}
+
 export { MeditationSessionModule };
 export type { StartSessionOptions, MeditationSessionEvents };

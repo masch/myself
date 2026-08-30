@@ -1,5 +1,6 @@
 import {
   addSessionCompletedListener,
+  addSessionErrorListener,
   startMeditationSession,
   stopMeditationSession,
 } from "@/modules/meditation-session";
@@ -16,13 +17,13 @@ export class IosMeditationSessionService implements IMeditationSessionService {
   async startSession(params: SessionParams): Promise<void> {
     await this.stopSession();
 
-    // 1. Iniciar temporizador en módulo Swift
+    // 1. Start timer in Swift native module
     startMeditationSession({
       targetEpochMs: params.targetDate.getTime(),
       targetTimeFormatted: formatClock(params.targetDate),
     });
 
-    // 2. Programar notificación de iOS en UNUserNotificationCenter
+    // 2. Schedule iOS local notification in UNUserNotificationCenter
     await MeditationNotificationService.scheduleNotification(params.targetDate);
   }
 
@@ -39,6 +40,16 @@ export class IosMeditationSessionService implements IMeditationSessionService {
     return () => {
       subNative.remove();
       unsubNotifications();
+    };
+  }
+
+  subscribeError(onError: (error: string) => void): () => void {
+    const subNative = addSessionErrorListener((event) => {
+      onError(event.error);
+    });
+
+    return () => {
+      subNative.remove();
     };
   }
 }
