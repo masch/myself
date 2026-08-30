@@ -197,7 +197,129 @@ res.json({ valid: true, clientId: req.body.clientId });
 - **Aislamiento de Claves**: **Perfil API** nunca tiene acceso a las Claves Públicas ECDSA; toda la custodia de claves públicas y validación asimétrica vive exclusivamente en **Auth Manager API**.
 - **100% Stateless en Handshake**: Ni Perfil API ni Auth Manager almacenan estado intermedio; el `nonce` viaja protegido dentro del JWT sellado.
 - **Inmutabilidad y Replay Resistance**: Si el cliente modifica el JWT, la firma con `PERFIL_SECRET_KEY` se invalida. El `exp: "60s"` restringe el desafío a 1 minuto.
-- **Clave Privada Segura**: La clave privada del cliente reside exclusivamente en el enclave seguro del dispositivo móvil.
+## Meditation Session Architecture (Multiplatform SDD)
+
+Documento de diseño de software para el ciclo de vida, ejecución en segundo plano y notificaciones de la sesión de meditación en Android, iOS y Web.
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │            UI / Presentación            │
+                    │        src/app/(tabs)/meditation.tsx    │
+                    └────────────────────┬────────────────────┘
+                                         │
+                                         ▼
+                    ┌─────────────────────────────────────────┐
+                    │               Custom Hook               │
+                    │         src/hooks/use-meditation.ts     │
+                    └────────────────────┬────────────────────┘
+                                         │ (Consume el Contrato)
+                                         ▼
+                    ┌─────────────────────────────────────────┐
+                    │        IMeditationSessionService        │
+                    │   src/services/meditation-session/types │
+                    └────────────────────┬────────────────────┘
+                                         │
+               ┌─────────────────────────┼─────────────────────────┐
+               ▼                         ▼                         ▼
+      ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+      │ AndroidStrategy │       │   IosStrategy   │       │   WebStrategy   │
+      └────────┬────────┘       └────────┬────────┘       └────────┬────────┘
+               │                         │                         │
+               ▼                         ▼                         ▼
+   ┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
+   │ modules/meditation-   │ │ modules/meditation-   │ │ Window Timers         │
+   │ session (Kotlin)      │ │ session (Swift)       │ │ & Web Audio API       │
+   │ ForegroundService     │ │ AVAudioSession        │ │                       │
+   │ + Partial WakeLock    │ │ + UNNotificationCtr   │ │                       │
+   └───────────────────────┘ └───────────────────────┘ └───────────────────────┘
+```
+
+### 1. Principios de Diseño y Dominio
+
+- **Single Source of Truth**: El contrato `SessionParams` recibe únicamente `targetDate: Date`. Todo cálculo de tiempo restante o formato de texto se deriva internamente en las estrategias.
+- **Inversión de Dependencias (DIP)**: La capa de presentación y el hook `useMeditation` desconocen los detalles de bajo nivel del sistema operativo.
+- **Cero Botones en Lockscreen**: La notificación en pantalla de bloqueo es estrictamente informativa, sin controles multimedia que interfieran con la experiencia de introspección.
+- **Inmunidad a Doze Mode (Android)**: El procesador permanece activo mediante un `WakeLock` parcial gestionado por un servicio en primer plano.
+
+### 2. Diagrama de Secuencia del Ciclo de Vida
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Usuario
+    participant UI as MeditationScreen (React)
+    participant Hook as useMeditation()
+    participant Service as MeditationSessionService
+    participant Native as Módulo Nativo (Kotlin/Swift)
+    participant OS as Sistema Operativo (Lockscreen/Audio)
+
+    Usuario->>UI: Configura hora objetivo (ej. 08:58) e inicia sesión
+    UI->>Hook: startSession() -> Momento 1 (Lectura)
+    Usuario->>UI: Toca 'Siguiente Momento'
+    Hook->>Hook: Transiciona a Momento 2 (Meditación)
+    Hook->>Service: startSession({ targetDate })
+    
+    alt Android (Foreground Service)
+        Service->>Native: startMeditationSession(targetEpochMs, "08:58")
+        Native->>OS: startForeground(Notification) + WakeLock.acquire()
+        OS-->>Usuario: Muestra notificación continua informativa en Lockscreen
+    else iOS (Audio Session & Local Notification)
+        Service->>Native: startMeditationSession(targetEpochMs, "08:58")
+        Service->>OS: Programa notificación local en UNUserNotificationCenter
+    else Web
+        Service->>Service: setTimeout(delayMs)
+    end
+
+    Note over Usuario, OS: Usuario bloquea la pantalla del dispositivo
+    
+    alt Llegada al Horario Objetivo
+        Native->>Native: Se cumple el tiempo en segundo plano
+        Native->>Hook: Emite evento 'onSessionCompleted'
+        Hook->>Hook: playSingleGong()
+        Hook->>UI: Transiciona a Momento 3 (Cierre e Integración)
+        Native->>OS: stopForeground() / Libera WakeLock
+        OS-->>Usuario: Suena Gong de Cierre
+    end
+```
+
+### 3. Implementación Detallada por Plataforma
+
+#### A. Android (`modules/meditation-session/android`)
+
+* **`MeditationForegroundService.kt`**:
+  * Tipo de servicio: `android:foregroundServiceType="mediaPlayback"`.
+  * **WakeLock Parcial**: Adquiere `PowerManager.PARTIAL_WAKE_LOCK` asegurando que la CPU no entre en suspensión profunda (*Doze Mode*) durante la sesión.
+  * **Notificación Persistente**: Construida con `NotificationCompat.Builder`:
+    * `ongoing = true` y `visibility = NotificationCompat.VISIBILITY_PUBLIC`.
+    * Título: *"Meditación en curso"*.
+    * Subtítulo: *"Momento 2 · Finaliza a las HH:mm"*.
+    * **Sin acciones interactivas**: No expone botones de reproducción ni controles de pausa.
+  * **Temporizador Nativo**: Corrutina en `Dispatchers.Default` con `delay(remainingMs)`. Al cumplirse, emite `onSessionCompletedListener` y finaliza con `stopSelf()`.
+* **`MeditationSessionModule.kt`**:
+  * Implementa la Expo Modules API oficial (`org.masch.myself.meditationsession`).
+  * Expone `startSession`, `stopSession`, `isSessionActive` y emite el evento `onSessionCompleted`.
+
+#### B. iOS (`modules/meditation-session/ios`)
+
+* **`MeditationSessionModule.swift`**:
+  * Maneja el temporizador en el hilo principal con `Timer.scheduledTimer`.
+  * Emite el evento `onSessionCompleted` hacia JavaScript.
+* **`IosMeditationSessionService.ts`**:
+  * Activa la categoría de audio en segundo plano (`AVAudioSession.playback`).
+  * Programa la notificación local en `UNUserNotificationCenter` como respaldo nativo garantizado por el kernel de iOS.
+
+#### C. Web (`src/services/meditation-session/web-strategy.ts`)
+
+* Utiliza `setTimeout` y notificaciones de navegador.
+* **Carga Perezosa & Fallback**:
+  * `MeditationSessionModule.web.ts` registra un módulo simulado con `registerWebModule` de Expo.
+  * `index.web.ts` y `LazyMeditationSessionService` garantizan que el empaquetador web jamás intente cargar binarios nativos.
+
+#### D. Módulo `dnd-status` (`modules/dnd-status`)
+
+* Consulta y actualiza el estado de "No Molestar" (DND) en Android mediante `NotificationManager.currentInterruptionFilter` y `NotificationManager.setInterruptionFilter()`, requiriendo el permiso `ACCESS_NOTIFICATION_POLICY`.
+
+---
 
 ## Learn more
 
