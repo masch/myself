@@ -8,12 +8,12 @@ install:
 # Start Expo dev server normally
 .PHONY: start
 start:
-	bunx expo start
+	bunx expo start -c
 
 # Start Expo dev server with MCP server enabled for agent tools & inspection
 .PHONY: start-mcp
 start-mcp:
-	EXPO_UNSTABLE_MCP_SERVER=1 bunx expo start
+	EXPO_UNSTABLE_MCP_SERVER=1 bunx expo start -c
 
 # Platform shortcuts with MCP enabled
 .PHONY: android-mcp

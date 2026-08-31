@@ -33,6 +33,7 @@ export interface Author {
 export interface MeditationReading {
   id: string;
   author_id: string;
+  title: string;
   content: string;
   created_at: string;
 }
@@ -90,6 +91,7 @@ export async function initDatabase(db: SQLiteDatabase) {
     CREATE TABLE IF NOT EXISTS meditation_readings (
       id TEXT PRIMARY KEY NOT NULL,
       author_id TEXT NOT NULL,
+      title TEXT NOT NULL DEFAULT '',
       content TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE RESTRICT
@@ -102,6 +104,15 @@ export async function initDatabase(db: SQLiteDatabase) {
       FOREIGN KEY (reading_id) REFERENCES meditation_readings(id) ON DELETE CASCADE
     );
   `);
+
+  // Safe schema migrations for existing databases
+  try {
+    await db.execAsync(
+      "ALTER TABLE meditation_readings ADD COLUMN title TEXT NOT NULL DEFAULT '';",
+    );
+  } catch {
+    // Column already exists or table was just created
+  }
 
   // Populate seed data
   await seedDatabase(db);
@@ -254,6 +265,7 @@ export async function getAllReadings(
     `SELECT 
        r.id,
        r.author_id,
+       r.title,
        r.content,
        r.created_at,
        a.name AS author_name,
@@ -263,7 +275,7 @@ export async function getAllReadings(
      FROM meditation_readings r
      INNER JOIN authors a ON r.author_id = a.id
      LEFT JOIN reading_logs l ON r.id = l.reading_id
-     GROUP BY r.id, r.author_id, r.content, r.created_at, a.name, a.bio
+     GROUP BY r.id, r.author_id, r.title, r.content, r.created_at, a.name, a.bio
      ORDER BY (COUNT(l.id) > 0) ASC, r.created_at DESC`,
   );
 }
@@ -271,12 +283,13 @@ export async function getAllReadings(
 export async function addReading(
   db: SQLiteDatabase,
   authorId: string,
+  title: string,
   content: string,
 ): Promise<string> {
   const id = generateUUID();
   await db.runAsync(
-    "INSERT INTO meditation_readings (id, author_id, content, created_at) VALUES (?, ?, ?, datetime('now'))",
-    [id, authorId, content],
+    "INSERT INTO meditation_readings (id, author_id, title, content, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
+    [id, authorId, title, content],
   );
   return id;
 }
@@ -285,11 +298,12 @@ export async function updateReading(
   db: SQLiteDatabase,
   id: string,
   authorId: string,
+  title: string,
   content: string,
 ): Promise<void> {
   await db.runAsync(
-    "UPDATE meditation_readings SET author_id = ?, content = ? WHERE id = ?",
-    [authorId, content, id],
+    "UPDATE meditation_readings SET author_id = ?, title = ?, content = ? WHERE id = ?",
+    [authorId, title, content, id],
   );
 }
 

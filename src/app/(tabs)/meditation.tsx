@@ -19,7 +19,12 @@ import {
 } from "@/modules/dnd-status";
 import { useMeditation } from "@/hooks/use-meditation";
 import { useReadings } from "@/hooks/use-readings";
-import { AppButton, ChipButton, StepperButton } from "@/components";
+import {
+  AppButton,
+  ChipButton,
+  StepperButton,
+  MeditationText,
+} from "@/components";
 import { colors } from "@/theme/colors";
 
 function formatTime(totalSeconds: number): string {
@@ -356,14 +361,23 @@ export default function MeditationScreen() {
               </View>
 
               <View style={styles.quoteBox}>
-                <Text
-                  style={[styles.quoteSign, { color: colors.systemPurple }]}
-                >
-                  “
-                </Text>
-                <Text style={[styles.reflectionText, { color: colors.label }]}>
-                  {activeReading.content}
-                </Text>
+                {Boolean(activeReading.title) && (
+                  <Text
+                    style={[
+                      styles.readingTitle,
+                      { color: colors.systemPurple },
+                    ]}
+                  >
+                    {activeReading.title}
+                  </Text>
+                )}
+                <MeditationText
+                  content={activeReading.content}
+                  baseFontSize={15}
+                  baseLineHeight={23}
+                  textColor={colors.label}
+                  accentColor={colors.systemPurple}
+                />
               </View>
 
               <View style={styles.readingFooter}>
@@ -793,11 +807,12 @@ const styles = StyleSheet.create({
   },
   quoteBox: {
     paddingLeft: 4,
+    gap: 8,
   },
-  quoteSign: {
-    fontSize: 22,
+  readingTitle: {
+    fontSize: 16,
     fontWeight: "700",
-    lineHeight: 22,
+    letterSpacing: 0.3,
   },
   reflectionText: {
     fontSize: 15,
