@@ -1,7 +1,22 @@
 import { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, ScrollView, Text, Switch } from "react-native";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Text,
+  Switch,
+  Alert,
+} from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeepAwake } from "expo-keep-awake";
+import {
+  isDndActive,
+  isDndCheckSupported,
+  isNotificationPolicyAccessGranted,
+  setDndActive,
+  openDndSettings,
+} from "@/modules/dnd-status";
 import { useMeditation } from "@/hooks/use-meditation";
 import { useReadings } from "@/hooks/use-readings";
 import { AppButton, ChipButton, StepperButton } from "@/components";
@@ -20,6 +35,7 @@ function formatClock(hour: number, minute: number): string {
 }
 
 export default function MeditationScreen() {
+  useKeepAwake();
   const insets = useSafeAreaInsets();
   const {
     status,
@@ -46,6 +62,7 @@ export default function MeditationScreen() {
   const { readings, recordRead } = useReadings();
   const [currentReadingOffset, setCurrentReadingOffset] = useState(0);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [showDndNotice, setShowDndNotice] = useState(false);
 
   const recordedSessionReadingIdRef = useRef<string | null>(null);
 
@@ -82,13 +99,56 @@ export default function MeditationScreen() {
     }
   }, [currentMomentIndex, activeReading, recordRead]);
 
+  // Turn off DND when session is completed
+  useEffect(() => {
+    if (
+      status === "completed" &&
+      isDndCheckSupported() &&
+      isNotificationPolicyAccessGranted()
+    ) {
+      setDndActive(false);
+    }
+  }, [status]);
+
   const handleResetSession = () => {
     recordedSessionReadingIdRef.current = null;
+    setShowDndNotice(false);
+    if (isDndCheckSupported() && isNotificationPolicyAccessGranted()) {
+      setDndActive(false);
+    }
     resetSession();
   };
 
   const handleStartSession = () => {
+    if (isDndCheckSupported()) {
+      if (isNotificationPolicyAccessGranted()) {
+        // Granted: silence automatically
+        setDndActive(true);
+      } else {
+        const dnd = isDndActive();
+        if (!dnd) {
+          Alert.alert(
+            "Modo No Molestar Requerido",
+            "Para no recibir interrupciones durante la meditación, permitile el acceso a No Molestar a la app Myself en los ajustes o activalo manualmente.",
+            [
+              {
+                text: "Abrir Ajustes",
+                onPress: () => openDndSettings(),
+              },
+              {
+                text: "Cancelar",
+                style: "cancel",
+              },
+            ],
+            { cancelable: false },
+          );
+          return;
+        }
+      }
+    }
+
     recordedSessionReadingIdRef.current = null;
+    setShowDndNotice(false);
     startSession();
   };
 
@@ -183,6 +243,53 @@ export default function MeditationScreen() {
           })}
         </View>
       </View>
+
+      {/* DND Reminder Notice on Moment 1 if inactive or on iOS */}
+      {showDndNotice && (isRunning || isPaused) && currentMomentIndex === 0 && (
+        <View
+          style={[
+            styles.dndNoticeCard,
+            {
+              backgroundColor: colors.secondarySystemBackground,
+              borderColor: colors.systemPurple,
+            },
+          ]}
+        >
+          <View style={styles.dndNoticeHeader}>
+            <View style={styles.dndNoticeLeft}>
+              <Image
+                source="sf:moon.fill"
+                style={[
+                  styles.dndNoticeIcon,
+                  { tintColor: colors.systemPurple },
+                ]}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.dndNoticeTitle, { color: colors.label }]}>
+                  {isDndCheckSupported()
+                    ? "Modo No Molestar desactivado"
+                    : "Sugerencia: activá No Molestar"}
+                </Text>
+                <Text
+                  style={[
+                    styles.dndNoticeSubtitle,
+                    { color: colors.secondaryLabel },
+                  ]}
+                >
+                  {isDndCheckSupported()
+                    ? "Detectamos que las notificaciones están activas. Te sugerimos poner el teléfono en No Molestar para meditar sin interrupciones."
+                    : "Poné tu teléfono en modo Enfoque / No Molestar para meditar sin interrupciones."}
+                </Text>
+              </View>
+            </View>
+            <ChipButton
+              title="Entendido"
+              variant="purple"
+              onPress={() => setShowDndNotice(false)}
+            />
+          </View>
+        </View>
+      )}
 
       {/* Reading Card: Selected before starting OR during Moment 1 */}
       {(isIdle || (!isCompleted && currentMomentIndex === 0)) && (
@@ -829,5 +936,37 @@ const styles = StyleSheet.create({
   iconSetting: {
     width: 26,
     height: 26,
+  },
+  dndNoticeCard: {
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+    borderCurve: "continuous",
+  },
+  dndNoticeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  dndNoticeLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  dndNoticeIcon: {
+    width: 24,
+    height: 24,
+  },
+  dndNoticeTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  dndNoticeSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

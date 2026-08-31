@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["MeditationSessionModule"]
+  },
+  "android": {
+    "modules": ["org.masch.myself.meditationsession.MeditationSessionModule"]
+  }
+}

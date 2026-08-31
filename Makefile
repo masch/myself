@@ -63,8 +63,16 @@ typecheck:
 format:
 	bunx prettier --write .
 
+.PHONY: test
+test:
+	bun test
+
+.PHONY: test-coverage
+test-coverage:
+	bun test --coverage
+
 .PHONY: check
-check: lint typecheck
+check: lint typecheck test
 
 # Build & Export
 .PHONY: export-web

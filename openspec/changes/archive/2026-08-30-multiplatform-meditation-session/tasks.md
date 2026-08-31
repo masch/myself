@@ -1,0 +1,26 @@
+# Tasks: Multiplatform Meditation Session
+
+- [x] **Task 1: Create Native Module `modules/meditation-session`**
+  - [x] 1.1 Android `MeditationForegroundService.kt` with `WakeLock` and ongoing notification.
+  - [x] 1.2 Android `MeditationSessionModule.kt` Expo module definition.
+  - [x] 1.3 iOS `MeditationSessionModule.swift` and `MeditationSession.podspec`.
+  - [x] 1.4 Web fallback `MeditationSessionModule.web.ts` with `registerWebModule`.
+  - [x] 1.5 TypeScript typings and safe `requireNativeModule` wrapper.
+- [x] **Task 2: Build Strategy Layer (`src/services/meditation-session/`)**
+  - [x] 2.1 Define `IMeditationSessionService` and `SessionParams`.
+  - [x] 2.2 Implement `AndroidMeditationSessionService`.
+  - [x] 2.3 Implement `IosMeditationSessionService`.
+  - [x] 2.4 Implement `WebMeditationSessionService`.
+  - [x] 2.5 Factory resolution with `LazyMeditationSessionService` and `index.web.ts`.
+- [x] **Task 3: Create DND Module `modules/dnd-status`**
+  - [x] 3.1 Android Kotlin module querying `NotificationManager.currentInterruptionFilter`.
+  - [x] 3.2 Manifest permission `ACCESS_NOTIFICATION_POLICY`.
+  - [x] 3.3 TypeScript API and Web mock.
+- [x] **Task 4: Hook Refactoring & Cleanup**
+  - [x] 4.1 Update `src/hooks/use-meditation.ts` to consume `MeditationSessionService`.
+  - [x] 4.2 Clean obsolete audio files (`silence.m4a`) and permissions in `app.json`.
+  - [x] 4.3 Unify Android namespaces under `org.masch.myself.*`.
+- [x] **Task 5: Verification & Quality**
+  - [x] 5.1 Verify `bunx tsc --noEmit` and `bunx expo lint`.
+  - [x] 5.2 Verify `bunx expo export --platform web`.
+  - [x] 5.3 Verify CI build for Android APK.
