@@ -4,7 +4,12 @@ import { View, StyleSheet, ScrollView, Text, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useReadings } from "@/hooks/use-readings";
 import { type MeditationReadingWithAuthor } from "@/db/database";
-import { AppButton, IconButton, ChipButton } from "@/components";
+import {
+  AppButton,
+  IconButton,
+  ChipButton,
+  MeditationText,
+} from "@/components";
 import { colors } from "@/theme/colors";
 
 function formatDate(dateStr: string | null): string {
@@ -46,6 +51,7 @@ export default function ReadingsScreen() {
       params: {
         id: reading.id,
         authorId: reading.author_id,
+        title: reading.title,
         content: reading.content,
       },
     });
@@ -218,14 +224,23 @@ export default function ReadingsScreen() {
 
               {/* Quote Content */}
               <View style={styles.quoteWrapper}>
-                <Text
-                  style={[styles.quoteMark, { color: colors.systemPurple }]}
-                >
-                  “
-                </Text>
-                <Text style={[styles.quoteText, { color: colors.label }]}>
-                  {reading.content}
-                </Text>
+                {Boolean(reading.title) && (
+                  <Text
+                    style={[
+                      styles.readingCardTitle,
+                      { color: colors.systemPurple },
+                    ]}
+                  >
+                    {reading.title}
+                  </Text>
+                )}
+                <MeditationText
+                  content={reading.content}
+                  baseFontSize={15}
+                  baseLineHeight={22}
+                  textColor={colors.label}
+                  accentColor={colors.systemPurple}
+                />
               </View>
 
               {/* Card Footer: Timestamps & Read Toggle */}
@@ -313,20 +328,23 @@ export default function ReadingsScreen() {
               </View>
 
               <View style={styles.quoteWrapper}>
-                <Text
-                  style={[styles.quoteMark, { color: colors.systemPurple }]}
-                >
-                  “
-                </Text>
-                <Text
-                  style={[
-                    styles.quoteText,
-                    styles.quoteTextCompleted,
-                    { color: colors.secondaryLabel },
-                  ]}
-                >
-                  {reading.content}
-                </Text>
+                {Boolean(reading.title) && (
+                  <Text
+                    style={[
+                      styles.readingCardTitle,
+                      { color: colors.secondaryLabel },
+                    ]}
+                  >
+                    {reading.title}
+                  </Text>
+                )}
+                <MeditationText
+                  content={reading.content}
+                  baseFontSize={15}
+                  baseLineHeight={22}
+                  textColor={colors.secondaryLabel}
+                  accentColor={colors.systemPurple}
+                />
               </View>
 
               <View style={styles.cardFooter}>
@@ -508,11 +526,12 @@ const styles = StyleSheet.create({
   },
   quoteWrapper: {
     paddingLeft: 4,
+    gap: 6,
   },
-  quoteMark: {
-    fontSize: 22,
-    lineHeight: 22,
+  readingCardTitle: {
+    fontSize: 16,
     fontWeight: "700",
+    letterSpacing: 0.3,
   },
   quoteText: {
     fontSize: 15,

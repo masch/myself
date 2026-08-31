@@ -14,12 +14,14 @@ import {
 
 export interface CreateReadingInput {
   authorId: string;
+  title: string;
   content: string;
 }
 
 export interface UpdateReadingInput {
   id: string;
   authorId: string;
+  title: string;
   content: string;
 }
 
@@ -71,7 +73,12 @@ export function useReadings() {
 
   const addReading = useCallback(
     async (input: CreateReadingInput): Promise<string> => {
-      const id = await dbAddReading(db, input.authorId, input.content.trim());
+      const id = await dbAddReading(
+        db,
+        input.authorId,
+        input.title.trim(),
+        input.content.trim(),
+      );
       await refreshReadings();
       return id;
     },
@@ -80,7 +87,13 @@ export function useReadings() {
 
   const updateReading = useCallback(
     async (input: UpdateReadingInput): Promise<void> => {
-      await dbUpdateReading(db, input.id, input.authorId, input.content.trim());
+      await dbUpdateReading(
+        db,
+        input.id,
+        input.authorId,
+        input.title.trim(),
+        input.content.trim(),
+      );
       await refreshReadings();
     },
     [db, refreshReadings],

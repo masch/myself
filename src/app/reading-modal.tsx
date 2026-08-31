@@ -1,23 +1,24 @@
-import { useState } from "react";
+import { ChipButton, HeaderButton, MeditationText } from "@/components";
+import { useAuthors } from "@/hooks/use-authors";
+import { useReadings } from "@/hooks/use-readings";
+import { colors } from "@/theme/colors";
+import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import {
-  View,
-  StyleSheet,
-  TextInput,
-  Text,
   Alert,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
-import { Image } from "expo-image";
-import { useReadings } from "@/hooks/use-readings";
-import { useAuthors } from "@/hooks/use-authors";
-import { HeaderButton, ChipButton } from "@/components";
-import { colors } from "@/theme/colors";
 
 export default function ReadingModalScreen() {
   const params = useLocalSearchParams<{
     id?: string;
     authorId?: string;
+    title?: string;
     content?: string;
   }>();
 
@@ -29,7 +30,9 @@ export default function ReadingModalScreen() {
   const [selectedAuthorId, setSelectedAuthorId] = useState<string>(
     params.authorId ?? "",
   );
+  const [title, setTitle] = useState<string>(params.title ?? "");
   const [content, setContent] = useState<string>(params.content ?? "");
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isAddingNewAuthor, setIsAddingNewAuthor] = useState(false);
   const [newAuthorName, setNewAuthorName] = useState("");
   const [newAuthorBio, setNewAuthorBio] = useState("");
@@ -38,6 +41,14 @@ export default function ReadingModalScreen() {
     selectedAuthorId || (authors.length > 0 ? authors[0].id : "");
 
   const handleSave = async () => {
+    if (!title.trim()) {
+      Alert.alert(
+        "Title required",
+        "Please enter a title for the meditation reading.",
+      );
+      return;
+    }
+
     if (!content.trim()) {
       Alert.alert("Text required", "Please enter the meditation text to read.");
       return;
@@ -76,11 +87,13 @@ export default function ReadingModalScreen() {
         await updateReading({
           id: params.id,
           authorId: finalAuthorId,
+          title: title.trim(),
           content: content.trim(),
         });
       } else {
         await addReading({
           authorId: finalAuthorId,
+          title: title.trim(),
           content: content.trim(),
         });
       }
@@ -187,10 +200,10 @@ export default function ReadingModalScreen() {
         )}
       </View>
 
-      {/* Reading Passage Input Card */}
+      {/* Title Input Card */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-          PASSAGE / QUOTE
+          TITLE
         </Text>
         <View
           style={[
@@ -198,25 +211,89 @@ export default function ReadingModalScreen() {
             { backgroundColor: colors.secondarySystemBackground },
           ]}
         >
-          <View style={styles.quoteInputWrapper}>
-            <Text style={[styles.quoteSign, { color: colors.systemPurple }]}>
-              “
-            </Text>
+          <View style={styles.inputRow}>
+            <Image
+              source="sf:text.quote"
+              style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
+            />
             <TextInput
-              placeholder="Write the passage or quote to read and reflect on before meditating..."
+              placeholder="E.g., Poder sobre la Mente, Anam Cara..."
               placeholderTextColor={colors.secondaryLabel}
-              value={content}
-              onChangeText={setContent}
-              style={[
-                styles.input,
-                styles.contentInput,
-                { color: colors.label },
-              ]}
-              multiline
-              numberOfLines={6}
+              value={title}
+              onChangeText={setTitle}
+              style={[styles.input, { color: colors.label }]}
             />
           </View>
         </View>
+      </View>
+
+      {/* Reading Passage Input Card */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+            PASSAGE / POETRY
+          </Text>
+          <ChipButton
+            title={isPreviewMode ? "Edit Markdown" : "Live Preview"}
+            icon={isPreviewMode ? "sf:pencil" : "sf:eye.fill"}
+            variant="purple"
+            onPress={() => setIsPreviewMode((prev) => !prev)}
+          />
+        </View>
+
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.secondarySystemBackground },
+          ]}
+        >
+          {isPreviewMode ? (
+            <View style={styles.previewWrapper}>
+              {content.trim() ? (
+                <MeditationText
+                  content={content}
+                  baseFontSize={16}
+                  baseLineHeight={24}
+                  textColor={colors.label}
+                  accentColor={colors.systemPurple}
+                />
+              ) : (
+                <Text
+                  style={[
+                    styles.emptyPreviewText,
+                    { color: colors.secondaryLabel },
+                  ]}
+                >
+                  Write some verses above to preview formatting.
+                </Text>
+              )}
+            </View>
+          ) : (
+            <View style={styles.quoteInputWrapper}>
+              <Text style={[styles.quoteSign, { color: colors.systemPurple }]}>
+                “
+              </Text>
+              <TextInput
+                placeholder="Write the passage or quote to read and reflect on before meditating..."
+                placeholderTextColor={colors.secondaryLabel}
+                value={content}
+                onChangeText={setContent}
+                style={[
+                  styles.input,
+                  styles.contentInput,
+                  { color: colors.label },
+                ]}
+                multiline
+                numberOfLines={6}
+              />
+            </View>
+          )}
+        </View>
+
+        <Text style={[styles.formatHelpText, { color: colors.secondaryLabel }]}>
+          ✨ Supports Markdown: *italic*, **bold**, &gt; reflection stanza, and
+          verse indentation.
+        </Text>
       </View>
     </ScrollView>
   );
@@ -287,5 +364,22 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: "rgba(142, 142, 147, 0.2)",
     marginLeft: 34,
+  },
+  previewWrapper: {
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    minHeight: 120,
+  },
+  emptyPreviewText: {
+    fontSize: 14,
+    fontStyle: "italic",
+    textAlign: "center",
+    paddingVertical: 20,
+  },
+  formatHelpText: {
+    fontSize: 12,
+    fontStyle: "italic",
+    paddingHorizontal: 4,
+    lineHeight: 16,
   },
 });

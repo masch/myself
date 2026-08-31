@@ -52,6 +52,36 @@ mock.module("react-native", () => ({
   NativeModules: {},
 }));
 
+mock.module("expo-router", () => ({
+  Color: {
+    ios: {
+      systemBackground: "#000000",
+      secondarySystemBackground: "#1C1C1E",
+      label: "#FFFFFF",
+      secondaryLabel: "#8E8E93",
+      systemBlue: "#007AFF",
+      systemPurple: "#AF52DE",
+      systemGreen: "#34C759",
+      systemRed: "#FF3B30",
+      systemOrange: "#FF9500",
+      systemGray: "#8E8E93",
+    },
+    android: {
+      dynamic: {
+        surface: "#000000",
+        surfaceVariant: "#1C1C1E",
+        onSurface: "#FFFFFF",
+        onSurfaceVariant: "#8E8E93",
+        primary: "#007AFF",
+        tertiary: "#AF52DE",
+        error: "#FF3B30",
+      },
+    },
+  },
+  useRouter: () => ({ push: () => {}, back: () => {}, replace: () => {} }),
+  useLocalSearchParams: () => ({}),
+}));
+
 mock.module("expo-asset", () => ({
   Asset: {
     fromModule: () => ({ uri: "mock-sound.m4a" }),
