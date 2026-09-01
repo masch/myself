@@ -37,6 +37,7 @@
     "@types/bun": "^1.4.0",
     "@types/react": "~19.2.2",
     "@types/react-dom": "^19.2.5",
+    "eas-cli": "20.1.0",
     "eslint": "^9.20.0",
     "eslint-config-expo": "~57.0.2",
     "expo-mcp": "~0.2.1",
