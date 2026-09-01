@@ -11,6 +11,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      mobile: ${{ steps.filter.outputs.mobile }}
+      api: ${{ steps.filter.outputs.api }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Paths Filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            mobile:
+              - 'apps/mobile/**'
+              - 'packages/shared/**'
+              - 'bun.lock'
+              - 'package.json'
+              - 'turbo.json'
+              - 'Makefile'
+            api:
+              - 'apps/api/**'
+              - 'packages/shared/**'
+              - 'bun.lock'
+              - 'package.json'
+              - 'turbo.json'
+              - 'Makefile'
+
   validate:
     name: Lint, Typecheck & Test
     runs-on: ubuntu-latest
@@ -23,13 +53,25 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache Turborepo & Bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/*/.turbo
+            packages/*/.turbo
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
       - name: Run CI
         run: make ci
 
   deploy_mobile_staging:
     name: Deploy Mobile Web to EAS Hosting (PR Preview)
-    needs: validate
-    if: github.event_name == 'pull_request'
+    needs: [changes, validate]
+    if: github.event_name == 'pull_request' && needs.changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -39,6 +81,18 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Cache Turborepo & Bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/*/.turbo
+            packages/*/.turbo
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
       - name: Install dependencies
         run: make install
@@ -51,8 +105,8 @@ jobs:
 
   deploy_mobile_production:
     name: Deploy Mobile Web to EAS Hosting (Production)
-    needs: validate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [changes, validate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -62,6 +116,18 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Cache Turborepo & Bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/*/.turbo
+            packages/*/.turbo
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
       - name: Install dependencies
         run: make install
@@ -74,8 +140,8 @@ jobs:
 
   deploy_api_production:
     name: Deploy API to Cloudflare Workers (Production)
-    needs: validate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [changes, validate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -85,6 +151,18 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Cache Turborepo & Bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/*/.turbo
+            packages/*/.turbo
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
       - name: Install dependencies
         run: make install
