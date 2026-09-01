@@ -1,127 +1,143 @@
 EAS_CLI_VERSION ?= 20.1.0
 
-# Dependencies
+# ── Monorepo Root Tasks (Turborepo) ──────────
+
 .PHONY: install
 install:
-	bun install --frozen-lockfile
+	bun install
 
-# Start Expo dev server normally
-.PHONY: start
-start:
-	bunx expo start -c
+.PHONY: dev
+dev:
+	bun run dev
 
-# Start Expo dev server with MCP server enabled for agent tools & inspection
-.PHONY: start-mcp
-start-mcp:
-	EXPO_UNSTABLE_MCP_SERVER=1 bunx expo start -c
+.PHONY: dev-web
+dev-web:
+	@trap 'kill 0' EXIT INT TERM; \
+	(cd apps/api && bun run dev) & \
+	(cd apps/mobile && bun run web)
 
-# Platform shortcuts with MCP enabled
-.PHONY: android-mcp
-android-mcp:
-	EXPO_UNSTABLE_MCP_SERVER=1 bunx expo start --android
+.PHONY: dev-mobile
+dev-mobile:
+	@trap 'kill 0' EXIT INT TERM; \
+	(cd apps/api && bun run dev) & \
+	(cd apps/mobile && bun run start)
 
-.PHONY: ios-mcp
-ios-mcp:
-	EXPO_UNSTABLE_MCP_SERVER=1 bunx expo start --ios
+.PHONY: build
+build:
+	bun run build
 
-.PHONY: web-mcp
-web-mcp:
-	EXPO_UNSTABLE_MCP_SERVER=1 bunx expo start --web
-
-# Platform shortcuts (normal)
-.PHONY: android
-android:
-	bunx expo start --android
-
-.PHONY: ios
-ios:
-	bunx expo start --ios
-
-.PHONY: web
-web:
-	bunx expo start --web
-
-# Authentication
-.PHONY: expo-login
-expo-login:
-	bunx expo whoami || bunx expo login
-
-.PHONY: expo-whoami
-expo-whoami:
-	bunx expo whoami
-
-# Quality checks
 .PHONY: lint
 lint:
-	bunx expo lint
+	bun run lint
 
 .PHONY: typecheck
 typecheck:
-	bunx tsc --noEmit
-
-.PHONY: format
-format:
-	bunx prettier --write .
+	bun run typecheck
 
 .PHONY: test
 test:
-	bun test
+	bun run test
 
 .PHONY: test-coverage
 test-coverage:
-	bun test --coverage
+	bun run test-coverage
 
 .PHONY: check
-check: lint typecheck test
+check:
+	bun run check
 
-# Build & Export
-.PHONY: export-web
-export-web:
-	bunx expo export --platform web
+.PHONY: format
+format:
+	bun run format
 
-# Complete CI validation pipeline
 .PHONY: ci
-ci: install check export-web
+ci: install check
 
-.PHONY: expo-doctor
-expo-doctor: ## Run Expo Doctor to verify dependency compatibility
-	APP_VERSION_NAME="$(APP_VERSION_NAME)" bunx expo-doctor
+# ── Mobile Tasks (apps/mobile) ───────────────
 
-# ── EAS Deploy ───────────────────────────────
+.PHONY: mobile-start
+mobile-start:
+	cd apps/mobile && bun run start
 
-.PHONY: eas-whoami
-eas-whoami: ## Verify EAS authentication (uses EXPO_TOKEN from .env or CI)
-	bunx eas-cli@$(EAS_CLI_VERSION) whoami
+.PHONY: mobile-start-mcp
+mobile-start-mcp:
+	cd apps/mobile && EXPO_UNSTABLE_MCP_SERVER=1 bun run start
 
-.PHONY: eas-list
-eas-list: ## List recent EAS builds
-	bunx eas-cli@$(EAS_CLI_VERSION) build:list
+.PHONY: mobile-ios
+mobile-ios:
+	cd apps/mobile && bun run ios
 
-.PHONY: eas-init
-eas-init: ## Initialize EAS for this project (first-time setup)
-	bunx eas-cli@$(EAS_CLI_VERSION) init
+.PHONY: mobile-ios-mcp
+mobile-ios-mcp:
+	cd apps/mobile && EXPO_UNSTABLE_MCP_SERVER=1 bun run ios
 
-.PHONY: eas-staging-build-web
-eas-staging-build-web: eas-whoami ## Export web app and deploy to EAS Hosting staging (alias: staging)
-	export APP_ENV=staging APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_PUBLIC_API_URL="$(API_STAGING_URL)" && bunx expo export --clear --platform web && bunx eas-cli@$(EAS_CLI_VERSION) deploy --alias staging
+.PHONY: mobile-android
+mobile-android:
+	cd apps/mobile && bun run android
 
-.PHONY: eas-prod-build-web
-eas-prod-build-web: eas-whoami ## Export web app and deploy to EAS Hosting production
-	bunx expo export --clear --platform web && bunx eas-cli@$(EAS_CLI_VERSION) deploy --prod
+.PHONY: mobile-android-mcp
+mobile-android-mcp:
+	cd apps/mobile && EXPO_UNSTABLE_MCP_SERVER=1 bun run android
 
-# ── Android Build ────────────────────────────
+.PHONY: mobile-web
+mobile-web:
+	cd apps/mobile && bun run web
 
-.PHONY: eas-build-android-preview-local
-eas-build-android-preview-local: eas-whoami ## Build APK locally inside runner/machine
-	bunx eas-cli@$(EAS_CLI_VERSION) build -p android --profile preview --local $(if $(OUTPUT_APK),--output="$(OUTPUT_APK)")
+.PHONY: mobile-web-mcp
+mobile-web-mcp:
+	cd apps/mobile && EXPO_UNSTABLE_MCP_SERVER=1 bun run web
 
-# ── Firebase App Distribution ────────────────
+.PHONY: mobile-doctor
+mobile-doctor:
+	cd apps/mobile && APP_VERSION_NAME="$(APP_VERSION_NAME)" bun run doctor
 
-# Firebase project App IDs by environment
+.PHONY: mobile-export-web
+mobile-export-web:
+	cd apps/mobile && bun run export-web
+
+.PHONY: mobile-format
+mobile-format:
+	cd apps/mobile && bun run format
+
+.PHONY: mobile-expo-login
+mobile-expo-login:
+	cd apps/mobile && (bun expo whoami || bun expo login)
+
+.PHONY: mobile-expo-whoami
+mobile-expo-whoami:
+	cd apps/mobile && bun expo whoami
+
+# ── Mobile EAS Deploy ────────────────────────
+
+.PHONY: mobile-eas-whoami
+mobile-eas-whoami:
+	cd apps/mobile && bun eas-cli@$(EAS_CLI_VERSION) whoami
+
+.PHONY: mobile-eas-list
+mobile-eas-list:
+	cd apps/mobile && bun eas-cli@$(EAS_CLI_VERSION) build:list
+
+.PHONY: mobile-eas-init
+mobile-eas-init:
+	cd apps/mobile && bun eas-cli@$(EAS_CLI_VERSION) init
+
+.PHONY: mobile-eas-staging-build-web
+mobile-eas-staging-build-web: mobile-eas-whoami
+	cd apps/mobile && export APP_ENV=staging APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_PUBLIC_API_URL="$(API_STAGING_URL)" && bun run export-web --clear && bun eas-cli@$(EAS_CLI_VERSION) deploy --alias staging
+
+.PHONY: mobile-eas-prod-build-web
+mobile-eas-prod-build-web: mobile-eas-whoami
+	cd apps/mobile && bun run export-web --clear && bun eas-cli@$(EAS_CLI_VERSION) deploy --prod
+
+.PHONY: mobile-eas-build-android-preview-local
+mobile-eas-build-android-preview-local: mobile-eas-whoami
+	cd apps/mobile && bun eas-cli@$(EAS_CLI_VERSION) build -p android --profile preview --local $(if $(OUTPUT_APK),--output="$(OUTPUT_APK)")
+
+# ── Mobile Firebase App Distribution ─────────
+
 FIREBASE_APP_ID_PRODUCTION ?=
 FIREBASE_APP_ID_STAGING    ?= 1:543613646622:android:d91f7c9d1dd74b3060fb0f
 
-# Dynamic App ID lookup based on APP_ENV (defaults to staging)
 APP_ENV ?= staging
 ifeq ($(APP_ENV),production)
   FIREBASE_TARGET_APP_ID := $(FIREBASE_APP_ID_PRODUCTION)
@@ -129,49 +145,69 @@ else
   FIREBASE_TARGET_APP_ID := $(FIREBASE_APP_ID_STAGING)
 endif
 
-# Service account key path — auto-sets GOOGLE_APPLICATION_CREDENTIALS if file exists
-FIREBASE_SA_KEY_PATH ?= firebase-sa-key.json
+FIREBASE_SA_KEY_PATH ?= apps/mobile/firebase-sa-key.json
 ifneq ($(wildcard $(FIREBASE_SA_KEY_PATH)),)
 export GOOGLE_APPLICATION_CREDENTIALS := $(abspath $(FIREBASE_SA_KEY_PATH))
 endif
 
-# APK path — auto-picks the newest apk found
-FIREBASE_APK_PATH ?= $(shell ls -t myself-*.apk build-*.apk android/app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
+FIREBASE_APK_PATH ?= $(shell ls -t myself-*.apk apps/mobile/myself-*.apk build-*.apk apps/mobile/android/app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
 
-# Firebase App Distribution groups
 FIREBASE_GROUP_DEV  := dev-team
 FIREBASE_GROUP_TEST := test-team
 
-# Release notes — dynamically generates list of the last 3 commit messages
 FIREBASE_RELEASE_NOTES_CMD = $$(git log -3 --pretty=format:'- %s' 2>/dev/null | tr -d '\"'\''')
 FIREBASE_RELEASE_NOTES ?= $(FIREBASE_RELEASE_NOTES_CMD)
 
-.PHONY: firebase-login-ci
-firebase-login-ci: ## Firebase CI login — generates a token for FIREBASE_TOKEN
-	bunx firebase-tools login:ci
+.PHONY: mobile-firebase-login-ci
+mobile-firebase-login-ci:
+	cd apps/mobile && bun firebase-tools login:ci
 
-.PHONY: firebase-distribute
-firebase-distribute: ## Upload APK to Firebase App Distribution. Requires: GROUPS. Optional: APP_ENV (staging|production), FIREBASE_RELEASE_NOTES
+.PHONY: mobile-firebase-distribute
+mobile-firebase-distribute:
 	@if [ -z "$(GROUPS)" ]; then echo "Error: GROUPS parameter is required (e.g. GROUPS=dev-team)"; exit 1; fi
 	@if [ -z "$(FIREBASE_TARGET_APP_ID)" ]; then echo "Error: FIREBASE_TARGET_APP_ID is not configured for APP_ENV=$(APP_ENV)"; exit 1; fi
-	bunx firebase-tools appdistribution:distribute "$(abspath $(FIREBASE_APK_PATH))" \
+	cd apps/mobile && bun firebase-tools appdistribution:distribute "$(abspath $(FIREBASE_APK_PATH))" \
 		--app "$(FIREBASE_TARGET_APP_ID)" \
 		--groups "$(GROUPS)" \
 		--release-notes "$$FIREBASE_RELEASE_NOTES" \
 		--non-interactive
 
-# ── Staging distribution shortcuts ───────────
+.PHONY: mobile-firebase-distribute-staging-dev
+mobile-firebase-distribute-staging-dev:
+	$(MAKE) mobile-firebase-distribute APP_ENV=staging GROUPS="$(FIREBASE_GROUP_DEV)"
 
-.PHONY: firebase-distribute-staging-dev
-firebase-distribute-staging-dev: ## [staging] Upload APK to dev-team group
-	$(MAKE) firebase-distribute APP_ENV=staging GROUPS="$(FIREBASE_GROUP_DEV)"
+.PHONY: mobile-firebase-distribute-staging-all
+mobile-firebase-distribute-staging-all:
+	$(MAKE) mobile-firebase-distribute APP_ENV=staging GROUPS="$(FIREBASE_GROUP_DEV),$(FIREBASE_GROUP_TEST)"
 
-.PHONY: firebase-distribute-staging-all
-firebase-distribute-staging-all: ## [staging] Upload APK to dev-team + test-team
-	$(MAKE) firebase-distribute APP_ENV=staging GROUPS="$(FIREBASE_GROUP_DEV),$(FIREBASE_GROUP_TEST)"
+.PHONY: mobile-firebase-distribute-prod-dev
+mobile-firebase-distribute-prod-dev:
+	$(MAKE) mobile-firebase-distribute APP_ENV=production GROUPS="$(FIREBASE_GROUP_DEV)"
 
-# ── Production distribution shortcuts ────────
+# ── API Tasks (apps/api) ─────────────────────
 
-.PHONY: firebase-distribute-prod-dev
-firebase-distribute-prod-dev: ## [production] Upload APK to dev-team group
-	$(MAKE) firebase-distribute APP_ENV=production GROUPS="$(FIREBASE_GROUP_DEV)"
+.PHONY: api-dev
+api-dev:
+	cd apps/api && bun run dev
+
+.PHONY: api-deploy
+api-deploy:
+	cd apps/api && bun run deploy
+
+.PHONY: api-typecheck
+api-typecheck:
+	cd apps/api && bun run typecheck
+
+.PHONY: api-test
+api-test:
+	cd apps/api && bun run test
+
+# ── Shared Package Tasks (packages/shared) ───
+
+.PHONY: shared-typecheck
+shared-typecheck:
+	cd packages/shared && bun run typecheck
+
+.PHONY: shared-test
+shared-test:
+	cd packages/shared && bun run test

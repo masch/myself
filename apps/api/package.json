@@ -1,0 +1,23 @@
+{
+  "name": "@myself/api",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "lint": "bunx eslint .",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@myself/shared": "workspace:*",
+    "hono": "^4.7.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250214.0",
+    "@types/bun": "^1.4.0",
+    "typescript": "~6.0.3",
+    "wrangler": "^4.0.0"
+  },
+  "private": true
+}

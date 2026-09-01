@@ -61,7 +61,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EAS_NO_INTERACTIVE: "1"
         run: |
-          make eas-build-android-preview-local OUTPUT_APK="myself-${{ github.sha }}.apk"
+          make mobile-eas-build-android-preview-local OUTPUT_APK="$(pwd)/myself-${{ github.sha }}.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
@@ -98,14 +98,14 @@ jobs:
           RELEASE_NOTES: ${{ inputs.release_notes }}
         if: ${{ env.FIREBASE_SA_KEY != '' }}
         run: |
-          echo "$FIREBASE_SA_KEY" > firebase-sa-key.json
-          export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/firebase-sa-key.json"
-          make firebase-distribute \
+          echo "$FIREBASE_SA_KEY" > apps/mobile/firebase-sa-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/apps/mobile/firebase-sa-key.json"
+          make mobile-firebase-distribute \
             APP_ENV="${{ inputs.environment }}" \
             GROUPS="${{ inputs.firebase_groups }}" \
-            FIREBASE_APK_PATH="$FIREBASE_APK" \
+            FIREBASE_APK_PATH="$(pwd)/$FIREBASE_APK" \
             $(if [ -n "$RELEASE_NOTES" ]; then echo "FIREBASE_RELEASE_NOTES=\"$RELEASE_NOTES\""; fi)
-          rm -f firebase-sa-key.json
+          rm -f apps/mobile/firebase-sa-key.json
 
       - name: Upload APK to GitHub Release
         env:

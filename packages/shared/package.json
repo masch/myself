@@ -1,0 +1,16 @@
+{
+  "name": "@myself/shared",
+  "version": "1.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "bunx eslint ."
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "typescript": "~6.0.3"
+  },
+  "private": true
+}

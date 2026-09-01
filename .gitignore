@@ -3,8 +3,10 @@
 # dependencies
 node_modules/
 
-# Expo
+# Expo & Tools
 .expo/
+.turbo/
+.wrangler/
 dist/
 web-build/
 expo-env.d.ts
