@@ -41,8 +41,10 @@ yarn-error.*
 example
 
 # generated native folders
-/ios
-/android
+ios/
+android/
+coverage/
+
 # Local Pi runtime state
 .atl/
 .codegraph/
