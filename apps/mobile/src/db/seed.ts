@@ -10,6 +10,7 @@ export const SEED_AUTHOR_IDS = {
   THICH_NHAT_HANH: "a0000000-0000-4000-8000-000000000005",
   JOHN_O_DONOHUE: "a0000000-0000-4000-8000-000000000006",
   RAIMON_PANIKKAR: "a0000000-0000-4000-8000-000000000007",
+  FRANCISCO_LUIS_BERNARDEZ: "a0000000-0000-4000-8000-000000000008",
 } as const;
 
 interface SeedTask {
@@ -77,6 +78,11 @@ export const SEED_AUTHORS: SeedAuthor[] = [
     name: "Raimon Panikkar",
     bio: "Spanish-Indian theologian and philosopher, pioneer in interreligious and intercultural dialogue.",
   },
+  {
+    id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
+    name: "Francisco Luis Bernárdez",
+    bio: "Poeta y diplomático argentino, figura clave de la lírica espiritual.",
+  }
 ];
 
 export const SEED_READINGS: SeedReading[] = [
@@ -201,6 +207,54 @@ La Vida pura y desnuda es el don que nos ha sido dado – y que en última insta
     createdAt: "2026-08-19 08:30:00",
     readDates: [],
   },
+  {
+    id: "r0000000-0000-4000-8000-000000000008",
+    author_id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
+    title: "FRAGMENTO de EL RUISEÑOR",
+    content: `.......  Todas las cosas descansaban con esa calma que precede a la hermosura.
+Y de repente el bosque entero se conmovió con una voz como ninguna.
+Primero fue como una queja, como un sollozo de cristal, como un gemido.
+Luego un sonido entrecortado por el murmullo tembloroso de los pinos.
+Más tarde un hilo melodioso, luego una pausa y un rumor, después un trino.
+Y al fin el canto, el canto, el canto del ruiseñor en el silencio conmovido.
+Un canto limpio y armonioso, cuyo fervor era del aire sensitivo.
+Y cuyas notas inflamadas resplandecían como gotas de rocío.
+El canto ardía en el silencio con el misterio de un lucero lejanísimo.
+Impenetrable y luminoso como un purísimo diamante, pero vivo.
+Cerrada estaba todavía para mi frente silenciosa a la Belleza.
+Y de repente, por el canto del ruiseñor, tuve noción de su grandeza.
+El gran amor que lo encendía se derramaba de su voz con inocencia.
+Y algo del bien que yo ignoraba caía en gotas de emoción en mi conciencia.
+Entonces vi con toda el alma que aquella voz era un destello de la eterna.
+Que la pasión que la inflamaba me daba el ser para que yo la comprendiera.
+Que aquel amor era la fuente del manso río de mis ojos y mis venas.
+Y la raíz que alimentaba la voz del mar y la canción de las estrellas.
+Luego salí de mis sentidos y me encontré desamparado en las tinieblas.
+Y sin más luz que la del canto me fui perdiendo en un olvido sin fronteras.
+Y así, perdido para todos, hallé el sendero de mi vida en aquel canto.
+Tuve conciencia de mi rumbo, supe la causa y el objeto de mis pasos.
+Vi la razón de haber nacido, de amar la luz, de ser feliz, de haber llorado.
+De haber estado pensativo, de ver, de oír, de comprender, de estar soñando.
+Más inventivo que el del fuego, su movimiento era el del alma y el del río.
+Se deslizaba por el tiempo, pero en la paz del corazón estaba fijo.
+Al despertar alcé los ojos, y no recuerdo si después junté las manos.
+Sólo recuerdo que la dicha me hacía sitio con amor en su regazo.
+El alma erraba por el bosque con un dulcísimo rumor de pies descalzos.
+Y ya se oía el de las cosas entre los trinos cada vez más espaciados.
+Luego cesó la melodía del ruiseñor y se apagó la de los astros.
+Pero en mi frente silenciosa la voz divina ya se había despertado`,
+    createdAt: "2026-09-01 08:00:00",
+    readDates: ["2026-09-01 08:30:00"],
+  },
+  {
+    id: "r0000000-0000-4000-8000-000000000009",
+    author_id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
+    title: "",
+    content: "",
+    createdAt: "2026-09-01 08:00:00",
+    readDates: ["2026-09-01 08:30:00"],
+  },
+
 ];
 
 export const SEED_USERS: SeedUser[] = [
