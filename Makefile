@@ -158,13 +158,13 @@ FIREBASE_RELEASE_NOTES ?= $(FIREBASE_RELEASE_NOTES_CMD)
 
 .PHONY: mobile-firebase-login-ci
 mobile-firebase-login-ci:
-	cd apps/mobile && bun run firebase-tools login:ci
+	cd apps/mobile && bun run firebase login:ci
 
 .PHONY: mobile-firebase-distribute
 mobile-firebase-distribute:
 	@if [ -z "$(GROUPS)" ]; then echo "Error: GROUPS parameter is required (e.g. GROUPS=dev-team)"; exit 1; fi
 	@if [ -z "$(FIREBASE_TARGET_APP_ID)" ]; then echo "Error: FIREBASE_TARGET_APP_ID is not configured for APP_ENV=$(APP_ENV)"; exit 1; fi
-	cd apps/mobile && bun run firebase-tools appdistribution:distribute "$(abspath $(FIREBASE_APK_PATH))" \
+	cd apps/mobile && bun run firebase appdistribution:distribute "$(abspath $(FIREBASE_APK_PATH))" \
 		--app "$(FIREBASE_TARGET_APP_ID)" \
 		--groups "$(GROUPS)" \
 		--release-notes "$$FIREBASE_RELEASE_NOTES" \
