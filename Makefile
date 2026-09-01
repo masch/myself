@@ -101,37 +101,37 @@ mobile-format:
 
 .PHONY: mobile-expo-login
 mobile-expo-login:
-	cd apps/mobile && (bun expo whoami || bun expo login)
+	cd apps/mobile && (bunx expo whoami || bunx expo login)
 
 .PHONY: mobile-expo-whoami
 mobile-expo-whoami:
-	cd apps/mobile && bun expo whoami
+	cd apps/mobile && bunx expo whoami
 
 # ── Mobile EAS Deploy ────────────────────────
 
 .PHONY: mobile-eas-whoami
 mobile-eas-whoami:
-	cd apps/mobile && bun eas-cli@$(EAS_CLI_VERSION) whoami
+	cd apps/mobile && bunx eas-cli@$(EAS_CLI_VERSION) whoami
 
 .PHONY: mobile-eas-list
 mobile-eas-list:
-	cd apps/mobile && bun eas-cli@$(EAS_CLI_VERSION) build:list
+	cd apps/mobile && bunx eas-cli@$(EAS_CLI_VERSION) build:list
 
 .PHONY: mobile-eas-init
 mobile-eas-init:
-	cd apps/mobile && bun eas-cli@$(EAS_CLI_VERSION) init
+	cd apps/mobile && bunx eas-cli@$(EAS_CLI_VERSION) init
 
 .PHONY: mobile-eas-staging-build-web
 mobile-eas-staging-build-web: mobile-eas-whoami
-	cd apps/mobile && export APP_ENV=staging APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_PUBLIC_API_URL="$(API_STAGING_URL)" && bun run export-web --clear && bun eas-cli@$(EAS_CLI_VERSION) deploy --alias staging
+	cd apps/mobile && export APP_ENV=staging APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_PUBLIC_API_URL="$(API_STAGING_URL)" && bun run export-web --clear && bunx eas-cli@$(EAS_CLI_VERSION) deploy --alias staging
 
 .PHONY: mobile-eas-prod-build-web
 mobile-eas-prod-build-web: mobile-eas-whoami
-	cd apps/mobile && bun run export-web --clear && bun eas-cli@$(EAS_CLI_VERSION) deploy --prod
+	cd apps/mobile && bun run export-web --clear && bunx eas-cli@$(EAS_CLI_VERSION) deploy --prod
 
 .PHONY: mobile-eas-build-android-preview-local
 mobile-eas-build-android-preview-local: mobile-eas-whoami
-	cd apps/mobile && bun eas-cli@$(EAS_CLI_VERSION) build -p android --profile preview --local $(if $(OUTPUT_APK),--output="$(OUTPUT_APK)")
+	cd apps/mobile && bunx eas-cli@$(EAS_CLI_VERSION) build -p android --profile preview --local $(if $(OUTPUT_APK),--output="$(OUTPUT_APK)")
 
 # ── Mobile Firebase App Distribution ─────────
 
@@ -160,13 +160,13 @@ FIREBASE_RELEASE_NOTES ?= $(FIREBASE_RELEASE_NOTES_CMD)
 
 .PHONY: mobile-firebase-login-ci
 mobile-firebase-login-ci:
-	cd apps/mobile && bun firebase-tools login:ci
+	cd apps/mobile && bunx firebase-tools login:ci
 
 .PHONY: mobile-firebase-distribute
 mobile-firebase-distribute:
 	@if [ -z "$(GROUPS)" ]; then echo "Error: GROUPS parameter is required (e.g. GROUPS=dev-team)"; exit 1; fi
 	@if [ -z "$(FIREBASE_TARGET_APP_ID)" ]; then echo "Error: FIREBASE_TARGET_APP_ID is not configured for APP_ENV=$(APP_ENV)"; exit 1; fi
-	cd apps/mobile && bun firebase-tools appdistribution:distribute "$(abspath $(FIREBASE_APK_PATH))" \
+	cd apps/mobile && bunx firebase-tools appdistribution:distribute "$(abspath $(FIREBASE_APK_PATH))" \
 		--app "$(FIREBASE_TARGET_APP_ID)" \
 		--groups "$(GROUPS)" \
 		--release-notes "$$FIREBASE_RELEASE_NOTES" \
