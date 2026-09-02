@@ -39,10 +39,7 @@ const routes = app
       uptime: Math.floor((Date.now() - startedAt) / 1000),
     }),
   )
-  .route("/v1", v1)
-  // Backward compatibility alias for root endpoints
-  .route("/authors", authorsRoute)
-  .route("/readings", readingsRoute);
+  .route("/v1", v1);
 
 export type AppType = typeof routes;
 export default app;

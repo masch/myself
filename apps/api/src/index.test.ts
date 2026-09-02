@@ -297,26 +297,5 @@ describe("myself API - Complete Functional Test Suite", () => {
       }
     });
   });
-
-  describe("Backward Compatibility Aliases", () => {
-    it("GET /authors resolves identically to /v1/authors", async () => {
-      const res = await app.request("/authors");
-      expect(res.status).toBe(200);
-      const body = (await res.json()) as ApiResponse<
-        PaginatedResponse<SeedAuthor>
-      >;
-      expect(body.success).toBe(true);
-      expect(body.data?.meta.limit).toBe(20);
-    });
-
-    it("GET /readings resolves identically to /v1/readings", async () => {
-      const res = await app.request("/readings");
-      expect(res.status).toBe(200);
-      const body = (await res.json()) as ApiResponse<
-        PaginatedResponse<SeedReading>
-      >;
-      expect(body.success).toBe(true);
-      expect(body.data?.meta.limit).toBe(20);
-    });
-  });
 });
+
