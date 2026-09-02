@@ -101,15 +101,16 @@ reviews:
         2. Discipline:
            - Code should follow Clean Architecture principles with clear separation between presentation, domain, and infrastructure.
 
-tools:
-  ast-grep:
-    enabled: true
-  biome:
-    enabled: false
-  shellcheck:
-    enabled: true
-  github-checks:
-    enabled: true
+  tools:
+    ast-grep:
+      essential_rules: true
+    shellcheck:
+      enabled: true
+    github-checks:
+      enabled: true
+    markdownlint:
+      enabled: true
 
 chat:
   auto_reply: true
+
