@@ -3,8 +3,10 @@
 # dependencies
 node_modules/
 
-# Expo
+# Expo & Tools
 .expo/
+.turbo/
+.wrangler/
 dist/
 web-build/
 expo-env.d.ts
@@ -39,8 +41,10 @@ yarn-error.*
 example
 
 # generated native folders
-/ios
-/android
+ios/
+android/
+coverage/
+
 # Local Pi runtime state
 .atl/
 .codegraph/

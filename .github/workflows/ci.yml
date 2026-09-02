@@ -11,8 +11,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      mobile: ${{ steps.filter.outputs.mobile }}
+      api: ${{ steps.filter.outputs.api }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Paths Filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            mobile:
+              - 'apps/mobile/**'
+              - 'packages/shared/**'
+              - 'bun.lock'
+              - 'package.json'
+              - 'turbo.json'
+              - 'Makefile'
+            api:
+              - 'apps/api/**'
+              - 'packages/shared/**'
+              - 'bun.lock'
+              - 'package.json'
+              - 'turbo.json'
+              - 'Makefile'
+
   validate:
-    name: Lint, Typecheck & Build
+    name: Lint, Typecheck & Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -22,14 +52,26 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Cache Turborepo & Bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/*/.turbo
+            packages/*/.turbo
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
       - name: Run CI
         run: make ci
 
-  deploy_staging:
-    name: Deploy to EAS Hosting (PR Preview)
-    needs: validate
-    if: github.event_name == 'pull_request'
+  deploy_mobile_staging:
+    name: Deploy Mobile Web to EAS Hosting (PR Preview)
+    needs: [changes, validate]
+    if: github.event_name == 'pull_request' && needs.changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -39,6 +81,18 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Cache Turborepo & Bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/*/.turbo
+            packages/*/.turbo
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
       - name: Install dependencies
         run: make install
@@ -47,12 +101,12 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         if: ${{ env.EXPO_TOKEN != '' }}
-        run: make eas-staging-build-web
+        run: make mobile-eas-staging-build-web
 
-  deploy_production:
-    name: Deploy to EAS Hosting (Production)
-    needs: validate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  deploy_mobile_production:
+    name: Deploy Mobile Web to EAS Hosting (Production)
+    needs: [changes, validate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -63,6 +117,18 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache Turborepo & Bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/*/.turbo
+            packages/*/.turbo
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
       - name: Install dependencies
         run: make install
 
@@ -70,4 +136,39 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         if: ${{ env.EXPO_TOKEN != '' }}
-        run: make eas-prod-build-web
+        run: make mobile-eas-prod-build-web
+
+  deploy_api_production:
+    name: Deploy API to Cloudflare Workers (Production)
+    needs: [changes, validate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Turborepo & Bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/*/.turbo
+            packages/*/.turbo
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install dependencies
+        run: make install
+
+      - name: Deploy to Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
+        run: make api-deploy
