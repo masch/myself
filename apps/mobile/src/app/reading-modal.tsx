@@ -3,13 +3,7 @@ import { useReadingForm } from "@/hooks/use-reading-form";
 import { colors } from "@/theme/colors";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function ReadingModalScreen() {
   const params = useLocalSearchParams<{
