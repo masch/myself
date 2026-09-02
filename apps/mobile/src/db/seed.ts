@@ -309,6 +309,20 @@ building the universe.`,
       }
     },
   },
+  /*
+  {
+    id: "r0000000-0000-4000-8000-000000000010",
+    author_id: SEED_AUTHOR_IDS.RAIMON_PANIKKAR,
+    createdAt: "2026-09-03 08:00:00",
+    readDates: ["2026-09-03 08:30:00"],
+    translations: {
+      es: {
+        title: "",
+        content: ``,
+      },
+    },
+  },
+  */
 ];
 
 export const SEED_USERS: SeedUser[] = [
