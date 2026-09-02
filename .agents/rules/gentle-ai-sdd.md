@@ -1,6 +1,10 @@
 <!-- gentle-ai:sdd-workflow -->
-# SDD Guardrails
+# SDD Guardrails & Workflow
 
+- **Trigger `/sdd-new <change>`**:
+  1. Enforce Preflight Hard Gate immediately.
+  2. Run exploration (`explore.md` / engram) and present summary to user.
+  3. Generate proposal (`proposal.md` / engram), present summary, and pause for user approval before moving to specs/design.
 - **Preflight Hard Gate**: Never create/edit files before collecting all 4 inputs:
   1. Mode: `interactive` | `auto`
   2. Store: `openspec` | `engram` | `hybrid`
