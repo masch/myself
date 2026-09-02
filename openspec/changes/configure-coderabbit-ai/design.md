@@ -4,7 +4,7 @@
 
 CodeRabbit operates as a GitHub App triggered on pull request events. It reads repository context and configuration from `.coderabbit.yaml` at the root of the repository:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    Pull Request Event                       │
 └──────────────────────────────┬──────────────────────────────┘

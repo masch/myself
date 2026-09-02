@@ -16,7 +16,7 @@ The repository needs an explicit, assertive, and architecture-aware review confi
 Establish a root-level `.coderabbit.yaml` configured according to CodeRabbit Schema v2 with:
 1. **Assertive Profile & Blocking Workflow**:
    - `profile: "assertive"` to conduct thorough, rigorous technical reviews.
-   - `request_changes_workflow: true` to block PR approval when architectural or type issues are discovered.
+   - `request_changes_workflow: true` to submit formal "Request changes" reviews when architectural or type issues are discovered (enforcing merge blocking when paired with GitHub branch protection rules requiring passing reviews).
    - `poem: false` and `collapse_walkthrough: false` for actionable, direct feedback.
 2. **Noise Reduction (`path_filters`)**:
    - Exclude generated artifacts, lockfiles, build outputs, and caches (`bun.lock`, `dist/**`, `.turbo/**`, `.expo/**`, `node_modules/**`, `openspec/changes/archive/**`).
