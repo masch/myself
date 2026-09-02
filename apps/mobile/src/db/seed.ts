@@ -1,5 +1,13 @@
 import { generateUUID } from "@/utils/uuid";
+import type {
+  ReadingTranslationInput,
+  SeedAuthor,
+  SeedReading,
+  SeedUser,
+} from "@myself/shared";
 import { type SQLiteDatabase } from "expo-sqlite";
+
+export type { ReadingTranslationInput, SeedReading };
 
 // Deterministic UUIDs for seed authors
 export const SEED_AUTHOR_IDS = {
@@ -11,86 +19,67 @@ export const SEED_AUTHOR_IDS = {
   JOHN_O_DONOHUE: "a0000000-0000-4000-8000-000000000006",
   RAIMON_PANIKKAR: "a0000000-0000-4000-8000-000000000007",
   FRANCISCO_LUIS_BERNARDEZ: "a0000000-0000-4000-8000-000000000008",
+  MARY_OLIVER: "a0000000-0000-4000-8000-000000000009",
 } as const;
-
-interface SeedTask {
-  title: string;
-  category: "Work" | "Personal" | "Shopping" | "Design" | "General";
-  description: string;
-  is_done: number;
-}
-
-interface SeedAuthor {
-  id: string;
-  name: string;
-  bio: string;
-}
-
-interface SeedReading {
-  id: string;
-  author_id: string;
-  title: string;
-  content: string;
-  createdAt: string;
-  readDates: string[];
-}
-
-interface SeedUser {
-  id: string;
-  name: string;
-  email: string;
-  tasks: SeedTask[];
-}
 
 export const SEED_AUTHORS: SeedAuthor[] = [
   {
     id: SEED_AUTHOR_IDS.MARCUS_AURELIUS,
-    name: "Marcus Aurelius",
-    bio: "Roman Emperor and Stoic philosopher, author of Meditations.",
+    name: "Marco Aurelio",
+    bio: "Emperador romano y filósofo estoico, autor de las Meditaciones.",
   },
   {
     id: SEED_AUTHOR_IDS.SENECA,
-    name: "Seneca",
-    bio: "Stoic philosopher, statesman, and dramatist of the Roman Silver Age.",
+    name: "Séneca",
+    bio: "Filósofo estoico, estadista y dramaturgo romano.",
   },
   {
     id: SEED_AUTHOR_IDS.EPICTETUS,
-    name: "Epictetus",
-    bio: "Greek Stoic philosopher born into slavery in Hierapolis.",
+    name: "Epicteto",
+    bio: "Filósofo estoico griego, nacido esclavo en Hierápolis.",
   },
   {
     id: SEED_AUTHOR_IDS.LAO_TZU,
-    name: "Lao Tzu",
-    bio: "Ancient Chinese philosopher and writer, founder of philosophical Taoism.",
+    name: "Lao-Tse",
+    bio: "Antiguo filósofo y escritor chino, figura central del taoísmo.",
   },
   {
     id: SEED_AUTHOR_IDS.THICH_NHAT_HANH,
     name: "Thich Nhat Hanh",
-    bio: "Vietnamese Thiền Buddhist monk, peace activist, and author.",
+    bio: "Monje budista zen vietnamita, activista por la paz y maestro de mindfulness.",
   },
   {
     id: SEED_AUTHOR_IDS.JOHN_O_DONOHUE,
     name: "John O’Donohue",
-    bio: "Irish poet, philosopher, and Celtic mystic, author of Anam Cara.",
+    bio: "Poeta, filósofo y místico celta irlandés, autor de Anam Cara.",
   },
   {
     id: SEED_AUTHOR_IDS.RAIMON_PANIKKAR,
     name: "Raimon Panikkar",
-    bio: "Spanish-Indian theologian and philosopher, pioneer in interreligious and intercultural dialogue.",
+    bio: "Teólogo y filósofo hispano-indio, pionero del diálogo interreligioso e intercultural.",
   },
   {
     id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
     name: "Francisco Luis Bernárdez",
     bio: "Poeta y diplomático argentino, figura clave de la lírica espiritual.",
-  }
+  },
+  {
+    id: SEED_AUTHOR_IDS.MARY_OLIVER,
+    name: "Mary Oliver",
+    bio: "Poeta estadounidense, ganadora del Premio Pulitzer, celebrada por su profunda contemplación de la naturaleza y la quietud.",
+  },
 ];
 
 export const SEED_READINGS: SeedReading[] = [
   {
     id: "r0000000-0000-4000-8000-000000000001",
     author_id: SEED_AUTHOR_IDS.MARCUS_AURELIUS,
-    title: "Poder sobre la Mente",
-    content: `*Tienes poder sobre tu mente,*
+    createdAt: "2026-08-15 08:00:00",
+    readDates: ["2026-08-20 08:30:00", "2026-08-24 07:45:00"],
+    translations: {
+      es: {
+        title: "Poder sobre la Mente",
+        content: `*Tienes poder sobre tu mente,*
   no sobre los acontecimientos externos.
 
   Reconoce esto,
@@ -98,14 +87,18 @@ export const SEED_READINGS: SeedReading[] = [
       **una fuerza inquebrantable**.
 
 > La quietud interior nace al soltar lo que no puedes controlar.`,
-    createdAt: "2026-08-15 08:00:00",
-    readDates: ["2026-08-20 08:30:00", "2026-08-24 07:45:00"],
+      },
+    },
   },
   {
     id: "r0000000-0000-4000-8000-000000000002",
     author_id: SEED_AUTHOR_IDS.SENECA,
-    title: "Imaginación vs Realidad",
-    content: `Sufrimos más a menudo
+    createdAt: "2026-08-16 09:00:00",
+    readDates: [],
+    translations: {
+      es: {
+        title: "Imaginación vs Realidad",
+        content: `Sufrimos más a menudo
   en la *imaginación*
     que en la **realidad**.
 
@@ -113,14 +106,18 @@ La verdadera serenidad
   es habitar el presente,
     sin dependencia ansiosa
       del porvenir.`,
-    createdAt: "2026-08-16 09:00:00",
-    readDates: [],
+      },
+    },
   },
   {
     id: "r0000000-0000-4000-8000-000000000003",
     author_id: SEED_AUTHOR_IDS.THICH_NHAT_HANH,
-    title: "El Puente de la Respiración",
-    content: `Sonríe, respira
+    createdAt: "2026-08-17 07:30:00",
+    readDates: ["2026-08-25 08:00:00"],
+    translations: {
+      es: {
+        title: "El Puente de la Respiración",
+        content: `Sonríe, respira
   y camina despacio.
 
 *La respiración es el puente*
@@ -130,28 +127,40 @@ La verdadera serenidad
 
 > Al inhalar, calmo mi cuerpo.
 > Al exhalar, sonrío.`,
-    createdAt: "2026-08-17 07:30:00",
-    readDates: ["2026-08-25 08:00:00"],
+      },
+    },
   },
   {
     id: "r0000000-0000-4000-8000-000000000004",
     author_id: SEED_AUTHOR_IDS.EPICTETUS,
-    title: "Encarnar la Filosofía",
-    content: `No expliques tu filosofía:
+    createdAt: "2026-08-18 10:00:00",
+    readDates: [],
+    translations: {
+      es: {
+        title: "Encarnar la Filosofía",
+        content: `No expliques tu filosofía:
   **encárnala**.
 
 La riqueza no consiste
   en poseer grandes bienes,
     sino en tener
       *pocos deseos*.`,
-    createdAt: "2026-08-18 10:00:00",
-    readDates: [],
+      },
+    },
   },
   {
     id: "r0000000-0000-4000-8000-000000000005",
     author_id: SEED_AUTHOR_IDS.LAO_TZU,
-    title: "La Fortaleza del Silencio",
-    content: `El silencio es una fuente
+    createdAt: "2026-08-14 06:45:00",
+    readDates: [
+      "2026-08-18 09:00:00",
+      "2026-08-21 08:15:00",
+      "2026-08-23 07:30:00",
+    ],
+    translations: {
+      es: {
+        title: "La Fortaleza del Silencio",
+        content: `El silencio es una fuente
   de **gran fortaleza**.
 
 La naturaleza no se apresura,
@@ -160,18 +169,18 @@ La naturaleza no se apresura,
 
 > Vacía tu mente de todo afán;
 > descansa en el centro del ser.`,
-    createdAt: "2026-08-14 06:45:00",
-    readDates: [
-      "2026-08-18 09:00:00",
-      "2026-08-21 08:15:00",
-      "2026-08-23 07:30:00",
-    ],
+      },
+    },
   },
   {
     id: "r0000000-0000-4000-8000-000000000006",
     author_id: SEED_AUTHOR_IDS.JOHN_O_DONOHUE,
-    title: "Bendición al pertenecer",
-    content: `Que escuches tu anhelo de ser libre.
+    createdAt: "2026-08-19 08:30:00",
+    readDates: [],
+    translations: {
+      es: {
+        title: "Bendición al pertenecer",
+        content: `Que escuches tu anhelo de ser libre.
 
 Que tus marcos de pertenencia sean generosos para dar suficiente espacio a tus sueños.
 
@@ -188,14 +197,18 @@ Que haya bondad en tu mirada cuando mires hacia adentro.
 Que nunca levantes muros entre la luz y tú mismo.
 
 Que permitas que la belleza salvaje del mundo invisible te reúna, te cuide y te abrace en pertenencia.`,
-    createdAt: "2026-08-19 08:30:00",
-    readDates: [],
+      },
+    },
   },
   {
     id: "r0000000-0000-4000-8000-000000000007",
     author_id: SEED_AUTHOR_IDS.RAIMON_PANIKKAR,
-    title: "Extracto de ICONOS DEL MISTERIO",
-    content: `El silencio de la Vida es aquel arte de saber silenciar las actividades de la vida para llegar a la experiencia pura de la Vida.
+    createdAt: "2026-08-31 08:00:00",
+    readDates: ["2026-08-31 08:30:00"],
+    translations: {
+      es: {
+        title: "Extracto de ICONOS DEL MISTERIO",
+        content: `El silencio de la Vida es aquel arte de saber silenciar las actividades de la vida para llegar a la experiencia pura de la Vida.
  
 Con frecuencia, identificamos la vida con las actividades de la vida e identificamos nuestro ser con nuestros pensamientos, sentimientos, deseos, voluntad, con todo cuanto hacemos y tenemos. Instrumentalizamos nuestra vida olvidando que es un fin en sí misma. Inmersos, atareados, en las actividades de la vida, perdemos la facultad de escuchar y nos enajenamos de nuestra misma fuente: el Silencio, el No-ser, Dios.
  
@@ -204,14 +217,18 @@ Este locus previo, anterior, originante, es el Silencio de la Vida.
 La Vida pura y desnuda es el don que nos ha sido dado – y que en última instancia somos. Diciéndolo en términos cristianos:
 «Yo he venido para que tengan vida y vida abundante»
 (Juan X, 10).`,
-    createdAt: "2026-08-19 08:30:00",
-    readDates: [],
+      },
+    },
   },
   {
     id: "r0000000-0000-4000-8000-000000000008",
     author_id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
-    title: "FRAGMENTO de EL RUISEÑOR",
-    content: `.......  Todas las cosas descansaban con esa calma que precede a la hermosura.
+    createdAt: "2026-09-01 08:00:00",
+    readDates: ["2026-09-01 08:30:00"],
+    translations: {
+      es: {
+        title: "FRAGMENTO de EL RUISEÑOR",
+        content: `.......  Todas las cosas descansaban con esa calma que precede a la hermosura.
 Y de repente el bosque entero se conmovió con una voz como ninguna.
 Primero fue como una queja, como un sollozo de cristal, como un gemido.
 Luego un sonido entrecortado por el murmullo tembloroso de los pinos.
@@ -243,8 +260,54 @@ El alma erraba por el bosque con un dulcísimo rumor de pies descalzos.
 Y ya se oía el de las cosas entre los trinos cada vez más espaciados.
 Luego cesó la melodía del ruiseñor y se apagó la de los astros.
 Pero en mi frente silenciosa la voz divina ya se había despertado`,
-    createdAt: "2026-09-01 08:00:00",
-    readDates: ["2026-09-01 08:30:00"],
+      },
+    },
+  },
+  {
+    id: "r0000000-0000-4000-8000-000000000009",
+    author_id: SEED_AUTHOR_IDS.MARY_OLIVER,
+    createdAt: "2026-09-02 08:00:00",
+    readDates: ["2026-09-02 08:30:00"],
+    translations: {
+      es: {
+        title: "Canción de los constructores",
+        content: `Una mañana de verano,
+me senté
+en la ladera de una colina
+para pensar en Dios,
+un pasatiempo digno.
+Cerca de mí, vi
+un solo grillo;
+movía los granos de la ladera
+de un lado a otro.
+Qué grande era su energía,
+qué humilde su esfuerzo.
+Esperemos
+que siempre sea así,
+que cada uno de nosotros siga adelante
+a su manera inexplicable,
+construyendo el universo.`
+      },
+      en: {
+        title: "Song of the Builders",
+        content: `On a summer morning
+I sat down
+on a hillside
+to think about God -
+a worthy pastime.
+Near me, I saw
+a single cricket;
+it was moving the grains of the hillside
+this way and that way.
+How great was its energy,
+how humble its effort.
+Let us hope
+it will always be like this,
+each of us going on
+in our inexplicable ways
+building the universe.`,
+      }
+    },
   },
 ];
 
@@ -326,27 +389,49 @@ export async function seedDatabase(db: SQLiteDatabase) {
        ON CONFLICT(id) DO UPDATE SET 
          name = excluded.name, 
          bio = excluded.bio`,
-      [author.id, author.name, author.bio],
+      [author.id, author.name, author.bio ?? ""],
     );
   }
 
-  // 2. Always Sync / Upsert Meditation Readings
+  // 2. Always Sync / Upsert Meditation Readings & Translations
   for (const reading of SEED_READINGS) {
     await db.runAsync(
-      `INSERT INTO meditation_readings (id, author_id, title, content, created_at) 
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO meditation_readings (id, author_id, created_at) 
+       VALUES (?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET 
-         author_id = excluded.author_id,
-         title = excluded.title, 
+         author_id = excluded.author_id`,
+      [reading.id, reading.author_id, reading.createdAt],
+    );
+
+    // Upsert Spanish translation (mandatory)
+    await db.runAsync(
+      `INSERT INTO meditation_reading_translations (reading_id, locale, title, content)
+       VALUES (?, 'es', ?, ?)
+       ON CONFLICT(reading_id, locale) DO UPDATE SET
+         title = excluded.title,
          content = excluded.content`,
       [
         reading.id,
-        reading.author_id,
-        reading.title,
-        reading.content,
-        reading.createdAt,
+        reading.translations.es.title,
+        reading.translations.es.content,
       ],
     );
+
+    // Upsert English translation (optional)
+    if (reading.translations.en) {
+      await db.runAsync(
+        `INSERT INTO meditation_reading_translations (reading_id, locale, title, content)
+         VALUES (?, 'en', ?, ?)
+         ON CONFLICT(reading_id, locale) DO UPDATE SET
+           title = excluded.title,
+           content = excluded.content`,
+        [
+          reading.id,
+          reading.translations.en.title,
+          reading.translations.en.content,
+        ],
+      );
+    }
 
     for (const readDate of reading.readDates) {
       const existingLog = await db.getFirstAsync<{ id: string }>(
