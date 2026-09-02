@@ -1,0 +1,115 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en"
+early_access: false
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+
+  path_filters:
+    - "!bun.lock"
+    - "!node_modules/**"
+    - "!dist/**"
+    - "!.turbo/**"
+    - "!.expo/**"
+    - "!apps/*/.turbo/**"
+    - "!packages/*/.turbo/**"
+    - "!apps/mobile/.expo/**"
+    - "!apps/mobile/dist/**"
+    - "!apps/api/.wrangler/**"
+    - "!openspec/changes/archive/**"
+    - "!**/*.png"
+    - "!**/*.jpg"
+    - "!**/*.jpeg"
+    - "!**/*.webp"
+    - "!**/*.svg"
+    - "!**/*.ico"
+    - "!**/*.wasm"
+    - "!**/*.mp3"
+    - "!**/*.wav"
+
+  path_instructions:
+    - path: "apps/mobile/**"
+      instructions: |
+        Architecture & Framework: Expo SDK 57, React Native 0.86, React 19, Expo Router 57.
+        Enforce the following strict rules:
+        1. Routing & Structure:
+           - All screens and layout files must reside in `src/app/`.
+           - Screens in `src/app/` are purely presentational/coordination components. Direct database calls (`expo-sqlite`), network fetching, or complex business logic must NOT be placed inside `src/app/`. They MUST be encapsulated inside custom hooks (`src/hooks/`) or services (`src/services/`).
+           - Navigation MUST use `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
+        2. Native UI Components:
+           - Consult and prefer `@expo/ui` native components (`Button`, `List`, `Switch`, `Picker`, etc.) before using raw React Native components or third-party libraries.
+           - `@expo/ui` `List` is specifically for grouped settings rows (Apple HIG style), NOT virtualized lists. Large datasets must use `FlatList` or `FlashList`.
+        3. Continuous Native Generation (CNG):
+           - Never permit direct manual edits or committed files inside `ios/` or `android/` folders. All native capabilities must be configured via `app.json` or config plugins.
+        4. Platform Divergence & Strategy Pattern:
+           - When implementing platform-dependent behavior (e.g. background audio, notifications, sensors), mandate the Strategy pattern with distinct platform strategies (e.g. `ios-strategy.ts`, `android-strategy.ts`, `web-strategy.ts` orchestrated by `index.ts` / `index.web.ts`).
+        5. Theme & Styling:
+           - Hardcoded color literals (e.g. hex codes) inside components are prohibited. All colors must be imported from `src/theme/colors.ts`.
+        6. Testing & Quality:
+           - All new hooks, domain services, or complex parsing utilities must include unit tests in adjacent `__tests__/` directories, runnable via `bun test`.
+
+    - path: "apps/api/**"
+      instructions: |
+        Architecture & Runtime: Cloudflare Workers edge environment using Hono framework and Zod validation.
+        Enforce the following strict rules:
+        1. Edge Compatibility:
+           - Prohibit Node.js runtime built-ins (`fs`, `child_process`, `net`, etc.) that are unsupported on Cloudflare Workers. Any `node:` module must be worker-compatible.
+        2. Input Validation:
+           - Every route receiving input (JSON body, query params, path params) MUST use `@hono/zod-validator` (e.g., `zValidator('json', schema)`) referencing schemas from `@myself/shared`.
+        3. Standardized Responses:
+           - All route handlers must return standard response envelopes using helper functions from `src/lib/response.ts` (`successResponse`, `errorResponse`).
+           - Paginated endpoints must adhere to `src/lib/pagination.ts`.
+        4. Testing:
+           - Route handlers and utilities must have accompanying unit tests in `src/routes/__tests__/` or `src/lib/__tests__/` executable with `bun test`.
+
+    - path: "packages/shared/**"
+      instructions: |
+        Architecture: Universal shared library containing domain models, Zod schemas, and RPC client definitions.
+        Enforce the following strict rules:
+        1. Dependency Inward-Only Direction:
+           - `packages/shared` must NEVER import anything from `apps/mobile` or `apps/api`. No circular workspace dependencies.
+        2. Blast Radius & Breaking Changes:
+           - Modifying existing Zod schemas or TypeScript types impacts both mobile and api workspaces. Flag any breaking schema change (removed fields, widened required fields) as high severity.
+        3. Platform-Agnostic:
+           - Code in `packages/shared` must run universally (Node, Bun, Browser, React Native, Cloudflare Workers). No platform-specific DOM or native mobile APIs allowed.
+
+    - path: "turbo.json"
+      instructions: |
+        - Ensure pipeline task dependencies (`dependsOn`, `outputs`, `cache`) are properly declared for all monorepo commands (`build`, `lint`, `typecheck`, `test`).
+
+    - path: "package.json"
+      instructions: |
+        - Package manager is Bun (`bun@1.3.14`). Reject PRs introducing npm, yarn, or pnpm lockfiles or scripts.
+        - Internal dependencies between packages must use `"workspace:*"`.
+
+    - path: "**"
+      instructions: |
+        General Monorepo Standards:
+        1. Commits & PRs:
+           - Enforce Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`).
+           - Do NOT allow "Co-Authored-By" or AI attribution trailers in commits or PR messages.
+        2. Discipline:
+           - Code should follow Clean Architecture principles with clear separation between presentation, domain, and infrastructure.
+
+tools:
+  ast-grep:
+    enabled: true
+  biome:
+    enabled: false
+  shellcheck:
+    enabled: true
+  github-checks:
+    enabled: true
+
+chat:
+  auto_reply: true
