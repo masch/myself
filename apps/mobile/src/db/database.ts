@@ -312,10 +312,10 @@ export async function updateReading(
     en?: { title: string; content: string };
   },
 ): Promise<void> {
-  await db.runAsync("UPDATE meditation_readings SET author_id = ? WHERE id = ?", [
-    authorId,
-    id,
-  ]);
+  await db.runAsync(
+    "UPDATE meditation_readings SET author_id = ? WHERE id = ?",
+    [authorId, id],
+  );
 
   await db.runAsync(
     `INSERT INTO meditation_reading_translations (reading_id, locale, title, content)

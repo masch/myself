@@ -89,12 +89,7 @@ export function useReadings(locale: SupportedLocale = "es") {
 
   const updateReading = useCallback(
     async (input: UpdateReadingInput): Promise<void> => {
-      await dbUpdateReading(
-        db,
-        input.id,
-        input.authorId,
-        input.translations,
-      );
+      await dbUpdateReading(db, input.id, input.authorId, input.translations);
       await refreshReadings();
     },
     [db, refreshReadings],
