@@ -246,15 +246,6 @@ Pero en mi frente silenciosa la voz divina ya se había despertado`,
     createdAt: "2026-09-01 08:00:00",
     readDates: ["2026-09-01 08:30:00"],
   },
-  {
-    id: "r0000000-0000-4000-8000-000000000009",
-    author_id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
-    title: "",
-    content: "",
-    createdAt: "2026-09-01 08:00:00",
-    readDates: ["2026-09-01 08:30:00"],
-  },
-
 ];
 
 export const SEED_USERS: SeedUser[] = [
