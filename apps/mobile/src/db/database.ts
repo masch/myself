@@ -1,55 +1,28 @@
 import { type SQLiteDatabase } from "expo-sqlite";
 import { Platform } from "react-native";
+import { generateUUID } from "@/utils/uuid";
+import type {
+  SupportedLocale,
+  User,
+  TaskItem,
+  Author,
+  MeditationReadingTranslation,
+  ReadingLog,
+  MeditationReadingWithAuthor,
+} from "@myself/shared";
 import { seedDatabase } from "./seed";
 
-import { generateUUID } from "@/utils/uuid";
 export { generateUUID };
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatar_url?: string;
-  created_at: string;
-}
-
-export interface TaskItem {
-  id: string;
-  user_id: string;
-  title: string;
-  category: string;
-  description: string;
-  is_done: number;
-  created_at: string;
-}
-
-export interface Author {
-  id: string;
-  name: string;
-  bio?: string;
-  created_at: string;
-}
-
-export interface MeditationReading {
-  id: string;
-  author_id: string;
-  title: string;
-  content: string;
-  created_at: string;
-}
-
-export interface ReadingLog {
-  id: string;
-  reading_id: string;
-  read_at: string;
-}
-
-export interface MeditationReadingWithAuthor extends MeditationReading {
-  author_name: string;
-  author_bio?: string;
-  times_read: number;
-  last_read_at: string | null;
-}
+export type {
+  SupportedLocale,
+  User,
+  TaskItem,
+  Author,
+  MeditationReading,
+  MeditationReadingTranslation,
+  ReadingLog,
+  MeditationReadingWithAuthor,
+} from "@myself/shared";
 
 /**
  * Initializes database schema with UUID keys, foreign keys, and seed data.
@@ -66,7 +39,7 @@ export async function initDatabase(db: SQLiteDatabase) {
       id TEXT PRIMARY KEY NOT NULL,
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
-      avatar_url TEXT DEFAULT '',
+      avatar_url TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -74,7 +47,7 @@ export async function initDatabase(db: SQLiteDatabase) {
       id TEXT PRIMARY KEY NOT NULL,
       user_id TEXT NOT NULL,
       title TEXT NOT NULL,
-      category TEXT NOT NULL DEFAULT 'General',
+      category TEXT NOT NULL,
       description TEXT DEFAULT '',
       is_done INTEGER NOT NULL DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now')),
@@ -91,10 +64,17 @@ export async function initDatabase(db: SQLiteDatabase) {
     CREATE TABLE IF NOT EXISTS meditation_readings (
       id TEXT PRIMARY KEY NOT NULL,
       author_id TEXT NOT NULL,
-      title TEXT NOT NULL DEFAULT '',
-      content TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE RESTRICT
+    );
+
+    CREATE TABLE IF NOT EXISTS meditation_reading_translations (
+      reading_id TEXT NOT NULL,
+      locale TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      PRIMARY KEY (reading_id, locale),
+      FOREIGN KEY (reading_id) REFERENCES meditation_readings(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS reading_logs (
@@ -107,11 +87,18 @@ export async function initDatabase(db: SQLiteDatabase) {
 
   // Safe schema migrations for existing databases
   try {
-    await db.execAsync(
-      "ALTER TABLE meditation_readings ADD COLUMN title TEXT NOT NULL DEFAULT '';",
-    );
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS meditation_reading_translations (
+        reading_id TEXT NOT NULL,
+        locale TEXT NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        PRIMARY KEY (reading_id, locale),
+        FOREIGN KEY (reading_id) REFERENCES meditation_readings(id) ON DELETE CASCADE
+      );
+    `);
   } catch {
-    // Column already exists or table was just created
+    // Table already exists
   }
 
   // Populate seed data
@@ -260,13 +247,15 @@ export async function deleteAuthor(
 
 export async function getAllReadings(
   db: SQLiteDatabase,
+  locale: SupportedLocale = "es",
 ): Promise<MeditationReadingWithAuthor[]> {
   return await db.getAllAsync<MeditationReadingWithAuthor>(
     `SELECT 
        r.id,
        r.author_id,
-       r.title,
-       r.content,
+       COALESCE(target_t.locale, fallback_t.locale, ?) AS locale,
+       COALESCE(target_t.title, fallback_t.title, '') AS title,
+       COALESCE(target_t.content, fallback_t.content, '') AS content,
        r.created_at,
        a.name AS author_name,
        a.bio AS author_bio,
@@ -274,23 +263,43 @@ export async function getAllReadings(
        MAX(l.read_at) AS last_read_at
      FROM meditation_readings r
      INNER JOIN authors a ON r.author_id = a.id
+     LEFT JOIN meditation_reading_translations target_t 
+       ON r.id = target_t.reading_id AND target_t.locale = ?
+     LEFT JOIN meditation_reading_translations fallback_t 
+       ON r.id = fallback_t.reading_id AND fallback_t.locale = 'es'
      LEFT JOIN reading_logs l ON r.id = l.reading_id
-     GROUP BY r.id, r.author_id, r.title, r.content, r.created_at, a.name, a.bio
+     GROUP BY r.id, r.author_id, r.created_at, a.name, a.bio, target_t.locale, target_t.title, target_t.content, fallback_t.locale, fallback_t.title, fallback_t.content
      ORDER BY (COUNT(l.id) > 0) ASC, r.created_at DESC`,
+    [locale, locale],
   );
 }
 
 export async function addReading(
   db: SQLiteDatabase,
   authorId: string,
-  title: string,
-  content: string,
+  translations: {
+    es: { title: string; content: string };
+    en?: { title: string; content: string };
+  },
 ): Promise<string> {
   const id = generateUUID();
   await db.runAsync(
-    "INSERT INTO meditation_readings (id, author_id, title, content, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
-    [id, authorId, title, content],
+    "INSERT INTO meditation_readings (id, author_id, created_at) VALUES (?, ?, datetime('now'))",
+    [id, authorId],
   );
+
+  await db.runAsync(
+    "INSERT INTO meditation_reading_translations (reading_id, locale, title, content) VALUES (?, 'es', ?, ?)",
+    [id, translations.es.title, translations.es.content],
+  );
+
+  if (translations.en && (translations.en.title || translations.en.content)) {
+    await db.runAsync(
+      "INSERT INTO meditation_reading_translations (reading_id, locale, title, content) VALUES (?, 'en', ?, ?)",
+      [id, translations.en.title, translations.en.content],
+    );
+  }
+
   return id;
 }
 
@@ -298,12 +307,49 @@ export async function updateReading(
   db: SQLiteDatabase,
   id: string,
   authorId: string,
-  title: string,
-  content: string,
+  translations: {
+    es: { title: string; content: string };
+    en?: { title: string; content: string };
+  },
 ): Promise<void> {
+  await db.runAsync("UPDATE meditation_readings SET author_id = ? WHERE id = ?", [
+    authorId,
+    id,
+  ]);
+
   await db.runAsync(
-    "UPDATE meditation_readings SET author_id = ?, title = ?, content = ? WHERE id = ?",
-    [authorId, title, content, id],
+    `INSERT INTO meditation_reading_translations (reading_id, locale, title, content)
+     VALUES (?, 'es', ?, ?)
+     ON CONFLICT(reading_id, locale) DO UPDATE SET
+       title = excluded.title,
+       content = excluded.content`,
+    [id, translations.es.title, translations.es.content],
+  );
+
+  if (translations.en && (translations.en.title || translations.en.content)) {
+    await db.runAsync(
+      `INSERT INTO meditation_reading_translations (reading_id, locale, title, content)
+       VALUES (?, 'en', ?, ?)
+       ON CONFLICT(reading_id, locale) DO UPDATE SET
+         title = excluded.title,
+         content = excluded.content`,
+      [id, translations.en.title, translations.en.content],
+    );
+  } else {
+    await db.runAsync(
+      "DELETE FROM meditation_reading_translations WHERE reading_id = ? AND locale = 'en'",
+      [id],
+    );
+  }
+}
+
+export async function getReadingTranslations(
+  db: SQLiteDatabase,
+  readingId: string,
+): Promise<MeditationReadingTranslation[]> {
+  return await db.getAllAsync<MeditationReadingTranslation>(
+    "SELECT * FROM meditation_reading_translations WHERE reading_id = ?",
+    [readingId],
   );
 }
 

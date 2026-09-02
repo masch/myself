@@ -8,28 +8,35 @@ import {
   recordReadingLog as dbRecordReadingLog,
   deleteLastReadingLog as dbDeleteLastReadingLog,
   getReadingLogs as dbGetReadingLogs,
+  getReadingTranslations as dbGetReadingTranslations,
   type MeditationReadingWithAuthor,
+  type MeditationReadingTranslation,
   type ReadingLog,
+  type SupportedLocale,
 } from "@/db/database";
 
 export interface CreateReadingInput {
   authorId: string;
-  title: string;
-  content: string;
+  translations: {
+    es: { title: string; content: string };
+    en?: { title: string; content: string };
+  };
 }
 
 export interface UpdateReadingInput {
   id: string;
   authorId: string;
-  title: string;
-  content: string;
+  translations: {
+    es: { title: string; content: string };
+    en?: { title: string; content: string };
+  };
 }
 
 /**
  * Domain hook for Meditation Readings & 1-to-N Reading Logs.
  * Readings are a global application catalog of quotes and passages.
  */
-export function useReadings() {
+export function useReadings(locale: SupportedLocale = "es") {
   const db = useSQLiteContext();
   const [readings, setReadings] = useState<MeditationReadingWithAuthor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,21 +44,21 @@ export function useReadings() {
   const refreshReadings = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await getAllReadings(db);
+      const data = await getAllReadings(db, locale);
       setReadings(data);
     } catch (error) {
       console.error("Failed to load readings:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [db]);
+  }, [db, locale]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadInitialReadings() {
       try {
-        const data = await getAllReadings(db);
+        const data = await getAllReadings(db, locale);
         if (isMounted) {
           setReadings(data);
         }
@@ -69,16 +76,11 @@ export function useReadings() {
     return () => {
       isMounted = false;
     };
-  }, [db]);
+  }, [db, locale]);
 
   const addReading = useCallback(
     async (input: CreateReadingInput): Promise<string> => {
-      const id = await dbAddReading(
-        db,
-        input.authorId,
-        input.title.trim(),
-        input.content.trim(),
-      );
+      const id = await dbAddReading(db, input.authorId, input.translations);
       await refreshReadings();
       return id;
     },
@@ -91,12 +93,18 @@ export function useReadings() {
         db,
         input.id,
         input.authorId,
-        input.title.trim(),
-        input.content.trim(),
+        input.translations,
       );
       await refreshReadings();
     },
     [db, refreshReadings],
+  );
+
+  const getTranslations = useCallback(
+    async (readingId: string): Promise<MeditationReadingTranslation[]> => {
+      return await dbGetReadingTranslations(db, readingId);
+    },
+    [db],
   );
 
   const recordRead = useCallback(
@@ -137,6 +145,7 @@ export function useReadings() {
     refreshReadings,
     addReading,
     updateReading,
+    getTranslations,
     recordRead,
     removeLastRead,
     getLogs,

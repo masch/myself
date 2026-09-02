@@ -1,12 +1,9 @@
 import { ChipButton, HeaderButton, MeditationText } from "@/components";
-import { useAuthors } from "@/hooks/use-authors";
-import { useReadings } from "@/hooks/use-readings";
+import { useReadingForm } from "@/hooks/use-reading-form";
 import { colors } from "@/theme/colors";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,87 +19,30 @@ export default function ReadingModalScreen() {
     content?: string;
   }>();
 
-  const isEditing = Boolean(params.id);
-
-  const { addReading, updateReading } = useReadings();
-  const { authors, addAuthor } = useAuthors();
-
-  const [selectedAuthorId, setSelectedAuthorId] = useState<string>(
-    params.authorId ?? "",
-  );
-  const [title, setTitle] = useState<string>(params.title ?? "");
-  const [content, setContent] = useState<string>(params.content ?? "");
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [isAddingNewAuthor, setIsAddingNewAuthor] = useState(false);
-  const [newAuthorName, setNewAuthorName] = useState("");
-  const [newAuthorBio, setNewAuthorBio] = useState("");
-
-  const activeAuthorId =
-    selectedAuthorId || (authors.length > 0 ? authors[0].id : "");
-
-  const handleSave = async () => {
-    if (!title.trim()) {
-      Alert.alert(
-        "Title required",
-        "Please enter a title for the meditation reading.",
-      );
-      return;
-    }
-
-    if (!content.trim()) {
-      Alert.alert("Text required", "Please enter the meditation text to read.");
-      return;
-    }
-
-    let finalAuthorId = activeAuthorId;
-
-    if (isAddingNewAuthor) {
-      if (!newAuthorName.trim()) {
-        Alert.alert("Author required", "Please enter the new author's name.");
-        return;
-      }
-
-      try {
-        finalAuthorId = await addAuthor({
-          name: newAuthorName.trim(),
-          bio: newAuthorBio.trim(),
-        });
-      } catch (error) {
-        console.error("Failed to create author:", error);
-        Alert.alert(
-          "Error",
-          "Could not create author. The name might already exist.",
-        );
-        return;
-      }
-    }
-
-    if (!finalAuthorId) {
-      Alert.alert("Author required", "Please select or create an author.");
-      return;
-    }
-
-    try {
-      if (isEditing && params.id) {
-        await updateReading({
-          id: params.id,
-          authorId: finalAuthorId,
-          title: title.trim(),
-          content: content.trim(),
-        });
-      } else {
-        await addReading({
-          authorId: finalAuthorId,
-          title: title.trim(),
-          content: content.trim(),
-        });
-      }
-      router.back();
-    } catch (error) {
-      console.error("Failed to save reading:", error);
-      Alert.alert("Error", "Could not save reading text.");
-    }
-  };
+  const {
+    isEditing,
+    authors,
+    activeAuthorId,
+    setSelectedAuthorId,
+    activeTabLocale,
+    setActiveTabLocale,
+    currentTranslation,
+    updateTranslationField,
+    isPreviewMode,
+    setIsPreviewMode,
+    isAddingNewAuthor,
+    setIsAddingNewAuthor,
+    newAuthorName,
+    setNewAuthorName,
+    newAuthorBio,
+    setNewAuthorBio,
+    handleSave,
+  } = useReadingForm({
+    id: params.id,
+    initialAuthorId: params.authorId,
+    initialTitle: params.title,
+    initialContent: params.content,
+  });
 
   return (
     <ScrollView
@@ -200,10 +140,31 @@ export default function ReadingModalScreen() {
         )}
       </View>
 
+      {/* Language Selector Section */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+          LANGUAGE / IDIOMA
+        </Text>
+        <View style={styles.localeRow}>
+          <ChipButton
+            title="🇪🇸 Castellano (Requerido)"
+            variant={activeTabLocale === "es" ? "purple" : "secondary"}
+            onPress={() => setActiveTabLocale("es")}
+          />
+          <ChipButton
+            title="🇬🇧 English (Opcional)"
+            variant={activeTabLocale === "en" ? "purple" : "secondary"}
+            onPress={() => setActiveTabLocale("en")}
+          />
+        </View>
+      </View>
+
       {/* Title Input Card */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-          TITLE
+          {activeTabLocale === "es"
+            ? "TITLE (CASTELLANO - REQUERIDO)"
+            : "TITLE (ENGLISH - OPTIONAL)"}
         </Text>
         <View
           style={[
@@ -217,10 +178,14 @@ export default function ReadingModalScreen() {
               style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
             />
             <TextInput
-              placeholder="E.g., Poder sobre la Mente, Anam Cara..."
+              placeholder={
+                activeTabLocale === "es"
+                  ? "Ej: Poder sobre la Mente, Anam Cara..."
+                  : "E.g., Power over the Mind, The Bridge of Breathing..."
+              }
               placeholderTextColor={colors.secondaryLabel}
-              value={title}
-              onChangeText={setTitle}
+              value={currentTranslation.title}
+              onChangeText={(text) => updateTranslationField("title", text)}
               style={[styles.input, { color: colors.label }]}
             />
           </View>
@@ -231,7 +196,9 @@ export default function ReadingModalScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-            PASSAGE / POETRY
+            {activeTabLocale === "es"
+              ? "PASSAGE / POETRY (CASTELLANO)"
+              : "PASSAGE / POETRY (ENGLISH)"}
           </Text>
           <ChipButton
             title={isPreviewMode ? "Edit Markdown" : "Live Preview"}
@@ -249,9 +216,9 @@ export default function ReadingModalScreen() {
         >
           {isPreviewMode ? (
             <View style={styles.previewWrapper}>
-              {content.trim() ? (
+              {currentTranslation.content.trim() ? (
                 <MeditationText
-                  content={content}
+                  content={currentTranslation.content}
                   baseFontSize={16}
                   baseLineHeight={24}
                   textColor={colors.label}
@@ -274,10 +241,14 @@ export default function ReadingModalScreen() {
                 “
               </Text>
               <TextInput
-                placeholder="Write the passage or quote to read and reflect on before meditating..."
+                placeholder={
+                  activeTabLocale === "es"
+                    ? "Escribe el texto o poema para leer y reflexionar..."
+                    : "Write the passage or quote in English (optional)..."
+                }
                 placeholderTextColor={colors.secondaryLabel}
-                value={content}
-                onChangeText={setContent}
+                value={currentTranslation.content}
+                onChangeText={(text) => updateTranslationField("content", text)}
                 style={[
                   styles.input,
                   styles.contentInput,
@@ -322,6 +293,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   authorsRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 2,
+  },
+  localeRow: {
     flexDirection: "row",
     gap: 8,
     paddingVertical: 2,
