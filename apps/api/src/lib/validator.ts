@@ -1,34 +1,17 @@
-import { zValidator } from "@hono/zod-validator";
-import type { ApiResponse } from "@myself/shared";
+import type { Hook } from "@hono/zod-openapi";
+import { type ApiResponse, ErrorCode, HttpStatus } from "@myself/shared";
 
 /**
- * Validates request body JSON against a Zod schema.
+ * Standard validation failure hook for OpenAPIHono routes.
+ * Produces unified ApiResponse<never> with BAD_REQUEST code and 400 HTTP status.
  */
-export const validatedJson = <T extends Parameters<typeof zValidator>[1]>(
-  schema: T,
-) =>
-  zValidator("json", schema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: ApiResponse<never> = {
-        success: false,
-        error: result.error.issues[0]?.message ?? "Validation failed",
-      };
-      return c.json(errorResponse, 400);
-    }
-  });
-
-/**
- * Validates request query parameters against a Zod schema.
- */
-export const validatedQuery = <T extends Parameters<typeof zValidator>[1]>(
-  schema: T,
-) =>
-  zValidator("query", schema, (result, c) => {
-    if (!result.success) {
-      const errorResponse: ApiResponse<never> = {
-        success: false,
-        error: result.error.issues[0]?.message ?? "Invalid query parameters",
-      };
-      return c.json(errorResponse, 400);
-    }
-  });
+export const defaultHook: Hook<any, any, any, any> = (result, c) => {
+  if (!result.success) {
+    const errorResponse: ApiResponse<never> = {
+      success: false,
+      error: result.error.issues[0]?.message ?? "Validation failed",
+      code: ErrorCode.BAD_REQUEST,
+    };
+    return c.json(errorResponse, HttpStatus.BAD_REQUEST);
+  }
+};

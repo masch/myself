@@ -1,14 +1,24 @@
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "bun:test";
 import { Hono } from "hono";
 import type {
   ApiResponse,
   PaginatedResponse,
   SeedAuthor,
 } from "@myself/shared";
+import type { AppEnv } from "../../types";
+import { repositoriesMiddleware } from "../../middleware/repositories";
+import { createTestRepositories } from "../../db/test-db";
 import { authorsRoute } from "../authors";
 
-describe("apps/api/src/routes/authors.ts Sub-router Unit Tests", () => {
-  const app = new Hono().route("/authors", authorsRoute);
+describe("Authors API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
+  let app: Hono<AppEnv>;
+
+  beforeAll(async () => {
+    const repos = await createTestRepositories({ seed: true });
+    app = new Hono<AppEnv>()
+      .use("*", repositoriesMiddleware(repos))
+      .route("/authors", authorsRoute);
+  });
 
   it("isolates authors sub-router and returns paginated list", async () => {
     const res = await app.request("/authors");

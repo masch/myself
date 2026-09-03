@@ -34,13 +34,13 @@ build_output_hash: sha256:635973dd7613e7ce51109d5b03ca78b6bcb6289493df42b16c7380
 
 ## 2. Requirements Compliance Matrix
 
-| Requirement | Scenario | Evidence / Verification Target | Result |
-| --- | --- | --- | --- |
-| `REQ-01` | Assertive review posture | `.coderabbit.yaml` (`profile: "assertive"`, `request_changes_workflow: true`) | ✅ COMPLIANT |
-| `REQ-02` | Filtering generated artifacts | `.coderabbit.yaml` (`path_filters` suppresses locks, `dist/**`, `.turbo/**`, `.expo/**`, archives) | ✅ COMPLIANT |
-| `REQ-03` | Mobile workspace guardrails | `apps/mobile/**` instructions enforce hooks delegation, `@expo/ui`, Strategy pattern, and CNG safety | ✅ COMPLIANT |
-| `REQ-04` | API & edge runtime guardrails | `apps/api/**` instructions enforce Workers edge runtime safety, `@hono/zod-validator`, standard envelopes, and tests | ✅ COMPLIANT |
-| `REQ-05` | Shared contracts & monorepo tooling | `packages/shared/**`, `turbo.json`, and `**/package.json` rules enforce Bun, workspace dependencies, and Conventional Commits | ✅ COMPLIANT |
+| Requirement | Scenario                            | Evidence / Verification Target                                                                                                | Result       |
+| ----------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `REQ-01`    | Assertive review posture            | `.coderabbit.yaml` (`profile: "assertive"`, `request_changes_workflow: true`)                                                 | ✅ COMPLIANT |
+| `REQ-02`    | Filtering generated artifacts       | `.coderabbit.yaml` (`path_filters` suppresses locks, `dist/**`, `.turbo/**`, `.expo/**`, archives)                            | ✅ COMPLIANT |
+| `REQ-03`    | Mobile workspace guardrails         | `apps/mobile/**` instructions enforce hooks delegation, `@expo/ui`, Strategy pattern, and CNG safety                          | ✅ COMPLIANT |
+| `REQ-04`    | API & edge runtime guardrails       | `apps/api/**` instructions enforce Workers edge runtime safety, `@hono/zod-validator`, standard envelopes, and tests          | ✅ COMPLIANT |
+| `REQ-05`    | Shared contracts & monorepo tooling | `packages/shared/**`, `turbo.json`, and `**/package.json` rules enforce Bun, workspace dependencies, and Conventional Commits | ✅ COMPLIANT |
 
 ## 3. Final Verification Conclusion
 

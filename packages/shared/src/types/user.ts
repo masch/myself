@@ -1,7 +1,8 @@
+import type { EntityId } from "../schemas";
 import type { SeedTask } from "./task";
 
 export interface User {
-  id: string;
+  id: EntityId;
   name: string;
   email: string;
   avatar_url?: string;

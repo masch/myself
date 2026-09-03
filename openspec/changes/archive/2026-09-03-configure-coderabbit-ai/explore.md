@@ -25,6 +25,7 @@
 ## 2. Problem & Motivation
 
 Without dedicated AI-assisted PR review rules:
+
 1. Review feedback tends to produce generic, non-actionable stylistic remarks rather than catching architectural drift.
 2. Changes to `apps/mobile` risk violating Expo Router file-based routing principles (e.g., introducing fat screen components or direct SQLite calls in route files).
 3. Changes to `apps/api` risk leaking Node.js runtime APIs that fail on Cloudflare Workers edge nodes, or omitting input validation with `@hono/zod-validator`.
@@ -34,6 +35,7 @@ Without dedicated AI-assisted PR review rules:
 ## 3. Target State
 
 A centralized `.coderabbit.yaml` configuration at repository root:
+
 - Runs with `profile: "assertive"` and `request_changes_workflow: true` to catch critical defects before merge.
 - Applies granular `path_instructions` tailored to the architectural responsibilities of each workspace.
 - Configures comprehensive `path_filters` to eliminate review noise.

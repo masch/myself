@@ -1,47 +1,111 @@
-import { Hono } from "hono";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   createReadingSchema,
+  ErrorCode,
+  HttpStatus,
   listReadingsQuerySchema,
-  SEED_READINGS,
-  type SeedReading,
 } from "@myself/shared";
-import { validatedJson, validatedQuery } from "../lib/validator";
+import type { AppEnv } from "../types";
+import { defaultHook } from "../lib/validator";
 import { ok, fail } from "../lib/response";
 import { buildPaginated } from "../lib/pagination";
 
-export const mockReadings: SeedReading[] = [...SEED_READINGS];
+export const listReadingsRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Readings"],
+  summary: "List readings",
+  description: "Returns a paginated list of meditation readings.",
+  request: {
+    query: listReadingsQuerySchema,
+  },
+  responses: {
+    [HttpStatus.OK]: {
+      description: "Paginated readings response",
+    },
+    [HttpStatus.BAD_REQUEST]: {
+      description: "Invalid query parameters",
+    },
+  },
+});
 
-export const readingsRoute = new Hono()
-  .get("/", validatedQuery(listReadingsQuerySchema), (c) => {
+export const getReadingByIdRoute = createRoute({
+  method: "get",
+  path: "/:id",
+  tags: ["Readings"],
+  summary: "Get reading by ID",
+  description: "Returns the reading details and its translations.",
+  request: {
+    params: z.object({
+      id: z.string().min(1),
+    }),
+  },
+  responses: {
+    [HttpStatus.OK]: {
+      description: "Reading found",
+    },
+    [HttpStatus.NOT_FOUND]: {
+      description: "Reading not found",
+    },
+  },
+});
+
+export const createReadingRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Readings"],
+  summary: "Create reading",
+  description: "Registers a new reading with multilingual translations.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createReadingSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    [HttpStatus.CREATED]: {
+      description: "Reading created successfully",
+    },
+    [HttpStatus.BAD_REQUEST]: {
+      description: "Validation error",
+    },
+  },
+});
+
+export const readingsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
+  .openapi(listReadingsRoute, async (c) => {
     const { limit, offset, authorId } = c.req.valid("query");
-
-    const filtered = authorId
-      ? mockReadings.filter((r) => r.author_id === authorId)
-      : mockReadings;
-
-    const total = filtered.length;
-    const items = filtered.slice(offset, offset + limit);
+    const { items, total } = await c.var.readingRepo.list({
+      limit,
+      offset,
+      authorId,
+    });
 
     return ok(c, buildPaginated(items, total, limit, offset));
   })
-  .get("/:id", (c) => {
-    const id = c.req.param("id");
-    const reading = mockReadings.find((r) => r.id === id);
+  .openapi(getReadingByIdRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const reading = await c.var.readingRepo.findById(id);
 
     if (!reading) {
-      return fail(c, "Reading not found", 404);
+      return fail(
+        c,
+        "Reading not found",
+        HttpStatus.NOT_FOUND,
+        ErrorCode.ENTITY_NOT_FOUND,
+      );
     }
 
     return ok(c, reading);
   })
-  .post("/", validatedJson(createReadingSchema), async (c) => {
+  .openapi(createReadingRoute, async (c) => {
     const body = c.req.valid("json");
 
-    const newReading: SeedReading = {
-      id: `r-mock-${Date.now()}`,
-      author_id: body.authorId,
-      createdAt: new Date().toISOString(),
-      readDates: [],
+    const newReading = await c.var.readingRepo.create({
+      authorId: body.authorId,
       translations: {
         es: {
           title: body.translations.es.title,
@@ -55,9 +119,7 @@ export const readingsRoute = new Hono()
               }
             : undefined,
       },
-    };
+    });
 
-    mockReadings.unshift(newReading);
-
-    return ok(c, newReading, 201);
+    return ok(c, newReading, HttpStatus.CREATED);
   });

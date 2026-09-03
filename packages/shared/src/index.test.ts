@@ -4,16 +4,21 @@ import {
   createApiClient,
   createAuthorSchema,
   createReadingSchema,
+  entityIdSchema,
+  ErrorCode,
+  generateEntityId,
+  HttpStatus,
   listAuthorsQuerySchema,
   listReadingsQuerySchema,
   paginationQuerySchema,
+  uuidParamSchema,
   SEED_AUTHORS,
   SEED_AUTHOR_IDS,
   SEED_READINGS,
 } from "./index";
 
 describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
-  describe("Constants & Mocks Integrity", () => {
+  describe("Constants & Seed Data Integrity", () => {
     it("exports valid APP_NAME", () => {
       expect(APP_NAME).toBe("myself");
     });
@@ -121,11 +126,75 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
         }),
       ).toThrow();
     });
+
+    it("uuidParamSchema validates valid UUID and rejects non-UUID strings", () => {
+      const valid = uuidParamSchema.parse({
+        id: "a0000000-0000-4000-8000-000000000001",
+      });
+      expect(valid.id).toBe("a0000000-0000-4000-8000-000000000001" as any);
+
+      expect(() => uuidParamSchema.parse({ id: "not-a-uuid" })).toThrow();
+      expect(() => uuidParamSchema.parse({ id: "" })).toThrow();
+    });
+
+    it("entityIdSchema parses valid branded EntityId and rejects non-UUID strings", () => {
+      const valid = entityIdSchema.parse(
+        "a0000000-0000-4000-8000-000000000001",
+      );
+      expect(valid).toBe("a0000000-0000-4000-8000-000000000001" as any);
+
+      expect(() => entityIdSchema.parse("invalid-id")).toThrow();
+      expect(() => entityIdSchema.parse("")).toThrow();
+    });
   });
 
   describe("RPC Client Factory", () => {
     it("exports createApiClient function", () => {
       expect(typeof createApiClient).toBe("function");
+    });
+  });
+
+  describe("Entity ID Generator (generateEntityId)", () => {
+    it("generates a valid RFC4122 v4 UUID", () => {
+      const id = generateEntityId();
+      expect(id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
+    });
+
+    it("generates distinct unique IDs", () => {
+      const id1 = generateEntityId();
+      const id2 = generateEntityId();
+      expect(id1).not.toBe(id2);
+    });
+  });
+
+  describe("HttpStatus Constants", () => {
+    it("exports standard HTTP status codes correctly", () => {
+      expect(HttpStatus.OK).toBe(200);
+      expect(HttpStatus.CREATED).toBe(201);
+      expect(HttpStatus.ACCEPTED).toBe(202);
+      expect(HttpStatus.NO_CONTENT).toBe(204);
+      expect(HttpStatus.BAD_REQUEST).toBe(400);
+      expect(HttpStatus.UNAUTHORIZED).toBe(401);
+      expect(HttpStatus.FORBIDDEN).toBe(403);
+      expect(HttpStatus.NOT_FOUND).toBe(404);
+      expect(HttpStatus.CONFLICT).toBe(409);
+      expect(HttpStatus.UNPROCESSABLE_ENTITY).toBe(422);
+      expect(HttpStatus.INTERNAL_SERVER_ERROR).toBe(500);
+    });
+  });
+
+  describe("ErrorCode Constants", () => {
+    it("exports standard business error codes correctly", () => {
+      expect(ErrorCode.INTERNAL_ERROR).toBe("INTERNAL_ERROR");
+      expect(ErrorCode.BAD_REQUEST).toBe("BAD_REQUEST");
+      expect(ErrorCode.NOT_FOUND).toBe("NOT_FOUND");
+      expect(ErrorCode.UNAUTHORIZED).toBe("UNAUTHORIZED");
+      expect(ErrorCode.FORBIDDEN).toBe("FORBIDDEN");
+      expect(ErrorCode.CONFLICT).toBe("CONFLICT");
+      expect(ErrorCode.USER_ALREADY_EXISTS).toBe("USER_ALREADY_EXISTS");
+      expect(ErrorCode.ENTITY_NOT_FOUND).toBe("ENTITY_NOT_FOUND");
     });
   });
 });

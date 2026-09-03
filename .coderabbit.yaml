@@ -90,13 +90,10 @@ reviews:
           - Require `outputs` only for tasks producing cacheable file artifacts on disk (e.g. `dist/**`, `build/**`).
           - Require `persistent: true` only for non-terminating dev or watcher processes (such as `dev`), while permitting finite side-effecting tasks to specify `cache: false` without `persistent: true` so downstream task dependencies remain valid.
 
-
-
     - path: "**/package.json"
       instructions: |
         - Package manager is Bun (`bun@1.3.14`). Reject PRs introducing npm, yarn, or pnpm lockfiles or scripts.
         - Internal dependencies between packages must use `"workspace:*"`.
-
 
     - path: "**"
       instructions: |
@@ -119,4 +116,3 @@ reviews:
 
 chat:
   auto_reply: true
-

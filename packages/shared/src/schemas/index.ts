@@ -29,8 +29,27 @@ export const listReadingsQuerySchema = paginationQuerySchema.extend({
 
 export const listAuthorsQuerySchema = paginationQuerySchema;
 
+export const createUserSchema = z.object({
+  name: z.string().trim().min(1, "User name is required"),
+  email: z.email("Invalid email address"),
+  avatarUrl: z.url("Invalid avatar URL").optional(),
+});
+
+export const listUsersQuerySchema = paginationQuerySchema;
+
+export const entityIdSchema = z.uuid("Invalid ID format").brand<"EntityId">();
+
+export type EntityId = z.infer<typeof entityIdSchema>;
+
+export const uuidParamSchema = z.object({
+  id: entityIdSchema,
+});
+
 export type CreateReadingInput = z.infer<typeof createReadingSchema>;
 export type CreateAuthorInput = z.infer<typeof createAuthorSchema>;
+export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
 export type ListReadingsQuery = z.infer<typeof listReadingsQuerySchema>;
 export type ListAuthorsQuery = z.infer<typeof listAuthorsQuerySchema>;
+export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;
+export type UuidParam = z.infer<typeof uuidParamSchema>;

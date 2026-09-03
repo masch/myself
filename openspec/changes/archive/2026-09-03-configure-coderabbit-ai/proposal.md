@@ -3,6 +3,7 @@
 ## 1. Problem Statement
 
 Automated pull request reviews often suffer from low signal-to-noise ratio. Generic AI reviewers frequently flag cosmetic issues while missing fundamental architectural regressions, such as:
+
 - Violating Expo Router separation of concerns (inlining business logic into route files).
 - Introducing unvalidated input vectors in Hono endpoints.
 - Breaking edge runtime constraints on Cloudflare Workers.
@@ -14,6 +15,7 @@ The repository needs an explicit, assertive, and architecture-aware review confi
 ## 2. Proposed Solution
 
 Establish a root-level `.coderabbit.yaml` configured according to CodeRabbit Schema v2 with:
+
 1. **Assertive Profile & Blocking Workflow**:
    - `profile: "assertive"` to conduct thorough, rigorous technical reviews.
    - `request_changes_workflow: true` to submit formal "Request changes" reviews when architectural or type issues are discovered (enforcing merge blocking when paired with GitHub branch protection rules requiring passing reviews).
