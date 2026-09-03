@@ -85,7 +85,11 @@ reviews:
 
     - path: "turbo.json"
       instructions: |
-        - Ensure pipeline task dependencies (`dependsOn`, `outputs`, `cache`) are properly declared for all monorepo commands (`build`, `lint`, `typecheck`, `test`).
+        - Ensure task semantics are scoped accurately:
+          - Require `dependsOn` only for tasks with actual upstream or topological dependencies (e.g. `^build`, `^lint`).
+          - Require `outputs` only for tasks producing cacheable file artifacts on disk (e.g. `dist/**`, `build/**`).
+          - Mandate `cache: false` and `persistent: true` for long-running, interactive, or side-effecting dev processes (such as `dev`).
+
 
     - path: "**/package.json"
       instructions: |
