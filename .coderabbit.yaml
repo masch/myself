@@ -88,7 +88,8 @@ reviews:
         - Ensure task semantics are scoped accurately:
           - Require `dependsOn` only for tasks with actual upstream or topological dependencies (e.g. `^build`, `^lint`).
           - Require `outputs` only for tasks producing cacheable file artifacts on disk (e.g. `dist/**`, `build/**`).
-          - Mandate `cache: false` and `persistent: true` for long-running, interactive, or side-effecting dev processes (such as `dev`).
+          - Require `persistent: true` only for non-terminating dev or watcher processes (such as `dev`), while permitting finite side-effecting tasks to specify `cache: false` without `persistent: true` so downstream task dependencies remain valid.
+
 
 
     - path: "**/package.json"
