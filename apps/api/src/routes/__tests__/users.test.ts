@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import { Hono } from "hono";
 import {
   ErrorCode,
+  DateTime,
   type ApiResponse,
   type PaginatedResponse,
   type User,
@@ -11,6 +12,7 @@ import type { RepositoriesDependencies } from "../../middleware/repositories";
 import { repositoriesMiddleware } from "../../middleware/repositories";
 import { createTestRepositories } from "../../db/test-db";
 import { handleApiError } from "../../errors";
+import { User as UserDomain } from "../../domain";
 import { usersRoute } from "../users";
 
 describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
@@ -71,12 +73,14 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
   it("rejects creating user with duplicate email with 409 Conflict", async () => {
     const existing = await repos.userRepo.findByEmail("marcus@rome.gov");
     if (!existing) {
-      await repos.userRepo.create({
-        id: "a0000000-0000-4000-8000-000000000001" as any,
-        name: "Marcus Aurelius",
-        email: "marcus@rome.gov",
-        created_at: new Date().toISOString(),
-      });
+      await repos.userRepo.create(
+        new UserDomain({
+          id: "a0000000-0000-4000-8000-000000000001" as any,
+          name: "Marcus Aurelius",
+          email: "marcus@rome.gov",
+          createdAt: DateTime.now(),
+        }),
+      );
     }
 
     const payload = {

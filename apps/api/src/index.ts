@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import type { ExecutionContext } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { APP_NAME, HttpStatus } from "@myself/shared";
+import { APP_NAME, DateTime, HttpStatus } from "@myself/shared";
 import type { AppEnv } from "./types";
 import { AppConfig } from "./config";
 import {
@@ -71,7 +71,7 @@ export function createApp(
     .openapi(rootRoute, (c) =>
       ok(c, {
         message: `Welcome to ${APP_NAME} API`,
-        timestamp: new Date().toISOString(),
+        timestamp: DateTime.now().toISOString(),
       }),
     )
     .openapi(healthRoute, (c) =>

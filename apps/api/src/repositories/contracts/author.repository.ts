@@ -1,4 +1,4 @@
-import type { Author } from "@myself/shared";
+import type { Author } from "../../domain";
 
 export interface ListAuthorsParams {
   limit: number;

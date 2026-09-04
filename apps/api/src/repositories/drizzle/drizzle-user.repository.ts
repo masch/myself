@@ -1,7 +1,7 @@
 import { eq, sql, asc } from "drizzle-orm";
-import type { EntityId, User } from "@myself/shared";
 import type { DbClient } from "../../db/client";
 import { users } from "../../db/schema/users";
+import { type User, UserMapper } from "../../domain";
 import type {
   UserRepository,
   ListUsersParams,
@@ -23,13 +23,7 @@ export class DrizzleUserRepository implements UserRepository {
       .limit(params.limit)
       .offset(params.offset);
 
-    const items: User[] = rows.map((row) => ({
-      id: row.id as EntityId,
-      name: row.name,
-      email: row.email,
-      avatar_url: row.avatarUrl ?? undefined,
-      created_at: row.createdAt,
-    }));
+    const items: User[] = rows.map((row) => UserMapper.toDomain(row));
 
     return {
       items,
@@ -42,13 +36,7 @@ export class DrizzleUserRepository implements UserRepository {
 
     if (!row) return null;
 
-    return {
-      id: row.id as EntityId,
-      name: row.name,
-      email: row.email,
-      avatar_url: row.avatarUrl ?? undefined,
-      created_at: row.createdAt,
-    };
+    return UserMapper.toDomain(row);
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -59,13 +47,7 @@ export class DrizzleUserRepository implements UserRepository {
 
     if (!row) return null;
 
-    return {
-      id: row.id as EntityId,
-      name: row.name,
-      email: row.email,
-      avatar_url: row.avatarUrl ?? undefined,
-      created_at: row.createdAt,
-    };
+    return UserMapper.toDomain(row);
   }
 
   async create(user: User): Promise<User> {
@@ -73,8 +55,8 @@ export class DrizzleUserRepository implements UserRepository {
       id: user.id,
       name: user.name,
       email: user.email,
-      avatarUrl: user.avatar_url ?? null,
-      createdAt: user.created_at,
+      avatarUrl: user.avatarUrl ?? null,
+      createdAt: user.createdAt.toISOString(),
     });
 
     return user;

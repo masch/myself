@@ -1,8 +1,8 @@
 import { eq, count, desc, inArray } from "drizzle-orm";
-import {
-  type SeedReading,
-  generateEntityId,
-  type SupportedLocale,
+import type {
+  ReadingTranslationInput,
+  SeedReading,
+  SupportedLocale,
 } from "@myself/shared";
 import type { DbClient } from "../../db/client";
 import {
@@ -10,9 +10,9 @@ import {
   meditationReadingTranslations,
   readingLogs,
 } from "../../db/schema/readings";
+import { type Reading, ReadingMapper } from "../../domain";
 import type {
   ReadingRepository,
-  CreateReadingInput,
   ListReadingsParams,
   ListReadingsResult,
 } from "../contracts/reading.repository";
@@ -96,13 +96,15 @@ export class DrizzleReadingRepository implements ReadingRepository {
       logsByReading.set(l.readingId, list);
     }
 
-    const items: SeedReading[] = rows.map((r) => ({
-      id: r.id,
-      author_id: r.author_id,
-      createdAt: r.createdAt,
-      readDates: logsByReading.get(r.id) ?? [],
-      translations: mapTranslations(translationsByReading.get(r.id) ?? []),
-    }));
+    const items: Reading[] = rows.map((r) =>
+      ReadingMapper.toDomain({
+        id: r.id,
+        authorId: r.author_id,
+        createdAt: r.createdAt,
+        readDates: logsByReading.get(r.id) ?? [],
+        translations: mapTranslations(translationsByReading.get(r.id) ?? []),
+      }),
+    );
 
     return {
       items,
@@ -110,7 +112,7 @@ export class DrizzleReadingRepository implements ReadingRepository {
     };
   }
 
-  async findById(id: string): Promise<SeedReading | null> {
+  async findById(id: string): Promise<Reading | null> {
     const [row] = await this.db
       .select({
         id: meditationReadings.id,
@@ -135,38 +137,37 @@ export class DrizzleReadingRepository implements ReadingRepository {
       .from(readingLogs)
       .where(eq(readingLogs.readingId, row.id));
 
-    return {
+    return ReadingMapper.toDomain({
       id: row.id,
-      author_id: row.author_id,
+      authorId: row.author_id,
       createdAt: row.createdAt,
       readDates: logs.map((l) => l.readAt),
       translations: mapTranslations(translations),
-    };
+    });
   }
 
-  async create(input: CreateReadingInput): Promise<SeedReading> {
-    const id = generateEntityId();
-    const createdAt = new Date().toISOString();
-
-    const translationInserts = Object.entries(input.translations)
-      .filter(
-        (
-          entry,
-        ): entry is [SupportedLocale, { title: string; content: string }] =>
-          Boolean(entry[1] && (entry[1].title || entry[1].content)),
+  async create(reading: Reading): Promise<Reading> {
+    const translationInserts = (
+      Object.entries(reading.translations) as [
+        SupportedLocale,
+        ReadingTranslationInput | undefined,
+      ][]
+    )
+      .filter((entry): entry is [SupportedLocale, ReadingTranslationInput] =>
+        Boolean(entry[1] && (entry[1].title || entry[1].content)),
       )
       .map(([locale, trans]) => ({
-        readingId: id,
-        locale: locale as SupportedLocale,
+        readingId: reading.id,
+        locale,
         title: trans.title,
         content: trans.content,
       }));
 
     await this.db.transaction(async (tx) => {
       await tx.insert(meditationReadings).values({
-        id,
-        authorId: input.authorId,
-        createdAt,
+        id: reading.id,
+        authorId: reading.authorId,
+        createdAt: reading.createdAt.toISOString(),
       });
 
       if (translationInserts.length > 0) {
@@ -176,17 +177,6 @@ export class DrizzleReadingRepository implements ReadingRepository {
       }
     });
 
-    return {
-      id,
-      author_id: input.authorId,
-      createdAt,
-      readDates: [],
-      translations: Object.fromEntries(
-        translationInserts.map((t) => [
-          t.locale,
-          { title: t.title, content: t.content },
-        ]),
-      ) as SeedReading["translations"],
-    };
+    return reading;
   }
 }

@@ -8,5 +8,6 @@ export * from "./schemas";
 export * from "./seed";
 export * from "./client";
 export * from "./utils/id";
+export * from "./utils/date";
 export * from "./constants/http";
 export * from "./constants/errors";

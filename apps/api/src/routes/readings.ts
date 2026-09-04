@@ -9,6 +9,8 @@ import type { AppEnv } from "../types";
 import { defaultHook } from "../lib/validator";
 import { ok, fail } from "../lib/response";
 import { buildPaginated } from "../lib/pagination";
+import { ReadingMapper } from "../domain";
+import { ReadingService } from "../services/reading.service";
 
 export const listReadingsRoute = createRoute({
   method: "get",
@@ -78,17 +80,20 @@ export const createReadingRoute = createRoute({
 export const readingsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
   .openapi(listReadingsRoute, async (c) => {
     const { limit, offset, authorId } = c.req.valid("query");
-    const { items, total } = await c.var.readingRepo.list({
+    const service = new ReadingService(c.var.readingRepo);
+    const { items, total } = await service.list({
       limit,
       offset,
       authorId,
     });
 
-    return ok(c, buildPaginated(items, total, limit, offset));
+    const dtoList = items.map((item) => ReadingMapper.toDto(item));
+    return ok(c, buildPaginated(dtoList, total, limit, offset));
   })
   .openapi(getReadingByIdRoute, async (c) => {
     const { id } = c.req.valid("param");
-    const reading = await c.var.readingRepo.findById(id);
+    const service = new ReadingService(c.var.readingRepo);
+    const reading = await service.findById(id);
 
     if (!reading) {
       return fail(
@@ -99,27 +104,12 @@ export const readingsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
       );
     }
 
-    return ok(c, reading);
+    return ok(c, ReadingMapper.toDto(reading));
   })
   .openapi(createReadingRoute, async (c) => {
     const body = c.req.valid("json");
+    const service = new ReadingService(c.var.readingRepo);
+    const newReading = await service.create(body);
 
-    const newReading = await c.var.readingRepo.create({
-      authorId: body.authorId,
-      translations: {
-        es: {
-          title: body.translations.es.title,
-          content: body.translations.es.content,
-        },
-        en:
-          body.translations.en?.title || body.translations.en?.content
-            ? {
-                title: body.translations.en.title,
-                content: body.translations.en.content,
-              }
-            : undefined,
-      },
-    });
-
-    return ok(c, newReading, HttpStatus.CREATED);
+    return ok(c, ReadingMapper.toDto(newReading), HttpStatus.CREATED);
   });

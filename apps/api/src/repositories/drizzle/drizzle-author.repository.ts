@@ -1,7 +1,7 @@
 import { eq, count, asc } from "drizzle-orm";
-import type { Author } from "@myself/shared";
 import type { DbClient } from "../../db/client";
 import { authors } from "../../db/schema/authors";
+import { type Author, AuthorMapper } from "../../domain";
 import type {
   AuthorRepository,
   ListAuthorsParams,
@@ -19,12 +19,7 @@ export class DrizzleAuthorRepository implements AuthorRepository {
 
     if (!row) return null;
 
-    return {
-      id: row.id,
-      name: row.name,
-      bio: row.bio ?? undefined,
-      created_at: row.createdAt,
-    };
+    return AuthorMapper.toDomain(row);
   }
 
   async list(params: ListAuthorsParams): Promise<ListAuthorsResult> {
@@ -39,12 +34,7 @@ export class DrizzleAuthorRepository implements AuthorRepository {
     ]);
 
     const total = totalRow[0]?.count ?? 0;
-    const items: Author[] = rows.map((r) => ({
-      id: r.id,
-      name: r.name,
-      bio: r.bio ?? undefined,
-      created_at: r.createdAt,
-    }));
+    const items: Author[] = rows.map((r) => AuthorMapper.toDomain(r));
 
     return { items, total };
   }
@@ -57,12 +47,7 @@ export class DrizzleAuthorRepository implements AuthorRepository {
 
     if (!row) return null;
 
-    return {
-      id: row.id,
-      name: row.name,
-      bio: row.bio ?? undefined,
-      created_at: row.createdAt,
-    };
+    return AuthorMapper.toDomain(row);
   }
 
   async create(author: Author): Promise<Author> {
@@ -70,7 +55,7 @@ export class DrizzleAuthorRepository implements AuthorRepository {
       id: author.id,
       name: author.name,
       bio: author.bio ?? null,
-      createdAt: author.created_at,
+      createdAt: author.createdAt.toISOString(),
     });
 
     return author;

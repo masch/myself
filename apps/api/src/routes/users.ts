@@ -11,6 +11,7 @@ import type { AppEnv } from "../types";
 import { defaultHook } from "../lib/validator";
 import { ok, fail } from "../lib/response";
 import { buildPaginated } from "../lib/pagination";
+import { UserMapper } from "../domain";
 import { UserService } from "../services/user.service";
 
 export const listUsersRoute = createRoute({
@@ -27,7 +28,7 @@ export const listUsersRoute = createRoute({
       description: "Paginated users response",
     },
     [HttpStatus.BAD_REQUEST]: {
-      description: "Invalid query parameters",
+      description: "Invalid pagination parameters",
     },
   },
 });
@@ -88,12 +89,13 @@ export const usersRoute = new OpenAPIHono<AppEnv>({ defaultHook })
     const service = new UserService(c.var.userRepo);
     const { items, total } = await service.list({ limit, offset });
 
-    return ok(c, buildPaginated(items, total, limit, offset));
+    const dtoList = items.map((user) => UserMapper.toDto(user));
+    return ok(c, buildPaginated(dtoList, total, limit, offset));
   })
   .openapi(getUserByIdRoute, async (c) => {
     const { id } = c.req.valid("param");
     const service = new UserService(c.var.userRepo);
-    const user = await service.findById(id as EntityId);
+    const user = await service.findById(id);
 
     if (!user) {
       return fail(
@@ -104,7 +106,7 @@ export const usersRoute = new OpenAPIHono<AppEnv>({ defaultHook })
       );
     }
 
-    return ok(c, user);
+    return ok(c, UserMapper.toDto(user));
   })
   .openapi(createUserRoute, async (c) => {
     const body = c.req.valid("json");
@@ -115,5 +117,5 @@ export const usersRoute = new OpenAPIHono<AppEnv>({ defaultHook })
       avatarUrl: body.avatarUrl,
     });
 
-    return ok(c, newUser, HttpStatus.CREATED);
+    return ok(c, UserMapper.toDto(newUser), HttpStatus.CREATED);
   });

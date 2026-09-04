@@ -1,0 +1,32 @@
+import { DateTime, type EntityId, type User as UserDto } from "@myself/shared";
+import { User } from "../models/user.entity";
+
+export interface RawUserRecord {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+  createdAt: string;
+}
+
+export class UserMapper {
+  static toDomain(raw: RawUserRecord): User {
+    return new User({
+      id: raw.id as EntityId,
+      name: raw.name,
+      email: raw.email,
+      avatarUrl: raw.avatarUrl ?? undefined,
+      createdAt: DateTime.from(raw.createdAt),
+    });
+  }
+
+  static toDto(entity: User): UserDto {
+    return {
+      id: entity.id,
+      name: entity.name,
+      email: entity.email,
+      avatar_url: entity.avatarUrl,
+      created_at: entity.createdAt.toISOString(),
+    };
+  }
+}

@@ -1,9 +1,10 @@
 import {
-  type User,
   type CreateUserInput,
   type EntityId,
+  DateTime,
   generateEntityId,
 } from "@myself/shared";
+import { User } from "../domain";
 import type {
   UserRepository,
   ListUsersParams,
@@ -36,16 +37,16 @@ export class UserService {
     }
 
     const id = generateEntityId();
-    const createdAt = new Date().toISOString();
+    const createdAt = DateTime.now();
     const avatarUrl = input.avatarUrl?.trim() || undefined;
 
-    const user: User = {
+    const user = new User({
       id,
       name: input.name.trim(),
       email,
-      avatar_url: avatarUrl,
-      created_at: createdAt,
-    };
+      avatarUrl,
+      createdAt,
+    });
 
     try {
       return await this.userRepo.create(user);

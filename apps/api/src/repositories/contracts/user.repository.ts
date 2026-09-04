@@ -1,4 +1,4 @@
-import type { User } from "@myself/shared";
+import type { User } from "../../domain";
 
 export interface ListUsersParams {
   limit: number;

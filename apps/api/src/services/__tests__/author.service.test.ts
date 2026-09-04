@@ -22,7 +22,8 @@ describe("AuthorService Domain Application Service Unit Tests", () => {
     expect(author.id).toBeDefined();
     expect(author.name).toBe("Seneca The Younger");
     expect(author.bio).toBe("Stoic philosopher");
-    expect(author.created_at).toBeDefined();
+    expect(author.createdAt).toBeDefined();
+    expect(author.createdAt.toISOString()).toBeDefined();
 
     const stored = await service.findById(author.id);
     expect(stored).toEqual(author);

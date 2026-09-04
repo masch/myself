@@ -1,4 +1,5 @@
-import { type Author, generateEntityId } from "@myself/shared";
+import { DateTime, generateEntityId } from "@myself/shared";
+import { Author } from "../domain";
 import type {
   AuthorRepository,
   ListAuthorsParams,
@@ -27,15 +28,15 @@ export class AuthorService {
 
   async create(input: CreateAuthorInput): Promise<Author> {
     const id = generateEntityId();
-    const createdAt = new Date().toISOString();
+    const createdAt = DateTime.now();
     const bio = input.bio?.trim() || undefined;
 
-    const author: Author = {
+    const author = new Author({
       id,
       name: input.name.trim(),
       bio,
-      created_at: createdAt,
-    };
+      createdAt,
+    });
 
     return this.authorRepo.create(author);
   }

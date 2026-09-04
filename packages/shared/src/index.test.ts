@@ -6,6 +6,7 @@ import {
   createReadingSchema,
   createUserSchema,
   entityIdSchema,
+  DateTime,
   ErrorCode,
   generateEntityId,
   HttpStatus,
@@ -208,6 +209,49 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       expect(ErrorCode.CONFLICT).toBe("CONFLICT");
       expect(ErrorCode.USER_ALREADY_EXISTS).toBe("USER_ALREADY_EXISTS");
       expect(ErrorCode.ENTITY_NOT_FOUND).toBe("ENTITY_NOT_FOUND");
+    });
+  });
+
+  describe("DateTime Value Object", () => {
+    it("DateTime.now() returns instance with valid toISOString", () => {
+      const dt = DateTime.now();
+      expect(dt instanceof DateTime).toBe(true);
+      expect(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(dt.toISOString()),
+      ).toBe(true);
+      expect(Number.isNaN(Date.parse(dt.toISOString()))).toBe(false);
+    });
+
+    it("DateTime.from() parses valid ISO strings and Dates", () => {
+      const iso = "2026-09-04T12:00:00.000Z";
+      const dt = DateTime.from(iso);
+      expect(dt.toISOString()).toBe(iso);
+
+      const fromDate = DateTime.from(new Date(iso));
+      expect(fromDate.toISOString()).toBe(iso);
+      expect(dt.equals(fromDate)).toBe(true);
+
+      const fromInstance = DateTime.from(dt);
+      expect(fromInstance).toBe(dt);
+    });
+
+    it("DateTime.from() throws for invalid inputs", () => {
+      expect(() => DateTime.from("not-a-date")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from(new Date("invalid"))).toThrow(
+        "Invalid date representation",
+      );
+    });
+
+    it("DateTime.equals() verifies value equality", () => {
+      const dt1 = DateTime.from("2026-09-04T10:00:00.000Z");
+      const dt2 = DateTime.from("2026-09-04T10:00:00.000Z");
+      const dt3 = DateTime.from("2026-09-04T11:00:00.000Z");
+
+      expect(dt1.equals(dt2)).toBe(true);
+      expect(dt1.equals(dt3)).toBe(false);
+      expect(dt1.equals({} as any)).toBe(false);
     });
   });
 });

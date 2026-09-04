@@ -8,6 +8,7 @@ import type { AppEnv } from "../types";
 import { defaultHook } from "../lib/validator";
 import { ok } from "../lib/response";
 import { buildPaginated } from "../lib/pagination";
+import { AuthorMapper } from "../domain";
 import { AuthorService } from "../services/author.service";
 
 export const listAuthorsRoute = createRoute({
@@ -60,7 +61,8 @@ export const authorsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
     const service = new AuthorService(c.var.authorRepo);
     const { items, total } = await service.list({ limit, offset });
 
-    return ok(c, buildPaginated(items, total, limit, offset));
+    const dtoList = items.map((author) => AuthorMapper.toDto(author));
+    return ok(c, buildPaginated(dtoList, total, limit, offset));
   })
   .openapi(createAuthorRoute, async (c) => {
     const body = c.req.valid("json");
@@ -70,5 +72,5 @@ export const authorsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
       bio: body.bio,
     });
 
-    return ok(c, newAuthor, HttpStatus.CREATED);
+    return ok(c, AuthorMapper.toDto(newAuthor), HttpStatus.CREATED);
   });
