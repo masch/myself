@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { describe, expect, it } from "bun:test";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { createDb } from "../client";
+import { createDb, isLocalDatabase } from "../client";
 import { seedDatabase, seedFromConfig } from "../seed";
 import { AppConfig } from "../../config";
 
@@ -12,6 +12,10 @@ describe("Database Client Factory Unit Tests", () => {
 
     const dbFile = createDb({ url: "file:test.db" });
     expect(dbFile).toBeDefined();
+
+    expect(isLocalDatabase(":memory:")).toBe(true);
+    expect(isLocalDatabase("file:test.db")).toBe(true);
+    expect(isLocalDatabase("libsql://example.turso.io")).toBe(false);
   });
 
   it("initializes web client when url is remote", () => {
