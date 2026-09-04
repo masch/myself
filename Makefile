@@ -218,11 +218,11 @@ api-db-migrate-local:
 
 .PHONY: api-db-migrate-remote
 api-db-migrate-remote:
-	cd apps/api && (test -f .dev.vars && bun --env-file=.dev.vars x drizzle-kit migrate || bunx drizzle-kit migrate)
+	cd apps/api && if [ -f .dev.vars ]; then bun --env-file=.dev.vars x drizzle-kit migrate; else bunx drizzle-kit migrate; fi
 
 .PHONY: api-db-studio
 api-db-studio:
-	cd apps/api && (test -f .dev.vars && bun --env-file=.dev.vars x drizzle-kit studio || bunx drizzle-kit studio)
+	cd apps/api && if [ -f .dev.vars ]; then bun --env-file=.dev.vars x drizzle-kit studio; else bunx drizzle-kit studio; fi
 
 .PHONY: api-deploy
 api-deploy:

@@ -1,6 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import type { AppEnv, ApiBindings } from "../types";
-import { createDb } from "../db/client";
+import { createDb, IN_MEMORY_DB } from "../db/client";
 import type { AppConfig } from "../config";
 import type { AuthorRepository } from "../repositories/contracts/author.repository";
 import type { ReadingRepository } from "../repositories/contracts/reading.repository";
@@ -24,7 +24,7 @@ export function createRepositories(
 ): RepositoriesDependencies {
   const { url, authToken } = config.database;
   const db = createDb({
-    url: url === "memory" ? ":memory:" : url,
+    url: url === "memory" ? IN_MEMORY_DB : url,
     authToken,
   });
 

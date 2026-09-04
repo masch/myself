@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { createDb, type DbClient } from "./client";
+import { createDb, IN_MEMORY_DB, type DbClient } from "./client";
 import { seedDatabase } from "./seed";
 import { DrizzleAuthorRepository } from "../repositories/drizzle/drizzle-author.repository";
 import { DrizzleReadingRepository } from "../repositories/drizzle/drizzle-reading.repository";
@@ -10,7 +10,7 @@ import type { RepositoriesDependencies } from "../middleware/repositories";
 export async function createTestDatabase(
   options: { seed?: boolean } = { seed: true },
 ): Promise<DbClient> {
-  const db = createDb({ url: ":memory:" });
+  const db = createDb({ url: IN_MEMORY_DB });
   const migrationsFolder = join(import.meta.dir, "./migrations");
   await migrate(db, { migrationsFolder });
 

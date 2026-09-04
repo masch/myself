@@ -72,7 +72,7 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     const existing = await repos.userRepo.findByEmail("marcus@rome.gov");
     if (!existing) {
       await repos.userRepo.create({
-        id: "u0000000-0000-4000-8000-000000000001" as any,
+        id: "a0000000-0000-4000-8000-000000000001" as any,
         name: "Marcus Aurelius",
         email: "marcus@rome.gov",
         created_at: new Date().toISOString(),

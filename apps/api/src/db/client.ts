@@ -5,19 +5,21 @@ import * as schema from "./schema";
 export type DbClient = LibSQLDatabase<typeof schema>;
 
 export interface DbConfig {
-  url?: string;
+  url: string;
   authToken?: string;
 }
 
-const isWorkers = (): boolean =>
+export const IN_MEMORY_DB = ":memory:";
+
+export const isWorkers = (): boolean =>
   typeof navigator !== "undefined" &&
   navigator.userAgent === "Cloudflare-Workers";
 
-const isLocalDatabase = (url: string): boolean => {
+export const isLocalDatabase = (url: string): boolean => {
   if (isWorkers()) {
     return false;
   }
-  return url.startsWith("file:") || url === ":memory:";
+  return url.startsWith("file:") || url === IN_MEMORY_DB;
 };
 
 /**
@@ -25,12 +27,11 @@ const isLocalDatabase = (url: string): boolean => {
  * Uses @libsql/client/web by default for remote Turso HTTP/WebSocket connections (Cloudflare Workers edge-safe),
  * and dynamically falls back to native @libsql/client for local files or :memory: in Bun/Node.
  */
-export function createDb(config: DbConfig = {}): DbClient {
-  let url = config.url || "file:local.db";
-  const authToken = config.authToken;
+export function createDb(config: DbConfig): DbClient {
+  const { url, authToken } = config;
 
   // In Cloudflare Workers, local filesystem (file: or :memory:) is unsupported.
-  if (isWorkers() && (url.startsWith("file:") || url === ":memory:")) {
+  if (isWorkers() && (url.startsWith("file:") || url === IN_MEMORY_DB)) {
     throw new Error(
       "Cloudflare Workers does not support local SQLite file or in-memory databases. Configure a remote Turso database URL (TURSO_DATABASE_URL).",
     );

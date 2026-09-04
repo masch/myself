@@ -6,10 +6,7 @@ import { seedDatabase, seedFromConfig } from "../seed";
 import { AppConfig } from "../../config";
 
 describe("Database Client Factory Unit Tests", () => {
-  it("initializes local SQLite client when url is local or omitted", () => {
-    const dbDefault = createDb();
-    expect(dbDefault).toBeDefined();
-
+  it("initializes local SQLite client when url is local", () => {
     const dbMemory = createDb({ url: ":memory:" });
     expect(dbMemory).toBeDefined();
 

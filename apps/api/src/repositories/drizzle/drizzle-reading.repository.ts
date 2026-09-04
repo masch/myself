@@ -24,7 +24,14 @@ function mapTranslations(rows: TranslationRow[]): SeedReading["translations"] {
     r.locale,
     { title: r.title, content: r.content },
   ]);
-  return Object.fromEntries(entries) as unknown as SeedReading["translations"];
+  const map = Object.fromEntries(entries) as Record<
+    string,
+    { title: string; content: string }
+  >;
+  return {
+    ...map,
+    es: map.es ?? { title: "", content: "" },
+  } as unknown as SeedReading["translations"];
 }
 
 export class DrizzleReadingRepository implements ReadingRepository {

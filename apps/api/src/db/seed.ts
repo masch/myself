@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { SEED_AUTHORS, SEED_READINGS, generateEntityId } from "@myself/shared";
-import { createDb, type DbClient } from "./client";
+import { SEED_AUTHORS, SEED_READINGS } from "@myself/shared";
+import { createDb, isLocalDatabase, type DbClient } from "./client";
 import type { AppConfig } from "../config";
 import { authors } from "./schema/authors";
 import {
@@ -65,7 +65,7 @@ export async function seedDatabase(db: DbClient): Promise<void> {
 export async function seedFromConfig(config: AppConfig): Promise<void> {
   const { url, authToken } = config.database;
   const db = createDb({ url, authToken });
-  if (url.startsWith("file:") || url === ":memory:") {
+  if (isLocalDatabase(url)) {
     const migrationsFolder = join(import.meta.dir, "./migrations");
     await migrate(db, { migrationsFolder });
   }

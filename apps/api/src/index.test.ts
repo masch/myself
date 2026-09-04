@@ -247,8 +247,8 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const reading = body.data?.items[0];
       expect(reading?.id).toBeDefined();
       expect(reading?.author_id).toBeDefined();
-      expect(reading?.translations.es.title).toBeDefined();
-      expect(reading?.translations.es.content).toBeDefined();
+      expect(reading?.translations.es?.title).toBeDefined();
+      expect(reading?.translations.es?.content).toBeDefined();
     });
 
     it("GET /v1/readings filters by authorId query param", async () => {
@@ -332,7 +332,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       );
       expect(body.data?.author_id).toBe(SEED_AUTHOR_IDS.SENECA);
-      expect(body.data?.translations.es.title).toBe(
+      expect(body.data?.translations.es?.title).toBe(
         "Sobre la Brevedad de la Vida",
       );
       expect(body.data?.translations.en?.title).toBe(
