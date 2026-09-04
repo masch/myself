@@ -1,5 +1,6 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { ReadingService } from "../reading.service";
+import { BadRequestError } from "../../errors";
 import { DrizzleReadingRepository } from "../../repositories/drizzle/drizzle-reading.repository";
 import { DrizzleAuthorRepository } from "../../repositories/drizzle/drizzle-author.repository";
 import { AuthorService } from "../author.service";
@@ -11,7 +12,7 @@ describe("ReadingService Domain Application Service Unit Tests", () => {
   let authorService: AuthorService;
   let testAuthorId: string;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     const db = await createTestDatabase({ seed: false });
     readingRepo = new DrizzleReadingRepository(db);
     service = new ReadingService(readingRepo);
@@ -78,9 +79,54 @@ describe("ReadingService Domain Application Service Unit Tests", () => {
     expect(stored?.translations.en).toBeUndefined();
   });
 
+  it("rejects en translation when title is provided but content is blank", async () => {
+    await expect(
+      service.create({
+        authorId: testAuthorId,
+        translations: {
+          es: {
+            title: "Título",
+            content: "Contenido",
+          },
+          en: {
+            title: "Title",
+            content: "   ",
+          },
+        },
+      }),
+    ).rejects.toThrow(BadRequestError);
+  });
+
+  it("rejects en translation when content is provided but title is blank", async () => {
+    await expect(
+      service.create({
+        authorId: testAuthorId,
+        translations: {
+          es: {
+            title: "Título",
+            content: "Contenido",
+          },
+          en: {
+            title: "   ",
+            content: "Content",
+          },
+        },
+      }),
+    ).rejects.toThrow(BadRequestError);
+  });
+
   it("lists readings with pagination and authorId filter through service", async () => {
     const author2 = await authorService.create({ name: "Epictetus" });
 
+    await service.create({
+      authorId: testAuthorId,
+      translations: {
+        es: {
+          title: "Meditación 1",
+          content: "Contenido 1",
+        },
+      },
+    });
     await service.create({
       authorId: author2.id,
       translations: {
@@ -101,7 +147,8 @@ describe("ReadingService Domain Application Service Unit Tests", () => {
     });
 
     const allReadings = await service.list({ limit: 10, offset: 0 });
-    expect(allReadings.items.length).toBeGreaterThanOrEqual(3);
+    expect(allReadings.items.length).toBe(3);
+    expect(allReadings.total).toBe(3);
 
     const author2Readings = await service.list({
       limit: 10,

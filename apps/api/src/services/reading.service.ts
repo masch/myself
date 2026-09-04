@@ -10,6 +10,7 @@ import type {
   ListReadingsResult,
   ReadingRepository,
 } from "../repositories/contracts/reading.repository";
+import { BadRequestError } from "../errors";
 
 export { type CreateReadingInput };
 
@@ -35,15 +36,20 @@ export class ReadingService {
       },
     };
 
-    if (
-      input.translations.en &&
-      (input.translations.en.title.trim() ||
-        input.translations.en.content.trim())
-    ) {
-      translations.en = {
-        title: input.translations.en.title.trim(),
-        content: input.translations.en.content.trim(),
-      };
+    if (input.translations.en) {
+      const enTitle = input.translations.en.title.trim();
+      const enContent = input.translations.en.content.trim();
+
+      if (enTitle && enContent) {
+        translations.en = {
+          title: enTitle,
+          content: enContent,
+        };
+      } else if (enTitle || enContent) {
+        throw new BadRequestError(
+          "English translation requires both title and content to be provided",
+        );
+      }
     }
 
     const reading = new Reading({

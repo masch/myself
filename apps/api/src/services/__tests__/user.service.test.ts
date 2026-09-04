@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { UserService, UserConflictError } from "../user.service";
 import { DrizzleUserRepository } from "../../repositories/drizzle/drizzle-user.repository";
 import { createTestDatabase } from "../../db/test-db";
@@ -7,7 +7,7 @@ describe("UserService Domain Application Service Unit Tests", () => {
   let repo: DrizzleUserRepository;
   let service: UserService;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     const db = await createTestDatabase({ seed: false });
     repo = new DrizzleUserRepository(db);
     service = new UserService(repo);
@@ -45,6 +45,11 @@ describe("UserService Domain Application Service Unit Tests", () => {
   });
 
   it("throws UserConflictError when email is already registered", async () => {
+    await service.create({
+      name: "Existing Marcus",
+      email: "marcus@rome.gov",
+    });
+
     await expect(
       service.create({
         name: "Different Marcus",
@@ -59,6 +64,6 @@ describe("UserService Domain Application Service Unit Tests", () => {
 
     const result = await service.list({ limit: 1, offset: 0 });
     expect(result.items.length).toBe(1);
-    expect(result.total).toBeGreaterThanOrEqual(2);
+    expect(result.total).toBe(2);
   });
 });

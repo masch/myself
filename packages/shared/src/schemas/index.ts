@@ -45,6 +45,10 @@ export const uuidParamSchema = z.object({
   id: entityIdSchema,
 });
 
+export const readingParamSchema = z.object({
+  id: z.string().trim().min(1, "Reading ID is required"),
+});
+
 export type CreateReadingInput = z.infer<typeof createReadingSchema>;
 export type CreateAuthorInput = z.infer<typeof createAuthorSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
@@ -53,3 +57,4 @@ export type ListReadingsQuery = z.infer<typeof listReadingsQuerySchema>;
 export type ListAuthorsQuery = z.infer<typeof listAuthorsQuerySchema>;
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;
 export type UuidParam = z.infer<typeof uuidParamSchema>;
+export type ReadingParam = z.infer<typeof readingParamSchema>;

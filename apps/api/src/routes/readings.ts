@@ -1,9 +1,10 @@
-import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import {
   createReadingSchema,
   ErrorCode,
   HttpStatus,
   listReadingsQuerySchema,
+  readingParamSchema,
 } from "@myself/shared";
 import type { AppEnv } from "../types";
 import { defaultHook } from "../lib/validator";
@@ -38,9 +39,7 @@ export const getReadingByIdRoute = createRoute({
   summary: "Get reading by ID",
   description: "Returns the reading details and its translations.",
   request: {
-    params: z.object({
-      id: z.string().min(1),
-    }),
+    params: readingParamSchema,
   },
   responses: {
     [HttpStatus.OK]: {

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { AuthorService } from "../author.service";
 import { DrizzleAuthorRepository } from "../../repositories/drizzle/drizzle-author.repository";
 import { createTestDatabase } from "../../db/test-db";
@@ -7,7 +7,7 @@ describe("AuthorService Domain Application Service Unit Tests", () => {
   let repo: DrizzleAuthorRepository;
   let service: AuthorService;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     const db = await createTestDatabase({ seed: false });
     repo = new DrizzleAuthorRepository(db);
     service = new AuthorService(repo);
@@ -48,6 +48,6 @@ describe("AuthorService Domain Application Service Unit Tests", () => {
 
     const result = await service.list({ limit: 1, offset: 0 });
     expect(result.items.length).toBe(1);
-    expect(result.total).toBeGreaterThanOrEqual(2);
+    expect(result.total).toBe(2);
   });
 });
