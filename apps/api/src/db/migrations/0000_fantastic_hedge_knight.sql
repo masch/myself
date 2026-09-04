@@ -34,7 +34,9 @@ CREATE TABLE `users` (
 	`name` text NOT NULL,
 	`email` text NOT NULL,
 	`avatar_url` text,
-	`created_at` text NOT NULL
+	`created_at` text NOT NULL,
+	CONSTRAINT "users_name_not_empty" CHECK(length(trim("name")) > 0),
+	CONSTRAINT "users_email_not_empty" CHECK(length(trim("email")) > 0)
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);

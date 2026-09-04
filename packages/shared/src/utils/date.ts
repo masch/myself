@@ -1,4 +1,51 @@
 /**
+ * Strict ISO 8601 / RFC 3339 date-time pattern matching.
+ * Accepts YYYY-MM-DD, and optionally time with 'T' or space separator,
+ * optional fractional seconds, and timezone offset or 'Z'.
+ */
+const ISO_DATE_REGEX =
+  /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?$/;
+
+/**
+ * Validates ISO 8601 syntax and calendar validity (including leap years and month boundaries).
+ *
+ * Rationale for explicit validation overhead:
+ * 1. Cross-Platform Engine Parity: This package is universal and runs in V8 (Cloudflare Workers, Bun)
+ *    and Hermes / JSC (React Native mobile). Non-ISO string parsing via `new Date(string)` is
+ *    implementation-dependent across engines. Hermes rejects or misinterprets non-ISO formats that V8 tolerates.
+ * 2. Silent Date Rollover: Native `new Date("YYYY-MM-DD")` in many engines silently rolls over invalid calendar
+ *    days (e.g. "2026-02-30" rolls over to March 2). Validating days in month prevents subtle data corruption.
+ * 3. Contract Guarantee: Ensures any date string ingested produces deterministic timestamps and identical
+ *    behavior across API and mobile clients without runtime surprises.
+ */
+function isValidIsoDateString(val: string): boolean {
+  const match = val.match(ISO_DATE_REGEX);
+  if (!match) return false;
+
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const day = parseInt(match[3], 10);
+
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  if (day > daysInMonth) return false;
+
+  if (
+    match[4] !== undefined &&
+    match[5] !== undefined &&
+    match[6] !== undefined
+  ) {
+    const hour = parseInt(match[4], 10);
+    const min = parseInt(match[5], 10);
+    const sec = parseInt(match[6], 10);
+    if (hour > 23 || min > 59 || sec > 59) return false;
+  }
+
+  return true;
+}
+
+/**
  * Immutable Value Object representing a point in time.
  */
 export class DateTime {
@@ -24,14 +71,27 @@ export class DateTime {
       return value;
     }
 
-    const date =
-      value instanceof Date ? new Date(value.getTime()) : new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      throw new Error(`Invalid date representation: ${String(value)}`);
+    if (value instanceof Date) {
+      if (Number.isNaN(value.getTime())) {
+        throw new Error(`Invalid date representation: ${String(value)}`);
+      }
+      return new DateTime(new Date(value.getTime()));
     }
 
-    return new DateTime(date);
+    if (typeof value === "string") {
+      if (!isValidIsoDateString(value)) {
+        throw new Error(`Invalid date representation: ${value}`);
+      }
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        throw new Error(`Invalid date representation: ${value}`);
+      }
+
+      return new DateTime(date);
+    }
+
+    throw new Error(`Invalid date representation: ${String(value)}`);
   }
 
   /**

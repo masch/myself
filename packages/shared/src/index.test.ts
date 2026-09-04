@@ -239,6 +239,21 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       expect(() => DateTime.from("not-a-date")).toThrow(
         "Invalid date representation",
       );
+      expect(() => DateTime.from("September 4, 2026")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("04/09/2026")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-02-30")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-13-01")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-01-32")).toThrow(
+        "Invalid date representation",
+      );
       expect(() => DateTime.from(new Date("invalid"))).toThrow(
         "Invalid date representation",
       );
