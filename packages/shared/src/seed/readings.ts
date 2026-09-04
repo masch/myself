@@ -17,55 +17,55 @@ export const SEED_AUTHORS: SeedAuthor[] = [
     id: SEED_AUTHOR_IDS.MARCUS_AURELIUS,
     name: "Marco Aurelio",
     bio: "Emperador romano y filósofo estoico, autor de las Meditaciones.",
-    createdAt: "2026-08-15T08:00:00Z",
+    createdAt: "2026-08-15T08:00:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.SENECA,
     name: "Séneca",
     bio: "Filósofo estoico, estadista y dramaturgo romano.",
-    createdAt: "2026-08-16T09:00:00Z",
+    createdAt: "2026-08-16T09:00:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.EPICTETUS,
     name: "Epicteto",
     bio: "Filósofo estoico griego, nacido esclavo en Hierápolis.",
-    createdAt: "2026-08-18T10:00:00Z",
+    createdAt: "2026-08-18T10:00:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.LAO_TZU,
     name: "Lao-Tse",
     bio: "Antiguo filósofo y escritor chino, figura central del taoísmo.",
-    createdAt: "2026-08-14T06:45:00Z",
+    createdAt: "2026-08-14T06:45:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.THICH_NHAT_HANH,
     name: "Thich Nhat Hanh",
     bio: "Monje budista zen vietnamita, activista por la paz y maestro de mindfulness.",
-    createdAt: "2026-08-17T07:30:00Z",
+    createdAt: "2026-08-17T07:30:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.JOHN_O_DONOHUE,
     name: "John O’Donohue",
     bio: "Poeta, filósofo y místico celta irlandés, autor de Anam Cara.",
-    createdAt: "2026-08-19T08:30:00Z",
+    createdAt: "2026-08-19T08:30:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.RAIMON_PANIKKAR,
     name: "Raimon Panikkar",
     bio: "Teólogo y filósofo hispano-indio, pionero del diálogo interreligioso e intercultural.",
-    createdAt: "2026-08-31T08:00:00Z",
+    createdAt: "2026-08-31T08:00:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
     name: "Francisco Luis Bernárdez",
     bio: "Poeta y diplomático argentino, figura clave de la lírica espiritual.",
-    createdAt: "2026-09-01T08:00:00Z",
+    createdAt: "2026-09-01T08:00:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.MARY_OLIVER,
     name: "Mary Oliver",
     bio: "Poeta estadounidense, ganadora del Premio Pulitzer, celebrada por su profunda contemplación de la naturaleza y la quietud.",
-    createdAt: "2026-09-02T08:00:00Z",
+    createdAt: "2026-09-02T08:00:00-03:00",
   },
 ];
 
@@ -73,8 +73,8 @@ export const SEED_READINGS: SeedReading[] = [
   {
     id: "r0000000-0000-4000-8000-000000000001",
     author_id: SEED_AUTHOR_IDS.MARCUS_AURELIUS,
-    createdAt: "2026-08-15T08:00:00Z",
-    readDates: ["2026-08-20T08:30:00Z", "2026-08-24T07:45:00Z"],
+    createdAt: "2026-08-15T08:00:00-03:00",
+    readDates: ["2026-08-20T08:30:00-03:00", "2026-08-24T07:45:00-03:00"],
     translations: {
       es: {
         title: "Poder sobre la Mente",
@@ -92,7 +92,7 @@ export const SEED_READINGS: SeedReading[] = [
   {
     id: "r0000000-0000-4000-8000-000000000002",
     author_id: SEED_AUTHOR_IDS.SENECA,
-    createdAt: "2026-08-16T09:00:00Z",
+    createdAt: "2026-08-16T09:00:00-03:00",
     readDates: [],
     translations: {
       es: {
@@ -111,8 +111,8 @@ La verdadera serenidad
   {
     id: "r0000000-0000-4000-8000-000000000003",
     author_id: SEED_AUTHOR_IDS.THICH_NHAT_HANH,
-    createdAt: "2026-08-17T07:30:00Z",
-    readDates: ["2026-08-25T08:00:00Z"],
+    createdAt: "2026-08-17T07:30:00-03:00",
+    readDates: ["2026-08-25T08:00:00-03:00"],
     translations: {
       es: {
         title: "El Puente de la Respiración",
@@ -132,7 +132,7 @@ La verdadera serenidad
   {
     id: "r0000000-0000-4000-8000-000000000004",
     author_id: SEED_AUTHOR_IDS.EPICTETUS,
-    createdAt: "2026-08-18T10:00:00Z",
+    createdAt: "2026-08-18T10:00:00-03:00",
     readDates: [],
     translations: {
       es: {
@@ -150,11 +150,11 @@ La riqueza no consiste
   {
     id: "r0000000-0000-4000-8000-000000000005",
     author_id: SEED_AUTHOR_IDS.LAO_TZU,
-    createdAt: "2026-08-14T06:45:00Z",
+    createdAt: "2026-08-14T06:45:00-03:00",
     readDates: [
-      "2026-08-18T09:00:00Z",
-      "2026-08-21T08:15:00Z",
-      "2026-08-23T07:30:00Z",
+      "2026-08-18T09:00:00-03:00",
+      "2026-08-21T08:15:00-03:00",
+      "2026-08-23T07:30:00-03:00",
     ],
     translations: {
       es: {
@@ -174,7 +174,7 @@ La naturaleza no se apresura,
   {
     id: "r0000000-0000-4000-8000-000000000006",
     author_id: SEED_AUTHOR_IDS.JOHN_O_DONOHUE,
-    createdAt: "2026-08-19T08:30:00Z",
+    createdAt: "2026-08-19T08:30:00-03:00",
     readDates: [],
     translations: {
       es: {
@@ -202,8 +202,8 @@ Que permitas que la belleza salvaje del mundo invisible te reúna, te cuide y te
   {
     id: "r0000000-0000-4000-8000-000000000007",
     author_id: SEED_AUTHOR_IDS.RAIMON_PANIKKAR,
-    createdAt: "2026-08-31T08:00:00Z",
-    readDates: ["2026-08-31T08:30:00Z"],
+    createdAt: "2026-08-31T08:00:00-03:00",
+    readDates: ["2026-08-31T08:30:00-03:00"],
     translations: {
       es: {
         title: "Extracto de ICONOS DEL MISTERIO",
@@ -222,8 +222,8 @@ La Vida pura y desnuda es el don que nos ha sido dado – y que en última insta
   {
     id: "r0000000-0000-4000-8000-000000000008",
     author_id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
-    createdAt: "2026-09-01T08:00:00Z",
-    readDates: ["2026-09-01T08:30:00Z"],
+    createdAt: "2026-09-01T08:00:00-03:00",
+    readDates: ["2026-09-01T08:30:00-03:00"],
     translations: {
       es: {
         title: "FRAGMENTO de EL RUISEÑOR",
@@ -265,8 +265,8 @@ Pero en mi frente silenciosa la voz divina ya se había despertado`,
   {
     id: "r0000000-0000-4000-8000-000000000009",
     author_id: SEED_AUTHOR_IDS.MARY_OLIVER,
-    createdAt: "2026-09-02T08:00:00Z",
-    readDates: ["2026-09-02T08:30:00Z"],
+    createdAt: "2026-09-02T08:00:00-03:00",
+    readDates: ["2026-09-02T08:30:00-03:00"],
     translations: {
       es: {
         title: "Canción de los constructores",
