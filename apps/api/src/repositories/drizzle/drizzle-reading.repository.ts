@@ -1,14 +1,11 @@
 import { eq, count, desc, inArray } from "drizzle-orm";
-import type {
-  ReadingTranslationInput,
-  SeedReading,
-  SupportedLocale,
-} from "@myself/shared";
+import type { SeedReading } from "@myself/shared";
 import type { DbClient } from "../../db/client";
 import {
   meditationReadings,
   meditationReadingTranslations,
   readingLogs,
+  SUPPORTED_LOCALES,
 } from "../../db/schema/readings";
 import { type Reading, ReadingMapper } from "../../domain";
 import type {
@@ -20,18 +17,18 @@ import type {
 type TranslationRow = typeof meditationReadingTranslations.$inferSelect;
 
 function mapTranslations(rows: TranslationRow[]): SeedReading["translations"] {
-  const entries = rows.map((r) => [
-    r.locale,
-    { title: r.title, content: r.content },
-  ]);
-  const map = Object.fromEntries(entries) as Record<
-    string,
-    { title: string; content: string }
-  >;
-  return {
-    ...map,
-    es: map.es ?? { title: "", content: "" },
-  } as unknown as SeedReading["translations"];
+  const translations: SeedReading["translations"] = {
+    es: { title: "", content: "" },
+  };
+
+  for (const row of rows) {
+    translations[row.locale] = {
+      title: row.title,
+      content: row.content,
+    };
+  }
+
+  return translations;
 }
 
 export class DrizzleReadingRepository implements ReadingRepository {
@@ -147,21 +144,20 @@ export class DrizzleReadingRepository implements ReadingRepository {
   }
 
   async create(reading: Reading): Promise<Reading> {
-    const translationInserts = (
-      Object.entries(reading.translations) as [
-        SupportedLocale,
-        ReadingTranslationInput | undefined,
-      ][]
-    )
-      .filter((entry): entry is [SupportedLocale, ReadingTranslationInput] =>
-        Boolean(entry[1] && (entry[1].title || entry[1].content)),
-      )
-      .map(([locale, trans]) => ({
-        readingId: reading.id,
-        locale,
-        title: trans.title,
-        content: trans.content,
-      }));
+    const translationInserts: (typeof meditationReadingTranslations.$inferInsert)[] =
+      [];
+
+    for (const locale of SUPPORTED_LOCALES) {
+      const trans = reading.translations[locale];
+      if (trans && (trans.title || trans.content)) {
+        translationInserts.push({
+          readingId: reading.id,
+          locale,
+          title: trans.title,
+          content: trans.content,
+        });
+      }
+    }
 
     await this.db.transaction(async (tx) => {
       await tx.insert(meditationReadings).values({

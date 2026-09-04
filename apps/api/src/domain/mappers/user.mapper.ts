@@ -2,7 +2,7 @@ import { DateTime, type EntityId, type User as UserDto } from "@myself/shared";
 import { User } from "../models/user.entity";
 
 export interface RawUserRecord {
-  id: string;
+  id: EntityId;
   name: string;
   email: string;
   avatarUrl?: string | null;
@@ -12,7 +12,7 @@ export interface RawUserRecord {
 export class UserMapper {
   static toDomain(raw: RawUserRecord): User {
     return new User({
-      id: raw.id as EntityId,
+      id: raw.id,
       name: raw.name,
       email: raw.email,
       avatarUrl: raw.avatarUrl ?? undefined,

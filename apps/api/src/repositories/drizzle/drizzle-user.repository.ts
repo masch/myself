@@ -1,4 +1,5 @@
 import { eq, sql, asc } from "drizzle-orm";
+import type { EntityId } from "@myself/shared";
 import type { DbClient } from "../../db/client";
 import { users } from "../../db/schema/users";
 import { type User, UserMapper } from "../../domain";
@@ -31,7 +32,7 @@ export class DrizzleUserRepository implements UserRepository {
     };
   }
 
-  async findById(id: string): Promise<User | null> {
+  async findById(id: EntityId): Promise<User | null> {
     const [row] = await this.db.select().from(users).where(eq(users.id, id));
 
     if (!row) return null;

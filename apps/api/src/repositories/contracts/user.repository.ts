@@ -1,3 +1,4 @@
+import type { EntityId } from "@myself/shared";
 import type { User } from "../../domain";
 
 export interface ListUsersParams {
@@ -12,7 +13,7 @@ export interface ListUsersResult {
 
 export interface UserRepository {
   list(params: ListUsersParams): Promise<ListUsersResult>;
-  findById(id: string): Promise<User | null>;
+  findById(id: EntityId): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   create(user: User): Promise<User>;
 }
