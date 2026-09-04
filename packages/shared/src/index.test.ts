@@ -227,6 +227,14 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       const dt = DateTime.from(iso);
       expect(dt.toISOString()).toBe(iso);
 
+      // Date-only input parses as UTC midnight
+      const dateOnly = DateTime.from("2026-09-04");
+      expect(dateOnly.toISOString()).toBe("2026-09-04T00:00:00.000Z");
+
+      // Datetime with explicit timezone offset
+      const withOffset = DateTime.from("2026-09-04T14:00:00+02:00");
+      expect(withOffset.toISOString()).toBe("2026-09-04T12:00:00.000Z");
+
       const fromDate = DateTime.from(new Date(iso));
       expect(fromDate.toISOString()).toBe(iso);
       expect(dt.equals(fromDate)).toBe(true);
@@ -252,6 +260,31 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
         "Invalid date representation",
       );
       expect(() => DateTime.from("2026-01-32")).toThrow(
+        "Invalid date representation",
+      );
+      // Space-separated datetimes must be rejected
+      expect(() => DateTime.from("2026-09-04 12:00:00")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-09-04 12:00:00Z")).toThrow(
+        "Invalid date representation",
+      );
+      // Datetime without explicit timezone offset must be rejected (prevents local time ambiguity)
+      expect(() => DateTime.from("2026-09-04T12:00:00")).toThrow(
+        "Invalid date representation",
+      );
+      // Invalid time boundaries
+      expect(() => DateTime.from("2026-09-04T24:00:00Z")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-09-04T12:60:00Z")).toThrow(
+        "Invalid date representation",
+      );
+      // Invalid timezone offsets
+      expect(() => DateTime.from("2026-09-04T12:00:00+25:00")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-09-04T12:00:00+02:60")).toThrow(
         "Invalid date representation",
       );
       expect(() => DateTime.from(new Date("invalid"))).toThrow(

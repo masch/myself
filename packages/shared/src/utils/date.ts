@@ -1,21 +1,25 @@
 /**
  * Strict ISO 8601 / RFC 3339 date-time pattern matching.
- * Accepts YYYY-MM-DD, and optionally time with 'T' or space separator,
- * optional fractional seconds, and timezone offset or 'Z'.
+ * Accepts YYYY-MM-DD (parsed as UTC midnight), or full date-time with 'T' separator,
+ * optional fractional seconds, and mandatory timezone offset ('Z' or '±HH:MM').
  */
 const ISO_DATE_REGEX =
-  /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?$/;
+  /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-]\d{2}:?\d{2}))?$/;
 
 /**
  * Validates ISO 8601 syntax and calendar validity (including leap years and month boundaries).
  *
  * Rationale for explicit validation overhead:
- * 1. Cross-Platform Engine Parity: This package is universal and runs in V8 (Cloudflare Workers, Bun)
+ * 1. Timezone Determinism & RFC 3339: In ECMAScript, date-time strings without timezone offsets
+ *    (or space-separated) are parsed as local time by the host engine, producing different UTC
+ *    timestamps across distributed clients and servers. Date-only strings (YYYY-MM-DD) are
+ *    consistently parsed as UTC midnight. Datetimes therefore require 'T' and an explicit 'Z' or offset.
+ * 2. Cross-Platform Engine Parity: This package is universal and runs in V8 (Cloudflare Workers, Bun)
  *    and Hermes / JSC (React Native mobile). Non-ISO string parsing via `new Date(string)` is
  *    implementation-dependent across engines. Hermes rejects or misinterprets non-ISO formats that V8 tolerates.
- * 2. Silent Date Rollover: Native `new Date("YYYY-MM-DD")` in many engines silently rolls over invalid calendar
+ * 3. Silent Date Rollover: Native `new Date("YYYY-MM-DD")` in many engines silently rolls over invalid calendar
  *    days (e.g. "2026-02-30" rolls over to March 2). Validating days in month prevents subtle data corruption.
- * 3. Contract Guarantee: Ensures any date string ingested produces deterministic timestamps and identical
+ * 4. Contract Guarantee: Ensures any date string ingested produces deterministic timestamps and identical
  *    behavior across API and mobile clients without runtime surprises.
  */
 function isValidIsoDateString(val: string): boolean {
@@ -40,6 +44,16 @@ function isValidIsoDateString(val: string): boolean {
     const min = parseInt(match[5], 10);
     const sec = parseInt(match[6], 10);
     if (hour > 23 || min > 59 || sec > 59) return false;
+
+    if (match[7] && match[7] !== "Z") {
+      const offsetBody = match[7].slice(1);
+      const parts = offsetBody.includes(":")
+        ? offsetBody.split(":")
+        : [offsetBody.slice(0, 2), offsetBody.slice(2)];
+      const tzHour = parseInt(parts[0], 10);
+      const tzMin = parts[1] ? parseInt(parts[1], 10) : 0;
+      if (tzHour > 23 || tzMin > 59) return false;
+    }
   }
 
   return true;
