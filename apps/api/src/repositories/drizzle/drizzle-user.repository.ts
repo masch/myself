@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, asc } from "drizzle-orm";
 import type { EntityId, User } from "@myself/shared";
 import type { DbClient } from "../../db/client";
 import { users } from "../../db/schema/users";
@@ -19,6 +19,7 @@ export class DrizzleUserRepository implements UserRepository {
     const rows = await this.db
       .select()
       .from(users)
+      .orderBy(asc(users.id))
       .limit(params.limit)
       .offset(params.offset);
 

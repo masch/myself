@@ -34,6 +34,10 @@ describe("Database Client Factory Unit Tests", () => {
     try {
       const dbWorkers = createDb({ url: "http://127.0.0.1:8080" });
       expect(dbWorkers).toBeDefined();
+
+      expect(() => createDb({ url: "file:test.db" })).toThrow(
+        "Cloudflare Workers does not support local SQLite file or in-memory databases",
+      );
     } finally {
       Object.defineProperty(navigator, "userAgent", {
         value: originalUserAgent,

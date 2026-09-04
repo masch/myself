@@ -4,6 +4,7 @@ import {
   createApiClient,
   createAuthorSchema,
   createReadingSchema,
+  createUserSchema,
   entityIdSchema,
   ErrorCode,
   generateEntityId,
@@ -28,6 +29,7 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       for (const author of SEED_AUTHORS) {
         expect(author.id).toBeDefined();
         expect(author.name.trim().length).toBeGreaterThan(0);
+        expect(author.createdAt.trim().length).toBeGreaterThan(0);
       }
     });
 
@@ -125,6 +127,17 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
           },
         }),
       ).toThrow();
+    });
+
+    it("createUserSchema trims name, email, and avatarUrl", () => {
+      const parsed = createUserSchema.parse({
+        name: "  Marcus  ",
+        email: "  marcus@rome.gov  ",
+        avatarUrl: "  https://example.com/marcus.png  ",
+      });
+      expect(parsed.name).toBe("Marcus");
+      expect(parsed.email).toBe("marcus@rome.gov");
+      expect(parsed.avatarUrl).toBe("https://example.com/marcus.png");
     });
 
     it("uuidParamSchema validates valid UUID and rejects non-UUID strings", () => {

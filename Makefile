@@ -205,6 +205,9 @@ api-dev-turso-local:
 api-dev-turso-remote:
 	cd apps/api && bun run dev:turso-remote
 
+.PHONY: api-dev-remote
+api-dev-remote: api-dev-turso-remote
+
 .PHONY: api-db-generate
 api-db-generate:
 	cd apps/api && bunx drizzle-kit generate
@@ -215,11 +218,11 @@ api-db-migrate-local:
 
 .PHONY: api-db-migrate-remote
 api-db-migrate-remote:
-	cd apps/api && bunx drizzle-kit migrate
+	cd apps/api && (test -f .dev.vars && bun --env-file=.dev.vars x drizzle-kit migrate || bunx drizzle-kit migrate)
 
 .PHONY: api-db-studio
 api-db-studio:
-	cd apps/api && bunx drizzle-kit studio
+	cd apps/api && (test -f .dev.vars && bun --env-file=.dev.vars x drizzle-kit studio || bunx drizzle-kit studio)
 
 .PHONY: api-deploy
 api-deploy:

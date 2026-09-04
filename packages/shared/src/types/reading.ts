@@ -11,6 +11,7 @@ export interface SeedAuthor {
   id: string;
   name: string;
   bio?: string;
+  createdAt: string;
 }
 
 export interface MeditationReading {

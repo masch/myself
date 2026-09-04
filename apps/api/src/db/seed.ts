@@ -19,7 +19,7 @@ export async function seedDatabase(db: DbClient): Promise<void> {
         id: author.id,
         name: author.name,
         bio: author.bio ?? null,
-        createdAt: "2026-01-01T00:00:00.000Z",
+        createdAt: author.createdAt,
       })
       .onConflictDoNothing();
   }
@@ -53,7 +53,7 @@ export async function seedDatabase(db: DbClient): Promise<void> {
       await db
         .insert(readingLogs)
         .values({
-          id: generateEntityId(),
+          id: `log-${reading.id}-${readAt.replace(/[\s:]/g, "-")}`,
           readingId: reading.id,
           readAt,
         })

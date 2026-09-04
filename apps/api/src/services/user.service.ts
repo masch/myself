@@ -32,9 +32,7 @@ export class UserService {
     const email = input.email.trim().toLowerCase();
     const existing = await this.userRepo.findByEmail(email);
     if (existing) {
-      throw new UserConflictError(
-        `User with email "${input.email}" already exists`,
-      );
+      throw new UserConflictError(email);
     }
 
     const id = generateEntityId();
@@ -49,6 +47,16 @@ export class UserService {
       created_at: createdAt,
     };
 
-    return this.userRepo.create(user);
+    try {
+      return await this.userRepo.create(user);
+    } catch (err: any) {
+      if (
+        err?.message?.includes("UNIQUE constraint failed") ||
+        err?.code === "SQLITE_CONSTRAINT_UNIQUE"
+      ) {
+        throw new UserConflictError(email);
+      }
+      throw err;
+    }
   }
 }

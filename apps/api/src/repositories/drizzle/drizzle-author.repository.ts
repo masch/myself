@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, count, asc } from "drizzle-orm";
 import type { Author } from "@myself/shared";
 import type { DbClient } from "../../db/client";
 import { authors } from "../../db/schema/authors";
@@ -28,12 +28,17 @@ export class DrizzleAuthorRepository implements AuthorRepository {
   }
 
   async list(params: ListAuthorsParams): Promise<ListAuthorsResult> {
-    const [countResult, rows] = await Promise.all([
-      this.db.select().from(authors),
-      this.db.select().from(authors).limit(params.limit).offset(params.offset),
+    const [totalRow, rows] = await Promise.all([
+      this.db.select({ count: count() }).from(authors),
+      this.db
+        .select()
+        .from(authors)
+        .orderBy(asc(authors.id))
+        .limit(params.limit)
+        .offset(params.offset),
     ]);
 
-    const total = countResult.length;
+    const total = totalRow[0]?.count ?? 0;
     const items: Author[] = rows.map((r) => ({
       id: r.id,
       name: r.name,

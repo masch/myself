@@ -31,8 +31,8 @@ export const listAuthorsQuerySchema = paginationQuerySchema;
 
 export const createUserSchema = z.object({
   name: z.string().trim().min(1, "User name is required"),
-  email: z.email("Invalid email address"),
-  avatarUrl: z.url("Invalid avatar URL").optional(),
+  email: z.string().trim().email("Invalid email address"),
+  avatarUrl: z.string().trim().url("Invalid avatar URL").optional(),
 });
 
 export const listUsersQuerySchema = paginationQuerySchema;

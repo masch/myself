@@ -53,10 +53,14 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const res = await app.request("/health");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as { status: string; uptime: number };
-      expect(body.status).toBe("ok");
-      expect(typeof body.uptime).toBe("number");
-      expect(body.uptime).toBeGreaterThanOrEqual(0);
+      const body = (await res.json()) as ApiResponse<{
+        status: string;
+        uptime: number;
+      }>;
+      expect(body.success).toBe(true);
+      expect(body.data?.status).toBe("ok");
+      expect(typeof body.data?.uptime).toBe("number");
+      expect(body.data?.uptime).toBeGreaterThanOrEqual(0);
     });
 
     it("GET /doc returns valid OpenAPI 3.1 schema document", async () => {

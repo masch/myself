@@ -1,4 +1,4 @@
-import { eq, count, desc } from "drizzle-orm";
+import { eq, count, desc, inArray } from "drizzle-orm";
 import {
   type SeedReading,
   generateEntityId,
@@ -52,26 +52,50 @@ export class DrizzleReadingRepository implements ReadingRepository {
       .offset(params.offset)
       .orderBy(desc(meditationReadings.createdAt));
 
-    const items: SeedReading[] = [];
-    for (const r of rows) {
-      const translations = await this.db
+    if (rows.length === 0) {
+      return {
+        items: [],
+        total: totalRow?.count ?? 0,
+      };
+    }
+
+    const readingIds = rows.map((r) => r.id);
+
+    const [allTranslations, allLogs] = await Promise.all([
+      this.db
         .select()
         .from(meditationReadingTranslations)
-        .where(eq(meditationReadingTranslations.readingId, r.id));
-
-      const logs = await this.db
-        .select({ readAt: readingLogs.readAt })
+        .where(inArray(meditationReadingTranslations.readingId, readingIds)),
+      this.db
+        .select({
+          readingId: readingLogs.readingId,
+          readAt: readingLogs.readAt,
+        })
         .from(readingLogs)
-        .where(eq(readingLogs.readingId, r.id));
+        .where(inArray(readingLogs.readingId, readingIds)),
+    ]);
 
-      items.push({
-        id: r.id,
-        author_id: r.author_id,
-        createdAt: r.createdAt,
-        readDates: logs.map((l) => l.readAt),
-        translations: mapTranslations(translations),
-      });
+    const translationsByReading = new Map<string, TranslationRow[]>();
+    for (const t of allTranslations) {
+      const list = translationsByReading.get(t.readingId) ?? [];
+      list.push(t);
+      translationsByReading.set(t.readingId, list);
     }
+
+    const logsByReading = new Map<string, string[]>();
+    for (const l of allLogs) {
+      const list = logsByReading.get(l.readingId) ?? [];
+      list.push(l.readAt);
+      logsByReading.set(l.readingId, list);
+    }
+
+    const items: SeedReading[] = rows.map((r) => ({
+      id: r.id,
+      author_id: r.author_id,
+      createdAt: r.createdAt,
+      readDates: logsByReading.get(r.id) ?? [],
+      translations: mapTranslations(translationsByReading.get(r.id) ?? []),
+    }));
 
     return {
       items,
@@ -117,12 +141,6 @@ export class DrizzleReadingRepository implements ReadingRepository {
     const id = generateEntityId();
     const createdAt = new Date().toISOString();
 
-    await this.db.insert(meditationReadings).values({
-      id,
-      authorId: input.authorId,
-      createdAt,
-    });
-
     const translationInserts = Object.entries(input.translations)
       .filter(
         (
@@ -137,11 +155,19 @@ export class DrizzleReadingRepository implements ReadingRepository {
         content: trans.content,
       }));
 
-    if (translationInserts.length > 0) {
-      await this.db
-        .insert(meditationReadingTranslations)
-        .values(translationInserts);
-    }
+    await this.db.transaction(async (tx) => {
+      await tx.insert(meditationReadings).values({
+        id,
+        authorId: input.authorId,
+        createdAt,
+      });
+
+      if (translationInserts.length > 0) {
+        await tx
+          .insert(meditationReadingTranslations)
+          .values(translationInserts);
+      }
+    });
 
     return {
       id,

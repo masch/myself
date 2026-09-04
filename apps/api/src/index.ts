@@ -75,7 +75,7 @@ export function createApp(
       }),
     )
     .openapi(healthRoute, (c) =>
-      c.json({
+      ok(c, {
         status: "ok",
         uptime: Math.floor((Date.now() - startedAt) / 1000),
       }),

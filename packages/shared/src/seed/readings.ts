@@ -17,46 +17,55 @@ export const SEED_AUTHORS: SeedAuthor[] = [
     id: SEED_AUTHOR_IDS.MARCUS_AURELIUS,
     name: "Marco Aurelio",
     bio: "Emperador romano y filósofo estoico, autor de las Meditaciones.",
+    createdAt: "2026-08-15 08:00:00",
   },
   {
     id: SEED_AUTHOR_IDS.SENECA,
     name: "Séneca",
     bio: "Filósofo estoico, estadista y dramaturgo romano.",
+    createdAt: "2026-08-16 09:00:00",
   },
   {
     id: SEED_AUTHOR_IDS.EPICTETUS,
     name: "Epicteto",
     bio: "Filósofo estoico griego, nacido esclavo en Hierápolis.",
+    createdAt: "2026-08-18 10:00:00",
   },
   {
     id: SEED_AUTHOR_IDS.LAO_TZU,
     name: "Lao-Tse",
     bio: "Antiguo filósofo y escritor chino, figura central del taoísmo.",
+    createdAt: "2026-08-14 06:45:00",
   },
   {
     id: SEED_AUTHOR_IDS.THICH_NHAT_HANH,
     name: "Thich Nhat Hanh",
     bio: "Monje budista zen vietnamita, activista por la paz y maestro de mindfulness.",
+    createdAt: "2026-08-17 07:30:00",
   },
   {
     id: SEED_AUTHOR_IDS.JOHN_O_DONOHUE,
     name: "John O’Donohue",
     bio: "Poeta, filósofo y místico celta irlandés, autor de Anam Cara.",
+    createdAt: "2026-08-19 08:30:00",
   },
   {
     id: SEED_AUTHOR_IDS.RAIMON_PANIKKAR,
     name: "Raimon Panikkar",
     bio: "Teólogo y filósofo hispano-indio, pionero del diálogo interreligioso e intercultural.",
+    createdAt: "2026-08-31 08:00:00",
   },
   {
     id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
     name: "Francisco Luis Bernárdez",
     bio: "Poeta y diplomático argentino, figura clave de la lírica espiritual.",
+    createdAt: "2026-09-01 08:00:00",
   },
   {
     id: SEED_AUTHOR_IDS.MARY_OLIVER,
     name: "Mary Oliver",
     bio: "Poeta estadounidense, ganadora del Premio Pulitzer, celebrada por su profunda contemplación de la naturaleza y la quietud.",
+    createdAt: "2026-09-02 08:00:00",
   },
 ];
 

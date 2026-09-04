@@ -30,9 +30,10 @@ export function createDb(config: DbConfig = {}): DbClient {
   const authToken = config.authToken;
 
   // In Cloudflare Workers, local filesystem (file: or :memory:) is unsupported.
-  // We fall back to the local Turso HTTP server (http://127.0.0.1:8080) for dev.
   if (isWorkers() && (url.startsWith("file:") || url === ":memory:")) {
-    url = "http://127.0.0.1:8080";
+    throw new Error(
+      "Cloudflare Workers does not support local SQLite file or in-memory databases. Configure a remote Turso database URL (TURSO_DATABASE_URL).",
+    );
   }
 
   if (!isLocalDatabase(url)) {
