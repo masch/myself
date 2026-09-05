@@ -441,8 +441,8 @@ who helped to make it.`
     readDates: ["2026-09-02T08:30:00-03:00"],
     translations: {
       es: {
-        title: "",
-        content: ``,
+        title: "1",
+        content: `1`,
       },
     },
   },
@@ -453,8 +453,8 @@ who helped to make it.`
     readDates: ["2026-09-02T08:30:00-03:00"],
     translations: {
       es: {
-        title: "",
-        content: ``,
+        title: "1",
+        content: `1`,
       },
     },
   },
