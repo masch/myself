@@ -23,8 +23,8 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
+  issues: read
+  pull-requests: read
   statuses: write
 
 concurrency:
@@ -34,9 +34,9 @@ concurrency:
 jobs:
   broccoli-gate:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request != null || github.event.issue != null
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request != null || (github.event.issue != null && github.event.issue.pull_request != null)
     steps:
-      - uses: actions/github-script@v8
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -84,17 +84,39 @@ jobs:
               return;
             }
 
-            // Evaluation events: issue_comment created, or review submitted/commented.
-            const reviewState = context.payload.review && context.payload.review.state;
+            // Evaluation events: issue_comment created/edited, or review submitted/edited.
+            const reviewAction = context.payload.action;
             const isCommentEval =
               context.eventName === 'issue_comment' ||
               (context.eventName === 'pull_request_review' &&
-                (reviewState === 'submitted' || reviewState === 'commented'));
+                (reviewAction === 'submitted' || reviewAction === 'edited'));
             if (!isCommentEval) return;
 
-            // Head commit authoring time, to keep only comments authored after the head SHA.
-            const headCommit = await github.rest.git.getCommit({ owner, repo, commit_sha: headSha });
-            const headTime = new Date(headCommit.data.committer.date).getTime();
+            // Determine head cutoff time.
+            // Check if there was a pending status created for this headSha to use as cutoff.
+            let headTime = null;
+            try {
+              const statuses = await github.rest.repos.listCommitStatusesForRef({
+                owner,
+                repo,
+                ref: headSha,
+                per_page: 50,
+              });
+              const pendingReset = statuses.data
+                .filter((s) => s.context === CONTEXT && s.state === 'pending')
+                .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
+              if (pendingReset) {
+                headTime = new Date(pendingReset.created_at).getTime();
+              }
+            } catch (e) {
+              console.log('Error fetching statuses for ref:', e);
+            }
+
+            // Fallback to head commit authoring/committer date if no pending status found.
+            if (!headTime) {
+              const headCommit = await github.rest.git.getCommit({ owner, repo, commit_sha: headSha });
+              headTime = new Date(headCommit.data.committer.date).getTime();
+            }
 
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner,
@@ -109,12 +131,22 @@ jobs:
               pull_number: prNumber,
               per_page: 100,
             });
-            // Normalize both streams to { created_at, body } ordered by time.
+
+            // Normalize both streams to { created_at, body, userType } ordered by time.
+            // Filter strictly to human users (type === 'User') to reject bot approvals.
             const timeline = [
-              ...comments.map((c) => ({ created_at: c.created_at, body: c.body || '' })),
-              ...reviews.map((r) => ({ created_at: r.submitted_at, body: r.body || '' })),
+              ...comments.map((c) => ({
+                created_at: c.created_at,
+                body: c.body || '',
+                userType: (c.user && c.user.type) || 'User',
+              })),
+              ...reviews.map((r) => ({
+                created_at: r.submitted_at,
+                body: r.body || '',
+                userType: (r.user && r.user.type) || 'User',
+              })),
             ]
-              .filter((c) => c.body.trim().length > 0)
+              .filter((c) => c.userType === 'User' && c.body.trim().length > 0)
               .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
             const postHead = timeline.filter((c) => new Date(c.created_at).getTime() > headTime);
