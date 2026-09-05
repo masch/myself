@@ -68,12 +68,44 @@ format-check-staged: ## Check code formatting on staged files using prettier
 expo-doctor: ## Run Expo Doctor to verify dependency compatibility
 	cd apps/mobile && APP_VERSION_NAME="$(APP_VERSION_NAME)" bunx expo-doctor
 
+.PHONY: expo-upgrade
+expo-upgrade: ## Check recommended versions and upgrade Expo SDK packages
+	@ROOT=$$(pwd); \
+	read -r -p "Minimum release age in days (0 = immediate, default 4): " DAYS; \
+	DAYS=$${DAYS:-4}; \
+	SECONDS=$$(( DAYS * 86400 )); \
+	MOBILE="$$ROOT/apps/mobile"; \
+	echo "Checking recommended versions..."; \
+	OUTPUT=$$(cd "$$MOBILE" && APP_VERSION_NAME="$(APP_VERSION_NAME)" bun run expo install --check 2>&1); \
+	PACKAGES=$$(echo "$$OUTPUT" | sed -n 's/  \([^ ]*\)@[^ ]* - expected version: ~\?\([^ ]*\)/\1@\2/p'); \
+	if [ -n "$$PACKAGES" ]; then \
+		echo "Upgrading: $$PACKAGES"; \
+		cd "$$MOBILE" && bun add --minimum-release-age $$SECONDS $$PACKAGES; \
+	elif echo "$$OUTPUT" | grep -qE 'ERR_MODULE_NOT_FOUND|command not found'; then \
+		echo "Packages not installed. Installing from package.json specs..."; \
+		PKGSPECS=$$(node -e "const p=require('$$ROOT/apps/mobile/package.json').dependencies; \
+			['@expo/ui','expo','expo-font','expo-router'] \
+			.forEach(d=>p[d]&&process.stdout.write(d+'@'+p[d]+' '))"); \
+		echo "Installing: $$PKGSPECS"; \
+		cd "$$MOBILE" && bun add --minimum-release-age $$SECONDS $$PKGSPECS; \
+		echo "Re-checking recommended versions..."; \
+		cd "$$ROOT" && PACKAGES=$$(cd "$$MOBILE" && APP_VERSION_NAME="$(APP_VERSION_NAME)" bun run expo install --check 2>&1 | \
+			sed -n 's/  \([^ ]*\)@[^ ]* - expected version: ~\?\([^ ]*\)/\1@\2/p'); \
+		if [ -n "$$PACKAGES" ]; then \
+			echo "Upgrading: $$PACKAGES"; \
+			cd "$$MOBILE" && bun add --minimum-release-age $$SECONDS $$PACKAGES; \
+		else \
+			echo "All Expo packages up to date!"; \
+		fi \
+	else \
+		echo "All Expo packages up to date!"; \
+	fi
+
 .PHONY: check-static
 check-static: lint typecheck ## Run lint + typecheck
 
 .PHONY: check
-check: format-check lint typecheck test ## Run full quality check suite
-	$(MAKE) expo-doctor || echo "[WARN] expo-doctor checks failed (may be false positives from bun cache layout)"
+check: format-check lint typecheck test expo-doctor ## Run full quality check suite
 
 .PHONY: format
 format: ## Format all files with prettier
@@ -139,29 +171,31 @@ mobile-expo-whoami:
 
 # ── Mobile EAS Deploy ────────────────────────
 
+EAS_CLI_VERSION ?= 20.1.0
+
 .PHONY: mobile-eas-whoami
 mobile-eas-whoami:
-	cd apps/mobile && bun run eas whoami
+	cd apps/mobile && bunx eas-cli@$(EAS_CLI_VERSION) whoami
 
 .PHONY: mobile-eas-list
 mobile-eas-list:
-	cd apps/mobile && bun run eas build:list
+	cd apps/mobile && bunx eas-cli@$(EAS_CLI_VERSION) build:list
 
 .PHONY: mobile-eas-init
 mobile-eas-init:
-	cd apps/mobile && bun run eas init
+	cd apps/mobile && bunx eas-cli@$(EAS_CLI_VERSION) init
 
 .PHONY: mobile-eas-staging-build-web
 mobile-eas-staging-build-web: mobile-eas-whoami
-	cd apps/mobile && export APP_ENV=staging APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_PUBLIC_API_URL="$(API_STAGING_URL)" && bun run export-web --clear && bun run eas deploy --alias staging
+	cd apps/mobile && export APP_ENV=staging APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_PUBLIC_API_URL="$(API_STAGING_URL)" && bun run export-web --clear && bunx eas-cli@$(EAS_CLI_VERSION) deploy --alias staging
 
 .PHONY: mobile-eas-prod-build-web
 mobile-eas-prod-build-web: mobile-eas-whoami
-	cd apps/mobile && bun run export-web --clear && bun run eas deploy --prod
+	cd apps/mobile && bun run export-web --clear && bunx eas-cli@$(EAS_CLI_VERSION) deploy --prod
 
 .PHONY: mobile-eas-build-android-preview-local
 mobile-eas-build-android-preview-local: mobile-eas-whoami
-	cd apps/mobile && bun run eas build -p android --profile preview --local $(if $(OUTPUT_APK),--output="$(OUTPUT_APK)")
+	cd apps/mobile && bunx eas-cli@$(EAS_CLI_VERSION) build -p android --profile preview --local $(if $(OUTPUT_APK),--output="$(OUTPUT_APK)")
 
 # ── Mobile Firebase App Distribution ─────────
 

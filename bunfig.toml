@@ -1,2 +1,6 @@
 [test]
 preload = ["./test-setup.ts"]
+
+[install]
+linker = "hoisted"
+
