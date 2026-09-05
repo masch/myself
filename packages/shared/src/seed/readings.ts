@@ -431,30 +431,6 @@ the one who will tell the story
 and the one, coming back 
 from the mountain 
 who helped to make it.`
-      }
-    },
-  },
-  {
-    id: "r0000000-0000-4000-8000-000000000012",
-    author_id: SEED_AUTHOR_IDS.CHARLES_BAUDELAIRE,
-    createdAt: "2026-09-02T08:00:00-03:00",
-    readDates: ["2026-09-02T08:30:00-03:00"],
-    translations: {
-      es: {
-        title: "1",
-        content: `1`,
-      },
-    },
-  },
-  {
-    id: "r0000000-0000-4000-8000-000000000013",
-    author_id: SEED_AUTHOR_IDS.CHARLES_BAUDELAIRE,
-    createdAt: "2026-09-02T08:00:00-03:00",
-    readDates: ["2026-09-02T08:30:00-03:00"],
-    translations: {
-      es: {
-        title: "1",
-        content: `1`,
       },
     },
   },

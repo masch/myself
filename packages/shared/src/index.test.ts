@@ -231,6 +231,13 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       const dateOnly = DateTime.from("2026-09-04");
       expect(dateOnly.toISOString()).toBe("2026-09-04T00:00:00.000Z");
 
+      // Proleptic Gregorian leap years (including year 0000)
+      const leapYearZero = DateTime.from("0000-02-29");
+      expect(leapYearZero.toISOString()).toBe("0000-02-29T00:00:00.000Z");
+
+      const leapYear2024 = DateTime.from("2024-02-29");
+      expect(leapYear2024.toISOString()).toBe("2024-02-29T00:00:00.000Z");
+
       // Datetime with explicit timezone offset
       const withOffset = DateTime.from("2026-09-04T14:00:00+02:00");
       expect(withOffset.toISOString()).toBe("2026-09-04T12:00:00.000Z");
@@ -254,6 +261,15 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
         "Invalid date representation",
       );
       expect(() => DateTime.from("2026-02-30")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("0000-02-30")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("1900-02-29")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2023-02-29")).toThrow(
         "Invalid date representation",
       );
       expect(() => DateTime.from("2026-13-01")).toThrow(

@@ -1,7 +1,12 @@
 import { join } from "node:path";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { SEED_AUTHORS, SEED_READINGS } from "@myself/shared";
-import { createDb, isLocalDatabase, type DbClient } from "./client";
+import {
+  createDb,
+  IN_MEMORY_DB,
+  isLocalDatabase,
+  type DbClient,
+} from "./client";
 import type { AppConfig } from "../config";
 import { authors } from "./schema/authors";
 import {
@@ -49,6 +54,7 @@ export async function seedDatabase(db: DbClient): Promise<void> {
       }
     }
 
+    // 3. Seed Reading Logs
     for (const readAt of reading.readDates) {
       await db
         .insert(readingLogs)
@@ -64,8 +70,9 @@ export async function seedDatabase(db: DbClient): Promise<void> {
 
 export async function seedFromConfig(config: AppConfig): Promise<void> {
   const { url, authToken } = config.database;
-  const db = createDb({ url, authToken });
-  if (isLocalDatabase(url)) {
+  const normalizedUrl = url === "memory" ? IN_MEMORY_DB : url;
+  const db = createDb({ url: normalizedUrl, authToken });
+  if (isLocalDatabase(normalizedUrl)) {
     const migrationsFolder = join(import.meta.dir, "./migrations");
     await migrate(db, { migrationsFolder });
   }
