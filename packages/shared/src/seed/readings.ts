@@ -11,6 +11,7 @@ export const SEED_AUTHOR_IDS = {
   FRANCISCO_LUIS_BERNARDEZ: "a0000000-0000-4000-8000-000000000008",
   MARY_OLIVER: "a0000000-0000-4000-8000-000000000009",
   CHARLES_BAUDELAIRE: "a0000000-0000-4000-8000-000000000010",
+  DAVID_WHYTE: "a0000000-0000-4000-8000-000000000011",
 } as const;
 
 export const SEED_AUTHORS: SeedAuthor[] = [
@@ -73,6 +74,12 @@ export const SEED_AUTHORS: SeedAuthor[] = [
     name: "Charles Baudelaire",
     bio: "Poeta, ensayista y crítico de arte francés, figura clave de la lírica moderna y el simbolismo.",
     createdAt: "2026-09-03T08:00:00-03:00",
+  },
+  {
+    id: SEED_AUTHOR_IDS.DAVID_WHYTE,
+    name: "David Whyte",
+    bio: "Poeta y filósofo angloirlandés, célebre por su mirada profunda sobre la quietud, el coraje y la vida contemplativa.",
+    createdAt: "2026-09-04T08:00:00-03:00",
   },
 ];
 
@@ -312,6 +319,142 @@ it will always be like this,
 each of us going on
 in our inexplicable ways
 building the universe.`,
+      },
+    },
+  },
+  {
+    id: "r0000000-0000-4000-8000-000000000010",
+    author_id: SEED_AUTHOR_IDS.CHARLES_BAUDELAIRE,
+    createdAt: "2026-09-03T08:00:00-03:00",
+    readDates: ["2026-09-03T08:30:00-03:00"],
+    translations: {
+      es: {
+        title: "Elevación",
+        content: `Por encima de estanques, por encima de valles, 
+de montañas y bosques, de mares y de nubes, 
+más allá de los soles, más allá de los éteres, 
+más allá del confín de estrelladas esferas,
+
+te desplazas, mi espíritu, con toda agilidad 
+y como un nadador que se extasía en las olas, 
+alegremente surcas la inmensidad profunda 
+con voluptuosidad indecible y viril.
+
+Escápate muy lejos de estos mórbidos miasmas, 
+sube a purificarte al aire superior 
+y apura, como un noble y divino licor, 
+la luz clara que inunda los límpidos espacios.
+
+Detrás de los hastíos y los hondos pesares
+que abruman con su peso la neblinosa vida,
+¡feliz aquel que puede con brioso aleteo 
+lanzarse hacia los campos luminosos y calmos!
+
+Aquel cuyas ideas, cual si fueran alondras, 
+levantan hacia el cielo matutino su vuelo
+¡que planea sobre todo, y sabe sin esfuerzo, 
+la lengua de las flores y de las cosas mudas!`,
+      },
+    },
+  },
+  {
+    id: "r0000000-0000-4000-8000-000000000011",
+    author_id: SEED_AUTHOR_IDS.DAVID_WHYTE,
+    createdAt: "2026-09-04T08:00:00-03:00",
+    readDates: ["2026-09-04T08:30:00-03:00"],
+    translations: {
+      es: {
+        title: "Mameen",
+        content: `Sé infinitesimal bajo ese cielo, una criatura
+que ni siquiera el halcón vigilante divisa, un espectro
+entre las rocas donde la niebla se disipa lentamente.
+
+Recuerda la forma en que los simples mortales se ven abrumados
+por las circunstancias, cómo las grandes reputaciones
+se disuelven en la fragilidad y cómo tú,
+en particular, estás a una brizna de perder
+a todos los que amas.
+
+Luego, mira hacia atrás el camino al sur,
+por donde viniste, como si vieras
+todo tu pasado, y luego al norte
+sobre la brumosa costa azul, como si hicieras presente
+un vasto futuro.
+
+Recuerda la forma en que tú eres todas las posibilidades
+que puedes ver y cómo vives mejor
+apreciando los horizontes
+ya sea que los alcances o no.
+
+Admite, que una vez que te levantas 
+de tu silla y abres la puerta, 
+una vez que sales al aire libre 
+hacia ese límite y tomas el camino que sube alto
+más allá de lo ordinario, te conviertes 
+en el privilegiado y en el peregrino, 
+en aquél que contará la historia 
+y en aquel, que al regresar 
+de la montaña, 
+habrá ayudado a hacerla realidad.`,
+      },
+      en: {
+        title: "Mameen",
+        content: `Be infinitesimal under that sky, a creature 
+even the sailing hawk misses, a wraith 
+among the rocks where the mist parts slowly.
+
+Recall the way mere mortals are overwhelmed 
+by circumstance, how great reputations 
+dissolve with infirmity and how you, 
+in particular, stand a hairbreadth from losing 
+everyone you hold dear.
+
+Then, look back down the path to the north, 
+the way you came, as if seeing 
+your entire past and then south 
+over the hazy blue coast as if present 
+to a broad future.
+
+Recall the way you are all possibilities 
+you can see and how you live best 
+as an appreciator of horizons 
+whether you reach them or not.
+
+Admit, that once you have got up 
+from your chair and opened the door, 
+once you have walked out into the clear air 
+toward that edge and taken the path up high 
+beyond the ordinary, you have become
+
+the privileged and the pilgrim, 
+the one who will tell the story 
+and the one, coming back 
+from the mountain 
+who helped to make it.`
+      }
+    },
+  },
+  {
+    id: "r0000000-0000-4000-8000-000000000012",
+    author_id: SEED_AUTHOR_IDS.CHARLES_BAUDELAIRE,
+    createdAt: "2026-09-02T08:00:00-03:00",
+    readDates: ["2026-09-02T08:30:00-03:00"],
+    translations: {
+      es: {
+        title: "",
+        content: ``,
+      },
+    },
+  },
+  {
+    id: "r0000000-0000-4000-8000-000000000013",
+    author_id: SEED_AUTHOR_IDS.CHARLES_BAUDELAIRE,
+    createdAt: "2026-09-02T08:00:00-03:00",
+    readDates: ["2026-09-02T08:30:00-03:00"],
+    translations: {
+      es: {
+        title: "",
+        content: ``,
       },
     },
   },
