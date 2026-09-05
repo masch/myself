@@ -16,24 +16,29 @@ import { createTestRepositories } from "./db/test-db";
 
 describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", () => {
   let app: ReturnType<typeof createApp>;
+  let testConfig: AppConfig;
 
   beforeAll(async () => {
+    testConfig = AppConfig.from({
+      ENVIRONMENT: "test",
+      TURSO_DATABASE_URL: ":memory:",
+    });
     const repos = await createTestRepositories({ seed: true });
-    app = createApp(repos);
+    app = createApp(testConfig, repos);
   });
 
   describe("Root & System Health", () => {
     it("createApp supports passing custom required dependencies directly", async () => {
       const testRepos = await createTestRepositories({ seed: true });
-      const customApp = createApp(testRepos);
+      const customApp = createApp(testConfig, testRepos);
       const res = await customApp.request("/v1/authors");
       expect(res.status).toBe(200);
     });
 
-    it("fails fast with 500 when TURSO_DATABASE_URL is missing in unconfigured createApp", async () => {
-      const unconfiguredApp = createApp();
-      const res = await unconfiguredApp.request("/v1/authors");
-      expect(res.status).toBe(500);
+    it("fails fast when TURSO_DATABASE_URL is missing in AppConfig", () => {
+      expect(() => AppConfig.from({ ENVIRONMENT: "test" })).toThrow(
+        "Missing required configuration: TURSO_DATABASE_URL",
+      );
     });
 
     it("GET / returns welcome message and current timestamp", async () => {
@@ -49,18 +54,60 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       expect(new Date(body.data?.timestamp ?? "").getTime()).not.toBeNaN();
     });
 
-    it("GET /health returns status ok and uptime number", async () => {
+    it("GET /health returns status ok, uptime number, and environment", async () => {
       const res = await app.request("/health");
       expect(res.status).toBe(200);
 
       const body = (await res.json()) as ApiResponse<{
         status: string;
         uptime: number;
+        environment: string;
       }>;
       expect(body.success).toBe(true);
       expect(body.data?.status).toBe("ok");
       expect(typeof body.data?.uptime).toBe("number");
       expect(body.data?.uptime).toBeGreaterThanOrEqual(0);
+      expect(body.data?.environment).toBe("test");
+    });
+
+    it("GET /health reflects app environment from configuration", async () => {
+      const testRepos = await createTestRepositories({ seed: true });
+      const stagingConfig = AppConfig.from({
+        ENVIRONMENT: "staging",
+        TURSO_DATABASE_URL: ":memory:",
+      });
+      const stagingApp = createApp(stagingConfig, testRepos);
+      const res = await stagingApp.request("/health");
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as ApiResponse<{
+        status: string;
+        uptime: number;
+        environment: string;
+      }>;
+      expect(body.success).toBe(true);
+      expect(body.data?.environment).toBe("staging");
+    });
+
+    it("fails fast at boot time when ENVIRONMENT is missing", () => {
+      const originalEnv = process.env.ENVIRONMENT;
+      delete process.env.ENVIRONMENT;
+      try {
+        expect(() =>
+          AppConfig.from({ TURSO_DATABASE_URL: ":memory:" }),
+        ).toThrow(/Missing required ENVIRONMENT configuration/);
+      } finally {
+        process.env.ENVIRONMENT = originalEnv;
+      }
+    });
+
+    it("fails fast at boot time when ENVIRONMENT is invalid", () => {
+      expect(() =>
+        AppConfig.from({
+          ENVIRONMENT: "stagin",
+          TURSO_DATABASE_URL: ":memory:",
+        }),
+      ).toThrow(/Invalid ENVIRONMENT configuration/);
     });
 
     it("GET /doc returns valid OpenAPI 3.1 schema document", async () => {

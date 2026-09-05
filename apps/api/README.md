@@ -105,6 +105,59 @@ When deploying to Cloudflare Workers production:
 
 ```bash
 cd apps/api
-npx wrangler secret put TURSO_DATABASE_URL
-npx wrangler secret put TURSO_AUTH_TOKEN
+bunx wrangler secret put TURSO_DATABASE_URL
+bunx wrangler secret put TURSO_AUTH_TOKEN
 ```
+
+---
+
+## 4. Staging Environment Provisioning & Deployment
+
+The staging environment deploys as a dedicated Cloudflare Worker (`myself-api-staging`) backed by an isolated Turso database (`myself-db-staging`).
+
+### Step 1: Create Staging Database in Turso
+
+```bash
+turso db create myself-db-staging --location gru
+```
+
+### Step 2: Retrieve Staging URL & Token
+
+```bash
+turso db show myself-db-staging --url
+turso db tokens create myself-db-staging
+```
+
+### Step 3: Configure Cloudflare Workers Staging Secrets
+
+Set secrets specifically for the staging environment using the `--env staging` flag:
+
+```bash
+cd apps/api
+bunx wrangler secret put TURSO_DATABASE_URL --env staging
+bunx wrangler secret put TURSO_AUTH_TOKEN --env staging
+```
+
+### Step 4: Run Migrations against Staging Database
+
+```bash
+TURSO_DATABASE_URL_STAGING="libsql://myself-db-staging-<org>.turso.io" \
+TURSO_AUTH_TOKEN_STAGING="your-staging-token" \
+make stg-api-db-migrate
+```
+
+### Step 5: Deploy API to Staging Manually
+
+```bash
+make stg-api-deploy
+```
+
+### Step 6: Configure GitHub Actions Secrets for CI/CD
+
+To enable automated migrations and deployments on pull requests, add these repository secrets in GitHub (`Settings -> Secrets and variables -> Actions`):
+
+| Secret Name                  | Description                                        |
+| ---------------------------- | -------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`       | Cloudflare API Token with Workers edit permissions |
+| `TURSO_DATABASE_URL_STAGING` | `libsql://myself-db-staging-<org>.turso.io`        |
+| `TURSO_AUTH_TOKEN_STAGING`   | Staging database auth token                        |
