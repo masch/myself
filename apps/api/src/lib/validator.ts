@@ -14,4 +14,3 @@ export const defaultHook: Hook<any, any, any, any> = (result, c) => {
     return c.json(errorResponse, HttpStatus.BAD_REQUEST);
   }
 };
-

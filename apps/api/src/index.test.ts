@@ -268,9 +268,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       expect(body.items.length).toBeGreaterThan(0);
       expect(body.meta.limit).toBe(20);
       expect(body.meta.offset).toBe(0);
-      expect(body.meta.total).toBeGreaterThanOrEqual(
-        SEED_READINGS.length,
-      );
+      expect(body.meta.total).toBeGreaterThanOrEqual(SEED_READINGS.length);
 
       const reading = body.items[0];
       expect(reading?.id).toBeDefined();
@@ -351,12 +349,8 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       );
       expect(body.author_id).toBe(SEED_AUTHOR_IDS.SENECA);
-      expect(body.translations.es?.title).toBe(
-        "Sobre la Brevedad de la Vida",
-      );
-      expect(body.translations.en?.title).toBe(
-        "On the Shortness of Life",
-      );
+      expect(body.translations.es?.title).toBe("Sobre la Brevedad de la Vida");
+      expect(body.translations.en?.title).toBe("On the Shortness of Life");
       expect(body.readDates).toEqual([]);
 
       // Verify it can immediately be fetched by ID

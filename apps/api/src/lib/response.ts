@@ -1,6 +1,10 @@
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { type ApiErrorResponse, type ErrorCode, HttpStatus } from "@myself/shared";
+import {
+  type ApiErrorResponse,
+  type ErrorCode,
+  HttpStatus,
+} from "@myself/shared";
 
 /**
  * Sends a standard success response directly with data.
@@ -21,4 +25,3 @@ export const fail = (
   status: ContentfulStatusCode = HttpStatus.BAD_REQUEST,
   code?: ErrorCode,
 ) => c.json<ApiErrorResponse>({ error, code }, status);
-

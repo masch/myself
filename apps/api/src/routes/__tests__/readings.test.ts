@@ -1,9 +1,6 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { Hono } from "hono";
-import type {
-  PaginatedResponse,
-  SeedReading,
-} from "@myself/shared";
+import type { PaginatedResponse, SeedReading } from "@myself/shared";
 import type { AppEnv } from "../../types";
 import { repositoriesMiddleware } from "../../middleware/repositories";
 import { createTestRepositories } from "../../db/test-db";

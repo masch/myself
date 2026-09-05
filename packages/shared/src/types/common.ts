@@ -6,4 +6,3 @@ export interface ApiErrorResponse {
 }
 
 export const APP_NAME = "myself";
-
