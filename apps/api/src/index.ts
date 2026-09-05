@@ -4,36 +4,27 @@ import { createApp, type AppType } from "./app";
 
 let defaultApp: ReturnType<typeof createApp> | null = null;
 
+export function resolveRuntimeEnv(env?: Record<string, string>): Record<string, string> {
+  if (env && typeof env.TURSO_DATABASE_URL === "string") {
+    return env;
+  }
+  return typeof process !== "undefined"
+    ? (process.env as Record<string, string>)
+    : {};
+}
+
 export function getDefaultApp(
   env?: Record<string, string>,
 ): ReturnType<typeof createApp> {
   if (!defaultApp) {
-    const runtimeEnv =
-      env && typeof env.TURSO_DATABASE_URL === "string"
-        ? env
-        : typeof process !== "undefined"
-          ? (process.env as Record<string, string>)
-          : {};
+    const runtimeEnv = resolveRuntimeEnv(env);
     const config = AppConfig.from(runtimeEnv);
     defaultApp = createApp(config);
   }
   return defaultApp;
 }
 
-let eagerApp: ReturnType<typeof createApp> | null = null;
-if (
-  typeof process !== "undefined" &&
-  process.env?.ENVIRONMENT &&
-  process.env?.TURSO_DATABASE_URL
-) {
-  try {
-    eagerApp = createApp(AppConfig.from(process.env as any));
-  } catch {
-    // Ignored if boot requirements are not met yet
-  }
-}
-
-export { createApp, type AppType, eagerApp as app };
+export { createApp, type AppType };
 
 export default {
   port:
@@ -45,12 +36,7 @@ export default {
     env?: Record<string, string>,
     ctx?: ExecutionContext,
   ) {
-    const runtimeEnv =
-      env && typeof env.TURSO_DATABASE_URL === "string"
-        ? env
-        : typeof process !== "undefined"
-          ? (process.env as Record<string, string>)
-          : {};
+    const runtimeEnv = resolveRuntimeEnv(env);
     return getDefaultApp(runtimeEnv).fetch(request, runtimeEnv, ctx);
   },
 };
