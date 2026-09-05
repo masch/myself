@@ -16,25 +16,29 @@ import { createTestRepositories } from "./db/test-db";
 
 describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", () => {
   let app: ReturnType<typeof createApp>;
+  let testConfig: AppConfig;
 
   beforeAll(async () => {
-    process.env.ENVIRONMENT = "test";
+    testConfig = AppConfig.from({
+      ENVIRONMENT: "test",
+      TURSO_DATABASE_URL: ":memory:",
+    });
     const repos = await createTestRepositories({ seed: true });
-    app = createApp(repos);
+    app = createApp(testConfig, repos);
   });
 
   describe("Root & System Health", () => {
     it("createApp supports passing custom required dependencies directly", async () => {
       const testRepos = await createTestRepositories({ seed: true });
-      const customApp = createApp(testRepos);
+      const customApp = createApp(testConfig, testRepos);
       const res = await customApp.request("/v1/authors");
       expect(res.status).toBe(200);
     });
 
-    it("fails fast with 500 when TURSO_DATABASE_URL is missing in unconfigured createApp", async () => {
-      const unconfiguredApp = createApp();
-      const res = await unconfiguredApp.request("/v1/authors");
-      expect(res.status).toBe(500);
+    it("fails fast when TURSO_DATABASE_URL is missing in AppConfig", () => {
+      expect(() =>
+        AppConfig.from({ ENVIRONMENT: "test" }),
+      ).toThrow("Missing required configuration: TURSO_DATABASE_URL");
     });
 
     it("GET / returns welcome message and current timestamp", async () => {
@@ -72,7 +76,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
         ENVIRONMENT: "staging",
         TURSO_DATABASE_URL: ":memory:",
       });
-      const stagingApp = createApp(testRepos, stagingConfig);
+      const stagingApp = createApp(stagingConfig, testRepos);
       const res = await stagingApp.request("/health");
       expect(res.status).toBe(200);
 
@@ -89,24 +93,21 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const originalEnv = process.env.ENVIRONMENT;
       delete process.env.ENVIRONMENT;
       try {
-        expect(() => createApp()).toThrow(
-          /Missing required ENVIRONMENT configuration/,
-        );
+        expect(() =>
+          AppConfig.from({ TURSO_DATABASE_URL: ":memory:" }),
+        ).toThrow(/Missing required ENVIRONMENT configuration/);
       } finally {
         process.env.ENVIRONMENT = originalEnv;
       }
     });
 
     it("fails fast at boot time when ENVIRONMENT is invalid", () => {
-      const originalEnv = process.env.ENVIRONMENT;
-      process.env.ENVIRONMENT = "stagin";
-      try {
-        expect(() => createApp()).toThrow(
-          /Invalid ENVIRONMENT configuration/,
-        );
-      } finally {
-        process.env.ENVIRONMENT = originalEnv;
-      }
+      expect(() =>
+        AppConfig.from({
+          ENVIRONMENT: "stagin",
+          TURSO_DATABASE_URL: ":memory:",
+        }),
+      ).toThrow(/Invalid ENVIRONMENT configuration/);
     });
 
     it("GET /doc returns valid OpenAPI 3.1 schema document", async () => {
