@@ -9,7 +9,10 @@ import { DrizzleUserRepository } from "../../repositories/drizzle/drizzle-user.r
 
 describe("repositoriesMiddleware & createRepositories Unit Tests", () => {
   it("creates Drizzle repositories when database url is local file", () => {
-    const config = new AppConfig({ TURSO_DATABASE_URL: "file:test.db" });
+    const config = new AppConfig({
+      ENVIRONMENT: "test",
+      TURSO_DATABASE_URL: "file:test.db",
+    });
     const repos = createRepositories(config);
     expect(repos.authorRepo instanceof DrizzleAuthorRepository).toBe(true);
     expect(repos.readingRepo instanceof DrizzleReadingRepository).toBe(true);
@@ -17,7 +20,10 @@ describe("repositoriesMiddleware & createRepositories Unit Tests", () => {
   });
 
   it("creates Drizzle repositories when database url is :memory:", () => {
-    const config = new AppConfig({ TURSO_DATABASE_URL: ":memory:" });
+    const config = new AppConfig({
+      ENVIRONMENT: "test",
+      TURSO_DATABASE_URL: ":memory:",
+    });
     const repos = createRepositories(config);
     expect(repos.authorRepo instanceof DrizzleAuthorRepository).toBe(true);
     expect(repos.readingRepo instanceof DrizzleReadingRepository).toBe(true);

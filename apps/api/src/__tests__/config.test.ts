@@ -3,6 +3,7 @@ import {
   AppConfig,
   DEFAULT_PORT,
   getProcessEnv,
+  resolveDatabaseConfig,
   resolveEnvironment,
   resolvePort,
 } from "../config";
@@ -32,6 +33,32 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
       );
       expect(() => resolveEnvironment("local")).toThrow(
         /Invalid ENVIRONMENT configuration/,
+      );
+    });
+  });
+
+  describe("resolveDatabaseConfig", () => {
+    it("resolves valid database configuration with auth token", () => {
+      const config = resolveDatabaseConfig(
+        "libsql://db.turso.io",
+        "secret-token",
+      );
+      expect(config.url).toBe("libsql://db.turso.io");
+      expect(config.authToken).toBe("secret-token");
+    });
+
+    it("resolves valid database configuration without auth token", () => {
+      const config = resolveDatabaseConfig("file:local.db");
+      expect(config.url).toBe("file:local.db");
+      expect(config.authToken).toBeUndefined();
+    });
+
+    it("throws when url is missing or empty", () => {
+      expect(() => resolveDatabaseConfig(undefined)).toThrow(
+        "Missing required configuration: TURSO_DATABASE_URL",
+      );
+      expect(() => resolveDatabaseConfig("")).toThrow(
+        "Missing required configuration: TURSO_DATABASE_URL",
       );
     });
   });

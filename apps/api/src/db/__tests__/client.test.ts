@@ -55,7 +55,10 @@ describe("Database Client Factory Unit Tests", () => {
   });
 
   it("runs seedFromConfig successfully with explicit AppConfig", async () => {
-    const config = new AppConfig({ TURSO_DATABASE_URL: ":memory:" });
+    const config = new AppConfig({
+      ENVIRONMENT: "test",
+      TURSO_DATABASE_URL: ":memory:",
+    });
     await seedFromConfig(config);
   });
 

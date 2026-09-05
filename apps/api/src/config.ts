@@ -6,6 +6,8 @@ export interface DatabaseConfig {
   authToken?: string;
 }
 
+export const DEFAULT_ENVIRONMENT: Environment = "development";
+
 export function resolveEnvironment(raw?: string): Environment {
   if (!raw) {
     throw new Error(
@@ -49,31 +51,38 @@ export function getProcessEnv(): Partial<ApiBindings> {
   };
 }
 
+export function resolveDatabaseConfig(
+  url?: string,
+  authToken?: string,
+): DatabaseConfig {
+  if (!url) {
+    throw new Error("Missing required configuration: TURSO_DATABASE_URL");
+  }
+  return {
+    url,
+    authToken,
+  };
+}
+
 export class AppConfig {
   readonly database: DatabaseConfig;
   readonly environment: Environment;
   readonly port: number;
 
-  constructor(env: Partial<ApiBindings> = {}) {
-    const processBindings = getProcessEnv();
-    const rawEnv = env.ENVIRONMENT ?? processBindings.ENVIRONMENT;
-    this.environment = resolveEnvironment(rawEnv);
-
-    const rawPort = env.PORT ?? processBindings.PORT;
-    this.port = resolvePort(rawPort);
-
-    const url = env.TURSO_DATABASE_URL ?? processBindings.TURSO_DATABASE_URL;
-    if (!url) {
-      throw new Error("Missing required configuration: TURSO_DATABASE_URL");
-    }
-
-    this.database = {
-      url,
-      authToken: env.TURSO_AUTH_TOKEN ?? processBindings.TURSO_AUTH_TOKEN,
-    };
+  constructor(bindings: Partial<ApiBindings> = {}) {
+    this.environment = resolveEnvironment(bindings.ENVIRONMENT);
+    this.port = resolvePort(bindings.PORT);
+    this.database = resolveDatabaseConfig(
+      bindings.TURSO_DATABASE_URL,
+      bindings.TURSO_AUTH_TOKEN,
+    );
   }
 
   static from(env?: Partial<ApiBindings>): AppConfig {
-    return new AppConfig(env);
+    const processBindings = getProcessEnv();
+    return new AppConfig({
+      ...processBindings,
+      ...env,
+    });
   }
 }
