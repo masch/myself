@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { APP_NAME, DateTime, HttpStatus } from "@myself/shared";
 import type { AppEnv } from "./types";
-import { AppConfig } from "./config";
+import { AppConfig, resolveEnvironment } from "./config";
 import {
   createRepositories,
   repositoriesMiddleware,
@@ -48,9 +48,16 @@ export const healthRoute = createRoute({
 export function createApp(
   resolveDeps: RepositoriesDependencies | RepositoriesProvider = (env) =>
     createRepositories(AppConfig.from(env)),
+  config?: AppConfig,
 ) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
   const startedAt = Date.now();
+
+  const environment =
+    config?.environment ??
+    resolveEnvironment(
+      typeof process !== "undefined" ? process.env?.ENVIRONMENT : undefined,
+    );
 
   // Global Middlewares
   app.use("*", logger());
@@ -78,6 +85,7 @@ export function createApp(
       ok(c, {
         status: "ok",
         uptime: Math.floor((Date.now() - startedAt) / 1000),
+        environment,
       }),
     )
     .route("/v1", v1);
@@ -107,10 +115,35 @@ export function createApp(
   return app;
 }
 
-const app = createApp();
+let defaultApp: ReturnType<typeof createApp> | null = null;
+
+export function getDefaultApp(
+  env?: Record<string, string>,
+): ReturnType<typeof createApp> {
+  if (!defaultApp) {
+    const runtimeEnv =
+      env && typeof env.TURSO_DATABASE_URL === "string"
+        ? env
+        : typeof process !== "undefined"
+          ? (process.env as Record<string, string>)
+          : {};
+    const config = AppConfig.from(runtimeEnv);
+    defaultApp = createApp(undefined, config);
+  }
+  return defaultApp;
+}
+
+let eagerApp: ReturnType<typeof createApp> | null = null;
+if (typeof process !== "undefined" && process.env?.ENVIRONMENT) {
+  try {
+    eagerApp = createApp();
+  } catch {
+    // Ignored if boot requirements are not met yet
+  }
+}
 
 export type AppType = ReturnType<typeof createApp>;
-export { app };
+export { eagerApp as app };
 
 export default {
   port:
@@ -128,6 +161,6 @@ export default {
         : typeof process !== "undefined"
           ? (process.env as Record<string, string>)
           : {};
-    return app.fetch(request, runtimeEnv, ctx);
+    return getDefaultApp(runtimeEnv).fetch(request, runtimeEnv, ctx);
   },
 };

@@ -7,4 +7,15 @@
   "observability": {
     "enabled": true,
   },
+  "vars": {
+    "ENVIRONMENT": "production",
+  },
+  "env": {
+    "staging": {
+      "name": "myself-api-staging",
+      "vars": {
+        "ENVIRONMENT": "staging",
+      },
+    },
+  },
 }

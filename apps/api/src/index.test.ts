@@ -18,6 +18,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
   let app: ReturnType<typeof createApp>;
 
   beforeAll(async () => {
+    process.env.ENVIRONMENT = "test";
     const repos = await createTestRepositories({ seed: true });
     app = createApp(repos);
   });
@@ -49,18 +50,63 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       expect(new Date(body.data?.timestamp ?? "").getTime()).not.toBeNaN();
     });
 
-    it("GET /health returns status ok and uptime number", async () => {
+    it("GET /health returns status ok, uptime number, and environment", async () => {
       const res = await app.request("/health");
       expect(res.status).toBe(200);
 
       const body = (await res.json()) as ApiResponse<{
         status: string;
         uptime: number;
+        environment: string;
       }>;
       expect(body.success).toBe(true);
       expect(body.data?.status).toBe("ok");
       expect(typeof body.data?.uptime).toBe("number");
       expect(body.data?.uptime).toBeGreaterThanOrEqual(0);
+      expect(body.data?.environment).toBe("test");
+    });
+
+    it("GET /health reflects app environment from configuration", async () => {
+      const testRepos = await createTestRepositories({ seed: true });
+      const stagingConfig = AppConfig.from({
+        ENVIRONMENT: "staging",
+        TURSO_DATABASE_URL: ":memory:",
+      });
+      const stagingApp = createApp(testRepos, stagingConfig);
+      const res = await stagingApp.request("/health");
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as ApiResponse<{
+        status: string;
+        uptime: number;
+        environment: string;
+      }>;
+      expect(body.success).toBe(true);
+      expect(body.data?.environment).toBe("staging");
+    });
+
+    it("fails fast at boot time when ENVIRONMENT is missing", () => {
+      const originalEnv = process.env.ENVIRONMENT;
+      delete process.env.ENVIRONMENT;
+      try {
+        expect(() => createApp()).toThrow(
+          /Missing required ENVIRONMENT configuration/,
+        );
+      } finally {
+        process.env.ENVIRONMENT = originalEnv;
+      }
+    });
+
+    it("fails fast at boot time when ENVIRONMENT is invalid", () => {
+      const originalEnv = process.env.ENVIRONMENT;
+      process.env.ENVIRONMENT = "stagin";
+      try {
+        expect(() => createApp()).toThrow(
+          /Invalid ENVIRONMENT configuration/,
+        );
+      } finally {
+        process.env.ENVIRONMENT = originalEnv;
+      }
     });
 
     it("GET /doc returns valid OpenAPI 3.1 schema document", async () => {
