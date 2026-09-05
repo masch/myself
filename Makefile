@@ -224,9 +224,19 @@ api-db-migrate-remote:
 api-db-studio:
 	cd apps/api && if [ -f .dev.vars ]; then bun --env-file=.dev.vars x drizzle-kit studio; else bunx drizzle-kit studio; fi
 
+.PHONY: api-db-migrate-staging
+api-db-migrate-staging:
+	cd apps/api && TURSO_DATABASE_URL="$${TURSO_DATABASE_URL_STAGING:-$${TURSO_DATABASE_URL}}" \
+	TURSO_AUTH_TOKEN="$${TURSO_AUTH_TOKEN_STAGING:-$${TURSO_AUTH_TOKEN}}" \
+	bunx drizzle-kit migrate
+
 .PHONY: api-deploy
 api-deploy:
 	cd apps/api && bun run deploy
+
+.PHONY: api-deploy-staging
+api-deploy-staging:
+	cd apps/api && bun run deploy:staging
 
 .PHONY: api-typecheck
 api-typecheck:

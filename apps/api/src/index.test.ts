@@ -4,7 +4,6 @@ import {
   SEED_AUTHORS,
   SEED_AUTHOR_IDS,
   SEED_READINGS,
-  type ApiResponse,
   type PaginatedResponse,
   type SeedAuthor,
   type SeedReading,
@@ -16,51 +15,95 @@ import { createTestRepositories } from "./db/test-db";
 
 describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", () => {
   let app: ReturnType<typeof createApp>;
+  let testConfig: AppConfig;
 
   beforeAll(async () => {
+    testConfig = AppConfig.from({
+      ENVIRONMENT: "test",
+      TURSO_DATABASE_URL: ":memory:",
+    });
     const repos = await createTestRepositories({ seed: true });
-    app = createApp(repos);
+    app = createApp(testConfig, repos);
   });
 
   describe("Root & System Health", () => {
     it("createApp supports passing custom required dependencies directly", async () => {
       const testRepos = await createTestRepositories({ seed: true });
-      const customApp = createApp(testRepos);
+      const customApp = createApp(testConfig, testRepos);
       const res = await customApp.request("/v1/authors");
       expect(res.status).toBe(200);
     });
 
-    it("fails fast with 500 when TURSO_DATABASE_URL is missing in unconfigured createApp", async () => {
-      const unconfiguredApp = createApp();
-      const res = await unconfiguredApp.request("/v1/authors");
-      expect(res.status).toBe(500);
+    it("fails fast when TURSO_DATABASE_URL is missing in AppConfig", () => {
+      expect(() =>
+        AppConfig.from({ ENVIRONMENT: "test" }),
+      ).toThrow("Missing required configuration: TURSO_DATABASE_URL");
     });
 
     it("GET / returns welcome message and current timestamp", async () => {
       const res = await app.request("/");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as ApiResponse<{
+      const body = (await res.json()) as {
         message: string;
         timestamp: string;
-      }>;
-      expect(body.success).toBe(true);
-      expect(body.data?.message).toBe(`Welcome to ${APP_NAME} API`);
-      expect(new Date(body.data?.timestamp ?? "").getTime()).not.toBeNaN();
+      };
+      expect(body.message).toBe(`Welcome to ${APP_NAME} API`);
+      expect(new Date(body.timestamp ?? "").getTime()).not.toBeNaN();
     });
 
-    it("GET /health returns status ok and uptime number", async () => {
+    it("GET /health returns status ok, uptime number, and environment", async () => {
       const res = await app.request("/health");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as ApiResponse<{
+      const body = (await res.json()) as {
         status: string;
         uptime: number;
-      }>;
-      expect(body.success).toBe(true);
-      expect(body.data?.status).toBe("ok");
-      expect(typeof body.data?.uptime).toBe("number");
-      expect(body.data?.uptime).toBeGreaterThanOrEqual(0);
+        environment: string;
+      };
+      expect(body.status).toBe("ok");
+      expect(typeof body.uptime).toBe("number");
+      expect(body.uptime).toBeGreaterThanOrEqual(0);
+      expect(body.environment).toBe("test");
+    });
+
+    it("GET /health reflects app environment from configuration", async () => {
+      const testRepos = await createTestRepositories({ seed: true });
+      const stagingConfig = AppConfig.from({
+        ENVIRONMENT: "staging",
+        TURSO_DATABASE_URL: ":memory:",
+      });
+      const stagingApp = createApp(stagingConfig, testRepos);
+      const res = await stagingApp.request("/health");
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as {
+        status: string;
+        uptime: number;
+        environment: string;
+      };
+      expect(body.environment).toBe("staging");
+    });
+
+    it("fails fast at boot time when ENVIRONMENT is missing", () => {
+      const originalEnv = process.env.ENVIRONMENT;
+      delete process.env.ENVIRONMENT;
+      try {
+        expect(() =>
+          AppConfig.from({ TURSO_DATABASE_URL: ":memory:" }),
+        ).toThrow(/Missing required ENVIRONMENT configuration/);
+      } finally {
+        process.env.ENVIRONMENT = originalEnv;
+      }
+    });
+
+    it("fails fast at boot time when ENVIRONMENT is invalid", () => {
+      expect(() =>
+        AppConfig.from({
+          ENVIRONMENT: "stagin",
+          TURSO_DATABASE_URL: ":memory:",
+        }),
+      ).toThrow(/Invalid ENVIRONMENT configuration/);
     });
 
     it("GET /doc returns valid OpenAPI 3.1 schema document", async () => {
@@ -93,10 +136,8 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const res = await app.request("/unknown-random-path");
       expect(res.status).toBe(404);
 
-      const body = (await res.json()) as ApiResponse<never>;
-      expect(body.success).toBe(false);
+      const body = (await res.json()) as { error: string };
       expect(body.error).toBe("Endpoint not found");
-      expect(body.data).toBeUndefined();
     });
 
     it("handles CORS headers on preflight requests", async () => {
@@ -130,8 +171,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
         const res = await appWithHandler.errorHandler(error, mockContext);
         expect(res.status).toBe(500);
 
-        const body = (await res.json()) as ApiResponse<never>;
-        expect(body.success).toBe(false);
+        const body = (await res.json()) as { error: string };
         expect(body.error).toBe("Internal Server Error");
       } finally {
         console.error = originalConsoleError;
@@ -144,18 +184,15 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const res = await app.request("/v1/authors");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as ApiResponse<
-        PaginatedResponse<SeedAuthor>
-      >;
-      expect(body.success).toBe(true);
-      expect(body.data?.items.length).toBeGreaterThan(0);
-      expect(body.data?.meta.limit).toBe(20);
-      expect(body.data?.meta.offset).toBe(0);
-      expect(body.data?.meta.total).toBe(SEED_AUTHORS.length);
-      expect(body.data?.meta.hasMore).toBe(false);
+      const body = (await res.json()) as PaginatedResponse<SeedAuthor>;
+      expect(body.items.length).toBeGreaterThan(0);
+      expect(body.meta.limit).toBe(20);
+      expect(body.meta.offset).toBe(0);
+      expect(body.meta.total).toBe(SEED_AUTHORS.length);
+      expect(body.meta.hasMore).toBe(false);
 
       // Verify structure of each author
-      const first = body.data?.items[0];
+      const first = body.items[0];
       expect(first?.id).toBeDefined();
       expect(first?.name).toBeDefined();
     });
@@ -164,24 +201,20 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const res = await app.request("/v1/authors?limit=2&offset=1");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as ApiResponse<
-        PaginatedResponse<SeedAuthor>
-      >;
-      expect(body.success).toBe(true);
-      expect(body.data?.items.length).toBe(2);
-      expect(body.data?.meta.limit).toBe(2);
-      expect(body.data?.meta.offset).toBe(1);
-      expect(body.data?.meta.hasMore).toBe(true);
+      const body = (await res.json()) as PaginatedResponse<SeedAuthor>;
+      expect(body.items.length).toBe(2);
+      expect(body.meta.limit).toBe(2);
+      expect(body.meta.offset).toBe(1);
+      expect(body.meta.hasMore).toBe(true);
       // Items offset 1 should match second item from SEED_AUTHORS
-      expect(body.data?.items[0].id).toBe(SEED_AUTHORS[1].id);
+      expect(body.items[0].id).toBe(SEED_AUTHORS[1].id);
     });
 
     it("GET /v1/authors rejects invalid pagination params with 400 Bad Request", async () => {
       const resNegative = await app.request("/v1/authors?limit=-5");
       expect(resNegative.status).toBe(400);
 
-      const bodyNegative = (await resNegative.json()) as ApiResponse<never>;
-      expect(bodyNegative.success).toBe(false);
+      const bodyNegative = (await resNegative.json()) as { error: string };
       expect(bodyNegative.error).toBeDefined();
 
       const resOverflow = await app.request("/v1/authors?limit=999");
@@ -203,13 +236,12 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       });
       expect(res.status).toBe(201);
 
-      const body = (await res.json()) as ApiResponse<SeedAuthor>;
-      expect(body.success).toBe(true);
-      expect(body.data?.id).toMatch(
+      const body = (await res.json()) as SeedAuthor;
+      expect(body.id).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       );
-      expect(body.data?.name).toBe(uniqueName);
-      expect(body.data?.bio).toBe("Functional test author biography");
+      expect(body.name).toBe(uniqueName);
+      expect(body.bio).toBe("Functional test author biography");
     });
 
     it("POST /v1/authors rejects empty or missing name with 400 Bad Request", async () => {
@@ -222,8 +254,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       });
       expect(resEmpty.status).toBe(400);
 
-      const body = (await resEmpty.json()) as ApiResponse<never>;
-      expect(body.success).toBe(false);
+      const body = (await resEmpty.json()) as { error: string };
       expect(body.error).toContain("Author name is required");
     });
   });
@@ -233,18 +264,15 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const res = await app.request("/v1/readings");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as ApiResponse<
-        PaginatedResponse<SeedReading>
-      >;
-      expect(body.success).toBe(true);
-      expect(body.data?.items.length).toBeGreaterThan(0);
-      expect(body.data?.meta.limit).toBe(20);
-      expect(body.data?.meta.offset).toBe(0);
-      expect(body.data?.meta.total).toBeGreaterThanOrEqual(
+      const body = (await res.json()) as PaginatedResponse<SeedReading>;
+      expect(body.items.length).toBeGreaterThan(0);
+      expect(body.meta.limit).toBe(20);
+      expect(body.meta.offset).toBe(0);
+      expect(body.meta.total).toBeGreaterThanOrEqual(
         SEED_READINGS.length,
       );
 
-      const reading = body.data?.items[0];
+      const reading = body.items[0];
       expect(reading?.id).toBeDefined();
       expect(reading?.author_id).toBeDefined();
       expect(reading?.translations.es?.title).toBeDefined();
@@ -258,12 +286,9 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       );
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as ApiResponse<
-        PaginatedResponse<SeedReading>
-      >;
-      expect(body.success).toBe(true);
-      expect(body.data?.items.length).toBeGreaterThan(0);
-      for (const item of body.data?.items ?? []) {
+      const body = (await res.json()) as PaginatedResponse<SeedReading>;
+      expect(body.items.length).toBeGreaterThan(0);
+      for (const item of body.items ?? []) {
         expect(item.author_id).toBe(targetAuthorId);
       }
     });
@@ -274,13 +299,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       );
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as ApiResponse<
-        PaginatedResponse<SeedReading>
-      >;
-      expect(body.success).toBe(true);
-      expect(body.data?.items.length).toBe(0);
-      expect(body.data?.meta.total).toBe(0);
-      expect(body.data?.meta.hasMore).toBe(false);
+      const body = (await res.json()) as PaginatedResponse<SeedReading>;
+      expect(body.items.length).toBe(0);
+      expect(body.meta.total).toBe(0);
+      expect(body.meta.hasMore).toBe(false);
     });
 
     it("GET /v1/readings/:id returns reading when found", async () => {
@@ -288,18 +310,16 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const res = await app.request(`/v1/readings/${targetId}`);
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as ApiResponse<SeedReading>;
-      expect(body.success).toBe(true);
-      expect(body.data?.id).toBe(targetId);
-      expect(body.data?.author_id).toBe(SEED_READINGS[0].author_id);
+      const body = (await res.json()) as SeedReading;
+      expect(body.id).toBe(targetId);
+      expect(body.author_id).toBe(SEED_READINGS[0].author_id);
     });
 
     it("GET /v1/readings/:id returns 404 when reading does not exist", async () => {
       const res = await app.request("/v1/readings/non-existent-reading-id");
       expect(res.status).toBe(404);
 
-      const body = (await res.json()) as ApiResponse<never>;
-      expect(body.success).toBe(false);
+      const body = (await res.json()) as { error: string };
       expect(body.error).toBe("Reading not found");
     });
 
@@ -326,26 +346,25 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       });
       expect(res.status).toBe(201);
 
-      const body = (await res.json()) as ApiResponse<SeedReading>;
-      expect(body.success).toBe(true);
-      expect(body.data?.id).toMatch(
+      const body = (await res.json()) as SeedReading;
+      expect(body.id).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       );
-      expect(body.data?.author_id).toBe(SEED_AUTHOR_IDS.SENECA);
-      expect(body.data?.translations.es?.title).toBe(
+      expect(body.author_id).toBe(SEED_AUTHOR_IDS.SENECA);
+      expect(body.translations.es?.title).toBe(
         "Sobre la Brevedad de la Vida",
       );
-      expect(body.data?.translations.en?.title).toBe(
+      expect(body.translations.en?.title).toBe(
         "On the Shortness of Life",
       );
-      expect(body.data?.readDates).toEqual([]);
+      expect(body.readDates).toEqual([]);
 
       // Verify it can immediately be fetched by ID
-      const createdId = body.data!.id;
+      const createdId = body.id;
       const getRes = await app.request(`/v1/readings/${createdId}`);
       expect(getRes.status).toBe(200);
-      const getBody = (await getRes.json()) as ApiResponse<SeedReading>;
-      expect(getBody.data?.id).toBe(createdId);
+      const getBody = (await getRes.json()) as SeedReading;
+      expect(getBody.id).toBe(createdId);
     });
 
     it("POST /v1/readings rejects payload with empty spanish title or content with 400", async () => {
@@ -375,8 +394,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
         });
         expect(res.status).toBe(400);
 
-        const body = (await res.json()) as ApiResponse<never>;
-        expect(body.success).toBe(false);
+        const body = (await res.json()) as { error: string };
         expect(body.error).toBeDefined();
       }
     });

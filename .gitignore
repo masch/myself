@@ -61,6 +61,7 @@ coverage/
 # Local Pi runtime state
 .atl/
 .codegraph/
+.gentle-ai-instance
 
 # Secrets & Local builds
 firebase-sa-key*.json
