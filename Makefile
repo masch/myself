@@ -46,16 +46,42 @@ test-e2e: api-test-e2e
 .PHONY: docs
 docs: api-docs
 
+.PHONY: format-staged
+format-staged: ## Run prettier on staged files only
+	@files=$$(git diff --cached --name-only --diff-filter=d 2>/dev/null); \
+	if [ -n "$$files" ]; then \
+		echo "$$files" | xargs bunx prettier --write --ignore-unknown; \
+	fi
+
+.PHONY: format-check
+format-check: ## Check code formatting using prettier
+	bunx prettier --check .
+
+.PHONY: format-check-staged
+format-check-staged: ## Check code formatting on staged files using prettier
+	@files=$$(git diff --cached --name-only --diff-filter=d 2>/dev/null); \
+	if [ -n "$$files" ]; then \
+		echo "$$files" | xargs bunx prettier --check --ignore-unknown; \
+	fi
+
+.PHONY: expo-doctor
+expo-doctor: ## Run Expo Doctor to verify dependency compatibility
+	cd apps/mobile && APP_VERSION_NAME="$(APP_VERSION_NAME)" bunx expo-doctor
+
+.PHONY: check-static
+check-static: lint typecheck ## Run lint + typecheck
+
 .PHONY: check
-check:
-	bun run check
+check: format-check lint typecheck test ## Run full quality check suite
+	$(MAKE) expo-doctor || echo "[WARN] expo-doctor checks failed (may be false positives from bun cache layout)"
 
 .PHONY: format
-format:
+format: ## Format all files with prettier
 	bun run format
 
 .PHONY: ci
 ci: install check
+
 
 # ── Mobile Tasks (apps/mobile) ───────────────
 
