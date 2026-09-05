@@ -226,8 +226,12 @@ api-db-studio:
 
 .PHONY: api-db-migrate-staging
 api-db-migrate-staging:
-	cd apps/api && TURSO_DATABASE_URL="$${TURSO_DATABASE_URL_STAGING:-$${TURSO_DATABASE_URL}}" \
-	TURSO_AUTH_TOKEN="$${TURSO_AUTH_TOKEN_STAGING:-$${TURSO_AUTH_TOKEN}}" \
+	@if [ -z "$$TURSO_DATABASE_URL_STAGING" ] || [ -z "$$TURSO_AUTH_TOKEN_STAGING" ]; then \
+		echo "ERROR: TURSO_DATABASE_URL_STAGING and TURSO_AUTH_TOKEN_STAGING must both be set"; \
+		exit 1; \
+	fi
+	cd apps/api && TURSO_DATABASE_URL="$$TURSO_DATABASE_URL_STAGING" \
+	TURSO_AUTH_TOKEN="$$TURSO_AUTH_TOKEN_STAGING" \
 	bunx drizzle-kit migrate
 
 .PHONY: api-deploy

@@ -80,6 +80,10 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
       );
       expect(() => resolvePort("-1")).toThrow(/Invalid PORT configuration/);
       expect(() => resolvePort("0")).toThrow(/Invalid PORT configuration/);
+      expect(() => resolvePort("8080abc")).toThrow(
+        /Invalid PORT configuration/,
+      );
+      expect(() => resolvePort("1.5")).toThrow(/Invalid PORT configuration/);
     });
   });
 

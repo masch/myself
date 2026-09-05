@@ -17,5 +17,11 @@
         "ENVIRONMENT": "staging",
       },
     },
+    "development": {
+      "name": "myself-api-dev",
+      "vars": {
+        "ENVIRONMENT": "development",
+      },
+    },
   },
 }

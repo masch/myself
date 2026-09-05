@@ -115,7 +115,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.14
 
       - name: Cache Turborepo & Bun
         uses: actions/cache@v4
@@ -136,7 +136,7 @@ jobs:
         env:
           TURSO_DATABASE_URL_STAGING: ${{ secrets.TURSO_DATABASE_URL_STAGING }}
           TURSO_AUTH_TOKEN_STAGING: ${{ secrets.TURSO_AUTH_TOKEN_STAGING }}
-        if: ${{ env.TURSO_DATABASE_URL_STAGING != '' }}
+        if: ${{ env.TURSO_DATABASE_URL_STAGING != '' && env.TURSO_AUTH_TOKEN_STAGING != '' }}
         run: make api-db-migrate-staging
 
       - name: Deploy Staging to Cloudflare Workers

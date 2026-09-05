@@ -4,7 +4,9 @@ import { createApp, type AppType } from "./app";
 
 let defaultApp: ReturnType<typeof createApp> | null = null;
 
-export function resolveRuntimeEnv(env?: Record<string, string>): Record<string, string> {
+export function resolveRuntimeEnv(
+  env?: Record<string, string>,
+): Record<string, string> {
   if (env && typeof env.TURSO_DATABASE_URL === "string") {
     return env;
   }

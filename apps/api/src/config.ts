@@ -30,8 +30,8 @@ export function resolvePort(raw?: string): number {
   if (!raw) {
     return DEFAULT_PORT;
   }
-  const parsed = parseInt(raw, 10);
-  if (isNaN(parsed) || parsed <= 0) {
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error(
       `Invalid PORT configuration: "${raw}". Expected a positive number`,
     );

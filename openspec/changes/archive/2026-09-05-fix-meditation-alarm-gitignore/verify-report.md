@@ -35,11 +35,11 @@ build_output_hash: sha256:9d6431497251b0667114eb74841965fc97e613949c44ffd1af7cdf
 
 ## 2. Requirements Compliance Matrix
 
-| Requirement | Scenario | Evidence / Verification Target | Result |
-| --- | --- | --- | --- |
-| `REQ-GIT-001` | Preserve Local Native Module Directories | EAS VCS packager does not ignore `apps/mobile/modules/**` native sources | ✅ COMPLIANT |
-| `REQ-GIT-002` | Ignore Generated CNG Native Folders | Continuous Native Generation folders `/android/`, `/ios/`, `/apps/mobile/android/`, `/apps/mobile/ios/` ignored | ✅ COMPLIANT |
-| `REQ-MOD-001` | Autolinking Discovery and Build Inclusion | `expo-modules-autolinking` detects `meditation-session` & `dnd-status` projects | ✅ COMPLIANT |
+| Requirement   | Scenario                                  | Evidence / Verification Target                                                                                  | Result       |
+| ------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------ |
+| `REQ-GIT-001` | Preserve Local Native Module Directories  | EAS VCS packager does not ignore `apps/mobile/modules/**` native sources                                        | ✅ COMPLIANT |
+| `REQ-GIT-002` | Ignore Generated CNG Native Folders       | Continuous Native Generation folders `/android/`, `/ios/`, `/apps/mobile/android/`, `/apps/mobile/ios/` ignored | ✅ COMPLIANT |
+| `REQ-MOD-001` | Autolinking Discovery and Build Inclusion | `expo-modules-autolinking` detects `meditation-session` & `dnd-status` projects                                 | ✅ COMPLIANT |
 
 ## 3. Final Verification Conclusion
 

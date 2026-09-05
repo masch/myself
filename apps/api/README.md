@@ -156,8 +156,8 @@ make api-deploy-staging
 
 To enable automated migrations and deployments on pull requests, add these repository secrets in GitHub (`Settings -> Secrets and variables -> Actions`):
 
-| Secret Name | Description |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token with Workers edit permissions |
-| `TURSO_DATABASE_URL_STAGING` | `libsql://myself-db-staging-<org>.turso.io` |
-| `TURSO_AUTH_TOKEN_STAGING` | Staging database auth token |
+| Secret Name                  | Description                                        |
+| ---------------------------- | -------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`       | Cloudflare API Token with Workers edit permissions |
+| `TURSO_DATABASE_URL_STAGING` | `libsql://myself-db-staging-<org>.turso.io`        |
+| `TURSO_AUTH_TOKEN_STAGING`   | Staging database auth token                        |
