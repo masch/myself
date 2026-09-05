@@ -27,9 +27,16 @@ You can start developing by editing the files inside the **app** directory. This
 
 ## Project Setup & Quality
 
-- To lint the project, run `bunx expo lint`
-- To typecheck the project, run `bunx tsc --noEmit`
-- To run quality checks and build diagnostics, run `make check`
+- To check code formatting: `make check-format` (or `bun run check:format`)
+- To check linting: `make check-lint` (or `bun run check:lint`)
+- To check types: `make check-types` (or `bun run check:types`)
+- To check tests: `make check-tests` (or `bun run check:test`)
+- To check Expo dependencies: `make check-doctor`
+- To check only changed packages against main: `make check-affected`
+- To check a single workspace: `make check-api`, `make check-mobile`, or `make check-shared`
+- To run the full quality check suite in parallel: `make check`
+- To auto-format the whole codebase: `make fix-format` (or `make fix`)
+- To auto-format git-staged files: `make fix-format-staged`
 
 ---
 
