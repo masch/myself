@@ -101,7 +101,7 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         if: ${{ env.EXPO_TOKEN != '' }}
-        run: make mobile-eas-staging-build-web
+        run: make stg-mobile-deploy-web
 
   deploy_api_staging:
     name: Deploy API to Cloudflare Workers (Staging)
@@ -140,13 +140,13 @@ jobs:
           TURSO_AUTH_TOKEN_STAGING: ${{ secrets.TURSO_AUTH_TOKEN_STAGING }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         if: ${{ env.TURSO_DATABASE_URL_STAGING != '' && env.TURSO_AUTH_TOKEN_STAGING != '' && env.CLOUDFLARE_API_TOKEN != '' }}
-        run: make api-db-migrate-staging
+        run: make stg-api-db-migrate
 
       - name: Deploy Staging to Cloudflare Workers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
-        run: make api-deploy-staging
+        run: make stg-api-deploy
 
   deploy_mobile_production:
     name: Deploy Mobile Web to EAS Hosting (Production)
@@ -181,7 +181,7 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         if: ${{ env.EXPO_TOKEN != '' }}
-        run: make mobile-eas-prod-build-web
+        run: make prod-mobile-deploy-web
 
   deploy_api_production:
     name: Deploy API to Cloudflare Workers (Production)
@@ -216,4 +216,4 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
-        run: make api-deploy
+        run: make prod-api-deploy

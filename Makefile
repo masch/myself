@@ -185,12 +185,12 @@ mobile-eas-list:
 mobile-eas-init:
 	cd apps/mobile && bunx eas-cli@$(EAS_CLI_VERSION) init
 
-.PHONY: mobile-eas-staging-build-web
-mobile-eas-staging-build-web: mobile-eas-whoami
+.PHONY: stg-mobile-deploy-web
+stg-mobile-deploy-web: mobile-eas-whoami
 	cd apps/mobile && export APP_ENV=staging APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_PUBLIC_API_URL="$(API_STAGING_URL)" && bun run export-web --clear && bunx eas-cli@$(EAS_CLI_VERSION) deploy --alias staging
 
-.PHONY: mobile-eas-prod-build-web
-mobile-eas-prod-build-web: mobile-eas-whoami
+.PHONY: prod-mobile-deploy-web
+prod-mobile-deploy-web: mobile-eas-whoami
 	cd apps/mobile && bun run export-web --clear && bunx eas-cli@$(EAS_CLI_VERSION) deploy --prod
 
 .PHONY: mobile-eas-build-android-preview-local
@@ -236,16 +236,16 @@ mobile-firebase-distribute:
 		--release-notes "$$FIREBASE_RELEASE_NOTES" \
 		--non-interactive
 
-.PHONY: mobile-firebase-distribute-staging-dev
-mobile-firebase-distribute-staging-dev:
+.PHONY: stg-mobile-firebase-distribute-dev
+stg-mobile-firebase-distribute-dev:
 	$(MAKE) mobile-firebase-distribute APP_ENV=staging GROUPS="$(FIREBASE_GROUP_DEV)"
 
-.PHONY: mobile-firebase-distribute-staging-all
-mobile-firebase-distribute-staging-all:
+.PHONY: stg-mobile-firebase-distribute-all
+stg-mobile-firebase-distribute-all:
 	$(MAKE) mobile-firebase-distribute APP_ENV=staging GROUPS="$(FIREBASE_GROUP_DEV),$(FIREBASE_GROUP_TEST)"
 
-.PHONY: mobile-firebase-distribute-prod-dev
-mobile-firebase-distribute-prod-dev:
+.PHONY: prod-mobile-firebase-distribute-dev
+prod-mobile-firebase-distribute-dev:
 	$(MAKE) mobile-firebase-distribute APP_ENV=production GROUPS="$(FIREBASE_GROUP_DEV)"
 
 # ── API Tasks (apps/api) ─────────────────────
@@ -284,8 +284,8 @@ api-db-migrate-remote:
 api-db-studio:
 	cd apps/api && if [ -f .dev.vars ]; then bun --env-file=.dev.vars x drizzle-kit studio; else bunx drizzle-kit studio; fi
 
-.PHONY: api-db-migrate-staging
-api-db-migrate-staging:
+.PHONY: stg-api-db-migrate
+stg-api-db-migrate:
 	@if [ -z "$$TURSO_DATABASE_URL_STAGING" ] || [ -z "$$TURSO_AUTH_TOKEN_STAGING" ]; then \
 		echo "ERROR: TURSO_DATABASE_URL_STAGING and TURSO_AUTH_TOKEN_STAGING must both be set"; \
 		exit 1; \
@@ -294,12 +294,12 @@ api-db-migrate-staging:
 	TURSO_AUTH_TOKEN="$$TURSO_AUTH_TOKEN_STAGING" \
 	bunx drizzle-kit migrate
 
-.PHONY: api-deploy
-api-deploy:
+.PHONY: prod-api-deploy
+prod-api-deploy:
 	cd apps/api && bun run deploy
 
-.PHONY: api-deploy-staging
-api-deploy-staging:
+.PHONY: stg-api-deploy
+stg-api-deploy:
 	cd apps/api && bun run deploy:staging
 
 .PHONY: api-typecheck

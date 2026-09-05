@@ -143,13 +143,13 @@ bunx wrangler secret put TURSO_AUTH_TOKEN --env staging
 ```bash
 TURSO_DATABASE_URL_STAGING="libsql://myself-db-staging-<org>.turso.io" \
 TURSO_AUTH_TOKEN_STAGING="your-staging-token" \
-make api-db-migrate-staging
+make stg-api-db-migrate
 ```
 
 ### Step 5: Deploy API to Staging Manually
 
 ```bash
-make api-deploy-staging
+make stg-api-deploy
 ```
 
 ### Step 6: Configure GitHub Actions Secrets for CI/CD
