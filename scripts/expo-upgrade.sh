@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MOBILE="${ROOT}/apps/mobile"
 APP_VERSION_NAME="${APP_VERSION_NAME:-}"
 
@@ -10,7 +10,10 @@ DAYS="${DAYS:-4}"
 SECONDS=$(( DAYS * 86400 ))
 
 echo "Checking recommended versions..."
-OUTPUT=$(cd "${MOBILE}" && APP_VERSION_NAME="${APP_VERSION_NAME}" bun run expo install --check 2>&1 || true)
+if ! OUTPUT=$(cd "${MOBILE}" && APP_VERSION_NAME="${APP_VERSION_NAME}" bun run expo install --check 2>&1); then
+	# expo install --check returns non-zero when packages are outdated or missing
+	true
+fi
 PACKAGES=$(echo "${OUTPUT}" | sed -n 's/  \([^ ]*\)@[^ ]* - expected version: ~\?\([^ ]*\)/\1@\2/p')
 
 if [ -n "${PACKAGES}" ]; then

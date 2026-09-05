@@ -130,23 +130,6 @@ fix-format-staged: ## Run prettier on staged files only
 .PHONY: fix
 fix: fix-format ## Run all automated fixes
 
-# ── Aliases (Backward Compatibility) ─────────
-
-.PHONY: lint typecheck test test-coverage test-e2e format format-check format-staged format-check-staged expo-doctor
-lint: check-lint
-typecheck: check-types
-test: check-tests
-test-coverage: check-tests-coverage
-test-e2e: check-tests-e2e
-format: fix-format
-format-check: check-format
-format-staged: fix-format-staged
-format-check-staged: check-format-staged
-expo-doctor: check-doctor
-
-.PHONY: docs
-docs: api-docs
-
 .PHONY: expo-upgrade
 expo-upgrade: ## Check recommended versions and upgrade Expo SDK packages
 	@./scripts/expo-upgrade.sh
@@ -214,12 +197,12 @@ mobile-eas-list: ## List recent EAS builds
 mobile-eas-init: ## Initialize EAS project configuration
 	cd $(MOBILE_DIR) && bunx eas-cli@$(EAS_CLI_VERSION) init
 
-.PHONY: stg-mobile-deploy-web
-stg-mobile-deploy-web: mobile-eas-whoami ## Deploy mobile web build to EAS Hosting (staging)
+.PHONY: stg-mobile-deploy
+stg-mobile-deploy: mobile-eas-whoami ## Deploy mobile web build to EAS Hosting (staging)
 	cd $(MOBILE_DIR) && export APP_ENV=staging APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_PUBLIC_API_URL="$(API_STAGING_URL)" && bun run export-web --clear && bunx eas-cli@$(EAS_CLI_VERSION) deploy --alias staging
 
-.PHONY: prod-mobile-deploy-web
-prod-mobile-deploy-web: mobile-eas-whoami ## Deploy mobile web build to EAS Hosting (production)
+.PHONY: prd-mobile-deploy
+prd-mobile-deploy: mobile-eas-whoami ## Deploy mobile web build to EAS Hosting (production)
 	cd $(MOBILE_DIR) && bun run export-web --clear && bunx eas-cli@$(EAS_CLI_VERSION) deploy --prod
 
 .PHONY: mobile-eas-build-android-preview-local
@@ -323,8 +306,8 @@ stg-api-db-migrate: ## Run database migrations against staging Turso database
 	TURSO_AUTH_TOKEN="$$TURSO_AUTH_TOKEN_STAGING" \
 	bunx drizzle-kit migrate
 
-.PHONY: prod-api-deploy
-prod-api-deploy: ## Deploy API to Cloudflare Workers (production)
+.PHONY: prd-api-deploy
+prd-api-deploy: ## Deploy API to Cloudflare Workers (production)
 	cd $(API_DIR) && bun run deploy
 
 .PHONY: stg-api-deploy

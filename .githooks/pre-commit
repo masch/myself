@@ -11,8 +11,12 @@ if make check-format-staged > /dev/null 2>&1; then
   printf "ok\n"
 else
   printf "auto-formatting staged files... "
+  # Avoid git add -u to prevent staging unstaged hunks/working-tree modifications
+  _STAGED_FILES=$(git diff --cached --name-only --diff-filter=d)
   make fix-format-staged > /dev/null 2>&1
-  git add -u
+  if [ -n "$_STAGED_FILES" ]; then
+    echo "$_STAGED_FILES" | xargs git add
+  fi
   printf "fixed & re-staged\n"
 fi
 
