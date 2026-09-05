@@ -284,27 +284,39 @@ api-dev-remote: api-dev-turso-remote ## Alias for api-dev-turso-remote
 api-db-generate: ## Generate Drizzle SQL migrations from schema
 	cd $(API_DIR) && bunx drizzle-kit generate
 
+.PHONY: api-db-dev
+api-db-dev: ## Run local Turso/libSQL database development server
+	@if command -v turso >/dev/null 2>&1; then \
+		turso dev --db-file $(API_DIR)/local.db; \
+	elif [ -x "$$HOME/.turso/turso" ]; then \
+		"$$HOME/.turso/turso" dev --db-file $(API_DIR)/local.db; \
+	else \
+		echo "turso CLI not found. Run: curl -sSfL https://get.tur.so/install.sh | bash"; \
+		exit 1; \
+	fi
+
 .PHONY: api-db-migrate-local
 api-db-migrate-local: ## Apply Drizzle migrations to local SQLite database
 	cd $(API_DIR) && TURSO_DATABASE_URL="file:local.db" bunx drizzle-kit migrate
 
 .PHONY: api-db-migrate-remote
-api-db-migrate-remote: ## Apply Drizzle migrations to remote database
-	cd $(API_DIR) && if [ -f .dev.vars ]; then bun --env-file=.dev.vars x drizzle-kit migrate; else bunx drizzle-kit migrate; fi
+api-db-migrate-remote: ## Apply Drizzle migrations to remote Turso database
+	@if [ -z "$$TURSO_DATABASE_URL" ] || [ -z "$$TURSO_AUTH_TOKEN" ]; then \
+		if [ -f $(API_DIR)/.dev.vars ]; then \
+			cd $(API_DIR) && bun --env-file=.dev.vars x drizzle-kit migrate; \
+		else \
+			echo "ERROR: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be set"; \
+			exit 1; \
+		fi; \
+	else \
+		cd $(API_DIR) && TURSO_DATABASE_URL="$$TURSO_DATABASE_URL" \
+		TURSO_AUTH_TOKEN="$$TURSO_AUTH_TOKEN" \
+		bunx drizzle-kit migrate; \
+	fi
 
 .PHONY: api-db-studio
 api-db-studio: ## Launch Drizzle Studio web UI
 	cd $(API_DIR) && if [ -f .dev.vars ]; then bun --env-file=.dev.vars x drizzle-kit studio; else bunx drizzle-kit studio; fi
-
-.PHONY: stg-api-db-migrate
-stg-api-db-migrate: ## Run database migrations against staging Turso database
-	@if [ -z "$$TURSO_DATABASE_URL_STAGING" ] || [ -z "$$TURSO_AUTH_TOKEN_STAGING" ]; then \
-		echo "ERROR: TURSO_DATABASE_URL_STAGING and TURSO_AUTH_TOKEN_STAGING must both be set"; \
-		exit 1; \
-	fi
-	cd $(API_DIR) && TURSO_DATABASE_URL="$$TURSO_DATABASE_URL_STAGING" \
-	TURSO_AUTH_TOKEN="$$TURSO_AUTH_TOKEN_STAGING" \
-	bunx drizzle-kit migrate
 
 .PHONY: prd-api-deploy
 prd-api-deploy: ## Deploy API to Cloudflare Workers (production)
