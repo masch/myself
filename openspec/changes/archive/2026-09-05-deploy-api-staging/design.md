@@ -43,25 +43,26 @@ Cloudflare Workers provides native multi-environment support via `env.<environme
   "compatibility_date": "2025-02-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   "vars": {
-    "ENVIRONMENT": "production"
+    "ENVIRONMENT": "production",
   },
   "env": {
     "staging": {
       "name": "myself-api-staging",
       "vars": {
-        "ENVIRONMENT": "staging"
-      }
-    }
-  }
+        "ENVIRONMENT": "staging",
+      },
+    },
+  },
 }
 ```
 
 ### 2.2 Application Types & Healthcheck
 
 - **Types (`apps/api/src/types.ts`)**:
+
   ```typescript
   export type Environment = "production" | "staging" | "development" | "test";
 
@@ -137,47 +138,47 @@ api-deploy-staging:
 The staging deployment job runs automatically on Pull Requests affecting `api` files:
 
 ```yaml
-  deploy_api_staging:
-    name: Deploy API to Cloudflare Workers (Staging)
-    needs: [changes, validate]
-    if: github.event_name == 'pull_request' && needs.changes.outputs.api == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+deploy_api_staging:
+  name: Deploy API to Cloudflare Workers (Staging)
+  needs: [changes, validate]
+  if: github.event_name == 'pull_request' && needs.changes.outputs.api == 'true'
+  runs-on: ubuntu-latest
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
 
-      - name: Cache Turborepo & Bun
-        uses: actions/cache@v4
-        with:
-          path: |
-            .turbo
-            apps/*/.turbo
-            packages/*/.turbo
-            ~/.bun/install/cache
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
+    - name: Cache Turborepo & Bun
+      uses: actions/cache@v4
+      with:
+        path: |
+          .turbo
+          apps/*/.turbo
+          packages/*/.turbo
+          ~/.bun/install/cache
+        key: ${{ runner.os }}-turbo-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-turbo-
 
-      - name: Install dependencies
-        run: make install
+    - name: Install dependencies
+      run: make install
 
-      - name: Run Staging Database Migrations
-        env:
-          TURSO_DATABASE_URL_STAGING: ${{ secrets.TURSO_DATABASE_URL_STAGING }}
-          TURSO_AUTH_TOKEN_STAGING: ${{ secrets.TURSO_AUTH_TOKEN_STAGING }}
-        if: ${{ env.TURSO_DATABASE_URL_STAGING != '' }}
-        run: make api-db-migrate-staging
+    - name: Run Staging Database Migrations
+      env:
+        TURSO_DATABASE_URL_STAGING: ${{ secrets.TURSO_DATABASE_URL_STAGING }}
+        TURSO_AUTH_TOKEN_STAGING: ${{ secrets.TURSO_AUTH_TOKEN_STAGING }}
+      if: ${{ env.TURSO_DATABASE_URL_STAGING != '' }}
+      run: make api-db-migrate-staging
 
-      - name: Deploy to Cloudflare Workers Staging
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
-        run: make api-deploy-staging
+    - name: Deploy to Cloudflare Workers Staging
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
+      run: make api-deploy-staging
 ```
 
 ---
@@ -185,12 +186,16 @@ The staging deployment job runs automatically on Pull Requests affecting `api` f
 ## 5. Secret Management & Runbook
 
 ### 5.1 Cloudflare Worker Secrets
+
 Cloudflare stores production and staging secrets in separate keyrings. Staging secrets must be set with the `--env staging` flag:
+
 - `wrangler secret put TURSO_DATABASE_URL --env staging`
 - `wrangler secret put TURSO_AUTH_TOKEN --env staging`
 
 ### 5.2 GitHub Repository Secrets
+
 For CI/CD execution:
+
 - `CLOUDFLARE_API_TOKEN`: Cloudflare API token with Edit Workers permissions.
 - `TURSO_DATABASE_URL_STAGING`: libSQL connection URL for `myself-db-staging`.
 - `TURSO_AUTH_TOKEN_STAGING`: Auth token for `myself-db-staging`.

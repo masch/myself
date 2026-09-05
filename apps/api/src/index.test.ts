@@ -35,9 +35,9 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
     });
 
     it("fails fast when TURSO_DATABASE_URL is missing in AppConfig", () => {
-      expect(() =>
-        AppConfig.from({ ENVIRONMENT: "test" }),
-      ).toThrow("Missing required configuration: TURSO_DATABASE_URL");
+      expect(() => AppConfig.from({ ENVIRONMENT: "test" })).toThrow(
+        "Missing required configuration: TURSO_DATABASE_URL",
+      );
     });
 
     it("GET / returns welcome message and current timestamp", async () => {

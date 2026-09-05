@@ -32,8 +32,7 @@ function isValidIsoDateString(val: string): boolean {
 
   if (month < 1 || month > 12 || day < 1 || day > 31) return false;
 
-  const isLeapYear =
-    year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
   const daysInMonth = [
     31,
     isLeapYear ? 29 : 28,

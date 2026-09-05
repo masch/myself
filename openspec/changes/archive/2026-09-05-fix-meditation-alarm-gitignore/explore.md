@@ -15,7 +15,7 @@
 
 ## 2. Problem & Motivation
 
-- In commit `28f43cd` (*chore: consolidate into single root gitignore for monorepo*), the generated native directory patterns in root `.gitignore` were modified from root-anchored paths to relative, unanchored globs:
+- In commit `28f43cd` (_chore: consolidate into single root gitignore for monorepo_), the generated native directory patterns in root `.gitignore` were modified from root-anchored paths to relative, unanchored globs:
   ```diff
   - /ios
   - /android

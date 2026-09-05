@@ -64,7 +64,11 @@ describe("Database Client Factory Unit Tests", () => {
 
   it("runs database seeding script CLI successfully", async () => {
     const proc = Bun.spawn(["bun", "run", "scripts/seed.ts"], {
-      env: { ...Bun.env, TURSO_DATABASE_URL: ":memory:" },
+      env: {
+        ...Bun.env,
+        ENVIRONMENT: "test",
+        TURSO_DATABASE_URL: ":memory:",
+      },
       stdout: "pipe",
     });
     const code = await proc.exited;

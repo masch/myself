@@ -72,6 +72,7 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
     it("parses valid port string into number", () => {
       expect(resolvePort("3000")).toBe(3000);
       expect(resolvePort("8080")).toBe(8080);
+      expect(resolvePort("65535")).toBe(65535);
     });
 
     it("throws when port is invalid or not positive", () => {
@@ -80,6 +81,11 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
       );
       expect(() => resolvePort("-1")).toThrow(/Invalid PORT configuration/);
       expect(() => resolvePort("0")).toThrow(/Invalid PORT configuration/);
+      expect(() => resolvePort("65536")).toThrow(/Invalid PORT configuration/);
+      expect(() => resolvePort("8080abc")).toThrow(
+        /Invalid PORT configuration/,
+      );
+      expect(() => resolvePort("1.5")).toThrow(/Invalid PORT configuration/);
     });
   });
 

@@ -36,6 +36,7 @@
 ## 3. Approaches & Analysis
 
 ### Approach 1: Native Cloudflare Workers Environment (`env.staging`) + Turso Database (Recommended)
+
 - Configure `env.staging` directly in `wrangler.jsonc` with distinct worker name `myself-api-staging`.
 - Provision remote Turso database `myself-db-staging` in region `gru` (São Paulo) to match South American latency requirements.
 - Run migrations using `drizzle-kit migrate` against staging Turso URL/token.
@@ -44,6 +45,7 @@
 - **Cons**: Requires initial manual creation of the Turso database and setting Cloudflare secrets (one-time setup).
 
 ### Approach 2: Ephemeral Preview Environments per PR (Cloudflare Workers Preview + Turso Branching)
+
 - Use Turso database branching (`turso db branch`) per PR.
 - **Pros**: Isolated test data per PR.
 - **Cons**: Over-engineering for current stage; adds complexity and operational overhead while staging is not yet live.
@@ -58,11 +60,11 @@ Adopt **Approach 1**: Establish a stable, persistent `staging` environment with 
 
 ## 5. Risks & Mitigation
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Missing secrets in Cloudflare Workers staging | API returns 500 on startup | Fail-fast check during startup and validate worker health after deploy |
-| Out-of-sync migrations between schema and staging DB | Runtime SQL errors | Enforce automated migration execution prior to worker deployment |
-| Secret leakage in CI logs | High security risk | Use GitHub Actions encrypted secrets and masked environment variables |
+| Risk                                                 | Impact                     | Mitigation                                                             |
+| ---------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------- |
+| Missing secrets in Cloudflare Workers staging        | API returns 500 on startup | Fail-fast check during startup and validate worker health after deploy |
+| Out-of-sync migrations between schema and staging DB | Runtime SQL errors         | Enforce automated migration execution prior to worker deployment       |
+| Secret leakage in CI logs                            | High security risk         | Use GitHub Actions encrypted secrets and masked environment variables  |
 
 ---
 

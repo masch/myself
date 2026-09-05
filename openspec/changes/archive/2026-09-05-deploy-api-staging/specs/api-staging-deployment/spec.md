@@ -21,6 +21,7 @@ The `api-staging-deployment` capability provides infrastructure configuration, a
   - `environment`: `c.var.environment` (strongly typed from `AppEnv`)
 
 #### Scenario: Querying Staging Health Endpoint
+
 - **Given** the API worker is deployed with `env.staging`
 - **When** a `GET /health` request is received
 - **Then** the response status code SHALL be `200 OK`
@@ -36,6 +37,7 @@ The `api-staging-deployment` capability provides infrastructure configuration, a
 - If migrations fail, subsequent deployment steps SHALL NOT execute.
 
 #### Scenario: Executing Staging Migrations
+
 - **Given** valid staging Turso credentials (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`)
 - **When** `make api-db-migrate-staging` is invoked
 - **Then** Drizzle migrations SHALL apply to the remote staging database schema
@@ -52,6 +54,7 @@ The `api-staging-deployment` capability provides infrastructure configuration, a
   - `api-db-migrate-staging`: runs remote database migrations against staging Turso database
 
 #### Scenario: Deploying to Staging via CLI
+
 - **Given** configured Cloudflare credentials and staging secrets
 - **When** `make api-deploy-staging` is executed
 - **Then** `wrangler deploy --env staging` SHALL deploy the worker as `myself-api-staging`.
@@ -70,6 +73,7 @@ The `api-staging-deployment` capability provides infrastructure configuration, a
   - Deploys worker via `make api-deploy-staging` if `CLOUDFLARE_API_TOKEN` is set
 
 #### Scenario: Pull Request with API Changes
+
 - **Given** an open Pull Request targeting `main` with modified files in `apps/api/**`
 - **When** the `validate` job passes
 - **Then** `deploy_api_staging` SHALL execute
@@ -86,6 +90,7 @@ The `api-staging-deployment` capability provides infrastructure configuration, a
   - How to add repository secrets to GitHub for CI/CD.
 
 #### Scenario: Referencing Staging Provisioning Documentation
+
 - **Given** a developer setting up a new staging environment
 - **When** `apps/api/README.md` is consulted
 - **Then** actionable instructions for Turso database provisioning and Cloudflare secret configuration SHALL be available.

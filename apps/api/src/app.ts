@@ -35,7 +35,10 @@ export function createApp(
   app.onError(handleApiError);
 
   // System Routes (/, /health)
-  app.route("/", createSystemRouter({ environment: config.environment, startedAt }));
+  app.route(
+    "/",
+    createSystemRouter({ environment: config.environment, startedAt }),
+  );
 
   // v1 API Route Group (requires database repositories)
   const v1 = new OpenAPIHono<AppEnv>({ defaultHook })

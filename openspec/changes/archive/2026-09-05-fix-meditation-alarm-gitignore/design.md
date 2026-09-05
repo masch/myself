@@ -7,6 +7,7 @@ In an Expo monorepo managed with Continuous Native Generation (CNG), native dire
 ## 2. Root Cause Analysis
 
 Commit `28f43cd` converted root `.gitignore` paths:
+
 ```diff
 -# generated native folders
 -/ios
@@ -17,6 +18,7 @@ Commit `28f43cd` converted root `.gitignore` paths:
 ```
 
 In gitignore specification:
+
 - Patterns without a leading slash match anywhere in the file hierarchy (recursive).
 - EAS CLI build creation invokes `Ignore.createForCopyingAsync` (using `ignore` npm package) to create project archives.
 - The recursive pattern `android/` caused EAS to exclude all files inside `apps/mobile/modules/*/android/`.
