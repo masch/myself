@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   AppConfig,
   DEFAULT_PORT,
+  getProcessEnv,
   resolveEnvironment,
   resolvePort,
 } from "../config";
@@ -52,6 +53,36 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
       );
       expect(() => resolvePort("-1")).toThrow(/Invalid PORT configuration/);
       expect(() => resolvePort("0")).toThrow(/Invalid PORT configuration/);
+    });
+  });
+
+  describe("getProcessEnv", () => {
+    it("returns bindings extracted from process.env", () => {
+      const originalEnv = process.env.ENVIRONMENT;
+      process.env.ENVIRONMENT = "test";
+      try {
+        const env = getProcessEnv();
+        expect(env.ENVIRONMENT).toBe("test");
+      } finally {
+        process.env.ENVIRONMENT = originalEnv;
+      }
+    });
+
+    it("AppConfig.from merges getProcessEnv with overrides", () => {
+      const originalEnv = process.env.ENVIRONMENT;
+      const originalUrl = process.env.TURSO_DATABASE_URL;
+
+      process.env.ENVIRONMENT = "test";
+      process.env.TURSO_DATABASE_URL = ":memory:";
+
+      try {
+        const config = AppConfig.from({ ENVIRONMENT: "staging" });
+        expect(config.environment).toBe("staging");
+        expect(config.database.url).toBe(":memory:");
+      } finally {
+        process.env.ENVIRONMENT = originalEnv;
+        process.env.TURSO_DATABASE_URL = originalUrl;
+      }
     });
   });
 

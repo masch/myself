@@ -1,5 +1,5 @@
 import type { ExecutionContext } from "hono";
-import { AppConfig, resolvePort } from "./config";
+import { AppConfig, getProcessEnv, resolvePort } from "./config";
 import { createApp, type AppType } from "./app";
 
 let defaultApp: ReturnType<typeof createApp> | null = null;
@@ -8,9 +8,7 @@ export function resolveRuntimeEnv(env?: Record<string, string>): Record<string, 
   if (env && typeof env.TURSO_DATABASE_URL === "string") {
     return env;
   }
-  return typeof process !== "undefined"
-    ? (process.env as Record<string, string>)
-    : {};
+  return getProcessEnv() as Record<string, string>;
 }
 
 export function getDefaultApp(

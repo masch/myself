@@ -37,30 +37,39 @@ export function resolvePort(raw?: string): number {
   return parsed;
 }
 
+export function getProcessEnv(): Partial<ApiBindings> {
+  if (typeof process === "undefined" || !process.env) {
+    return {};
+  }
+  return {
+    ENVIRONMENT: process.env.ENVIRONMENT,
+    TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
+    TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
+    PORT: process.env.PORT,
+  };
+}
+
 export class AppConfig {
   readonly database: DatabaseConfig;
   readonly environment: Environment;
   readonly port: number;
 
   constructor(env: Partial<ApiBindings> = {}) {
-    const rawEnv =
-      env.ENVIRONMENT ??
-      (typeof process !== "undefined" ? process.env?.ENVIRONMENT : undefined);
+    const processBindings = getProcessEnv();
+    const rawEnv = env.ENVIRONMENT ?? processBindings.ENVIRONMENT;
     this.environment = resolveEnvironment(rawEnv);
 
-    const rawPort =
-      env.PORT ??
-      (typeof process !== "undefined" ? process.env?.PORT : undefined);
+    const rawPort = env.PORT ?? processBindings.PORT;
     this.port = resolvePort(rawPort);
 
-    const url = env.TURSO_DATABASE_URL;
+    const url = env.TURSO_DATABASE_URL ?? processBindings.TURSO_DATABASE_URL;
     if (!url) {
       throw new Error("Missing required configuration: TURSO_DATABASE_URL");
     }
 
     this.database = {
       url,
-      authToken: env.TURSO_AUTH_TOKEN,
+      authToken: env.TURSO_AUTH_TOKEN ?? processBindings.TURSO_AUTH_TOKEN,
     };
   }
 

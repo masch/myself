@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { AppConfig } from "../config";
+import { AppConfig, getProcessEnv } from "../config";
 import { createApp } from "../app";
 import { seedFromConfig } from "../db/seed";
 import entrypoint, { getDefaultApp, resolveRuntimeEnv } from "../index";
@@ -34,9 +34,9 @@ describe("Application Bootstrap & Entrypoint Unit Tests", () => {
       expect(resolveRuntimeEnv(env)).toBe(env);
     });
 
-    it("falls back to process.env when env is undefined or missing database url", () => {
-      expect(resolveRuntimeEnv(undefined)).toBe(process.env as any);
-      expect(resolveRuntimeEnv({})).toBe(process.env as any);
+    it("falls back to getProcessEnv when env is undefined or missing database url", () => {
+      expect(resolveRuntimeEnv(undefined)).toEqual(getProcessEnv() as any);
+      expect(resolveRuntimeEnv({})).toEqual(getProcessEnv() as any);
     });
   });
 
