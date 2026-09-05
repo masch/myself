@@ -1,0 +1,166 @@
+# Broccoli PR Approval Gate — manual, human-affirmed merge gate for `main`.
+#
+# A PR to `main` is mergeable only while the commit-status context
+# `Check PR broccoli comment` reports `success`, which happens only when the LAST
+# human comment authored AFTER the current head SHA carries the broccoli signal
+# (emoji U+1F966 or the `:broccoli:` shortcode). Every new push (`synchronize`)
+# resets the status to `pending`, invalidating the previous approval.
+#
+# Uses the GitHub Commit Statuses API, not Check Runs. The workflow NEVER writes
+# the broccoli signal itself; only a human-authored comment can flip the gate to
+# `success`. Branch Protection must require the exact context below.
+
+name: Broccoli PR Approval Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created, edited]
+  pull_request_review:
+    types: [submitted, edited]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  statuses: write
+
+concurrency:
+  group: broccoli-gate-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  broccoli-gate:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request != null || (github.event.issue != null && github.event.issue.pull_request != null)
+    steps:
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            const { owner, repo } = context.repo;
+            const CONTEXT = 'Check PR broccoli comment';
+            const runUrl =
+              `${process.env.GITHUB_SERVER_URL}/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            // Single source of truth for number + base + head regardless of event type.
+            const prNumber =
+              (context.payload.pull_request && context.payload.pull_request.number) ||
+              (context.payload.issue && context.payload.issue.number);
+            if (!prNumber) return;
+
+            const prRes = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+            const prData = prRes.data;
+
+            // Only gate PRs targeting main.
+            if (prData.base.ref !== 'main') {
+              console.log(`PR #${prNumber} base is '${prData.base.ref}'; skipping gate.`);
+              return;
+            }
+
+            const headSha = prData.head.sha;
+
+            async function writeStatus(state, description) {
+              await github.rest.repos.createCommitStatus({
+                owner,
+                repo,
+                sha: headSha,
+                context: 'Check PR broccoli comment',
+                state,
+                description,
+                target_url: runUrl,
+              });
+              console.log(`status=${state} on ${headSha}: ${description}`);
+            }
+
+            const prAction =
+              context.eventName === 'pull_request' ? context.payload.action : null;
+            const needsPendingReset =
+              prAction === 'synchronize' || prAction === 'opened' || prAction === 'reopened';
+            if (needsPendingReset) {
+              await writeStatus('pending', 'Awaiting broccoli comment...');
+              return;
+            }
+
+            // Evaluation events: issue_comment created/edited, or review submitted/edited.
+            const reviewAction = context.payload.action;
+            const isCommentEval =
+              context.eventName === 'issue_comment' ||
+              (context.eventName === 'pull_request_review' &&
+                (reviewAction === 'submitted' || reviewAction === 'edited'));
+            if (!isCommentEval) return;
+
+            // Determine head cutoff time.
+            // Check if there was a pending status created for this headSha to use as cutoff.
+            let headTime = null;
+            try {
+              const statuses = await github.rest.repos.listCommitStatusesForRef({
+                owner,
+                repo,
+                ref: headSha,
+                per_page: 50,
+              });
+              const pendingReset = statuses.data
+                .filter((s) => s.context === CONTEXT && s.state === 'pending')
+                .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
+              if (pendingReset) {
+                headTime = new Date(pendingReset.created_at).getTime();
+              }
+            } catch (e) {
+              console.log('Error fetching statuses for ref:', e);
+            }
+
+            // Fallback to head commit authoring/committer date if no pending status found.
+            if (!headTime) {
+              const headCommit = await github.rest.git.getCommit({ owner, repo, commit_sha: headSha });
+              headTime = new Date(headCommit.data.committer.date).getTime();
+            }
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: prNumber,
+              per_page: 100,
+            });
+            // Reviews also carry the human signal; fold them into the timeline.
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner,
+              repo,
+              pull_number: prNumber,
+              per_page: 100,
+            });
+
+            // Normalize both streams to { created_at, body, userType } ordered by time.
+            // Filter strictly to human users (type === 'User') to reject bot approvals.
+            const timeline = [
+              ...comments.map((c) => ({
+                created_at: c.created_at,
+                body: c.body || '',
+                userType: (c.user && c.user.type) || 'User',
+              })),
+              ...reviews.map((r) => ({
+                created_at: r.submitted_at,
+                body: r.body || '',
+                userType: (r.user && r.user.type) || 'User',
+              })),
+            ]
+              .filter((c) => c.userType === 'User' && c.body.trim().length > 0)
+              .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+            const postHead = timeline.filter((c) => new Date(c.created_at).getTime() > headTime);
+            if (postHead.length === 0) {
+              await writeStatus('failure', 'No comment authored after the latest head SHA.');
+              return;
+            }
+
+            const lastBody = postHead[postHead.length - 1].body || '';
+            const broccoli =
+              /\u{1F966}/u.test(lastBody) || /:broccoli:/u.test(lastBody);
+            await writeStatus(
+              broccoli ? 'success' : 'failure',
+              broccoli
+                ? 'Approved: last comment carries the broccoli signal.'
+                : 'Last comment has no broccoli signal on the latest head.',
+            );
