@@ -3,7 +3,6 @@ import { AppConfig, getProcessEnv } from "../config";
 import { createApp } from "../app";
 import { seedFromConfig } from "../db/seed";
 import entrypoint, { getDefaultApp, resolveRuntimeEnv } from "../index";
-import type { ApiResponse } from "@myself/shared";
 
 import { existsSync, rmSync } from "node:fs";
 
@@ -58,12 +57,11 @@ describe("Application Bootstrap & Entrypoint Unit Tests", () => {
       });
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as ApiResponse<{
+      const body = (await res.json()) as {
         status: string;
         environment: string;
-      }>;
-      expect(body.success).toBe(true);
-      expect(body.data?.status).toBe("ok");
+      };
+      expect(body.status).toBe("ok");
     });
 
     it("entrypoint.fetch uses process.env when env parameter has no TURSO_DATABASE_URL", async () => {
