@@ -15,8 +15,13 @@ SHARED_DIR  := packages/shared
 # ── Monorepo Root Tasks (Turborepo) ──────────
 
 .PHONY: install
-install: ## Install dependencies across all workspaces
+install: ## Install dependencies across all workspaces and configure git hooks
 	bun install
+	@$(MAKE) setup-hooks
+
+.PHONY: setup-hooks
+setup-hooks: ## Configure git to use versioned .githooks
+	git config core.hooksPath .githooks
 
 .PHONY: dev
 dev: ## Run dev servers concurrently via Turborepo
@@ -98,6 +103,19 @@ check: check-format ## Run full quality check suite via unified Turborepo pipeli
 
 .PHONY: ci
 ci: install check
+
+.PHONY: precommit-logs
+precommit-logs: ## Show log outputs from the most recent pre-commit run
+	@LAST=$$(ls -t /tmp/myself-precommit-*.log 2>/dev/null | head -1 | sed -E 's/.*myself-precommit-(.+)-[^-]+\.log/\1/'); \
+	if [ -z "$$LAST" ]; then \
+	  echo "No pre-commit logs found in /tmp"; \
+	else \
+	  for f in /tmp/myself-precommit-$${LAST}-*.log; do \
+	    echo "=== $$(basename $$f) ==="; \
+	    cat "$$f"; \
+	    echo ""; \
+	  done; \
+	fi
 
 # ── Correction Tasks (Fixes) ──────────────────
 
