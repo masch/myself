@@ -14,7 +14,12 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "check": "turbo run lint typecheck test",
-    "format": "prettier --write ."
+    "check:format": "prettier --check .",
+    "check:lint": "turbo run lint",
+    "check:types": "turbo run typecheck",
+    "check:test": "turbo run test",
+    "format": "prettier --write .",
+    "fix:format": "prettier --write ."
   },
   "devDependencies": {
     "@types/bun": "^1.4.0",
