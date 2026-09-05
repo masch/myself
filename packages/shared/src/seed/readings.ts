@@ -430,7 +430,7 @@ the privileged and the pilgrim,
 the one who will tell the story 
 and the one, coming back 
 from the mountain 
-who helped to make it.`
+who helped to make it.`,
       },
     },
   },

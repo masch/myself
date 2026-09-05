@@ -5,12 +5,14 @@
 Following the monorepo restructuring in commit `28f43cd`, generated native folders in `.gitignore` were changed from root-anchored paths (`/ios`, `/android`) to unanchored directory globs (`ios/`, `android/`).
 
 Because gitignore rules without a leading slash match directories at any level of the project tree, EAS CLI build packagers (`vcsClient.makeShallowCopyAsync`) and git ignore filters excluded the native source directories of local Expo modules:
+
 - `apps/mobile/modules/meditation-session/android/`
 - `apps/mobile/modules/meditation-session/ios/`
 - `apps/mobile/modules/dnd-status/android/`
 - `apps/mobile/modules/dnd-status/ios/`
 
 As a result:
+
 - EAS local builds packaged empty `android/` folders for local modules.
 - `expo-modules-autolinking` failed to find `build.gradle` inside the module directories and omitted `meditation-session` and `dnd-status` from Gradle settings.
 - Staging APK `staging-v2026.09.02-1158` was produced without `MeditationForegroundService`.

@@ -1,26 +1,88 @@
-import type { ApiBindings } from "./types";
+import type { ApiBindings, Environment } from "./types";
+import { isValidEnvironment, VALID_ENVIRONMENTS } from "./types";
 
 export interface DatabaseConfig {
   url: string;
   authToken?: string;
 }
 
+export const DEFAULT_ENVIRONMENT: Environment = "development";
+
+export function resolveEnvironment(raw?: string): Environment {
+  if (!raw) {
+    throw new Error(
+      `Missing required ENVIRONMENT configuration. Expected one of: ${VALID_ENVIRONMENTS.join(", ")}`,
+    );
+  }
+
+  if (!isValidEnvironment(raw)) {
+    throw new Error(
+      `Invalid ENVIRONMENT configuration: "${raw}". Expected one of: ${VALID_ENVIRONMENTS.join(", ")}`,
+    );
+  }
+
+  return raw;
+}
+
+export const DEFAULT_PORT = 8787;
+
+export function resolvePort(raw?: string): number {
+  if (!raw) {
+    return DEFAULT_PORT;
+  }
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(
+      `Invalid PORT configuration: "${raw}". Expected a positive number`,
+    );
+  }
+  return parsed;
+}
+
+export function getProcessEnv(): Partial<ApiBindings> {
+  if (typeof process === "undefined" || !process.env) {
+    return {};
+  }
+  return {
+    ENVIRONMENT: process.env.ENVIRONMENT,
+    TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
+    TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
+    PORT: process.env.PORT,
+  };
+}
+
+export function resolveDatabaseConfig(
+  url?: string,
+  authToken?: string,
+): DatabaseConfig {
+  if (!url) {
+    throw new Error("Missing required configuration: TURSO_DATABASE_URL");
+  }
+  return {
+    url,
+    authToken,
+  };
+}
+
 export class AppConfig {
   readonly database: DatabaseConfig;
+  readonly environment: Environment;
+  readonly port: number;
 
-  constructor(env: Partial<ApiBindings> = {}) {
-    const url = env.TURSO_DATABASE_URL;
-    if (!url) {
-      throw new Error("Missing required configuration: TURSO_DATABASE_URL");
-    }
-
-    this.database = {
-      url,
-      authToken: env.TURSO_AUTH_TOKEN,
-    };
+  constructor(bindings: Partial<ApiBindings> = {}) {
+    this.environment = resolveEnvironment(bindings.ENVIRONMENT);
+    this.port = resolvePort(bindings.PORT);
+    this.database = resolveDatabaseConfig(
+      bindings.TURSO_DATABASE_URL,
+      bindings.TURSO_AUTH_TOKEN,
+    );
   }
 
   static from(env?: Partial<ApiBindings>): AppConfig {
-    return new AppConfig(env);
+    const processBindings = getProcessEnv();
+    return new AppConfig({
+      ...processBindings,
+      ...env,
+    });
   }
 }

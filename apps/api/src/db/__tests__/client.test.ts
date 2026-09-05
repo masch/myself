@@ -55,13 +55,20 @@ describe("Database Client Factory Unit Tests", () => {
   });
 
   it("runs seedFromConfig successfully with explicit AppConfig", async () => {
-    const config = new AppConfig({ TURSO_DATABASE_URL: ":memory:" });
+    const config = new AppConfig({
+      ENVIRONMENT: "test",
+      TURSO_DATABASE_URL: ":memory:",
+    });
     await seedFromConfig(config);
   });
 
   it("runs database seeding script CLI successfully", async () => {
     const proc = Bun.spawn(["bun", "run", "scripts/seed.ts"], {
-      env: { ...Bun.env, TURSO_DATABASE_URL: ":memory:" },
+      env: {
+        ...Bun.env,
+        ENVIRONMENT: "test",
+        TURSO_DATABASE_URL: ":memory:",
+      },
       stdout: "pipe",
     });
     const code = await proc.exited;
