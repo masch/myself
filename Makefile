@@ -48,10 +48,7 @@ docs: api-docs
 
 .PHONY: format-staged
 format-staged: ## Run prettier on staged files only
-	@files=$$(git diff --cached --name-only --diff-filter=d 2>/dev/null); \
-	if [ -n "$$files" ]; then \
-		echo "$$files" | xargs bunx prettier --write --ignore-unknown; \
-	fi
+	@git diff --cached --name-only -z --diff-filter=d 2>/dev/null | xargs -0 -r bunx prettier --write --ignore-unknown --
 
 .PHONY: format-check
 format-check: ## Check code formatting using prettier
@@ -59,10 +56,7 @@ format-check: ## Check code formatting using prettier
 
 .PHONY: format-check-staged
 format-check-staged: ## Check code formatting on staged files using prettier
-	@files=$$(git diff --cached --name-only --diff-filter=d 2>/dev/null); \
-	if [ -n "$$files" ]; then \
-		echo "$$files" | xargs bunx prettier --check --ignore-unknown; \
-	fi
+	@git diff --cached --name-only -z --diff-filter=d 2>/dev/null | xargs -0 -r bunx prettier --check --ignore-unknown --
 
 .PHONY: expo-doctor
 expo-doctor: ## Run Expo Doctor to verify dependency compatibility
