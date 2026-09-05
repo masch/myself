@@ -287,6 +287,13 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       expect(() => DateTime.from("2026-09-04T12:00:00+02:60")).toThrow(
         "Invalid date representation",
       );
+      // Offsets without colon (basic ISO format) must be rejected per documented contract (±HH:MM)
+      expect(() => DateTime.from("2026-09-04T12:00:00+0300")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-09-04T12:00:00-0300")).toThrow(
+        "Invalid date representation",
+      );
       expect(() => DateTime.from(new Date("invalid"))).toThrow(
         "Invalid date representation",
       );

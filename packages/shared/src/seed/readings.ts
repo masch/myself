@@ -10,6 +10,7 @@ export const SEED_AUTHOR_IDS = {
   RAIMON_PANIKKAR: "a0000000-0000-4000-8000-000000000007",
   FRANCISCO_LUIS_BERNARDEZ: "a0000000-0000-4000-8000-000000000008",
   MARY_OLIVER: "a0000000-0000-4000-8000-000000000009",
+  CHARLES_BAUDELAIRE: "a0000000-0000-4000-8000-000000000010",
 } as const;
 
 export const SEED_AUTHORS: SeedAuthor[] = [
@@ -66,6 +67,12 @@ export const SEED_AUTHORS: SeedAuthor[] = [
     name: "Mary Oliver",
     bio: "Poeta estadounidense, ganadora del Premio Pulitzer, celebrada por su profunda contemplación de la naturaleza y la quietud.",
     createdAt: "2026-09-02T08:00:00-03:00",
+  },
+  {
+    id: SEED_AUTHOR_IDS.CHARLES_BAUDELAIRE,
+    name: "Charles Baudelaire",
+    bio: "Poeta, ensayista y crítico de arte francés, figura clave de la lírica moderna y el simbolismo.",
+    createdAt: "2026-09-03T08:00:00-03:00",
   },
 ];
 

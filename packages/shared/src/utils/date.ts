@@ -4,7 +4,7 @@
  * optional fractional seconds, and mandatory timezone offset ('Z' or '±HH:MM').
  */
 const ISO_DATE_REGEX =
-  /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-]\d{2}:?\d{2}))?$/;
+  /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-]\d{2}:\d{2}))?$/;
 
 /**
  * Validates ISO 8601 syntax and calendar validity (including leap years and month boundaries).
@@ -47,11 +47,9 @@ function isValidIsoDateString(val: string): boolean {
 
     if (match[7] && match[7] !== "Z") {
       const offsetBody = match[7].slice(1);
-      const parts = offsetBody.includes(":")
-        ? offsetBody.split(":")
-        : [offsetBody.slice(0, 2), offsetBody.slice(2)];
+      const parts = offsetBody.split(":");
       const tzHour = parseInt(parts[0], 10);
-      const tzMin = parts[1] ? parseInt(parts[1], 10) : 0;
+      const tzMin = parseInt(parts[1], 10);
       if (tzHour > 23 || tzMin > 59) return false;
     }
   }
