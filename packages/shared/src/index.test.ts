@@ -4,16 +4,23 @@ import {
   createApiClient,
   createAuthorSchema,
   createReadingSchema,
+  createUserSchema,
+  entityIdSchema,
+  DateTime,
+  ErrorCode,
+  generateEntityId,
+  HttpStatus,
   listAuthorsQuerySchema,
   listReadingsQuerySchema,
   paginationQuerySchema,
+  uuidParamSchema,
   SEED_AUTHORS,
   SEED_AUTHOR_IDS,
   SEED_READINGS,
 } from "./index";
 
 describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
-  describe("Constants & Mocks Integrity", () => {
+  describe("Constants & Seed Data Integrity", () => {
     it("exports valid APP_NAME", () => {
       expect(APP_NAME).toBe("myself");
     });
@@ -23,6 +30,7 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       for (const author of SEED_AUTHORS) {
         expect(author.id).toBeDefined();
         expect(author.name.trim().length).toBeGreaterThan(0);
+        expect(author.createdAt.trim().length).toBeGreaterThan(0);
       }
     });
 
@@ -121,11 +129,200 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
         }),
       ).toThrow();
     });
+
+    it("createUserSchema trims name, email, and avatarUrl", () => {
+      const parsed = createUserSchema.parse({
+        name: "  Marcus  ",
+        email: "  marcus@rome.gov  ",
+        avatarUrl: "  https://example.com/marcus.png  ",
+      });
+      expect(parsed.name).toBe("Marcus");
+      expect(parsed.email).toBe("marcus@rome.gov");
+      expect(parsed.avatarUrl).toBe("https://example.com/marcus.png");
+    });
+
+    it("uuidParamSchema validates valid UUID and rejects non-UUID strings", () => {
+      const valid = uuidParamSchema.parse({
+        id: "a0000000-0000-4000-8000-000000000001",
+      });
+      expect(valid.id).toBe("a0000000-0000-4000-8000-000000000001" as any);
+
+      expect(() => uuidParamSchema.parse({ id: "not-a-uuid" })).toThrow();
+      expect(() => uuidParamSchema.parse({ id: "" })).toThrow();
+    });
+
+    it("entityIdSchema parses valid branded EntityId and rejects non-UUID strings", () => {
+      const valid = entityIdSchema.parse(
+        "a0000000-0000-4000-8000-000000000001",
+      );
+      expect(valid).toBe("a0000000-0000-4000-8000-000000000001" as any);
+
+      expect(() => entityIdSchema.parse("invalid-id")).toThrow();
+      expect(() => entityIdSchema.parse("")).toThrow();
+    });
   });
 
   describe("RPC Client Factory", () => {
     it("exports createApiClient function", () => {
       expect(typeof createApiClient).toBe("function");
+    });
+  });
+
+  describe("Entity ID Generator (generateEntityId)", () => {
+    it("generates a valid RFC4122 v4 UUID", () => {
+      const id = generateEntityId();
+      expect(id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
+    });
+
+    it("generates distinct unique IDs", () => {
+      const id1 = generateEntityId();
+      const id2 = generateEntityId();
+      expect(id1).not.toBe(id2);
+    });
+  });
+
+  describe("HttpStatus Constants", () => {
+    it("exports standard HTTP status codes correctly", () => {
+      expect(HttpStatus.OK).toBe(200);
+      expect(HttpStatus.CREATED).toBe(201);
+      expect(HttpStatus.ACCEPTED).toBe(202);
+      expect(HttpStatus.NO_CONTENT).toBe(204);
+      expect(HttpStatus.BAD_REQUEST).toBe(400);
+      expect(HttpStatus.UNAUTHORIZED).toBe(401);
+      expect(HttpStatus.FORBIDDEN).toBe(403);
+      expect(HttpStatus.NOT_FOUND).toBe(404);
+      expect(HttpStatus.CONFLICT).toBe(409);
+      expect(HttpStatus.UNPROCESSABLE_ENTITY).toBe(422);
+      expect(HttpStatus.INTERNAL_SERVER_ERROR).toBe(500);
+    });
+  });
+
+  describe("ErrorCode Constants", () => {
+    it("exports standard business error codes correctly", () => {
+      expect(ErrorCode.INTERNAL_ERROR).toBe("INTERNAL_ERROR");
+      expect(ErrorCode.BAD_REQUEST).toBe("BAD_REQUEST");
+      expect(ErrorCode.NOT_FOUND).toBe("NOT_FOUND");
+      expect(ErrorCode.UNAUTHORIZED).toBe("UNAUTHORIZED");
+      expect(ErrorCode.FORBIDDEN).toBe("FORBIDDEN");
+      expect(ErrorCode.CONFLICT).toBe("CONFLICT");
+      expect(ErrorCode.USER_ALREADY_EXISTS).toBe("USER_ALREADY_EXISTS");
+      expect(ErrorCode.ENTITY_NOT_FOUND).toBe("ENTITY_NOT_FOUND");
+    });
+  });
+
+  describe("DateTime Value Object", () => {
+    it("DateTime.now() returns instance with valid toISOString", () => {
+      const dt = DateTime.now();
+      expect(dt instanceof DateTime).toBe(true);
+      expect(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(dt.toISOString()),
+      ).toBe(true);
+      expect(Number.isNaN(Date.parse(dt.toISOString()))).toBe(false);
+    });
+
+    it("DateTime.from() parses valid ISO strings and Dates", () => {
+      const iso = "2026-09-04T12:00:00.000Z";
+      const dt = DateTime.from(iso);
+      expect(dt.toISOString()).toBe(iso);
+
+      // Date-only input parses as UTC midnight
+      const dateOnly = DateTime.from("2026-09-04");
+      expect(dateOnly.toISOString()).toBe("2026-09-04T00:00:00.000Z");
+
+      // Proleptic Gregorian leap years (including year 0000)
+      const leapYearZero = DateTime.from("0000-02-29");
+      expect(leapYearZero.toISOString()).toBe("0000-02-29T00:00:00.000Z");
+
+      const leapYear2024 = DateTime.from("2024-02-29");
+      expect(leapYear2024.toISOString()).toBe("2024-02-29T00:00:00.000Z");
+
+      // Datetime with explicit timezone offset
+      const withOffset = DateTime.from("2026-09-04T14:00:00+02:00");
+      expect(withOffset.toISOString()).toBe("2026-09-04T12:00:00.000Z");
+
+      const fromDate = DateTime.from(new Date(iso));
+      expect(fromDate.toISOString()).toBe(iso);
+      expect(dt.equals(fromDate)).toBe(true);
+
+      const fromInstance = DateTime.from(dt);
+      expect(fromInstance).toBe(dt);
+    });
+
+    it("DateTime.from() throws for invalid inputs", () => {
+      expect(() => DateTime.from("not-a-date")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("September 4, 2026")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("04/09/2026")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-02-30")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("0000-02-30")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("1900-02-29")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2023-02-29")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-13-01")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-01-32")).toThrow(
+        "Invalid date representation",
+      );
+      // Space-separated datetimes must be rejected
+      expect(() => DateTime.from("2026-09-04 12:00:00")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-09-04 12:00:00Z")).toThrow(
+        "Invalid date representation",
+      );
+      // Datetime without explicit timezone offset must be rejected (prevents local time ambiguity)
+      expect(() => DateTime.from("2026-09-04T12:00:00")).toThrow(
+        "Invalid date representation",
+      );
+      // Invalid time boundaries
+      expect(() => DateTime.from("2026-09-04T24:00:00Z")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-09-04T12:60:00Z")).toThrow(
+        "Invalid date representation",
+      );
+      // Invalid timezone offsets
+      expect(() => DateTime.from("2026-09-04T12:00:00+25:00")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-09-04T12:00:00+02:60")).toThrow(
+        "Invalid date representation",
+      );
+      // Offsets without colon (basic ISO format) must be rejected per documented contract (±HH:MM)
+      expect(() => DateTime.from("2026-09-04T12:00:00+0300")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from("2026-09-04T12:00:00-0300")).toThrow(
+        "Invalid date representation",
+      );
+      expect(() => DateTime.from(new Date("invalid"))).toThrow(
+        "Invalid date representation",
+      );
+    });
+
+    it("DateTime.equals() verifies value equality", () => {
+      const dt1 = DateTime.from("2026-09-04T10:00:00.000Z");
+      const dt2 = DateTime.from("2026-09-04T10:00:00.000Z");
+      const dt3 = DateTime.from("2026-09-04T11:00:00.000Z");
+
+      expect(dt1.equals(dt2)).toBe(true);
+      expect(dt1.equals(dt3)).toBe(false);
+      expect(dt1.equals({} as any)).toBe(false);
     });
   });
 });

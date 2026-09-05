@@ -1,0 +1,10 @@
+# Local development environment secrets for Cloudflare Workers (wrangler dev)
+# Copy this file to .dev.vars to configure your remote or local Turso database credentials.
+#
+# Turso Database URL:
+# - Cloud database: libsql://myself-db-<org>.turso.io
+# - Local Turso server ('turso dev'): http://127.0.0.1:8080
+TURSO_DATABASE_URL="libsql://myself-db-<org>.turso.io"
+
+# Turso Database Authentication Token (optional when using local 'turso dev')
+TURSO_AUTH_TOKEN="your-turso-auth-token"

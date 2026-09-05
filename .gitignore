@@ -32,8 +32,19 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files & cloudflare secrets
 .env*.local
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# local sqlite databases & journals
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
 
 # typescript
 *.tsbuildinfo

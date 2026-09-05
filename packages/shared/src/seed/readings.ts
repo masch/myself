@@ -10,6 +10,8 @@ export const SEED_AUTHOR_IDS = {
   RAIMON_PANIKKAR: "a0000000-0000-4000-8000-000000000007",
   FRANCISCO_LUIS_BERNARDEZ: "a0000000-0000-4000-8000-000000000008",
   MARY_OLIVER: "a0000000-0000-4000-8000-000000000009",
+  CHARLES_BAUDELAIRE: "a0000000-0000-4000-8000-000000000010",
+  DAVID_WHYTE: "a0000000-0000-4000-8000-000000000011",
 } as const;
 
 export const SEED_AUTHORS: SeedAuthor[] = [
@@ -17,46 +19,67 @@ export const SEED_AUTHORS: SeedAuthor[] = [
     id: SEED_AUTHOR_IDS.MARCUS_AURELIUS,
     name: "Marco Aurelio",
     bio: "Emperador romano y filósofo estoico, autor de las Meditaciones.",
+    createdAt: "2026-08-15T08:00:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.SENECA,
     name: "Séneca",
     bio: "Filósofo estoico, estadista y dramaturgo romano.",
+    createdAt: "2026-08-16T09:00:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.EPICTETUS,
     name: "Epicteto",
     bio: "Filósofo estoico griego, nacido esclavo en Hierápolis.",
+    createdAt: "2026-08-18T10:00:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.LAO_TZU,
     name: "Lao-Tse",
     bio: "Antiguo filósofo y escritor chino, figura central del taoísmo.",
+    createdAt: "2026-08-14T06:45:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.THICH_NHAT_HANH,
     name: "Thich Nhat Hanh",
     bio: "Monje budista zen vietnamita, activista por la paz y maestro de mindfulness.",
+    createdAt: "2026-08-17T07:30:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.JOHN_O_DONOHUE,
     name: "John O’Donohue",
     bio: "Poeta, filósofo y místico celta irlandés, autor de Anam Cara.",
+    createdAt: "2026-08-19T08:30:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.RAIMON_PANIKKAR,
     name: "Raimon Panikkar",
     bio: "Teólogo y filósofo hispano-indio, pionero del diálogo interreligioso e intercultural.",
+    createdAt: "2026-08-31T08:00:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
     name: "Francisco Luis Bernárdez",
     bio: "Poeta y diplomático argentino, figura clave de la lírica espiritual.",
+    createdAt: "2026-09-01T08:00:00-03:00",
   },
   {
     id: SEED_AUTHOR_IDS.MARY_OLIVER,
     name: "Mary Oliver",
     bio: "Poeta estadounidense, ganadora del Premio Pulitzer, celebrada por su profunda contemplación de la naturaleza y la quietud.",
+    createdAt: "2026-09-02T08:00:00-03:00",
+  },
+  {
+    id: SEED_AUTHOR_IDS.CHARLES_BAUDELAIRE,
+    name: "Charles Baudelaire",
+    bio: "Poeta, ensayista y crítico de arte francés, figura clave de la lírica moderna y el simbolismo.",
+    createdAt: "2026-09-03T08:00:00-03:00",
+  },
+  {
+    id: SEED_AUTHOR_IDS.DAVID_WHYTE,
+    name: "David Whyte",
+    bio: "Poeta y filósofo angloirlandés, célebre por su mirada profunda sobre la quietud, el coraje y la vida contemplativa.",
+    createdAt: "2026-09-04T08:00:00-03:00",
   },
 ];
 
@@ -64,8 +87,8 @@ export const SEED_READINGS: SeedReading[] = [
   {
     id: "r0000000-0000-4000-8000-000000000001",
     author_id: SEED_AUTHOR_IDS.MARCUS_AURELIUS,
-    createdAt: "2026-08-15 08:00:00",
-    readDates: ["2026-08-20 08:30:00", "2026-08-24 07:45:00"],
+    createdAt: "2026-08-15T08:00:00-03:00",
+    readDates: ["2026-08-20T08:30:00-03:00", "2026-08-24T07:45:00-03:00"],
     translations: {
       es: {
         title: "Poder sobre la Mente",
@@ -83,7 +106,7 @@ export const SEED_READINGS: SeedReading[] = [
   {
     id: "r0000000-0000-4000-8000-000000000002",
     author_id: SEED_AUTHOR_IDS.SENECA,
-    createdAt: "2026-08-16 09:00:00",
+    createdAt: "2026-08-16T09:00:00-03:00",
     readDates: [],
     translations: {
       es: {
@@ -102,8 +125,8 @@ La verdadera serenidad
   {
     id: "r0000000-0000-4000-8000-000000000003",
     author_id: SEED_AUTHOR_IDS.THICH_NHAT_HANH,
-    createdAt: "2026-08-17 07:30:00",
-    readDates: ["2026-08-25 08:00:00"],
+    createdAt: "2026-08-17T07:30:00-03:00",
+    readDates: ["2026-08-25T08:00:00-03:00"],
     translations: {
       es: {
         title: "El Puente de la Respiración",
@@ -123,7 +146,7 @@ La verdadera serenidad
   {
     id: "r0000000-0000-4000-8000-000000000004",
     author_id: SEED_AUTHOR_IDS.EPICTETUS,
-    createdAt: "2026-08-18 10:00:00",
+    createdAt: "2026-08-18T10:00:00-03:00",
     readDates: [],
     translations: {
       es: {
@@ -141,11 +164,11 @@ La riqueza no consiste
   {
     id: "r0000000-0000-4000-8000-000000000005",
     author_id: SEED_AUTHOR_IDS.LAO_TZU,
-    createdAt: "2026-08-14 06:45:00",
+    createdAt: "2026-08-14T06:45:00-03:00",
     readDates: [
-      "2026-08-18 09:00:00",
-      "2026-08-21 08:15:00",
-      "2026-08-23 07:30:00",
+      "2026-08-18T09:00:00-03:00",
+      "2026-08-21T08:15:00-03:00",
+      "2026-08-23T07:30:00-03:00",
     ],
     translations: {
       es: {
@@ -165,7 +188,7 @@ La naturaleza no se apresura,
   {
     id: "r0000000-0000-4000-8000-000000000006",
     author_id: SEED_AUTHOR_IDS.JOHN_O_DONOHUE,
-    createdAt: "2026-08-19 08:30:00",
+    createdAt: "2026-08-19T08:30:00-03:00",
     readDates: [],
     translations: {
       es: {
@@ -193,8 +216,8 @@ Que permitas que la belleza salvaje del mundo invisible te reúna, te cuide y te
   {
     id: "r0000000-0000-4000-8000-000000000007",
     author_id: SEED_AUTHOR_IDS.RAIMON_PANIKKAR,
-    createdAt: "2026-08-31 08:00:00",
-    readDates: ["2026-08-31 08:30:00"],
+    createdAt: "2026-08-31T08:00:00-03:00",
+    readDates: ["2026-08-31T08:30:00-03:00"],
     translations: {
       es: {
         title: "Extracto de ICONOS DEL MISTERIO",
@@ -213,8 +236,8 @@ La Vida pura y desnuda es el don que nos ha sido dado – y que en última insta
   {
     id: "r0000000-0000-4000-8000-000000000008",
     author_id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
-    createdAt: "2026-09-01 08:00:00",
-    readDates: ["2026-09-01 08:30:00"],
+    createdAt: "2026-09-01T08:00:00-03:00",
+    readDates: ["2026-09-01T08:30:00-03:00"],
     translations: {
       es: {
         title: "FRAGMENTO de EL RUISEÑOR",
@@ -256,8 +279,8 @@ Pero en mi frente silenciosa la voz divina ya se había despertado`,
   {
     id: "r0000000-0000-4000-8000-000000000009",
     author_id: SEED_AUTHOR_IDS.MARY_OLIVER,
-    createdAt: "2026-09-02 08:00:00",
-    readDates: ["2026-09-02 08:30:00"],
+    createdAt: "2026-09-02T08:00:00-03:00",
+    readDates: ["2026-09-02T08:30:00-03:00"],
     translations: {
       es: {
         title: "Canción de los constructores",
@@ -296,6 +319,118 @@ it will always be like this,
 each of us going on
 in our inexplicable ways
 building the universe.`,
+      },
+    },
+  },
+  {
+    id: "r0000000-0000-4000-8000-000000000010",
+    author_id: SEED_AUTHOR_IDS.CHARLES_BAUDELAIRE,
+    createdAt: "2026-09-03T08:00:00-03:00",
+    readDates: ["2026-09-03T08:30:00-03:00"],
+    translations: {
+      es: {
+        title: "Elevación",
+        content: `Por encima de estanques, por encima de valles, 
+de montañas y bosques, de mares y de nubes, 
+más allá de los soles, más allá de los éteres, 
+más allá del confín de estrelladas esferas,
+
+te desplazas, mi espíritu, con toda agilidad 
+y como un nadador que se extasía en las olas, 
+alegremente surcas la inmensidad profunda 
+con voluptuosidad indecible y viril.
+
+Escápate muy lejos de estos mórbidos miasmas, 
+sube a purificarte al aire superior 
+y apura, como un noble y divino licor, 
+la luz clara que inunda los límpidos espacios.
+
+Detrás de los hastíos y los hondos pesares
+que abruman con su peso la neblinosa vida,
+¡feliz aquel que puede con brioso aleteo 
+lanzarse hacia los campos luminosos y calmos!
+
+Aquel cuyas ideas, cual si fueran alondras, 
+levantan hacia el cielo matutino su vuelo
+¡que planea sobre todo, y sabe sin esfuerzo, 
+la lengua de las flores y de las cosas mudas!`,
+      },
+    },
+  },
+  {
+    id: "r0000000-0000-4000-8000-000000000011",
+    author_id: SEED_AUTHOR_IDS.DAVID_WHYTE,
+    createdAt: "2026-09-04T08:00:00-03:00",
+    readDates: ["2026-09-04T08:30:00-03:00"],
+    translations: {
+      es: {
+        title: "Mameen",
+        content: `Sé infinitesimal bajo ese cielo, una criatura
+que ni siquiera el halcón vigilante divisa, un espectro
+entre las rocas donde la niebla se disipa lentamente.
+
+Recuerda la forma en que los simples mortales se ven abrumados
+por las circunstancias, cómo las grandes reputaciones
+se disuelven en la fragilidad y cómo tú,
+en particular, estás a una brizna de perder
+a todos los que amas.
+
+Luego, mira hacia atrás el camino al sur,
+por donde viniste, como si vieras
+todo tu pasado, y luego al norte
+sobre la brumosa costa azul, como si hicieras presente
+un vasto futuro.
+
+Recuerda la forma en que tú eres todas las posibilidades
+que puedes ver y cómo vives mejor
+apreciando los horizontes
+ya sea que los alcances o no.
+
+Admite, que una vez que te levantas 
+de tu silla y abres la puerta, 
+una vez que sales al aire libre 
+hacia ese límite y tomas el camino que sube alto
+más allá de lo ordinario, te conviertes 
+en el privilegiado y en el peregrino, 
+en aquél que contará la historia 
+y en aquel, que al regresar 
+de la montaña, 
+habrá ayudado a hacerla realidad.`,
+      },
+      en: {
+        title: "Mameen",
+        content: `Be infinitesimal under that sky, a creature 
+even the sailing hawk misses, a wraith 
+among the rocks where the mist parts slowly.
+
+Recall the way mere mortals are overwhelmed 
+by circumstance, how great reputations 
+dissolve with infirmity and how you, 
+in particular, stand a hairbreadth from losing 
+everyone you hold dear.
+
+Then, look back down the path to the north, 
+the way you came, as if seeing 
+your entire past and then south 
+over the hazy blue coast as if present 
+to a broad future.
+
+Recall the way you are all possibilities 
+you can see and how you live best 
+as an appreciator of horizons 
+whether you reach them or not.
+
+Admit, that once you have got up 
+from your chair and opened the door, 
+once you have walked out into the clear air 
+toward that edge and taken the path up high 
+beyond the ordinary, you have become
+
+the privileged and the pilgrim, 
+the one who will tell the story 
+and the one, coming back 
+from the mountain 
+who helped to make it.`
       },
     },
   },

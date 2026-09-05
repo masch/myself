@@ -1,0 +1,25 @@
+# Tasks: API Database Access with Turso & Hexagonal Architecture
+
+- [x] **Task 1: Dependencies & Configuration**
+  - [x] 1.1 Add `@libsql/client`, `drizzle-orm`, and `drizzle-kit` to `apps/api`.
+  - [x] 1.2 Create `drizzle.config.ts` targeting Turso / SQLite dialect.
+  - [x] 1.3 Create `apps/api/.dev.vars.example` for environment configuration.
+- [x] **Task 2: Schemas & Database Factory**
+  - [x] 2.1 Define Drizzle schemas with SQL `CHECK` constraints in `src/db/schema/` for `authors`, `readings`, `users`, and `tasks`.
+  - [x] 2.2 Implement Drizzle client factory in `src/db/client.ts` resolving Turso HTTP client or local fallback.
+- [x] **Task 3: Ports & Adapters (Hexagonal Layer)**
+  - [x] 3.1 Define domain repository interfaces in `src/repositories/contracts/` (`AuthorRepository`, `ReadingRepository`).
+  - [x] 3.2 Implement Turso Drizzle adapters in `src/repositories/drizzle/`.
+  - [x] 3.3 Implement In-Memory test doubles in `src/repositories/in-memory/`.
+  - [x] 3.4 Implement repository injection middleware in `src/middleware/repositories.ts`.
+- [x] **Task 4: Route Decoupling & Test Suite**
+  - [x] 4.1 Refactor `src/routes/authors.ts` to consume `c.var.authorRepo`.
+  - [x] 4.2 Refactor `src/routes/readings.ts` to consume `c.var.readingRepo`.
+  - [x] 4.3 Update route tests in `src/routes/__tests__/` to test handlers through repository doubles.
+- [x] **Task 5: Makefile Targets & Platform Onboarding Guide**
+  - [x] 5.1 Add Makefile targets: `api-dev-local`, `api-dev-remote`, `api-db-generate`, `api-db-migrate-local`, `api-db-migrate-remote`, `api-db-studio`.
+  - [x] 5.2 Document the Turso onboarding runbook in `apps/api/README.md` (CLI signup, database creation, token generation, and `.dev.vars` setup).
+- [x] **Task 6: Verification & Quality Gate**
+  - [x] 6.1 Run `bun test` and ensure 100% test pass rate in `apps/api`.
+  - [x] 6.2 Run `bun run typecheck` across the monorepo.
+  - [x] 6.3 Verify SDD compliance via `gentle-ai sdd-status`.

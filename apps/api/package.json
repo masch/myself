@@ -10,20 +10,32 @@
     }
   },
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "TURSO_DATABASE_URL=\"file:local.db\" bun --hot src/index.ts",
+    "dev:turso-local": "TURSO_DATABASE_URL=\"http://127.0.0.1:8080\" wrangler dev",
+    "dev:turso-remote": "wrangler dev",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "bun test"
+    "test": "bun test",
+    "test:e2e": "bun test src/index.test.ts src/routes/__tests__/",
+    "test:unit": "bun test src/__tests__/ src/lib/__tests__/ src/errors/__tests__/ src/middleware/__tests__/ src/services/__tests__/ src/db/__tests__/",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "bun run scripts/seed.ts",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.9.1",
+    "@hono/zod-openapi": "^1.6.2",
+    "@libsql/client": "^0.18.0",
     "@myself/shared": "workspace:*",
+    "@scalar/hono-api-reference": "^0.12.0",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.7.2"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250214.0",
     "@types/bun": "^1.4.0",
+    "drizzle-kit": "^0.31.10",
     "typescript": "~6.0.3",
     "wrangler": "^4.0.0",
     "zod": "^4.5.4"

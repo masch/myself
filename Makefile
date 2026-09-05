@@ -40,6 +40,12 @@ test:
 test-coverage:
 	bun run test-coverage
 
+.PHONY: test-e2e
+test-e2e: api-test-e2e
+
+.PHONY: docs
+docs: api-docs
+
 .PHONY: check
 check:
 	bun run check
@@ -188,6 +194,36 @@ mobile-firebase-distribute-prod-dev:
 api-dev:
 	cd apps/api && bun run dev
 
+.PHONY: api-dev-local
+api-dev-local: api-dev
+
+.PHONY: api-dev-turso-local
+api-dev-turso-local:
+	cd apps/api && bun run dev:turso-local
+
+.PHONY: api-dev-turso-remote
+api-dev-turso-remote:
+	cd apps/api && bun run dev:turso-remote
+
+.PHONY: api-dev-remote
+api-dev-remote: api-dev-turso-remote
+
+.PHONY: api-db-generate
+api-db-generate:
+	cd apps/api && bunx drizzle-kit generate
+
+.PHONY: api-db-migrate-local
+api-db-migrate-local:
+	cd apps/api && TURSO_DATABASE_URL="file:local.db" bunx drizzle-kit migrate
+
+.PHONY: api-db-migrate-remote
+api-db-migrate-remote:
+	cd apps/api && if [ -f .dev.vars ]; then bun --env-file=.dev.vars x drizzle-kit migrate; else bunx drizzle-kit migrate; fi
+
+.PHONY: api-db-studio
+api-db-studio:
+	cd apps/api && if [ -f .dev.vars ]; then bun --env-file=.dev.vars x drizzle-kit studio; else bunx drizzle-kit studio; fi
+
 .PHONY: api-deploy
 api-deploy:
 	cd apps/api && bun run deploy
@@ -199,6 +235,20 @@ api-typecheck:
 .PHONY: api-test
 api-test:
 	cd apps/api && bun run test
+
+.PHONY: api-test-e2e
+api-test-e2e:
+	cd apps/api && bun run test:e2e
+
+.PHONY: api-test-unit
+api-test-unit:
+	cd apps/api && bun run test:unit
+
+.PHONY: api-docs
+api-docs:
+	@echo "myself API Documentation URLs:"
+	@echo "  Interactive Reference (Scalar): http://localhost:8787/reference"
+	@echo "  OpenAPI 3.1 JSON Specification:  http://localhost:8787/doc"
 
 # ── Shared Package Tasks (packages/shared) ───
 

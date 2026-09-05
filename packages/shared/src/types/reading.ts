@@ -11,6 +11,7 @@ export interface SeedAuthor {
   id: string;
   name: string;
   bio?: string;
+  createdAt: string;
 }
 
 export interface MeditationReading {
@@ -47,13 +48,16 @@ export interface ReadingTranslationInput {
   content: string;
 }
 
+export type ReadingTranslationsMap = Partial<
+  Record<SupportedLocale, ReadingTranslationInput>
+> & {
+  es: ReadingTranslationInput;
+};
+
 export interface SeedReading {
   id: string;
   author_id: string;
   createdAt: string;
   readDates: string[];
-  translations: {
-    es: ReadingTranslationInput;
-    en?: ReadingTranslationInput;
-  };
+  translations: ReadingTranslationsMap;
 }

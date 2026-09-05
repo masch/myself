@@ -1,4 +1,5 @@
 <!-- gentle-ai:sdd-workflow -->
+
 # SDD Guardrails & Workflow
 
 - **Trigger `/sdd-new <change>`**:
@@ -12,4 +13,5 @@
   4. Budget: `400` | `800` lines
 - **Spec Headings**: Strictly `### Requirement: <Name>` or `### REQ-<n>: <Name>` and `#### Scenario: <Name>` (no alphanumeric tags like `REQ-MCP-01`).
 - **Verify Report**: First line must open ```yaml with `schema: gentle-ai.verify-result/v1`. Counts must be exact `{completed}/{total}` matching spec totals.
+
 <!-- /gentle-ai:sdd-workflow -->

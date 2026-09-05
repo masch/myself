@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "bun:test";
 import {
   APP_NAME,
   SEED_AUTHORS,
@@ -9,10 +9,33 @@ import {
   type SeedAuthor,
   type SeedReading,
 } from "@myself/shared";
-import app from "./index";
+import { createApp } from "./index";
+import { AppConfig } from "./config";
+import { createRepositories } from "./middleware/repositories";
+import { createTestRepositories } from "./db/test-db";
 
-describe("myself API - Complete Functional Test Suite", () => {
+describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", () => {
+  let app: ReturnType<typeof createApp>;
+
+  beforeAll(async () => {
+    const repos = await createTestRepositories({ seed: true });
+    app = createApp(repos);
+  });
+
   describe("Root & System Health", () => {
+    it("createApp supports passing custom required dependencies directly", async () => {
+      const testRepos = await createTestRepositories({ seed: true });
+      const customApp = createApp(testRepos);
+      const res = await customApp.request("/v1/authors");
+      expect(res.status).toBe(200);
+    });
+
+    it("fails fast with 500 when TURSO_DATABASE_URL is missing in unconfigured createApp", async () => {
+      const unconfiguredApp = createApp();
+      const res = await unconfiguredApp.request("/v1/authors");
+      expect(res.status).toBe(500);
+    });
+
     it("GET / returns welcome message and current timestamp", async () => {
       const res = await app.request("/");
       expect(res.status).toBe(200);
@@ -30,10 +53,40 @@ describe("myself API - Complete Functional Test Suite", () => {
       const res = await app.request("/health");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as { status: string; uptime: number };
-      expect(body.status).toBe("ok");
-      expect(typeof body.uptime).toBe("number");
-      expect(body.uptime).toBeGreaterThanOrEqual(0);
+      const body = (await res.json()) as ApiResponse<{
+        status: string;
+        uptime: number;
+      }>;
+      expect(body.success).toBe(true);
+      expect(body.data?.status).toBe("ok");
+      expect(typeof body.data?.uptime).toBe("number");
+      expect(body.data?.uptime).toBeGreaterThanOrEqual(0);
+    });
+
+    it("GET /doc returns valid OpenAPI 3.1 schema document", async () => {
+      const res = await app.request("/doc");
+      expect(res.status).toBe(200);
+
+      const doc = (await res.json()) as {
+        openapi: string;
+        info: { title: string };
+        paths: Record<string, unknown>;
+      };
+      expect(doc.openapi).toBe("3.1.0");
+      expect(doc.info.title).toBe("myself API");
+      expect(doc.paths["/v1/users"]).toBeDefined();
+      expect(doc.paths["/v1/authors"]).toBeDefined();
+      expect(doc.paths["/v1/readings"]).toBeDefined();
+    });
+
+    it("GET /reference serves the Scalar API reference HTML UI", async () => {
+      const res = await app.request("/reference");
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toContain("text/html");
+
+      const html = await res.text();
+      expect(html).toContain("<!doctype html>");
+      expect(html).toContain("Scalar");
     });
 
     it("GET /non-existent-route returns standard 404 ApiResponse", async () => {
@@ -56,6 +109,33 @@ describe("myself API - Complete Functional Test Suite", () => {
       });
       expect(res.status).toBe(204);
       expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    });
+
+    it("handles unhandled exceptions via onError and returns 500", async () => {
+      // Silence console.error for expected test error output
+      const originalConsoleError = console.error;
+      console.error = () => {};
+
+      try {
+        const error = new Error("Simulated unhandled exception");
+        const mockContext = {
+          json: (data: unknown, status: number) =>
+            new Response(JSON.stringify(data), { status }),
+          header: () => {},
+        };
+
+        const appWithHandler = app as unknown as {
+          errorHandler: (err: Error, c: unknown) => Promise<Response>;
+        };
+        const res = await appWithHandler.errorHandler(error, mockContext);
+        expect(res.status).toBe(500);
+
+        const body = (await res.json()) as ApiResponse<never>;
+        expect(body.success).toBe(false);
+        expect(body.error).toBe("Internal Server Error");
+      } finally {
+        console.error = originalConsoleError;
+      }
     });
   });
 
@@ -125,7 +205,9 @@ describe("myself API - Complete Functional Test Suite", () => {
 
       const body = (await res.json()) as ApiResponse<SeedAuthor>;
       expect(body.success).toBe(true);
-      expect(body.data?.id).toMatch(/^a-mock-/);
+      expect(body.data?.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
       expect(body.data?.name).toBe(uniqueName);
       expect(body.data?.bio).toBe("Functional test author biography");
     });
@@ -165,8 +247,8 @@ describe("myself API - Complete Functional Test Suite", () => {
       const reading = body.data?.items[0];
       expect(reading?.id).toBeDefined();
       expect(reading?.author_id).toBeDefined();
-      expect(reading?.translations.es.title).toBeDefined();
-      expect(reading?.translations.es.content).toBeDefined();
+      expect(reading?.translations.es?.title).toBeDefined();
+      expect(reading?.translations.es?.content).toBeDefined();
     });
 
     it("GET /v1/readings filters by authorId query param", async () => {
@@ -246,9 +328,11 @@ describe("myself API - Complete Functional Test Suite", () => {
 
       const body = (await res.json()) as ApiResponse<SeedReading>;
       expect(body.success).toBe(true);
-      expect(body.data?.id).toMatch(/^r-mock-/);
+      expect(body.data?.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
       expect(body.data?.author_id).toBe(SEED_AUTHOR_IDS.SENECA);
-      expect(body.data?.translations.es.title).toBe(
+      expect(body.data?.translations.es?.title).toBe(
         "Sobre la Brevedad de la Vida",
       );
       expect(body.data?.translations.en?.title).toBe(
@@ -298,4 +382,3 @@ describe("myself API - Complete Functional Test Suite", () => {
     });
   });
 });
-

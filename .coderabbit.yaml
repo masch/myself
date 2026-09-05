@@ -65,10 +65,9 @@ reviews:
         1. Edge Compatibility:
            - Prohibit Node.js runtime built-ins (`fs`, `child_process`, `net`, etc.) that are unsupported on Cloudflare Workers. Any `node:` module must be worker-compatible.
         2. Input Validation:
-           - Every route receiving input (JSON body, query params, path params) MUST use `@hono/zod-validator` (e.g., `zValidator('json', schema)`) referencing schemas from `@myself/shared`.
+           - Every route receiving input (JSON body, query params, path params) MUST be validated using Zod schemas referencing schemas from `@myself/shared` (via `@hono/zod-openapi` createRoute request contracts or `@hono/zod-validator`).
         3. Standardized Responses:
-           - All route handlers must return standard response envelopes using helper functions from `src/lib/response.ts` (`successResponse`, `errorResponse`).
-           - Paginated endpoints must adhere to `src/lib/pagination.ts`.
+           - All route handlers must return standard response envelopes using helper functions from `src/lib/response.ts` (`ok`, `fail`).
         4. Testing:
            - Route handlers must have unit tests in `src/routes/__tests__/`, and shared utilities must have unit tests in `src/lib/__tests__/`, all executable with `bun test`.
 
@@ -90,13 +89,10 @@ reviews:
           - Require `outputs` only for tasks producing cacheable file artifacts on disk (e.g. `dist/**`, `build/**`).
           - Require `persistent: true` only for non-terminating dev or watcher processes (such as `dev`), while permitting finite side-effecting tasks to specify `cache: false` without `persistent: true` so downstream task dependencies remain valid.
 
-
-
     - path: "**/package.json"
       instructions: |
         - Package manager is Bun (`bun@1.3.14`). Reject PRs introducing npm, yarn, or pnpm lockfiles or scripts.
         - Internal dependencies between packages must use `"workspace:*"`.
-
 
     - path: "**"
       instructions: |
@@ -119,4 +115,3 @@ reviews:
 
 chat:
   auto_reply: true
-

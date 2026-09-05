@@ -37,13 +37,13 @@ build_output_hash: sha256:635973dd7613e7ce51109d5b03ca78b6bcb6289493df42b16c7380
 
 ## 2. Requirements Compliance Matrix
 
-| Requirement | Scenario | Test | Result |
-| --- | --- | --- | --- |
-| `REQ-01` | Lazy invocation of MCP tools | `call_mcp_tool > codegraph/expo` | ✅ COMPLIANT |
-| `REQ-02` | Querying codegraph AST | `codegraph:codegraph_explore` | ✅ COMPLIANT |
-| `REQ-03` | Fetching live Expo docs | `expo:read_documentation` | ✅ COMPLIANT |
-| `REQ-04` | Refreshing skill registry | `gentle-ai skill-registry refresh` | ✅ COMPLIANT |
-| `REQ-05` | Verified status progression | `gentle-ai sdd-status` | ✅ COMPLIANT |
+| Requirement | Scenario                     | Test                               | Result       |
+| ----------- | ---------------------------- | ---------------------------------- | ------------ |
+| `REQ-01`    | Lazy invocation of MCP tools | `call_mcp_tool > codegraph/expo`   | ✅ COMPLIANT |
+| `REQ-02`    | Querying codegraph AST       | `codegraph:codegraph_explore`      | ✅ COMPLIANT |
+| `REQ-03`    | Fetching live Expo docs      | `expo:read_documentation`          | ✅ COMPLIANT |
+| `REQ-04`    | Refreshing skill registry    | `gentle-ai skill-registry refresh` | ✅ COMPLIANT |
+| `REQ-05`    | Verified status progression  | `gentle-ai sdd-status`             | ✅ COMPLIANT |
 
 ## 3. Final Verification Conclusion
 

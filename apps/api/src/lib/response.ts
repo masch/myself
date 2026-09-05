@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import type { ApiResponse } from "@myself/shared";
+import { type ApiResponse, type ErrorCode, HttpStatus } from "@myself/shared";
 
 /**
  * Sends a standard success response conforming to ApiResponse<T>.
@@ -8,14 +8,16 @@ import type { ApiResponse } from "@myself/shared";
 export const ok = <T>(
   c: Context,
   data: T,
-  status: ContentfulStatusCode = 200,
+  status: ContentfulStatusCode = HttpStatus.OK,
 ) => c.json<ApiResponse<T>>({ success: true, data }, status);
 
 /**
  * Sends a standard error response conforming to ApiResponse<never>.
+ * Accepts an optional machine-readable business ErrorCode for frontend UI consumption.
  */
 export const fail = (
   c: Context,
   error: string,
-  status: ContentfulStatusCode = 400,
-) => c.json<ApiResponse<never>>({ success: false, error }, status);
+  status: ContentfulStatusCode = HttpStatus.BAD_REQUEST,
+  code?: ErrorCode,
+) => c.json<ApiResponse<never>>({ success: false, error, code }, status);

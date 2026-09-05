@@ -1,14 +1,24 @@
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "bun:test";
 import { Hono } from "hono";
 import type {
   ApiResponse,
   PaginatedResponse,
   SeedReading,
 } from "@myself/shared";
+import type { AppEnv } from "../../types";
+import { repositoriesMiddleware } from "../../middleware/repositories";
+import { createTestRepositories } from "../../db/test-db";
 import { readingsRoute } from "../readings";
 
-describe("apps/api/src/routes/readings.ts Sub-router Unit Tests", () => {
-  const app = new Hono().route("/readings", readingsRoute);
+describe("Readings API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
+  let app: Hono<AppEnv>;
+
+  beforeAll(async () => {
+    const repos = await createTestRepositories({ seed: true });
+    app = new Hono<AppEnv>()
+      .use("*", repositoriesMiddleware(repos))
+      .route("/readings", readingsRoute);
+  });
 
   it("isolates readings sub-router and returns paginated list", async () => {
     const res = await app.request("/readings");
