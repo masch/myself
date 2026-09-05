@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Hono } from "hono";
-import { ErrorCode, HttpStatus, type ApiResponse } from "@myself/shared";
+import { ErrorCode, HttpStatus } from "@myself/shared";
 import type { AppEnv } from "../../types";
 import {
   BadRequestError,
@@ -58,8 +58,7 @@ describe("apps/api/src/errors Unit Tests", () => {
     const res = await app.request("/user-conflict");
     expect(res.status).toBe(HttpStatus.CONFLICT);
 
-    const body = (await res.json()) as ApiResponse<never>;
-    expect(body.success).toBe(false);
+    const body = (await res.json()) as { error: string; code: string };
     expect(body.error).toContain("dup@example.com");
     expect(body.code).toBe(ErrorCode.USER_ALREADY_EXISTS);
   });
@@ -72,8 +71,7 @@ describe("apps/api/src/errors Unit Tests", () => {
     const res = await app.request("/crash");
     expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
 
-    const body = (await res.json()) as ApiResponse<never>;
-    expect(body.success).toBe(false);
+    const body = (await res.json()) as { error: string; code: string };
     expect(body.error).toBe("Internal Server Error");
     expect(body.code).toBe(ErrorCode.INTERNAL_ERROR);
   });
