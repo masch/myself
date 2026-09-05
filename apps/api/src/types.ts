@@ -21,6 +21,7 @@ export type ApiBindings = {
   TURSO_DATABASE_URL?: string;
   TURSO_AUTH_TOKEN?: string;
   ENVIRONMENT?: string;
+  PORT?: string;
 };
 
 export type ApiVariables = {

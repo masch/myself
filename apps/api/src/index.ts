@@ -1,5 +1,5 @@
 import type { ExecutionContext } from "hono";
-import { AppConfig } from "./config";
+import { AppConfig, resolvePort } from "./config";
 import { createApp, type AppType } from "./app";
 
 let defaultApp: ReturnType<typeof createApp> | null = null;
@@ -27,10 +27,9 @@ export function getDefaultApp(
 export { createApp, type AppType };
 
 export default {
-  port:
-    typeof process !== "undefined" && process.env.PORT
-      ? parseInt(process.env.PORT, 10)
-      : 8787,
+  get port(): number {
+    return resolvePort(resolveRuntimeEnv().PORT);
+  },
   fetch(
     request: Request,
     env?: Record<string, string>,
