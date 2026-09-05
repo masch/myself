@@ -1,10 +1,6 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { Hono } from "hono";
-import type {
-  ApiResponse,
-  PaginatedResponse,
-  SeedAuthor,
-} from "@myself/shared";
+import type { PaginatedResponse, SeedAuthor } from "@myself/shared";
 import type { AppEnv } from "../../types";
 import { repositoriesMiddleware } from "../../middleware/repositories";
 import { createTestRepositories } from "../../db/test-db";
@@ -24,25 +20,20 @@ describe("Authors API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     const res = await app.request("/authors");
     expect(res.status).toBe(200);
 
-    const body = (await res.json()) as ApiResponse<
-      PaginatedResponse<SeedAuthor>
-    >;
-    expect(body.success).toBe(true);
-    expect(body.data?.items.length).toBeGreaterThan(0);
-    expect(body.data?.meta.limit).toBe(20);
-    expect(body.data?.meta.offset).toBe(0);
+    const body = (await res.json()) as PaginatedResponse<SeedAuthor>;
+    expect(body.items.length).toBeGreaterThan(0);
+    expect(body.meta.limit).toBe(20);
+    expect(body.meta.offset).toBe(0);
   });
 
   it("handles pagination inside authors sub-router independently", async () => {
     const res = await app.request("/authors?limit=1&offset=2");
     expect(res.status).toBe(200);
 
-    const body = (await res.json()) as ApiResponse<
-      PaginatedResponse<SeedAuthor>
-    >;
-    expect(body.data?.items.length).toBe(1);
-    expect(body.data?.meta.limit).toBe(1);
-    expect(body.data?.meta.offset).toBe(2);
-    expect(body.data?.meta.hasMore).toBe(true);
+    const body = (await res.json()) as PaginatedResponse<SeedAuthor>;
+    expect(body.items.length).toBe(1);
+    expect(body.meta.limit).toBe(1);
+    expect(body.meta.offset).toBe(2);
+    expect(body.meta.hasMore).toBe(true);
   });
 });

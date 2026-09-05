@@ -1,9 +1,7 @@
 import type { ErrorCode } from "../constants/errors";
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
+export interface ApiErrorResponse {
+  error: string;
   code?: ErrorCode;
 }
 

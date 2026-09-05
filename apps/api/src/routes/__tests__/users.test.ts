@@ -3,7 +3,6 @@ import { Hono } from "hono";
 import {
   ErrorCode,
   DateTime,
-  type ApiResponse,
   type PaginatedResponse,
   type User,
 } from "@myself/shared";
@@ -31,11 +30,10 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     const res = await app.request("/users");
     expect(res.status).toBe(200);
 
-    const body = (await res.json()) as ApiResponse<PaginatedResponse<User>>;
-    expect(body.success).toBe(true);
-    expect(Array.isArray(body.data?.items)).toBe(true);
-    expect(body.data?.meta.limit).toBe(20);
-    expect(body.data?.meta.offset).toBe(0);
+    const body = (await res.json()) as PaginatedResponse<User>;
+    expect(Array.isArray(body.items)).toBe(true);
+    expect(body.meta.limit).toBe(20);
+    expect(body.meta.offset).toBe(0);
   });
 
   it("creates a new user and retrieves it by id", async () => {
@@ -52,20 +50,19 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     });
     expect(createRes.status).toBe(201);
 
-    const createBody = (await createRes.json()) as ApiResponse<User>;
-    expect(createBody.success).toBe(true);
-    expect(createBody.data?.id).toBeDefined();
-    expect(createBody.data?.name).toBe("Marcus Aurelius");
-    expect(createBody.data?.email).toBe("marcus@rome.gov");
-    expect(createBody.data?.avatar_url).toBe("https://example.com/marcus.png");
+    const createBody = (await createRes.json()) as User;
+    expect(createBody.id).toBeDefined();
+    expect(createBody.name).toBe("Marcus Aurelius");
+    expect(createBody.email).toBe("marcus@rome.gov");
+    expect(createBody.avatar_url).toBe("https://example.com/marcus.png");
 
-    const getRes = await app.request(`/users/${createBody.data!.id}`);
+    const getRes = await app.request(`/users/${createBody.id}`);
     expect(getRes.status).toBe(200);
-    const getBody = (await getRes.json()) as ApiResponse<User>;
-    expect(getBody.data?.id).toBe(createBody.data!.id);
+    const getBody = (await getRes.json()) as User;
+    expect(getBody.id).toBe(createBody.id);
 
     // Verify directly in the SQLite database that the row was persisted:
-    const persisted = await repos.userRepo.findById(createBody.data!.id);
+    const persisted = await repos.userRepo.findById(createBody.id);
     expect(persisted).not.toBeNull();
     expect(persisted?.email).toBe("marcus@rome.gov");
   });
@@ -95,8 +92,7 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     });
     expect(res.status).toBe(409);
 
-    const body = (await res.json()) as ApiResponse<never>;
-    expect(body.success).toBe(false);
+    const body = (await res.json()) as { error: string; code: string };
     expect(body.error).toContain("already exists");
     expect(body.code).toBe(ErrorCode.USER_ALREADY_EXISTS);
   });
@@ -107,8 +103,7 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     );
     expect(res.status).toBe(404);
 
-    const body = (await res.json()) as ApiResponse<never>;
-    expect(body.success).toBe(false);
+    const body = (await res.json()) as { error: string; code: string };
     expect(body.error).toBe("User not found");
     expect(body.code).toBe(ErrorCode.ENTITY_NOT_FOUND);
   });
@@ -117,8 +112,7 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     const res = await app.request("/users/not-a-valid-uuid");
     expect(res.status).toBe(400);
 
-    const body = (await res.json()) as ApiResponse<never>;
-    expect(body.success).toBe(false);
+    const body = (await res.json()) as { error: string; code: string };
     expect(body.error).toBe("Invalid ID format");
     expect(body.code).toBe(ErrorCode.BAD_REQUEST);
   });
@@ -131,8 +125,7 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     });
     expect(res.status).toBe(400);
 
-    const body = (await res.json()) as ApiResponse<never>;
-    expect(body.success).toBe(false);
+    const body = (await res.json()) as { error: string; code: string };
     expect(body.code).toBe(ErrorCode.BAD_REQUEST);
   });
 
@@ -159,8 +152,7 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     });
 
     expect(res.status).toBe(500);
-    const body = (await res.json()) as ApiResponse<never>;
-    expect(body.success).toBe(false);
+    const body = (await res.json()) as { error: string; code: string };
     expect(body.code).toBe(ErrorCode.INTERNAL_ERROR);
   });
 });

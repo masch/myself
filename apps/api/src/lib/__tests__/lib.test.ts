@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import { Hono } from "hono";
-import type { ApiResponse } from "@myself/shared";
 import { buildPaginated } from "../pagination";
 import { ok, fail } from "../response";
 import { defaultHook } from "../validator";
@@ -42,7 +41,7 @@ describe("apps/api/src/lib Unit Tests", () => {
   });
 
   describe("response.ts: ok() and fail()", () => {
-    it("ok() formats response with success: true and custom status code", async () => {
+    it("ok() formats response with direct data and custom status code", async () => {
       const testApp = new Hono().get("/test", (c) =>
         ok(c, { hello: "world" }, 201),
       );
@@ -50,13 +49,11 @@ describe("apps/api/src/lib Unit Tests", () => {
       const res = await testApp.request("/test");
       expect(res.status).toBe(201);
 
-      const body = (await res.json()) as ApiResponse<{ hello: string }>;
-      expect(body.success).toBe(true);
-      expect(body.data?.hello).toBe("world");
-      expect(body.error).toBeUndefined();
+      const body = (await res.json()) as { hello: string };
+      expect(body.hello).toBe("world");
     });
 
-    it("fail() formats response with success: false and custom status code", async () => {
+    it("fail() formats response with error and custom status code", async () => {
       const testApp = new Hono().get("/test-error", (c) =>
         fail(c, "Something went wrong", 403),
       );
@@ -64,15 +61,13 @@ describe("apps/api/src/lib Unit Tests", () => {
       const res = await testApp.request("/test-error");
       expect(res.status).toBe(403);
 
-      const body = (await res.json()) as ApiResponse<never>;
-      expect(body.success).toBe(false);
+      const body = (await res.json()) as { error: string };
       expect(body.error).toBe("Something went wrong");
-      expect(body.data).toBeUndefined();
     });
   });
 
   describe("validator.ts: defaultHook", () => {
-    it("returns unified ApiResponse 400 when validation fails", () => {
+    it("returns unified ApiErrorResponse 400 when validation fails", () => {
       const dummyResult = {
         success: false,
         error: {
@@ -93,7 +88,6 @@ describe("apps/api/src/lib Unit Tests", () => {
       expect(res).toBeDefined();
       expect(jsonStatus).toBe(400);
       expect(jsonPayload).toEqual({
-        success: false,
         error: "Field is invalid",
         code: "BAD_REQUEST",
       });
@@ -116,7 +110,6 @@ describe("apps/api/src/lib Unit Tests", () => {
 
       defaultHook(dummyResult as any, fakeContext);
       expect(jsonPayload).toEqual({
-        success: false,
         error: "Validation failed",
         code: "BAD_REQUEST",
       });

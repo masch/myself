@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { APP_NAME, type ApiResponse } from "@myself/shared";
+import { APP_NAME } from "@myself/shared";
 import type { AppEnv } from "../../types";
 import { createSystemRouter } from "../system";
 import { registerDocs } from "../../docs";
@@ -12,13 +12,12 @@ describe("System Routes & Docs Unit Tests", () => {
       const res = await router.request("/");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as ApiResponse<{
+      const body = (await res.json()) as {
         message: string;
         timestamp: string;
-      }>;
-      expect(body.success).toBe(true);
-      expect(body.data?.message).toBe(`Welcome to ${APP_NAME} API`);
-      expect(new Date(body.data?.timestamp ?? "").getTime()).not.toBeNaN();
+      };
+      expect(body.message).toBe(`Welcome to ${APP_NAME} API`);
+      expect(new Date(body.timestamp ?? "").getTime()).not.toBeNaN();
     });
 
     it("GET /health returns status ok, computed uptime and configured environment", async () => {
@@ -31,15 +30,14 @@ describe("System Routes & Docs Unit Tests", () => {
       const res = await router.request("/health");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as ApiResponse<{
+      const body = (await res.json()) as {
         status: string;
         uptime: number;
         environment: string;
-      }>;
-      expect(body.success).toBe(true);
-      expect(body.data?.status).toBe("ok");
-      expect(body.data?.uptime).toBeGreaterThanOrEqual(5);
-      expect(body.data?.environment).toBe("staging");
+      };
+      expect(body.status).toBe("ok");
+      expect(body.uptime).toBeGreaterThanOrEqual(5);
+      expect(body.environment).toBe("staging");
     });
   });
 
