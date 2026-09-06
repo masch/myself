@@ -23,7 +23,7 @@ export class User {
   }
 
   get avatarUrl(): string | undefined {
-    return this.props.avatarUrl;
+    return this.props.avatarUrl ?? undefined;
   }
 
   get createdAt(): DateTime {

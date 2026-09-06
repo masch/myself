@@ -41,7 +41,7 @@ export const userPropsSchema = z.object({
   id: entityIdSchema,
   name: z.string().trim().min(1, "User name is required"),
   email: z.string().trim().check(z.email("Invalid email address")),
-  avatarUrl: z.string().trim().check(z.url("Invalid avatar URL")).optional(),
+  avatarUrl: z.string().trim().check(z.url("Invalid avatar URL")).nullish(),
   createdAt: dateTimeSchema,
 });
 
