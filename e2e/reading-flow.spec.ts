@@ -66,8 +66,8 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
     await expect(saveButton).toBeVisible();
     await saveButton.click({ force: true });
 
-    // 6. Verify directly in Backend API that reading was created
-    // Polling API endpoint /v1/readings
+    // 6. Verify directly in Backend API that reading was created & capture its unique ID
+    let createdReadingId: string | null = null;
     await expect
       .poll(
         async () => {
@@ -77,9 +77,14 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
           if (!res.ok()) return false;
           const json = await res.json();
           const items = json.items ?? json.data?.items ?? [];
-          return items.some((item: any) =>
-            item.translations?.es?.title?.includes("E2E Browser Test"),
+          const found = items.find(
+            (item: any) => item.translations?.es?.title === testTitle,
           );
+          if (found) {
+            createdReadingId = found.id;
+            return true;
+          }
+          return false;
         },
         {
           intervals: [500, 1000],
@@ -87,6 +92,8 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
         },
       )
       .toBe(true);
+
+    expect(createdReadingId).toBeTruthy();
 
     // 7. Test UPDATE: Click Edit on the newly created reading
     const editBtn = page.getByRole("button", {
@@ -119,19 +126,17 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
     await expect(updateSaveButton).toBeVisible();
     await updateSaveButton.click({ force: true });
 
-    // 10. Verify directly in Backend API that reading was updated
+    // 10. Verify directly in Backend API that the exact reading was updated
     await expect
       .poll(
         async () => {
           const res = await request.get(
-            "http://localhost:8788/v1/readings?limit=50",
+            `http://localhost:8788/v1/readings/${createdReadingId}`,
           );
           if (!res.ok()) return false;
           const json = await res.json();
-          const items = json.items ?? json.data?.items ?? [];
-          return items.some((item: any) =>
-            item.translations?.es?.title?.includes("(Updated)"),
-          );
+          const item = json.data ?? json;
+          return item.translations?.es?.title === updatedTitle;
         },
         {
           intervals: [500, 1000],
@@ -151,19 +156,14 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
     await expect(deleteBtn).toBeVisible({ timeout: 5000 });
     await deleteBtn.click();
 
-    // 12. Verify directly in Backend API that reading was deleted
+    // 12. Verify directly in Backend API that the specific reading ID was deleted
     await expect
       .poll(
         async () => {
           const res = await request.get(
-            "http://localhost:8788/v1/readings?limit=50",
+            `http://localhost:8788/v1/readings/${createdReadingId}`,
           );
-          if (!res.ok()) return false;
-          const json = await res.json();
-          const items = json.items ?? json.data?.items ?? [];
-          return !items.some((item: any) =>
-            item.translations?.es?.title?.includes("(Updated)"),
-          );
+          return res.status() === 404;
         },
         {
           intervals: [500, 1000],
