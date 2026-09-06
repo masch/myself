@@ -7,6 +7,7 @@ node_modules/
 .expo/
 .turbo/
 .wrangler/
+.wrangler-config/
 dist/
 web-build/
 expo-env.d.ts
