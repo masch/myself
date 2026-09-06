@@ -348,3 +348,42 @@ api-docs: ## Display local API documentation endpoints
 	@echo "myself API Documentation URLs:"
 	@echo "  Interactive Reference (Scalar): http://localhost:8787/reference"
 	@echo "  OpenAPI 3.1 JSON Specification:  http://localhost:8787/doc"
+
+# ── Cloudflare Workers Tasks ─────────────────
+
+.PHONY: api-cf-login
+api-cf-login: ## Authenticate wrangler with Cloudflare
+	cd $(API_DIR) && bun wrangler login
+
+.PHONY: api-cf-whoami
+api-cf-whoami: ## Show authenticated Cloudflare account and scopes
+	cd $(API_DIR) && bun wrangler whoami
+
+.PHONY: stg-api-tail
+stg-api-tail: ## Stream live logs from Cloudflare Workers (staging)
+	cd $(API_DIR) && bun wrangler tail --env staging
+
+.PHONY: prd-api-tail
+prd-api-tail: ## Stream live logs from Cloudflare Workers (production)
+	cd $(API_DIR) && bun wrangler tail
+
+.PHONY: stg-api-secret-list
+stg-api-secret-list: ## List secret names on staging Worker
+	cd $(API_DIR) && bun wrangler secret list --env staging
+
+.PHONY: prd-api-secret-list
+prd-api-secret-list: ## List secret names on production Worker
+	cd $(API_DIR) && bun wrangler secret list
+
+.PHONY: stg-api-secret-put
+stg-api-secret-put: ## Set a secret on staging Worker (Usage: make stg-api-secret-put NAME=TURSO_AUTH_TOKEN)
+	@if [ -z "$(NAME)" ]; then echo "ERROR: NAME is required (e.g. make stg-api-secret-put NAME=TURSO_AUTH_TOKEN)"; exit 1; fi
+	@read -s -p "Enter secret value for $(NAME): " VAL; echo ""; \
+	cd $(API_DIR) && printf '%s' "$$VAL" | bun wrangler secret put $(NAME) --env staging
+
+.PHONY: prd-api-secret-put
+prd-api-secret-put: ## Set a secret on production Worker (Usage: make prd-api-secret-put NAME=TURSO_AUTH_TOKEN)
+	@if [ -z "$(NAME)" ]; then echo "ERROR: NAME is required (e.g. make prd-api-secret-put NAME=TURSO_AUTH_TOKEN)"; exit 1; fi
+	@read -s -p "Enter secret value for $(NAME): " VAL; echo ""; \
+	cd $(API_DIR) && printf '%s' "$$VAL" | bun wrangler secret put $(NAME)
+
