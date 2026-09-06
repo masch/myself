@@ -8,9 +8,11 @@ help: ## Show this help menu
 
 # ── Workspace Paths ───────────────────────────
 
-API_DIR     := apps/api
-MOBILE_DIR  := apps/mobile
-SHARED_DIR  := packages/shared
+API_DIR          := apps/api
+MOBILE_DIR       := apps/mobile
+SHARED_DIR       := packages/shared
+XDG_CONFIG_HOME  := $(CURDIR)/.wrangler-config
+export XDG_CONFIG_HOME
 
 # ── Monorepo Root Tasks (Turborepo) ──────────
 
