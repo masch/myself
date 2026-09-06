@@ -172,6 +172,14 @@ jobs:
         if: ${{ env.TURSO_DATABASE_URL != '' && env.TURSO_AUTH_TOKEN != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         run: make api-db-migrate-remote
 
+      - name: Seed Staging Database
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        if: ${{ env.TURSO_DATABASE_URL != '' && env.TURSO_AUTH_TOKEN != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        run: make api-db-seed-remote
+
       - name: Deploy Staging to Cloudflare Workers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -264,6 +272,14 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         if: ${{ env.TURSO_DATABASE_URL != '' && env.TURSO_AUTH_TOKEN != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         run: make api-db-migrate-remote
+
+      - name: Seed Production Database
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        if: ${{ env.TURSO_DATABASE_URL != '' && env.TURSO_AUTH_TOKEN != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        run: make api-db-seed-remote
 
       - name: Deploy to Cloudflare Workers
         env:

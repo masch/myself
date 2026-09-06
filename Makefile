@@ -316,6 +316,21 @@ api-db-migrate-remote: ## Apply Drizzle migrations to remote Turso database
 		bunx drizzle-kit migrate; \
 	fi
 
+.PHONY: api-db-seed-remote
+api-db-seed-remote: ## Seed default data in remote Turso database (idempotent)
+	@if [ -z "$$TURSO_DATABASE_URL" ] || [ -z "$$TURSO_AUTH_TOKEN" ]; then \
+		if [ -f $(API_DIR)/.dev.vars ]; then \
+			cd $(API_DIR) && bun --env-file=.dev.vars run scripts/seed.ts; \
+		else \
+			echo "ERROR: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be set"; \
+			exit 1; \
+		fi; \
+	else \
+		cd $(API_DIR) && TURSO_DATABASE_URL="$$TURSO_DATABASE_URL" \
+		TURSO_AUTH_TOKEN="$$TURSO_AUTH_TOKEN" \
+		bun run scripts/seed.ts; \
+	fi
+
 .PHONY: api-db-studio
 api-db-studio: ## Launch Drizzle Studio web UI
 	cd $(API_DIR) && if [ -f .dev.vars ]; then bun --env-file=.dev.vars x drizzle-kit studio; else bunx drizzle-kit studio; fi
