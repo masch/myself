@@ -302,7 +302,7 @@ api-db-migrate-local: ## Apply Drizzle migrations to local SQLite database
 	cd $(API_DIR) && TURSO_DATABASE_URL="file:local.db" bunx drizzle-kit migrate
 
 .PHONY: api-db-migrate-remote
-api-db-migrate-remote: ## Apply Drizzle migrations to remote Turso database
+api-db-migrate-remote: ## Apply Drizzle migrations to remote database
 	@if [ -z "$$TURSO_DATABASE_URL" ] || [ -z "$$TURSO_AUTH_TOKEN" ]; then \
 		if [ -f $(API_DIR)/.dev.vars ]; then \
 			cd $(API_DIR) && bun --env-file=.dev.vars x drizzle-kit migrate; \
