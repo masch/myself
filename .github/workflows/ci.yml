@@ -149,20 +149,20 @@ jobs:
         with:
           bun-version: 1.3.14
 
-      - name: Cache Turborepo & Bun
+      - name: Cache Node Modules & Bun
         uses: actions/cache@v4
         with:
           path: |
-            .turbo
-            apps/*/.turbo
-            packages/*/.turbo
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
             ~/.bun/install/cache
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          key: ${{ runner.os }}-bun-modules-${{ hashFiles('bun.lock') }}
           restore-keys: |
-            ${{ runner.os }}-turbo-
+            ${{ runner.os }}-bun-modules-
 
       - name: Install dependencies
-        run: make install
+        run: bun install --frozen-lockfile
 
       - name: Run Staging Database Migrations
         env:
@@ -252,20 +252,20 @@ jobs:
         with:
           bun-version: 1.3.14
 
-      - name: Cache Turborepo & Bun
+      - name: Cache Node Modules & Bun
         uses: actions/cache@v4
         with:
           path: |
-            .turbo
-            apps/*/.turbo
-            packages/*/.turbo
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
             ~/.bun/install/cache
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          key: ${{ runner.os }}-bun-modules-${{ hashFiles('bun.lock') }}
           restore-keys: |
-            ${{ runner.os }}-turbo-
+            ${{ runner.os }}-bun-modules-
 
       - name: Install dependencies
-        run: make install
+        run: bun install --frozen-lockfile
 
       - name: Run Production Database Migrations
         env:
