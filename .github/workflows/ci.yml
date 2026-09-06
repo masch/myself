@@ -88,7 +88,7 @@ jobs:
         run: make ci
 
   deploy_mobile_staging:
-    name: Deploy Mobile Web to EAS Hosting (Staging)
+    name: "Staging: Deploy Mobile Web (EAS)"
     needs: [changes, validate]
     environment: staging
     if: |
@@ -129,7 +129,7 @@ jobs:
         run: make stg-mobile-deploy
 
   deploy_api_staging:
-    name: Deploy API to Cloudflare Workers (Staging)
+    name: "Staging: Deploy API (Cloudflare)"
     needs: [changes, validate]
     environment: staging
     if: |
@@ -179,7 +179,7 @@ jobs:
         run: make stg-api-deploy
 
   deploy_mobile_production:
-    name: Deploy Mobile Web to EAS Hosting (Production)
+    name: "Production: Deploy Mobile Web (EAS)"
     needs: [changes, validate]
     environment: production
     if: |
@@ -221,7 +221,7 @@ jobs:
         run: make prd-mobile-deploy
 
   deploy_api_production:
-    name: Deploy API to Cloudflare Workers (Production)
+    name: "Production: Deploy API (Cloudflare)"
     needs: [changes, validate]
     environment: production
     if: |
