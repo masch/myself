@@ -169,7 +169,6 @@ jobs:
           ENVIRONMENT: staging
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         if: ${{ env.TURSO_DATABASE_URL != '' && env.TURSO_AUTH_TOKEN != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         run: make api-db-migrate-remote
 
@@ -178,7 +177,6 @@ jobs:
           ENVIRONMENT: staging
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         if: ${{ env.TURSO_DATABASE_URL != '' && env.TURSO_AUTH_TOKEN != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         run: make api-db-seed-remote
 
@@ -272,7 +270,6 @@ jobs:
           ENVIRONMENT: production
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         if: ${{ env.TURSO_DATABASE_URL != '' && env.TURSO_AUTH_TOKEN != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         run: make api-db-migrate-remote
 
@@ -281,7 +278,6 @@ jobs:
           ENVIRONMENT: production
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         if: ${{ env.TURSO_DATABASE_URL != '' && env.TURSO_AUTH_TOKEN != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         run: make api-db-seed-remote
 

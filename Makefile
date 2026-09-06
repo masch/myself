@@ -297,32 +297,26 @@ api-db-migrate-local: ## Apply Drizzle migrations to local SQLite database
 
 .PHONY: api-db-migrate-remote
 api-db-migrate-remote: ## Apply Drizzle migrations to remote database
-	@if [ -z "$$TURSO_DATABASE_URL" ] || [ -z "$$TURSO_AUTH_TOKEN" ]; then \
-		if [ -f $(API_DIR)/.dev.vars ]; then \
-			cd $(API_DIR) && bun --env-file=.dev.vars drizzle-kit migrate; \
-		else \
-			echo "ERROR: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be set"; \
-			exit 1; \
-		fi; \
+	@url="$${TURSO_DATABASE_URL:-}"; token="$${TURSO_AUTH_TOKEN:-}"; \
+	if [ -n "$$url" ] && [ -n "$$token" ]; then \
+		cd $(API_DIR) && TURSO_DATABASE_URL="$$url" TURSO_AUTH_TOKEN="$$token" bun drizzle-kit migrate; \
+	elif [ -z "$$url" ] && [ -z "$$token" ] && [ -f $(API_DIR)/.dev.vars ]; then \
+		cd $(API_DIR) && bun --env-file=.dev.vars drizzle-kit migrate; \
 	else \
-		cd $(API_DIR) && TURSO_DATABASE_URL="$$TURSO_DATABASE_URL" \
-		TURSO_AUTH_TOKEN="$$TURSO_AUTH_TOKEN" \
-		bun drizzle-kit migrate; \
+		echo "ERROR: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be set (or configured in $(API_DIR)/.dev.vars)"; \
+		exit 1; \
 	fi
 
 .PHONY: api-db-seed-remote
 api-db-seed-remote: ## Seed default data in remote Turso database (idempotent)
-	@if [ -z "$$TURSO_DATABASE_URL" ] || [ -z "$$TURSO_AUTH_TOKEN" ]; then \
-		if [ -f $(API_DIR)/.dev.vars ]; then \
-			cd $(API_DIR) && bun --env-file=.dev.vars run scripts/seed.ts; \
-		else \
-			echo "ERROR: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be set"; \
-			exit 1; \
-		fi; \
+	@url="$${TURSO_DATABASE_URL:-}"; token="$${TURSO_AUTH_TOKEN:-}"; \
+	if [ -n "$$url" ] && [ -n "$$token" ]; then \
+		cd $(API_DIR) && TURSO_DATABASE_URL="$$url" TURSO_AUTH_TOKEN="$$token" bun run scripts/seed.ts; \
+	elif [ -z "$$url" ] && [ -z "$$token" ] && [ -f $(API_DIR)/.dev.vars ]; then \
+		cd $(API_DIR) && bun --env-file=.dev.vars run scripts/seed.ts; \
 	else \
-		cd $(API_DIR) && TURSO_DATABASE_URL="$$TURSO_DATABASE_URL" \
-		TURSO_AUTH_TOKEN="$$TURSO_AUTH_TOKEN" \
-		bun run scripts/seed.ts; \
+		echo "ERROR: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be set (or configured in $(API_DIR)/.dev.vars)"; \
+		exit 1; \
 	fi
 
 .PHONY: api-db-studio
@@ -379,13 +373,17 @@ prd-api-secret-list: ## List secret names on production Worker
 
 .PHONY: stg-api-secret-put
 stg-api-secret-put: ## Set a secret on staging Worker (Usage: make stg-api-secret-put NAME=TURSO_AUTH_TOKEN)
-	@if [ -z "$(NAME)" ]; then echo "ERROR: NAME is required (e.g. make stg-api-secret-put NAME=TURSO_AUTH_TOKEN)"; exit 1; fi
-	@read -s -p "Enter secret value for $(NAME): " VAL; echo ""; \
-	cd $(API_DIR) && printf '%s' "$$VAL" | bun wrangler secret put $(NAME) --env staging
+	@name="$${NAME:-}"; \
+	if [ -z "$$name" ]; then echo "ERROR: NAME is required (e.g. make stg-api-secret-put NAME=TURSO_AUTH_TOKEN)"; exit 1; fi; \
+	if ! [[ "$$name" =~ ^[A-Z0-9_]+$$ ]]; then echo "ERROR: Invalid secret name '$$name'. Must be alphanumeric uppercase with underscores."; exit 1; fi; \
+	read -s -p "Enter secret value for $$name: " val; echo ""; \
+	cd $(API_DIR) && printf '%s' "$$val" | bun wrangler secret put "$$name" --env staging
 
 .PHONY: prd-api-secret-put
 prd-api-secret-put: ## Set a secret on production Worker (Usage: make prd-api-secret-put NAME=TURSO_AUTH_TOKEN)
-	@if [ -z "$(NAME)" ]; then echo "ERROR: NAME is required (e.g. make prd-api-secret-put NAME=TURSO_AUTH_TOKEN)"; exit 1; fi
-	@read -s -p "Enter secret value for $(NAME): " VAL; echo ""; \
-	cd $(API_DIR) && printf '%s' "$$VAL" | bun wrangler secret put $(NAME)
+	@name="$${NAME:-}"; \
+	if [ -z "$$name" ]; then echo "ERROR: NAME is required (e.g. make prd-api-secret-put NAME=TURSO_AUTH_TOKEN)"; exit 1; fi; \
+	if ! [[ "$$name" =~ ^[A-Z0-9_]+$$ ]]; then echo "ERROR: Invalid secret name '$$name'. Must be alphanumeric uppercase with underscores."; exit 1; fi; \
+	read -s -p "Enter secret value for $$name: " val; echo ""; \
+	cd $(API_DIR) && printf '%s' "$$val" | bun wrangler secret put "$$name"
 
