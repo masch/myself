@@ -26,7 +26,7 @@ reviews:
     - "!apps/mobile/.expo/**"
     - "!apps/mobile/dist/**"
     - "!apps/api/.wrangler/**"
-    - "!openspec/changes/archive/**"
+    - "!openspec/**"
     - "!**/*.png"
     - "!**/*.jpg"
     - "!**/*.jpeg"
