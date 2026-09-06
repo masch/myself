@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useSQLiteContext } from "expo-sqlite";
+import { SyncEngine } from "@/core/sync/sync-engine";
 import {
   getAuthors as dbGetAuthors,
   getAuthorById as dbGetAuthorById,
@@ -59,12 +60,14 @@ export function useAuthors() {
       }
     }
 
-    loadInitialAuthors();
+    void loadInitialAuthors();
 
     return () => {
       isMounted = false;
     };
   }, [db]);
+
+  const syncEngine = useMemo(() => new SyncEngine(db), [db]);
 
   const addAuthor = useCallback(
     async (input: CreateAuthorInput): Promise<string> => {
@@ -73,10 +76,11 @@ export function useAuthors() {
         input.name.trim(),
         input.bio?.trim() ?? "",
       );
+      await syncEngine.pushPendingOutbox();
       await refreshAuthors();
       return id;
     },
-    [db, refreshAuthors],
+    [db, syncEngine, refreshAuthors],
   );
 
   const updateAuthor = useCallback(

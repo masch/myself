@@ -1,12 +1,13 @@
-import { DateTime, generateEntityId } from "@myself/shared";
+import { DateTime, type EntityId, generateEntityId } from "@myself/shared";
 import { Author } from "../domain";
 import type {
   AuthorRepository,
   ListAuthorsParams,
   ListAuthorsResult,
-} from "../repositories/contracts/author.repository";
+} from "../ports";
 
 export interface CreateAuthorInput {
+  id?: EntityId;
   name: string;
   bio?: string;
 }
@@ -18,7 +19,7 @@ export class AuthorService {
     return this.authorRepo.list(params);
   }
 
-  async findById(id: string): Promise<Author | null> {
+  async findById(id: EntityId): Promise<Author | null> {
     return this.authorRepo.findById(id);
   }
 
@@ -27,7 +28,7 @@ export class AuthorService {
   }
 
   async create(input: CreateAuthorInput): Promise<Author> {
-    const id = generateEntityId();
+    const id = input.id ?? generateEntityId();
     const createdAt = DateTime.now();
     const bio = input.bio?.trim() || undefined;
 

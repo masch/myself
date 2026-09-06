@@ -52,7 +52,13 @@ export default function ReadingModalScreen() {
             <HeaderButton
               title="Cancel"
               variant="cancel"
-              onPress={() => router.back()}
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace("/readings");
+                }
+              }}
             />
           ),
           headerRight: () => (

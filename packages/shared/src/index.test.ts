@@ -6,6 +6,7 @@ import {
   createReadingSchema,
   createUserSchema,
   entityIdSchema,
+  type EntityId,
   DateTime,
   ErrorCode,
   generateEntityId,
@@ -69,11 +70,12 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
     });
 
     it("listReadingsQuerySchema parses authorId correctly alongside pagination", () => {
+      const validAuthorId = "550e8400-e29b-41d4-a716-446655440000" as EntityId;
       const parsed = listReadingsQuerySchema.parse({
-        authorId: " author-123 ",
+        authorId: `  ${validAuthorId}  `,
         limit: "10",
       });
-      expect(parsed.authorId).toBe("author-123");
+      expect(parsed.authorId).toBe(validAuthorId);
       expect(parsed.limit).toBe(10);
       expect(parsed.offset).toBe(0);
     });
@@ -95,8 +97,9 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
     });
 
     it("createReadingSchema parses valid reading with spanish translation", () => {
+      const validAuthorId = "550e8400-e29b-41d4-a716-446655440000" as EntityId;
       const parsed = createReadingSchema.parse({
-        authorId: "author-1",
+        authorId: validAuthorId,
         translations: {
           es: {
             title: " Título en español ",
@@ -104,7 +107,7 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
           },
         },
       });
-      expect(parsed.authorId).toBe("author-1");
+      expect(parsed.authorId).toBe(validAuthorId);
       expect(parsed.translations.es.title).toBe("Título en español");
       expect(parsed.translations.es.content).toBe("Contenido en español");
       expect(parsed.translations.en).toBeUndefined();

@@ -153,3 +153,16 @@ mock.module("expo-notifications", () => ({
   addNotificationResponseReceivedListener: (cb: any) =>
     mockNotifications.addNotificationResponseReceivedListener(cb),
 }));
+
+const mockNetInfo = {
+  addEventListener: () => () => {},
+  fetch: async () => ({
+    isConnected: true,
+    isInternetReachable: true,
+  }),
+};
+
+mock.module("@react-native-community/netinfo", () => ({
+  default: mockNetInfo,
+  ...mockNetInfo,
+}));

@@ -11,7 +11,7 @@ import type { AppEnv } from "../types";
 import { defaultHook } from "../lib/validator";
 import { ok, fail } from "../lib/response";
 import { buildPaginated } from "../lib/pagination";
-import { UserMapper } from "../domain";
+import { UserMapper } from "../adapters/persistence/mappers";
 import { UserService } from "../services/user.service";
 
 export const listUsersRoute = createRoute({

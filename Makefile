@@ -20,10 +20,16 @@ export XDG_CONFIG_HOME
 install: ## Install dependencies across all workspaces and configure git hooks
 	bun install
 	@$(MAKE) setup-hooks
+	@$(MAKE) playwright-install
 
 .PHONY: setup-hooks
 setup-hooks: ## Configure git to use versioned .githooks
 	git config core.hooksPath .githooks
+
+.PHONY: playwright-install
+playwright-install: ## Install Playwright browser binaries
+	bunx playwright install chromium
+
 
 .PHONY: dev
 dev: ## Run dev servers concurrently via Turborepo
@@ -66,6 +72,12 @@ check-tests-coverage: ## Run tests with coverage
 .PHONY: check-tests-e2e
 check-tests-e2e: ## Run end-to-end API tests
 	cd $(API_DIR) && bun run test:e2e
+
+.PHONY: check-e2e-browser
+check-e2e-browser: ## Run Playwright browser E2E tests (Front ➔ API ➔ DB)
+	rm -f $(API_DIR)/test-e2e.db*
+	cd $(API_DIR) && TURSO_DATABASE_URL="file:test-e2e.db" bun run db:migrate
+	bunx playwright test
 
 .PHONY: check-format
 check-format: ## Check code formatting using prettier

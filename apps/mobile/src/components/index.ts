@@ -5,3 +5,4 @@ export * from "./chip-button";
 export * from "./stepper-button";
 export * from "./task-row";
 export * from "./meditation-text";
+export * from "./app-icon";

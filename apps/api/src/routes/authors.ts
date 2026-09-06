@@ -8,7 +8,7 @@ import type { AppEnv } from "../types";
 import { defaultHook } from "../lib/validator";
 import { ok } from "../lib/response";
 import { buildPaginated } from "../lib/pagination";
-import { AuthorMapper } from "../domain";
+import { AuthorMapper } from "../adapters/persistence/mappers";
 import { AuthorService } from "../services/author.service";
 
 export const listAuthorsRoute = createRoute({
@@ -68,6 +68,7 @@ export const authorsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
     const body = c.req.valid("json");
     const service = new AuthorService(c.var.authorRepo);
     const newAuthor = await service.create({
+      id: body.id,
       name: body.name,
       bio: body.bio,
     });

@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import { router } from "expo-router";
 import { useReadings } from "./use-readings";
 import { useAuthors } from "./use-authors";
-import { type SupportedLocale } from "@myself/shared";
+import { type EntityId, type SupportedLocale } from "@myself/shared";
 
 export interface TranslationFormState {
   title: string;
@@ -50,20 +50,22 @@ export function useReadingForm({
   // Load existing translations if editing
   useEffect(() => {
     if (isEditing && id) {
-      getTranslations(id).then((savedTranslations) => {
-        const es = savedTranslations.find((t) => t.locale === "es");
-        const en = savedTranslations.find((t) => t.locale === "en");
-        setTranslations({
-          es: {
-            title: es?.title ?? initialTitle ?? "",
-            content: es?.content ?? initialContent ?? "",
-          },
-          en: {
-            title: en?.title ?? "",
-            content: en?.content ?? "",
-          },
-        });
-      });
+      void getTranslations(id)
+        .then((savedTranslations) => {
+          const es = savedTranslations.find((t) => t.locale === "es");
+          const en = savedTranslations.find((t) => t.locale === "en");
+          setTranslations({
+            es: {
+              title: es?.title ?? initialTitle ?? "",
+              content: es?.content ?? initialContent ?? "",
+            },
+            en: {
+              title: en?.title ?? "",
+              content: en?.content ?? "",
+            },
+          });
+        })
+        .catch(() => {});
     }
   }, [isEditing, id, getTranslations, initialTitle, initialContent]);
 
@@ -149,17 +151,21 @@ export function useReadingForm({
       setIsSubmitting(true);
       if (isEditing && id) {
         await updateReading({
-          id,
-          authorId: finalAuthorId,
+          id: id as EntityId,
+          authorId: finalAuthorId as EntityId,
           translations: translationsPayload,
         });
       } else {
         await addReading({
-          authorId: finalAuthorId,
+          authorId: finalAuthorId as EntityId,
           translations: translationsPayload,
         });
       }
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/readings");
+      }
     } catch (error) {
       console.error("Failed to save reading:", error);
       Alert.alert("Error", "Could not save reading text.");

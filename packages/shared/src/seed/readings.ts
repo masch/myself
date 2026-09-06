@@ -1,18 +1,19 @@
+import type { EntityId } from "../schemas";
 import type { SeedAuthor, SeedReading } from "../index";
 
-export const SEED_AUTHOR_IDS = {
-  MARCUS_AURELIUS: "a0000000-0000-4000-8000-000000000001",
-  SENECA: "a0000000-0000-4000-8000-000000000002",
-  EPICTETUS: "a0000000-0000-4000-8000-000000000003",
-  LAO_TZU: "a0000000-0000-4000-8000-000000000004",
-  THICH_NHAT_HANH: "a0000000-0000-4000-8000-000000000005",
-  JOHN_O_DONOHUE: "a0000000-0000-4000-8000-000000000006",
-  RAIMON_PANIKKAR: "a0000000-0000-4000-8000-000000000007",
-  FRANCISCO_LUIS_BERNARDEZ: "a0000000-0000-4000-8000-000000000008",
-  MARY_OLIVER: "a0000000-0000-4000-8000-000000000009",
-  CHARLES_BAUDELAIRE: "a0000000-0000-4000-8000-000000000010",
-  DAVID_WHYTE: "a0000000-0000-4000-8000-000000000011",
-} as const;
+export const SEED_AUTHOR_IDS: Record<string, EntityId> = {
+  MARCUS_AURELIUS: "a0000000-0000-4000-8000-000000000001" as EntityId,
+  SENECA: "a0000000-0000-4000-8000-000000000002" as EntityId,
+  EPICTETUS: "a0000000-0000-4000-8000-000000000003" as EntityId,
+  LAO_TZU: "a0000000-0000-4000-8000-000000000004" as EntityId,
+  THICH_NHAT_HANH: "a0000000-0000-4000-8000-000000000005" as EntityId,
+  JOHN_O_DONOHUE: "a0000000-0000-4000-8000-000000000006" as EntityId,
+  RAIMON_PANIKKAR: "a0000000-0000-4000-8000-000000000007" as EntityId,
+  FRANCISCO_LUIS_BERNARDEZ: "a0000000-0000-4000-8000-000000000008" as EntityId,
+  MARY_OLIVER: "a0000000-0000-4000-8000-000000000009" as EntityId,
+  CHARLES_BAUDELAIRE: "a0000000-0000-4000-8000-000000000010" as EntityId,
+  DAVID_WHYTE: "a0000000-0000-4000-8000-000000000011" as EntityId,
+};
 
 export const SEED_AUTHORS: SeedAuthor[] = [
   {
@@ -85,7 +86,7 @@ export const SEED_AUTHORS: SeedAuthor[] = [
 
 export const SEED_READINGS: SeedReading[] = [
   {
-    id: "r0000000-0000-4000-8000-000000000001",
+    id: "b0000000-0000-4000-8000-000000000001" as EntityId,
     author_id: SEED_AUTHOR_IDS.MARCUS_AURELIUS,
     createdAt: "2026-08-15T08:00:00-03:00",
     readDates: ["2026-08-20T08:30:00-03:00", "2026-08-24T07:45:00-03:00"],
@@ -104,7 +105,7 @@ export const SEED_READINGS: SeedReading[] = [
     },
   },
   {
-    id: "r0000000-0000-4000-8000-000000000002",
+    id: "b0000000-0000-4000-8000-000000000002" as EntityId,
     author_id: SEED_AUTHOR_IDS.SENECA,
     createdAt: "2026-08-16T09:00:00-03:00",
     readDates: [],
@@ -123,7 +124,7 @@ La verdadera serenidad
     },
   },
   {
-    id: "r0000000-0000-4000-8000-000000000003",
+    id: "b0000000-0000-4000-8000-000000000003" as EntityId,
     author_id: SEED_AUTHOR_IDS.THICH_NHAT_HANH,
     createdAt: "2026-08-17T07:30:00-03:00",
     readDates: ["2026-08-25T08:00:00-03:00"],
@@ -144,7 +145,7 @@ La verdadera serenidad
     },
   },
   {
-    id: "r0000000-0000-4000-8000-000000000004",
+    id: "b0000000-0000-4000-8000-000000000004" as EntityId,
     author_id: SEED_AUTHOR_IDS.EPICTETUS,
     createdAt: "2026-08-18T10:00:00-03:00",
     readDates: [],
@@ -162,7 +163,7 @@ La riqueza no consiste
     },
   },
   {
-    id: "r0000000-0000-4000-8000-000000000005",
+    id: "b0000000-0000-4000-8000-000000000005" as EntityId,
     author_id: SEED_AUTHOR_IDS.LAO_TZU,
     createdAt: "2026-08-14T06:45:00-03:00",
     readDates: [
@@ -186,7 +187,7 @@ La naturaleza no se apresura,
     },
   },
   {
-    id: "r0000000-0000-4000-8000-000000000006",
+    id: "b0000000-0000-4000-8000-000000000006" as EntityId,
     author_id: SEED_AUTHOR_IDS.JOHN_O_DONOHUE,
     createdAt: "2026-08-19T08:30:00-03:00",
     readDates: [],
@@ -214,7 +215,7 @@ Que permitas que la belleza salvaje del mundo invisible te reúna, te cuide y te
     },
   },
   {
-    id: "r0000000-0000-4000-8000-000000000007",
+    id: "b0000000-0000-4000-8000-000000000007" as EntityId,
     author_id: SEED_AUTHOR_IDS.RAIMON_PANIKKAR,
     createdAt: "2026-08-31T08:00:00-03:00",
     readDates: ["2026-08-31T08:30:00-03:00"],
@@ -234,7 +235,7 @@ La Vida pura y desnuda es el don que nos ha sido dado – y que en última insta
     },
   },
   {
-    id: "r0000000-0000-4000-8000-000000000008",
+    id: "b0000000-0000-4000-8000-000000000008" as EntityId,
     author_id: SEED_AUTHOR_IDS.FRANCISCO_LUIS_BERNARDEZ,
     createdAt: "2026-09-01T08:00:00-03:00",
     readDates: ["2026-09-01T08:30:00-03:00"],
@@ -277,7 +278,7 @@ Pero en mi frente silenciosa la voz divina ya se había despertado`,
     },
   },
   {
-    id: "r0000000-0000-4000-8000-000000000009",
+    id: "b0000000-0000-4000-8000-000000000009" as EntityId,
     author_id: SEED_AUTHOR_IDS.MARY_OLIVER,
     createdAt: "2026-09-02T08:00:00-03:00",
     readDates: ["2026-09-02T08:30:00-03:00"],
@@ -323,7 +324,7 @@ building the universe.`,
     },
   },
   {
-    id: "r0000000-0000-4000-8000-000000000010",
+    id: "b0000000-0000-4000-8000-000000000010" as EntityId,
     author_id: SEED_AUTHOR_IDS.CHARLES_BAUDELAIRE,
     createdAt: "2026-09-03T08:00:00-03:00",
     readDates: ["2026-09-03T08:30:00-03:00"],
@@ -358,7 +359,7 @@ la lengua de las flores y de las cosas mudas!`,
     },
   },
   {
-    id: "r0000000-0000-4000-8000-000000000011",
+    id: "b0000000-0000-4000-8000-000000000011" as EntityId,
     author_id: SEED_AUTHOR_IDS.DAVID_WHYTE,
     createdAt: "2026-09-04T08:00:00-03:00",
     readDates: ["2026-09-04T08:30:00-03:00"],

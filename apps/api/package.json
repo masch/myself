@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "dev": "ENVIRONMENT=\"development\" TURSO_DATABASE_URL=\"file:local.db\" bun --hot src/index.ts",
+    "dev": "ENVIRONMENT=\"${ENVIRONMENT:-development}\" TURSO_DATABASE_URL=\"${TURSO_DATABASE_URL:-file:local.db}\" bun --hot src/index.ts",
     "dev:turso-local": "TURSO_DATABASE_URL=\"http://127.0.0.1:8080\" wrangler dev --env development",
     "dev:turso-remote": "wrangler dev --env development",
     "deploy": "wrangler deploy",
@@ -22,7 +22,7 @@
     "test:unit": "ENVIRONMENT=\"test\" bun test src/__tests__/ src/lib/__tests__/ src/errors/__tests__/ src/middleware/__tests__/ src/services/__tests__/ src/db/__tests__/",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "bun run scripts/seed.ts",
+    "db:seed": "ENVIRONMENT=\"${ENVIRONMENT:-development}\" bun run scripts/seed.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
@@ -38,6 +38,7 @@
     "@types/bun": "^1.4.0",
     "drizzle-kit": "^0.31.10",
     "typescript": "~6.0.3",
+    "typescript-eslint": "^8.69.0",
     "wrangler": "^4.0.0",
     "zod": "^4.5.4"
   },

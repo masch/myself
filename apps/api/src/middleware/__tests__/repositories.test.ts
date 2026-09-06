@@ -3,9 +3,9 @@ import { Hono } from "hono";
 import type { AppEnv } from "../../types";
 import { AppConfig } from "../../config";
 import { createRepositories, repositoriesMiddleware } from "../repositories";
-import { DrizzleAuthorRepository } from "../../repositories/drizzle/drizzle-author.repository";
-import { DrizzleReadingRepository } from "../../repositories/drizzle/drizzle-reading.repository";
-import { DrizzleUserRepository } from "../../repositories/drizzle/drizzle-user.repository";
+import { SqliteAuthorRepository } from "../../adapters/persistence/sqlite/sqlite-author.repository";
+import { SqliteReadingRepository } from "../../adapters/persistence/sqlite/sqlite-reading.repository";
+import { SqliteUserRepository } from "../../adapters/persistence/sqlite/sqlite-user.repository";
 
 describe("repositoriesMiddleware & createRepositories Unit Tests", () => {
   it("creates Drizzle repositories when database url is local file", () => {
@@ -14,20 +14,20 @@ describe("repositoriesMiddleware & createRepositories Unit Tests", () => {
       TURSO_DATABASE_URL: "file:test.db",
     });
     const repos = createRepositories(config);
-    expect(repos.authorRepo instanceof DrizzleAuthorRepository).toBe(true);
-    expect(repos.readingRepo instanceof DrizzleReadingRepository).toBe(true);
-    expect(repos.userRepo instanceof DrizzleUserRepository).toBe(true);
+    expect(repos.authorRepo instanceof SqliteAuthorRepository).toBe(true);
+    expect(repos.readingRepo instanceof SqliteReadingRepository).toBe(true);
+    expect(repos.userRepo instanceof SqliteUserRepository).toBe(true);
   });
 
-  it("creates Drizzle repositories when database url is :memory:", () => {
+  it("creates SQLite repositories when database url is :memory:", () => {
     const config = new AppConfig({
       ENVIRONMENT: "test",
       TURSO_DATABASE_URL: ":memory:",
     });
     const repos = createRepositories(config);
-    expect(repos.authorRepo instanceof DrizzleAuthorRepository).toBe(true);
-    expect(repos.readingRepo instanceof DrizzleReadingRepository).toBe(true);
-    expect(repos.userRepo instanceof DrizzleUserRepository).toBe(true);
+    expect(repos.authorRepo instanceof SqliteAuthorRepository).toBe(true);
+    expect(repos.readingRepo instanceof SqliteReadingRepository).toBe(true);
+    expect(repos.userRepo instanceof SqliteUserRepository).toBe(true);
   });
 
   it("injects required repositories into Hono context strictly", async () => {

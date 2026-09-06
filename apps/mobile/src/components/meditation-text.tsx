@@ -1,11 +1,11 @@
 import React, { useMemo } from "react";
 import {
-  ColorValue,
   StyleSheet,
   Text,
-  TextStyle,
   View,
-  ViewStyle,
+  type ColorValue,
+  type TextStyle,
+  type ViewStyle,
 } from "react-native";
 import { colors } from "@/theme/colors";
 

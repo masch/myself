@@ -10,8 +10,8 @@ import {
   type ColorValue,
   View,
 } from "react-native";
-import { Image } from "expo-image";
 import { colors } from "@/theme/colors";
+import { AppIcon } from "./app-icon";
 
 export type ButtonVariant =
   "primary" | "secondary" | "purple" | "green" | "destructive" | "gray";
@@ -67,19 +67,19 @@ export function AppButton({
           subtextColor: "rgba(255, 255, 255, 0.8)",
           iconColor: "#FFFFFF",
         };
-      case "gray":
-        return {
-          containerBg: colors.systemGray,
-          textColor: "#FFFFFF",
-          subtextColor: "rgba(255, 255, 255, 0.8)",
-          iconColor: "#FFFFFF",
-        };
       case "secondary":
         return {
           containerBg: colors.secondarySystemBackground,
           textColor: colors.label,
           subtextColor: colors.secondaryLabel,
           iconColor: colors.label,
+        };
+      case "gray":
+        return {
+          containerBg: "rgba(142, 142, 147, 0.15)",
+          textColor: colors.label,
+          subtextColor: colors.secondaryLabel,
+          iconColor: colors.secondaryLabel,
         };
       case "primary":
       default:
@@ -112,12 +112,7 @@ export function AppButton({
       {...props}
     >
       <View style={styles.contentRow}>
-        {icon && (
-          <Image
-            source={icon}
-            style={[styles.icon, { tintColor: iconColor as any }]}
-          />
-        )}
+        {icon && <AppIcon name={icon} size={20} color={iconColor as any} />}
         <Text
           style={[styles.titleText, { color: textColor as any }, titleStyle]}
         >

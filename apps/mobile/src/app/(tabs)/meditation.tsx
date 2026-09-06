@@ -121,7 +121,7 @@ export default function MeditationScreen() {
     if (isDndCheckSupported() && isNotificationPolicyAccessGranted()) {
       setDndActive(false);
     }
-    resetSession();
+    void resetSession().catch(() => {});
   };
 
   const handleStartSession = () => {
@@ -154,7 +154,7 @@ export default function MeditationScreen() {
 
     recordedSessionReadingIdRef.current = null;
     setShowDndNotice(false);
-    startSession();
+    void startSession().catch(() => {});
   };
 
   return (

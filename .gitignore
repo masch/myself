@@ -58,6 +58,8 @@ example
 /apps/mobile/ios/
 /apps/mobile/android/
 coverage/
+test-results/
+playwright-report/
 
 # Local Pi runtime state
 .atl/
