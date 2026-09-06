@@ -69,11 +69,11 @@ check-tests-e2e: ## Run end-to-end API tests
 
 .PHONY: check-format
 check-format: ## Check code formatting using prettier
-	bunx prettier --check .
+	bun prettier --check .
 
 .PHONY: check-format-staged
 check-format-staged: ## Check code formatting on staged files using prettier
-	@git diff --cached --name-only -z --diff-filter=d 2>/dev/null | xargs -0 -r bunx prettier --check --ignore-unknown --
+	@git diff --cached --name-only -z --diff-filter=d 2>/dev/null | xargs -0 -r bun prettier --check --ignore-unknown --
 
 .PHONY: check-doctor
 check-doctor: ## Run Expo Doctor to verify dependency compatibility
@@ -84,23 +84,23 @@ check-static: check-lint check-types ## Run lint + typecheck
 
 .PHONY: check-affected
 check-affected: ## Run checks only on packages modified against origin/main
-	bunx turbo run lint typecheck test --filter=...[origin/main]
+	bun turbo run lint typecheck test --filter=...[origin/main]
 
 .PHONY: check-api
 check-api: ## Run all checks for API workspace
-	bunx turbo run lint typecheck test --filter=@myself/api
+	bun turbo run lint typecheck test --filter=@myself/api
 
 .PHONY: check-mobile
 check-mobile: ## Run all checks for Mobile workspace
-	bunx turbo run lint typecheck test --filter=@myself/mobile && $(MAKE) check-doctor
+	bun turbo run lint typecheck test --filter=@myself/mobile && $(MAKE) check-doctor
 
 .PHONY: check-shared
 check-shared: ## Run all checks for Shared workspace
-	bunx turbo run lint typecheck test --filter=@myself/shared
+	bun turbo run lint typecheck test --filter=@myself/shared
 
 .PHONY: check
 check: check-format ## Run full quality check suite via unified Turborepo pipeline
-	bunx turbo run lint typecheck test
+	bun turbo run lint typecheck test
 	$(MAKE) check-doctor
 
 .PHONY: ci
@@ -127,7 +127,7 @@ fix-format: ## Format all files with prettier
 
 .PHONY: fix-format-staged
 fix-format-staged: ## Run prettier on staged files only
-	@git diff --cached --name-only -z --diff-filter=d 2>/dev/null | xargs -0 -r bunx prettier --write --ignore-unknown --
+	@git diff --cached --name-only -z --diff-filter=d 2>/dev/null | xargs -0 -r bun prettier --write --ignore-unknown --
 
 .PHONY: fix
 fix: fix-format ## Run all automated fixes
@@ -268,9 +268,6 @@ prod-mobile-firebase-distribute-dev: ## Distribute production APK to dev team vi
 api-dev: ## Run API development server
 	cd $(API_DIR) && bun run dev
 
-.PHONY: api-dev-local
-api-dev-local: api-dev ## Run API development server locally
-
 .PHONY: api-dev-turso-local
 api-dev-turso-local: ## Run API dev server against local Turso database
 	cd $(API_DIR) && bun run dev:turso-local
@@ -279,12 +276,9 @@ api-dev-turso-local: ## Run API dev server against local Turso database
 api-dev-turso-remote: ## Run API dev server against remote Turso database
 	cd $(API_DIR) && bun run dev:turso-remote
 
-.PHONY: api-dev-remote
-api-dev-remote: api-dev-turso-remote ## Alias for api-dev-turso-remote
-
 .PHONY: api-db-generate
 api-db-generate: ## Generate Drizzle SQL migrations from schema
-	cd $(API_DIR) && bunx drizzle-kit generate
+	cd $(API_DIR) && bun drizzle-kit generate
 
 .PHONY: api-db-dev
 api-db-dev: ## Run local Turso/libSQL database development server
@@ -299,13 +293,13 @@ api-db-dev: ## Run local Turso/libSQL database development server
 
 .PHONY: api-db-migrate-local
 api-db-migrate-local: ## Apply Drizzle migrations to local SQLite database
-	cd $(API_DIR) && TURSO_DATABASE_URL="file:local.db" bunx drizzle-kit migrate
+	cd $(API_DIR) && TURSO_DATABASE_URL="file:local.db" bun drizzle-kit migrate
 
 .PHONY: api-db-migrate-remote
 api-db-migrate-remote: ## Apply Drizzle migrations to remote database
 	@if [ -z "$$TURSO_DATABASE_URL" ] || [ -z "$$TURSO_AUTH_TOKEN" ]; then \
 		if [ -f $(API_DIR)/.dev.vars ]; then \
-			cd $(API_DIR) && bun --env-file=.dev.vars x drizzle-kit migrate; \
+			cd $(API_DIR) && bun --env-file=.dev.vars drizzle-kit migrate; \
 		else \
 			echo "ERROR: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be set"; \
 			exit 1; \
@@ -313,7 +307,7 @@ api-db-migrate-remote: ## Apply Drizzle migrations to remote database
 	else \
 		cd $(API_DIR) && TURSO_DATABASE_URL="$$TURSO_DATABASE_URL" \
 		TURSO_AUTH_TOKEN="$$TURSO_AUTH_TOKEN" \
-		bunx drizzle-kit migrate; \
+		bun drizzle-kit migrate; \
 	fi
 
 .PHONY: api-db-seed-remote
@@ -333,7 +327,7 @@ api-db-seed-remote: ## Seed default data in remote Turso database (idempotent)
 
 .PHONY: api-db-studio
 api-db-studio: ## Launch Drizzle Studio web UI
-	cd $(API_DIR) && if [ -f .dev.vars ]; then bun --env-file=.dev.vars x drizzle-kit studio; else bunx drizzle-kit studio; fi
+	cd $(API_DIR) && if [ -f .dev.vars ]; then bun --env-file=.dev.vars drizzle-kit studio; else bun drizzle-kit studio; fi
 
 .PHONY: prd-api-deploy
 prd-api-deploy: ## Deploy API to Cloudflare Workers (production)
@@ -343,22 +337,13 @@ prd-api-deploy: ## Deploy API to Cloudflare Workers (production)
 stg-api-deploy: ## Deploy API to Cloudflare Workers (staging)
 	cd $(API_DIR) && bun run deploy:staging
 
-.PHONY: api-test-e2e
-api-test-e2e: check-tests-e2e ## Run API end-to-end test suite
-
-.PHONY: api-test
-api-test: check-api ## Run full verification for API workspace
-
 .PHONY: api-typecheck
 api-typecheck: ## Run typecheck for API only
-	bunx turbo run typecheck --filter=@myself/api
-
-.PHONY: shared-test
-shared-test: check-shared ## Run full verification for Shared workspace
+	bun turbo run typecheck --filter=@myself/api
 
 .PHONY: shared-typecheck
 shared-typecheck: ## Run typecheck for Shared only
-	bunx turbo run typecheck --filter=@myself/shared
+	bun turbo run typecheck --filter=@myself/shared
 
 .PHONY: api-docs
 api-docs: ## Display local API documentation endpoints

@@ -24,7 +24,7 @@ From the monorepo root:
 Runs against a local zero-config SQLite file without requiring internet or Turso credentials:
 
 ```bash
-make api-dev-local
+make api-dev
 ```
 
 ### Remote Turso Cloud Mode
@@ -32,7 +32,7 @@ make api-dev-local
 Runs against your remote Turso database using credentials from `apps/api/.dev.vars`:
 
 ```bash
-make api-dev-remote
+make api-dev-turso-remote
 ```
 
 ### Database Migrations & Studio
