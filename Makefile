@@ -376,7 +376,7 @@ stg-api-secret-put: ## Set a secret on staging Worker (Usage: make stg-api-secre
 	@name="$${NAME:-}"; \
 	if [ -z "$$name" ]; then echo "ERROR: NAME is required (e.g. make stg-api-secret-put NAME=TURSO_AUTH_TOKEN)"; exit 1; fi; \
 	if ! [[ "$$name" =~ ^[A-Z0-9_]+$$ ]]; then echo "ERROR: Invalid secret name '$$name'. Must be alphanumeric uppercase with underscores."; exit 1; fi; \
-	read -s -p "Enter secret value for $$name: " val; echo ""; \
+	IFS= read -r -s -p "Enter secret value for $$name: " val; echo ""; \
 	cd $(API_DIR) && printf '%s' "$$val" | bun wrangler secret put "$$name" --env staging
 
 .PHONY: prd-api-secret-put
@@ -384,6 +384,6 @@ prd-api-secret-put: ## Set a secret on production Worker (Usage: make prd-api-se
 	@name="$${NAME:-}"; \
 	if [ -z "$$name" ]; then echo "ERROR: NAME is required (e.g. make prd-api-secret-put NAME=TURSO_AUTH_TOKEN)"; exit 1; fi; \
 	if ! [[ "$$name" =~ ^[A-Z0-9_]+$$ ]]; then echo "ERROR: Invalid secret name '$$name'. Must be alphanumeric uppercase with underscores."; exit 1; fi; \
-	read -s -p "Enter secret value for $$name: " val; echo ""; \
+	IFS= read -r -s -p "Enter secret value for $$name: " val; echo ""; \
 	cd $(API_DIR) && printf '%s' "$$val" | bun wrangler secret put "$$name"
 
