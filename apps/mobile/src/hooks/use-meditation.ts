@@ -98,7 +98,7 @@ export function useMeditation() {
       setHasAlarmTriggered(true);
       setCurrentMomentIndex((prev) => {
         if (prev === 1) {
-          playSingleGong();
+          void playSingleGong().catch(() => {});
           return 2;
         }
         return prev;
@@ -146,8 +146,8 @@ export function useMeditation() {
 
       if (now.getTime() >= todayTarget.getTime()) {
         setHasAlarmTriggered(true);
-        MeditationSessionService.stopSession();
-        playSingleGong();
+        void MeditationSessionService.stopSession().catch(() => {});
+        void playSingleGong().catch(() => {});
         setCurrentMomentIndex((prev) => (prev === 1 ? 2 : prev));
       }
     };
@@ -189,7 +189,7 @@ export function useMeditation() {
   const pauseSession = useCallback(() => {
     if (status === "running") {
       setStatus("paused");
-      MeditationSessionService.stopSession();
+      void MeditationSessionService.stopSession().catch(() => {});
     }
   }, [status]);
 
@@ -199,7 +199,9 @@ export function useMeditation() {
       if (currentMomentIndex === 1 && alarmEnabled && !hasAlarmTriggered) {
         const now = new Date();
         const targetDate = getTargetDate(now, targetHour, targetMinute);
-        MeditationSessionService.startSession({ targetDate });
+        void MeditationSessionService.startSession({ targetDate }).catch(
+          () => {},
+        );
       }
     }
   }, [

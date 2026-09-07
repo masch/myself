@@ -293,7 +293,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
 
     it("GET /v1/readings returns empty items array when author has no readings", async () => {
       const res = await app.request(
-        "/v1/readings?authorId=non-existent-author-id",
+        "/v1/readings?authorId=ffffffff-ffff-4fff-8fff-ffffffffffff",
       );
       expect(res.status).toBe(200);
 
@@ -314,7 +314,9 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
     });
 
     it("GET /v1/readings/:id returns 404 when reading does not exist", async () => {
-      const res = await app.request("/v1/readings/non-existent-reading-id");
+      const res = await app.request(
+        "/v1/readings/ffffffff-ffff-4fff-8fff-ffffffffffff",
+      );
       expect(res.status).toBe(404);
 
       const body = (await res.json()) as { error: string };

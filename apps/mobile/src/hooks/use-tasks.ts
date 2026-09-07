@@ -69,7 +69,7 @@ export function useTasks() {
       }
     }
 
-    loadInitialTasks();
+    void loadInitialTasks();
 
     return () => {
       isMounted = false;

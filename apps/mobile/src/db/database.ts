@@ -83,6 +83,18 @@ export async function initDatabase(db: SQLiteDatabase) {
       read_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (reading_id) REFERENCES meditation_readings(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS sync_outbox (
+      id TEXT PRIMARY KEY NOT NULL,
+      entity TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      operation TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   // Safe schema migrations for existing databases
@@ -212,10 +224,21 @@ export async function addAuthor(
   bio: string = "",
 ): Promise<string> {
   const id = generateUUID();
-  await db.runAsync(
-    "INSERT INTO authors (id, name, bio, created_at) VALUES (?, ?, ?, datetime('now'))",
-    [id, name, bio],
-  );
+  const outboxId = generateUUID();
+  const payload = JSON.stringify({ id, name, bio });
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      "INSERT INTO authors (id, name, bio, created_at) VALUES (?, ?, ?, datetime('now'))",
+      [id, name, bio],
+    );
+    await db.runAsync(
+      `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)
+       VALUES (?, 'author', ?, 'CREATE', ?, 'pending', datetime('now'))`,
+      [outboxId, id, payload],
+    );
+  });
+
   return id;
 }
 

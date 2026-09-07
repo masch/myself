@@ -7,6 +7,8 @@ import {
 import { useColorScheme, View, Text, StyleSheet } from "react-native";
 import { SQLiteProvider } from "expo-sqlite";
 import { Image } from "expo-image";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/core/query/query-client";
 import { initDatabase } from "@/db/database";
 import { AuthProvider } from "@/context/auth-context";
 import { AppButton } from "@/components";
@@ -39,43 +41,49 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   );
 }
 
-export default function RootLayout() {
+function AppNavigation() {
   const colorScheme = useColorScheme();
 
   return (
-    <SQLiteProvider
-      databaseName="myself.db"
-      onInit={initDatabase}
-      useSuspense={false}
-    >
-      <AuthProvider>
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+    <AuthProvider>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <Stack
+          screenOptions={{
+            contentStyle: { backgroundColor: "transparent" },
+          }}
         >
-          <Stack
-            screenOptions={{
-              contentStyle: { backgroundColor: "transparent" },
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="modal"
+            options={{
+              presentation: "modal",
+              headerTitle: "New Task",
             }}
-          >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="modal"
-              options={{
-                presentation: "modal",
-                headerTitle: "New Task",
-              }}
-            />
-            <Stack.Screen
-              name="reading-modal"
-              options={{
-                presentation: "modal",
-                headerTitle: "Meditation Reading",
-              }}
-            />
-          </Stack>
-        </ThemeProvider>
-      </AuthProvider>
-    </SQLiteProvider>
+          />
+          <Stack.Screen
+            name="reading-modal"
+            options={{
+              presentation: "modal",
+              headerTitle: "Meditation Reading",
+            }}
+          />
+        </Stack>
+      </ThemeProvider>
+    </AuthProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SQLiteProvider
+        databaseName="myself.db"
+        onInit={initDatabase}
+        useSuspense={false}
+      >
+        <AppNavigation />
+      </SQLiteProvider>
+    </QueryClientProvider>
   );
 }
 

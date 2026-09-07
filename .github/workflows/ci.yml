@@ -87,6 +87,12 @@ jobs:
       - name: Run CI
         run: make ci
 
+      - name: Install Playwright Browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: Run Playwright Browser E2E Tests
+        run: make check-e2e-browser
+
   deploy_mobile_staging:
     name: "Staging: Deploy Mobile Web (EAS)"
     needs: [changes, validate]

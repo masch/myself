@@ -1,6 +1,8 @@
-import type { AuthorRepository } from "./repositories/contracts/author.repository";
-import type { ReadingRepository } from "./repositories/contracts/reading.repository";
-import type { UserRepository } from "./repositories/contracts/user.repository";
+import type {
+  AuthorRepository,
+  ReadingRepository,
+  UserRepository,
+} from "./ports";
 
 export const Environments = {
   PRODUCTION: "production",

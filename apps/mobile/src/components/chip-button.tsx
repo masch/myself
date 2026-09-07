@@ -9,8 +9,8 @@ import {
   type PressableProps,
   type ColorValue,
 } from "react-native";
-import { Image } from "expo-image";
 import { colors } from "@/theme/colors";
+import { AppIcon } from "./app-icon";
 
 export type ChipVariant =
   "default" | "success" | "purple" | "blue" | "secondary";
@@ -82,6 +82,7 @@ export function ChipButton({
 
   return (
     <Pressable
+      accessibilityRole="button"
       hitSlop={6}
       style={({ pressed }) => [
         styles.base,
@@ -95,12 +96,7 @@ export function ChipButton({
       disabled={disabled}
       {...props}
     >
-      {icon && (
-        <Image
-          source={icon}
-          style={[styles.icon, { tintColor: palette.iconColor as any }]}
-        />
-      )}
+      {icon && <AppIcon name={icon} size={14} color={palette.iconColor} />}
       <Text style={[styles.text, { color: finalText as any }, textStyle]}>
         {title}
       </Text>

@@ -46,6 +46,7 @@ export function HeaderButton({
 
   return (
     <Pressable
+      accessibilityRole="button"
       hitSlop={8}
       style={({ pressed }) => [
         styles.base,

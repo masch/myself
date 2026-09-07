@@ -44,7 +44,6 @@ export function createDb(config: DbConfig): DbClient {
   // Local/Testing in Node/Bun (file or :memory:)
   // Use non-literal require to prevent Wrangler/esbuild from bundling native Node @libsql/client into Cloudflare Workers
   const clientPkg = "@libsql/client";
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { createClient } = require(clientPkg);
   return drizzle(createClient({ url, authToken }), { schema });
 }

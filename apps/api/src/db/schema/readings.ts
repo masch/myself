@@ -1,11 +1,13 @@
 import { sqliteTable, text, primaryKey } from "drizzle-orm/sqlite-core";
+import type { EntityId } from "@myself/shared";
 import { authors } from "./authors";
 
 export const SUPPORTED_LOCALES = ["es", "en"] as const;
 
 export const meditationReadings = sqliteTable("meditation_readings", {
-  id: text("id").primaryKey(),
+  id: text("id").$type<EntityId>().primaryKey(),
   authorId: text("author_id")
+    .$type<EntityId>()
     .notNull()
     .references(() => authors.id, { onDelete: "cascade" }),
   createdAt: text("created_at").notNull(),

@@ -1,22 +1,24 @@
 import type { SupportedLocale } from "./locale";
+import type { EntityId } from "../schemas";
 
-export interface Author {
-  id: string;
+export interface AuthorDto {
+  id: EntityId;
   name: string;
   bio?: string;
   created_at: string;
 }
+export type { AuthorDto as Author };
 
 export interface SeedAuthor {
-  id: string;
+  id: EntityId;
   name: string;
   bio?: string;
   createdAt: string;
 }
 
 export interface MeditationReading {
-  id: string;
-  author_id: string;
+  id: EntityId;
+  author_id: EntityId;
   created_at: string;
 }
 
@@ -55,8 +57,8 @@ export type ReadingTranslationsMap = Partial<
 };
 
 export interface SeedReading {
-  id: string;
-  author_id: string;
+  id: EntityId;
+  author_id: EntityId;
   createdAt: string;
   readDates: string[];
   translations: ReadingTranslationsMap;

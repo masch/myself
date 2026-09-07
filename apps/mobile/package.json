@@ -5,6 +5,8 @@
   "dependencies": {
     "@expo/ui": "~57.0.16",
     "@myself/shared": "workspace:*",
+    "@react-native-community/netinfo": "^12.0.1",
+    "@tanstack/react-query": "^5.102.8",
     "expo": "~57.0.20",
     "expo-asset": "~57.0.16",
     "expo-audio": "~57.0.4",
@@ -42,7 +44,8 @@
     "expo-mcp": "~0.2.1",
     "firebase-tools": "^15.28.1",
     "prettier": "^3.9.6",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.69.0"
   },
   "scripts": {
     "dev": "expo start -c",
