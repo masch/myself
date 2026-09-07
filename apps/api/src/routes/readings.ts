@@ -6,13 +6,24 @@ import {
   HttpStatus,
   listReadingsQuerySchema,
   readingParamSchema,
+  type Reading,
+  type ReadingDto,
 } from "@myself/shared";
 import type { AppEnv } from "../types";
 import { defaultHook } from "../lib/validator";
 import { ok, fail } from "../lib/response";
 import { buildPaginated } from "../lib/pagination";
-import { ReadingMapper } from "../adapters/persistence/mappers";
 import { ReadingService } from "../services/reading.service";
+
+function toReadingDto(entity: Reading): ReadingDto {
+  return {
+    id: entity.id,
+    author_id: entity.authorId,
+    createdAt: entity.createdAt.toISOString(),
+    readDates: entity.readDates.map((d) => d.toISOString()),
+    translations: entity.translations,
+  };
+}
 
 export const listReadingsRoute = createRoute({
   method: "get",
@@ -135,7 +146,7 @@ export const readingsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
       authorId,
     });
 
-    const dtoList = items.map((item) => ReadingMapper.toDto(item));
+    const dtoList = items.map((item) => toReadingDto(item));
     return ok(c, buildPaginated(dtoList, total, limit, offset));
   })
   .openapi(getReadingByIdRoute, async (c) => {
@@ -152,14 +163,14 @@ export const readingsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
       );
     }
 
-    return ok(c, ReadingMapper.toDto(reading));
+    return ok(c, toReadingDto(reading));
   })
   .openapi(createReadingRoute, async (c) => {
     const body = c.req.valid("json");
     const service = new ReadingService(c.var.readingRepo);
     const newReading = await service.create(body);
 
-    return ok(c, ReadingMapper.toDto(newReading), HttpStatus.CREATED);
+    return ok(c, toReadingDto(newReading), HttpStatus.CREATED);
   })
   .openapi(updateReadingRoute, async (c) => {
     const { id } = c.req.valid("param");
@@ -167,7 +178,7 @@ export const readingsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
     const service = new ReadingService(c.var.readingRepo);
     const updated = await service.update(id, body);
 
-    return ok(c, ReadingMapper.toDto(updated), HttpStatus.OK);
+    return ok(c, toReadingDto(updated), HttpStatus.OK);
   })
   .openapi(deleteReadingRoute, async (c) => {
     const { id } = c.req.valid("param");

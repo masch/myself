@@ -6,13 +6,24 @@ import {
   HttpStatus,
   listUsersQuerySchema,
   uuidParamSchema,
+  type User,
+  type UserDto,
 } from "@myself/shared";
 import type { AppEnv } from "../types";
 import { defaultHook } from "../lib/validator";
 import { ok, fail } from "../lib/response";
 import { buildPaginated } from "../lib/pagination";
-import { UserMapper } from "../adapters/persistence/mappers";
 import { UserService } from "../services/user.service";
+
+function toUserDto(user: User): UserDto {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatar_url: user.avatarUrl,
+    created_at: user.createdAt.toISOString(),
+  };
+}
 
 export const listUsersRoute = createRoute({
   method: "get",
@@ -89,7 +100,7 @@ export const usersRoute = new OpenAPIHono<AppEnv>({ defaultHook })
     const service = new UserService(c.var.userRepo);
     const { items, total } = await service.list({ limit, offset });
 
-    const dtoList = items.map((user) => UserMapper.toDto(user));
+    const dtoList = items.map((user) => toUserDto(user));
     return ok(c, buildPaginated(dtoList, total, limit, offset));
   })
   .openapi(getUserByIdRoute, async (c) => {
@@ -106,7 +117,7 @@ export const usersRoute = new OpenAPIHono<AppEnv>({ defaultHook })
       );
     }
 
-    return ok(c, UserMapper.toDto(user));
+    return ok(c, toUserDto(user));
   })
   .openapi(createUserRoute, async (c) => {
     const body = c.req.valid("json");
@@ -117,5 +128,5 @@ export const usersRoute = new OpenAPIHono<AppEnv>({ defaultHook })
       avatarUrl: body.avatarUrl,
     });
 
-    return ok(c, UserMapper.toDto(newUser), HttpStatus.CREATED);
+    return ok(c, toUserDto(newUser), HttpStatus.CREATED);
   });

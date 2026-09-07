@@ -44,14 +44,4 @@ export class Reading {
   ): { title: string; content: string } | undefined {
     return this.props.translations[locale] ?? this.props.translations.es;
   }
-
-  /**
-   * Checks if reading was completed today based on readDates.
-   */
-  isCompletedToday(): boolean {
-    const today = new Date().toISOString().slice(0, 10);
-    return this.props.readDates.some(
-      (date) => date.toISOString().slice(0, 10) === today,
-    );
-  }
 }

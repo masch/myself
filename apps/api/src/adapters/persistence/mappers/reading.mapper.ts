@@ -3,7 +3,6 @@ import {
   type EntityId,
   Reading,
   type ReadingTranslationsMap,
-  type ReadingDto,
 } from "@myself/shared";
 
 export interface RawReadingRecord {
@@ -23,15 +22,5 @@ export class ReadingMapper {
       readDates: (raw.readDates ?? []).map((dateStr) => DateTime.from(dateStr)),
       translations: raw.translations,
     });
-  }
-
-  static toDto(entity: Reading): ReadingDto {
-    return {
-      id: entity.id,
-      author_id: entity.authorId,
-      createdAt: entity.createdAt.toISOString(),
-      readDates: entity.readDates.map((d) => d.toISOString()),
-      translations: entity.translations,
-    };
   }
 }

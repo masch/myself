@@ -1,9 +1,4 @@
-import {
-  Author,
-  DateTime,
-  type AuthorDto,
-  type EntityId,
-} from "@myself/shared";
+import { Author, DateTime, type EntityId } from "@myself/shared";
 
 export interface RawAuthorRecord {
   id: EntityId;
@@ -20,14 +15,5 @@ export class AuthorMapper {
       bio: raw.bio ?? undefined,
       createdAt: DateTime.from(raw.createdAt),
     });
-  }
-
-  static toDto(entity: Author): AuthorDto {
-    return {
-      id: entity.id,
-      name: entity.name,
-      bio: entity.bio,
-      created_at: entity.createdAt.toISOString(),
-    };
   }
 }

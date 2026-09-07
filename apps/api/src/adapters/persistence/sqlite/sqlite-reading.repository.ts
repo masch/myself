@@ -41,22 +41,23 @@ export class SqliteReadingRepository implements ReadingRepository {
       ? eq(meditationReadings.authorId, params.authorId)
       : undefined;
 
-    const [totalRow] = await this.db
-      .select({ count: count() })
-      .from(meditationReadings)
-      .where(baseWhere);
-
-    const rows = await this.db
-      .select({
-        id: meditationReadings.id,
-        author_id: meditationReadings.authorId,
-        createdAt: meditationReadings.createdAt,
-      })
-      .from(meditationReadings)
-      .where(baseWhere)
-      .limit(params.limit)
-      .offset(params.offset)
-      .orderBy(desc(meditationReadings.createdAt));
+    const [[totalRow], rows] = await Promise.all([
+      this.db
+        .select({ count: count() })
+        .from(meditationReadings)
+        .where(baseWhere),
+      this.db
+        .select({
+          id: meditationReadings.id,
+          authorId: meditationReadings.authorId,
+          createdAt: meditationReadings.createdAt,
+        })
+        .from(meditationReadings)
+        .where(baseWhere)
+        .limit(params.limit)
+        .offset(params.offset)
+        .orderBy(desc(meditationReadings.createdAt)),
+    ]);
 
     if (rows.length === 0) {
       return {
@@ -98,7 +99,7 @@ export class SqliteReadingRepository implements ReadingRepository {
     const items: Reading[] = rows.map((r) =>
       ReadingMapper.toDomain({
         id: r.id,
-        authorId: r.author_id,
+        authorId: r.authorId,
         createdAt: r.createdAt,
         readDates: logsByReading.get(r.id) ?? [],
         translations: mapTranslations(translationsByReading.get(r.id) ?? []),
@@ -115,7 +116,7 @@ export class SqliteReadingRepository implements ReadingRepository {
     const [row] = await this.db
       .select({
         id: meditationReadings.id,
-        author_id: meditationReadings.authorId,
+        authorId: meditationReadings.authorId,
         createdAt: meditationReadings.createdAt,
       })
       .from(meditationReadings)
@@ -126,26 +127,29 @@ export class SqliteReadingRepository implements ReadingRepository {
       return null;
     }
 
-    const translations = await this.db
-      .select()
-      .from(meditationReadingTranslations)
-      .where(eq(meditationReadingTranslations.readingId, row.id));
-
-    const logs = await this.db
-      .select({ readAt: readingLogs.readAt })
-      .from(readingLogs)
-      .where(eq(readingLogs.readingId, row.id));
+    const [translations, logs] = await Promise.all([
+      this.db
+        .select()
+        .from(meditationReadingTranslations)
+        .where(eq(meditationReadingTranslations.readingId, row.id)),
+      this.db
+        .select({ readAt: readingLogs.readAt })
+        .from(readingLogs)
+        .where(eq(readingLogs.readingId, row.id)),
+    ]);
 
     return ReadingMapper.toDomain({
       id: row.id,
-      authorId: row.author_id,
+      authorId: row.authorId,
       createdAt: row.createdAt,
       readDates: logs.map((l) => l.readAt),
       translations: mapTranslations(translations),
     });
   }
 
-  async create(reading: Reading): Promise<Reading> {
+  private extractTranslationRows(
+    reading: Reading,
+  ): (typeof meditationReadingTranslations.$inferInsert)[] {
     const translationInserts: (typeof meditationReadingTranslations.$inferInsert)[] =
       [];
 
@@ -160,6 +164,12 @@ export class SqliteReadingRepository implements ReadingRepository {
         });
       }
     }
+
+    return translationInserts;
+  }
+
+  async create(reading: Reading): Promise<Reading> {
+    const translationInserts = this.extractTranslationRows(reading);
 
     await this.db.transaction(async (tx) => {
       await tx
@@ -191,20 +201,7 @@ export class SqliteReadingRepository implements ReadingRepository {
   }
 
   async update(reading: Reading): Promise<Reading> {
-    const translationInserts: (typeof meditationReadingTranslations.$inferInsert)[] =
-      [];
-
-    for (const locale of SUPPORTED_LOCALES) {
-      const trans = reading.translations[locale];
-      if (trans && (trans.title || trans.content)) {
-        translationInserts.push({
-          readingId: reading.id,
-          locale,
-          title: trans.title,
-          content: trans.content,
-        });
-      }
-    }
+    const translationInserts = this.extractTranslationRows(reading);
 
     await this.db.transaction(async (tx) => {
       await tx

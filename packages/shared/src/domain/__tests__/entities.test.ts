@@ -52,7 +52,6 @@ describe("Shared Kernel Domain Entities", () => {
     expect(reading.authorId).toBe(authorId);
     expect(reading.getTranslation("es")?.title).toBe("Meditación matutina");
     expect(reading.getTranslation("en")?.title).toBe("Morning meditation");
-    expect(reading.isCompletedToday()).toBe(true);
   });
 
   it("should reject creating Reading with invalid translation or missing author", () => {

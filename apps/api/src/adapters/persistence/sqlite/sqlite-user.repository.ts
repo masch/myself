@@ -1,4 +1,4 @@
-import { eq, sql, asc } from "drizzle-orm";
+import { eq, count, asc } from "drizzle-orm";
 import { users, type EntityId } from "@myself/shared";
 import type { DbClient } from "../../../db/client";
 import { type User } from "../../../domain";
@@ -13,22 +13,21 @@ export class SqliteUserRepository implements UserRepository {
   constructor(private db: DbClient) {}
 
   async list(params: ListUsersParams): Promise<ListUsersResult> {
-    const [countResult] = await this.db
-      .select({ count: sql<number>`count(*)` })
-      .from(users);
-
-    const rows = await this.db
-      .select()
-      .from(users)
-      .orderBy(asc(users.id))
-      .limit(params.limit)
-      .offset(params.offset);
+    const [[countResult], rows] = await Promise.all([
+      this.db.select({ count: count() }).from(users),
+      this.db
+        .select()
+        .from(users)
+        .orderBy(asc(users.id))
+        .limit(params.limit)
+        .offset(params.offset),
+    ]);
 
     const items: User[] = rows.map((row) => UserMapper.toDomain(row));
 
     return {
       items,
-      total: Number(countResult?.count ?? 0),
+      total: countResult?.count ?? 0,
     };
   }
 
