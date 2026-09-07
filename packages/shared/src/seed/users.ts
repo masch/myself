@@ -11,7 +11,7 @@ export const SEED_USERS: SeedUser[] = [
   {
     id: SEED_USER_IDS.MY_SELF,
     name: "My self",
-    email: "the.masch@gmail.com",
+    email: "myself@example.com",
     tasks: [
       {
         title: "Setup Expo SDK 57 project",

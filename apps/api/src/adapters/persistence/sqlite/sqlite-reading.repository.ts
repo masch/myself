@@ -1,12 +1,13 @@
 import { eq, count, desc, inArray } from "drizzle-orm";
-import type { EntityId, SeedReading } from "@myself/shared";
-import type { DbClient } from "../../../db/client";
 import {
   meditationReadings,
   meditationReadingTranslations,
   readingLogs,
   SUPPORTED_LOCALES,
-} from "../../../db/schema/readings";
+  type EntityId,
+  type SeedReading,
+} from "@myself/shared";
+import type { DbClient } from "../../../db/client";
 import { type Reading } from "../../../domain";
 import { ReadingMapper } from "../mappers/reading.mapper";
 import type {

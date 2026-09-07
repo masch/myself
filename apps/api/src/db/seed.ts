@@ -1,6 +1,13 @@
 import { join } from "node:path";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { SEED_AUTHORS, SEED_READINGS } from "@myself/shared";
+import {
+  authors,
+  meditationReadings,
+  meditationReadingTranslations,
+  readingLogs,
+  SEED_AUTHORS,
+  SEED_READINGS,
+} from "@myself/shared";
 import {
   createDb,
   IN_MEMORY_DB,
@@ -8,12 +15,6 @@ import {
   type DbClient,
 } from "./client";
 import type { AppConfig } from "../config";
-import { authors } from "./schema/authors";
-import {
-  meditationReadings,
-  meditationReadingTranslations,
-  readingLogs,
-} from "./schema/readings";
 
 export async function seedDatabase(db: DbClient): Promise<void> {
   // 1. Seed Authors

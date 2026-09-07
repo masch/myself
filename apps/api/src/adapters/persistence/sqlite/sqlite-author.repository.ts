@@ -1,7 +1,6 @@
 import { eq, count, asc } from "drizzle-orm";
-import type { EntityId } from "@myself/shared";
+import { authors, type EntityId } from "@myself/shared";
 import type { DbClient } from "../../../db/client";
-import { authors } from "../../../db/schema/authors";
 import { type Author } from "../../../domain";
 import { AuthorMapper } from "../mappers/author.mapper";
 import type {

@@ -1,7 +1,6 @@
 import { eq, sql, asc } from "drizzle-orm";
-import type { EntityId } from "@myself/shared";
+import { users, type EntityId } from "@myself/shared";
 import type { DbClient } from "../../../db/client";
-import { users } from "../../../db/schema/users";
 import { type User } from "../../../domain";
 import { UserMapper } from "../mappers/user.mapper";
 import type {

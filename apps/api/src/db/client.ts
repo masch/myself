@@ -1,6 +1,6 @@
 import { createClient as createWebClient } from "@libsql/client/web";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
-import * as schema from "./schema";
+import * as schema from "@myself/shared";
 
 export type DbClient = LibSQLDatabase<typeof schema>;
 

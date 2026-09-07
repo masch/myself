@@ -168,7 +168,7 @@ sequenceDiagram
 
 Architectural design of the CRUD and synchronization engine for meditation readings across the monorepo packages (`packages/shared`, `apps/api`, and `apps/mobile`).
 
-```
+```text
                               ┌─────────────────────────────────────────────────────────┐
                               │               Domain Layer (Shared Kernel)              │
                               │                  packages/shared/src/domain             │

@@ -151,6 +151,17 @@ export class SqliteReadingRepository implements IReadingRepository {
         );
       }
 
+      const activeLocales = Object.keys(reading.translations).filter((loc) =>
+        Boolean(reading.translations[loc as keyof typeof reading.translations]),
+      );
+      if (activeLocales.length > 0) {
+        const placeholders = activeLocales.map(() => "?").join(", ");
+        await this.db.runAsync(
+          `DELETE FROM meditation_reading_translations WHERE reading_id = ? AND locale NOT IN (${placeholders})`,
+          [reading.id, ...activeLocales],
+        );
+      }
+
       await this.db.runAsync(
         `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)
          VALUES (?, 'reading', ?, ?, ?, 'pending', datetime('now'))`,

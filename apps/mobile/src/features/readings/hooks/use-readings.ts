@@ -155,11 +155,12 @@ export function useReadings(locale: SupportedLocale = "es") {
     addReading: (input: CreateReadingInput) =>
       addReadingMutation.mutateAsync(input),
     updateReading: async (input: UpdateReadingInput) => {
+      const existing = await repository.getById(input.id);
       const reading = new Reading({
         id: input.id,
         authorId: input.authorId,
-        createdAt: DateTime.now(),
-        readDates: [],
+        createdAt: existing ? existing.createdAt : DateTime.now(),
+        readDates: existing ? existing.readDates : [],
         translations: {
           es: input.translations.es,
           en: input.translations.en,

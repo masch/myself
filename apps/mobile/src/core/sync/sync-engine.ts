@@ -4,6 +4,8 @@ import { HttpReadingApiAdapter } from "../../features/readings/infrastructure/ht
 import type { SyncOutboxRecord } from "./types";
 import { type CreateReadingInput } from "@myself/shared";
 
+const MAX_SYNC_ATTEMPTS = 5;
+
 export class SyncEngine {
   private isSyncing = false;
 
@@ -30,12 +32,25 @@ export class SyncEngine {
     }
   }
 
+  private async recordFailure(
+    recordId: string,
+    attempts: number,
+    errorMsg: string,
+  ): Promise<void> {
+    const nextAttempts = attempts + 1;
+    const nextStatus = nextAttempts >= MAX_SYNC_ATTEMPTS ? "failed" : "pending";
+    await this.db.runAsync(
+      "UPDATE sync_outbox SET attempts = ?, status = ?, last_error = ? WHERE id = ?",
+      [nextAttempts, nextStatus, errorMsg, recordId],
+    );
+  }
+
   /**
    * Drains pending records from sync_outbox to remote API.
    */
   async pushPendingOutbox(): Promise<void> {
     const pending = await this.db.getAllAsync<SyncOutboxRecord>(
-      "SELECT id, entity, entity_id AS entityId, operation, payload, status, attempts, last_error AS lastError, created_at AS createdAt FROM sync_outbox WHERE status = 'pending' ORDER BY created_at ASC",
+      "SELECT id, entity, entity_id AS entityId, operation, payload, status, attempts, last_error AS lastError, created_at AS createdAt FROM sync_outbox WHERE status = 'pending' ORDER BY created_at ASC, id ASC",
     );
 
     for (const record of pending) {
@@ -64,16 +79,14 @@ export class SyncEngine {
               [record.id],
             );
           } else {
-            await this.db.runAsync(
-              "UPDATE sync_outbox SET attempts = attempts + 1 WHERE id = ?",
-              [record.id],
+            await this.recordFailure(
+              record.id,
+              record.attempts,
+              "Server returned null author ID",
             );
           }
         } catch (err) {
-          await this.db.runAsync(
-            "UPDATE sync_outbox SET attempts = attempts + 1, last_error = ? WHERE id = ?",
-            [String(err), record.id],
-          );
+          await this.recordFailure(record.id, record.attempts, String(err));
         }
       } else if (record.entity === "reading" && record.operation === "CREATE") {
         try {
@@ -91,16 +104,14 @@ export class SyncEngine {
               [record.id],
             );
           } else {
-            await this.db.runAsync(
-              "UPDATE sync_outbox SET attempts = attempts + 1 WHERE id = ?",
-              [record.id],
+            await this.recordFailure(
+              record.id,
+              record.attempts,
+              "Failed to post reading to API",
             );
           }
         } catch (err) {
-          await this.db.runAsync(
-            "UPDATE sync_outbox SET attempts = attempts + 1, last_error = ? WHERE id = ?",
-            [String(err), record.id],
-          );
+          await this.recordFailure(record.id, record.attempts, String(err));
         }
       } else if (record.entity === "reading" && record.operation === "UPDATE") {
         try {
@@ -119,16 +130,14 @@ export class SyncEngine {
               [record.id],
             );
           } else {
-            await this.db.runAsync(
-              "UPDATE sync_outbox SET attempts = attempts + 1 WHERE id = ?",
-              [record.id],
+            await this.recordFailure(
+              record.id,
+              record.attempts,
+              "Failed to put reading to API",
             );
           }
         } catch (err) {
-          await this.db.runAsync(
-            "UPDATE sync_outbox SET attempts = attempts + 1, last_error = ? WHERE id = ?",
-            [String(err), record.id],
-          );
+          await this.recordFailure(record.id, record.attempts, String(err));
         }
       } else if (record.entity === "reading" && record.operation === "DELETE") {
         try {
@@ -139,16 +148,14 @@ export class SyncEngine {
               [record.id],
             );
           } else {
-            await this.db.runAsync(
-              "UPDATE sync_outbox SET attempts = attempts + 1 WHERE id = ?",
-              [record.id],
+            await this.recordFailure(
+              record.id,
+              record.attempts,
+              "Failed to delete reading from API",
             );
           }
         } catch (err) {
-          await this.db.runAsync(
-            "UPDATE sync_outbox SET attempts = attempts + 1, last_error = ? WHERE id = ?",
-            [String(err), record.id],
-          );
+          await this.recordFailure(record.id, record.attempts, String(err));
         }
       }
     }
@@ -159,12 +166,23 @@ export class SyncEngine {
 
   /**
    * Pulls new/updated readings from remote API into local SQLite.
+   * Avoids restoring readings that are pending deletion in the local outbox.
    */
   async pullRemoteUpdates(): Promise<void> {
     const remoteReadings = await this.apiAdapter.fetchReadings();
     if (remoteReadings.length === 0) return;
 
+    // Identify readings currently queued for deletion to prevent resurrection
+    const pendingDeletes = await this.db.getAllAsync<{ entityId: string }>(
+      "SELECT entity_id AS entityId FROM sync_outbox WHERE entity = 'reading' AND operation = 'DELETE' AND status = 'pending'",
+    );
+    const deletedIds = new Set(pendingDeletes.map((r) => r.entityId));
+
     for (const reading of remoteReadings) {
+      if (deletedIds.has(reading.id)) {
+        continue;
+      }
+
       // Upsert reading into local SQLite
       await this.db.runAsync(
         `INSERT INTO meditation_readings (id, author_id, created_at)

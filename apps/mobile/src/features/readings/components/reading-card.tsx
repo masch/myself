@@ -2,7 +2,7 @@ import React from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { IconButton, ChipButton, MeditationText, AppIcon } from "@/components";
 import { colors } from "@/theme/colors";
-import { type MeditationReadingWithAuthor } from "@/db/database";
+import { type MeditationReadingWithAuthor } from "@myself/shared";
 
 export interface ReadingCardProps {
   reading: MeditationReadingWithAuthor;

@@ -2,7 +2,8 @@ CREATE TABLE IF NOT EXISTS `authors` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`bio` text,
-	`created_at` text NOT NULL
+	`created_at` text NOT NULL,
+	CONSTRAINT "authors_name_not_empty" CHECK(length(trim("authors"."name")) > 0)
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS `authors_name_unique` ON `authors` (`name`);--> statement-breakpoint
@@ -12,7 +13,8 @@ CREATE TABLE IF NOT EXISTS `meditation_reading_translations` (
 	`title` text NOT NULL,
 	`content` text NOT NULL,
 	PRIMARY KEY(`reading_id`, `locale`),
-	FOREIGN KEY (`reading_id`) REFERENCES `meditation_readings`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`reading_id`) REFERENCES `meditation_readings`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "locale_valid" CHECK("meditation_reading_translations"."locale" IN ('es', 'en'))
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS `meditation_readings` (

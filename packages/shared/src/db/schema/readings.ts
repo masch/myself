@@ -1,4 +1,5 @@
-import { sqliteTable, text, primaryKey } from "drizzle-orm/sqlite-core";
+import { check, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import type { EntityId } from "../../schemas";
 import { authors } from "./authors";
 
@@ -23,7 +24,10 @@ export const meditationReadingTranslations = sqliteTable(
     title: text("title").notNull(),
     content: text("content").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.readingId, table.locale] })],
+  (table) => [
+    primaryKey({ columns: [table.readingId, table.locale] }),
+    check("locale_valid", sql`${table.locale} IN ('es', 'en')`),
+  ],
 );
 
 export const readingLogs = sqliteTable("reading_logs", {
