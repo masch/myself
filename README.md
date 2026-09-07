@@ -163,3 +163,87 @@ sequenceDiagram
 - Queries and manages Android DND state via `NotificationManager.currentInterruptionFilter` and `NotificationManager.setInterruptionFilter()`, backed by `ACCESS_NOTIFICATION_POLICY` permission under namespace `org.masch.myself.dndstatus`.
 
 ---
+
+## Meditation Readings Architecture (Hexagonal Domain & Offline Outbox)
+
+Architectural design of the CRUD and synchronization engine for meditation readings across the monorepo packages (`packages/shared`, `apps/api`, and `apps/mobile`).
+
+```
+                              ┌─────────────────────────────────────────────────────────┐
+                              │               Domain Layer (Shared Kernel)              │
+                              │                  packages/shared/src/domain             │
+                              │  - Entities: Reading, Author, User                      │
+                              │  - Invariant Schemas: readingPropsSchema                │
+                              │  - Ports: ReadingRepositoryPort, AuthorRepositoryPort    │
+                              └───────────────────────────┬─────────────────────────────┘
+                                                          │
+                                         Implements Ports │ Consumes Contracts
+                                                          ▼
+             ┌────────────────────────────────────────────┴────────────────────────────────────────────┐
+             ▼                                                                                         ▼
+┌─────────────────────────────────────────┐                               ┌─────────────────────────────────────────┐
+│          Backend API (Hexagonal)        │                               │       Mobile Client (Offline First)     │
+│                 apps/api                │                               │               apps/mobile               │
+├─────────────────────────────────────────┤                               ├─────────────────────────────────────────┤
+│ [Driving / Inbound]                     │                               │ [Presentation / UI Components]          │
+│ - Hono Routes: /v1/readings (CRUD)      │                               │ - Screens: ReadingsScreen, ReadingDetail│
+│                                         │                               │ - Components: ReadingCard, AppIcon      │
+│ [Application Services]                  │                               │                                         │
+│ - ReadingService, AuthorService         │                               │ [State & Hooks]                         │
+│   (Business rules & port orchestration) │                               │ - useReadingsQuery (TanStack / Local)   │
+│                                         │                               │                                         │
+│ [Driven / Outbound Adapters]            │                               │ [Local Persistence & Outbox]            │
+│ - SQLite/Drizzle Repositories           │                               │ - SQLite / Drizzle Client               │
+│ - Mappers: ReadingMapper, AuthorMapper  │                               │ - sync_outbox (Mutations queue)         │
+│   (Pure Domain <-> DB schema conversion)│                               │                                         │
+│                                         │                               │ [Sync Engine]                           │
+│                                         │◄────── HTTP / Sync Batch ─────┤ - SyncEngine (Flush outbox, resolve     │
+│                                         │                               │   conflicts, update sync status)        │
+└─────────────────────────────────────────┘                               └─────────────────────────────────────────┘
+```
+
+### 1. Layers & Responsibilities
+
+| Layer                          | Location                                        | Primary Responsibilities                                                                                                                                                                              | Dependencies                                      |
+| ------------------------------ | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| **Domain (Shared Kernel)**     | `packages/shared/src/domain/`                   | Encapsulates enterprise business rules, entity models (`Reading`, `Author`, `User`), domain invariants validated via Zod schemas, and repository interface ports (`ReadingRepositoryPort`).           | Zero external frameworks (pure TypeScript + Zod). |
+| **Application Services (API)** | `apps/api/src/services/`                        | Implements use cases (create, update, delete, retrieve readings). Coordinates business flow and enforces domain validations using repository ports.                                                   | Depends only on Domain ports and entities.        |
+| **Persistence Adapters (API)** | `apps/api/src/adapters/persistence/sqlite/`     | Implements repository ports backed by SQLite/LibSQL and Drizzle ORM. Bidirectional mappers (`ReadingMapper`, `AuthorMapper`, `UserMapper`) isolate database record schemas from pure domain entities. | Implements Domain ports.                          |
+| **HTTP Routing (API)**         | `apps/api/src/routes/`                          | Exposes RESTful endpoints (`/v1/readings`, `/v1/authors`). Validates request bodies against shared schemas and translates HTTP requests into service calls.                                           | Hono framework, Application Services.             |
+| **Mobile Offline & Outbox**    | `apps/mobile/src/core/sync/`                    | Manages local SQLite storage and an atomic mutation outbox (`sync_outbox`). Local actions commit immediately to disk and queue events (`CREATE`, `UPDATE`, `DELETE`).                                 | Expo SQLite, Drizzle ORM, Shared Domain.          |
+| **Mobile Sync Engine**         | `apps/mobile/src/core/sync/sync-engine.ts`      | Periodically drains the outbox to the remote API, processes server updates, handles connection status changes, and manages retry backoff and idempotency.                                             | API Client, Network connectivity state.           |
+| **Mobile Presentation**        | `apps/mobile/src/features/readings/components/` | Modular UI components (`ReadingCard`, `AppIcon`) designed with atomic patterns and cross-platform icon fallbacks.                                                                                     | React Native, Expo Router.                        |
+
+### 2. Offline-First Synchronization Lifecycle
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as ReadingCard / Screen
+    participant DB as Mobile SQLite DB
+    participant Outbox as sync_outbox Table
+    participant Sync as SyncEngine
+    participant API as Backend API (/v1/readings)
+
+    User->>UI: Create / Update / Delete Reading
+    activate UI
+    UI->>DB: 1. Apply local mutation (immediate UI feedback)
+    UI->>Outbox: 2. Insert outbox record (entityId, action, payload, status: PENDING)
+    UI-->>User: Optimistic state rendered
+    deactivate UI
+
+    Note over Sync: Network connectivity detected or scheduled trigger
+    activate Sync
+    Sync->>Outbox: Fetch pending mutations (ordered by createdAt)
+    loop For each mutation
+        Sync->>API: Send mutation request (POST/PUT/DELETE)
+        alt Success (200 / 201 / 204)
+            API-->>Sync: Acknowledged
+            Sync->>Outbox: Mark status: SYNCED (or prune entry)
+        else Network Error / Conflict
+            Sync->>Outbox: Increment retry count / Set exponential backoff
+        end
+    end
+    deactivate Sync
+```
