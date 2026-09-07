@@ -3,7 +3,7 @@ import {
   type EntityId,
   Reading,
   type ReadingTranslationsMap,
-  type SeedReading,
+  type ReadingDto,
 } from "@myself/shared";
 
 export interface RawReadingRecord {
@@ -25,7 +25,7 @@ export class ReadingMapper {
     });
   }
 
-  static toDto(entity: Reading): SeedReading {
+  static toDto(entity: Reading): ReadingDto {
     return {
       id: entity.id,
       author_id: entity.authorId,

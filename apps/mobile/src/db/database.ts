@@ -1,16 +1,20 @@
 import { type SQLiteDatabase } from "expo-sqlite";
 import { Platform } from "react-native";
 import { generateUUID } from "@/utils/uuid";
-import type {
-  SupportedLocale,
-  User,
-  TaskItem,
-  Author,
-  MeditationReadingTranslation,
-  ReadingLog,
-  MeditationReadingWithAuthor,
+import {
+  SHARED_MIGRATIONS,
+  type SupportedLocale,
+  type UserDto as User,
+  type TaskItem,
+  type AuthorDto as Author,
+  type MeditationReading,
+  type MeditationReadingTranslation,
+  type ReadingLog,
+  type MeditationReadingWithAuthor,
 } from "@myself/shared";
 import { seedDatabase } from "./seed";
+import { MOBILE_MIGRATIONS } from "./migrations";
+import { runMigrations } from "./migrator";
 
 export { generateUUID };
 export type {
@@ -22,7 +26,7 @@ export type {
   MeditationReadingTranslation,
   ReadingLog,
   MeditationReadingWithAuthor,
-} from "@myself/shared";
+};
 
 /**
  * Initializes database schema with UUID keys, foreign keys, and seed data.
@@ -32,86 +36,13 @@ export async function initDatabase(db: SQLiteDatabase) {
     await db.execAsync("PRAGMA journal_mode = WAL;");
   }
 
-  await db.execAsync(`
-    PRAGMA foreign_keys = ON;
+  await db.execAsync("PRAGMA foreign_keys = ON;");
 
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY NOT NULL,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      avatar_url TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
+  // 1. Apply shared domain migrations (authors, readings, users, tasks)
+  await runMigrations(db, SHARED_MIGRATIONS);
 
-    CREATE TABLE IF NOT EXISTS tasks (
-      id TEXT PRIMARY KEY NOT NULL,
-      user_id TEXT NOT NULL,
-      title TEXT NOT NULL,
-      category TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      is_done INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS authors (
-      id TEXT PRIMARY KEY NOT NULL,
-      name TEXT NOT NULL UNIQUE,
-      bio TEXT DEFAULT '',
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS meditation_readings (
-      id TEXT PRIMARY KEY NOT NULL,
-      author_id TEXT NOT NULL,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE RESTRICT
-    );
-
-    CREATE TABLE IF NOT EXISTS meditation_reading_translations (
-      reading_id TEXT NOT NULL,
-      locale TEXT NOT NULL,
-      title TEXT NOT NULL,
-      content TEXT NOT NULL,
-      PRIMARY KEY (reading_id, locale),
-      FOREIGN KEY (reading_id) REFERENCES meditation_readings(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS reading_logs (
-      id TEXT PRIMARY KEY NOT NULL,
-      reading_id TEXT NOT NULL,
-      read_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (reading_id) REFERENCES meditation_readings(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS sync_outbox (
-      id TEXT PRIMARY KEY NOT NULL,
-      entity TEXT NOT NULL,
-      entity_id TEXT NOT NULL,
-      operation TEXT NOT NULL,
-      payload TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      attempts INTEGER NOT NULL DEFAULT 0,
-      last_error TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-  `);
-
-  // Safe schema migrations for existing databases
-  try {
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS meditation_reading_translations (
-        reading_id TEXT NOT NULL,
-        locale TEXT NOT NULL,
-        title TEXT NOT NULL,
-        content TEXT NOT NULL,
-        PRIMARY KEY (reading_id, locale),
-        FOREIGN KEY (reading_id) REFERENCES meditation_readings(id) ON DELETE CASCADE
-      );
-    `);
-  } catch {
-    // Table already exists
-  }
+  // 2. Apply mobile local infrastructure migrations (sync_outbox)
+  await runMigrations(db, MOBILE_MIGRATIONS);
 
   // Populate seed data
   await seedDatabase(db);

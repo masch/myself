@@ -5,8 +5,8 @@ import {
   SEED_AUTHOR_IDS,
   SEED_READINGS,
   type PaginatedResponse,
-  type SeedAuthor,
-  type SeedReading,
+  type AuthorDto,
+  type ReadingDto,
 } from "@myself/shared";
 import { createApp } from "./index";
 import { AppConfig } from "./config";
@@ -184,7 +184,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const res = await app.request("/v1/authors");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as PaginatedResponse<SeedAuthor>;
+      const body = (await res.json()) as PaginatedResponse<AuthorDto>;
       expect(body.items.length).toBeGreaterThan(0);
       expect(body.meta.limit).toBe(20);
       expect(body.meta.offset).toBe(0);
@@ -201,7 +201,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const res = await app.request("/v1/authors?limit=2&offset=1");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as PaginatedResponse<SeedAuthor>;
+      const body = (await res.json()) as PaginatedResponse<AuthorDto>;
       expect(body.items.length).toBe(2);
       expect(body.meta.limit).toBe(2);
       expect(body.meta.offset).toBe(1);
@@ -236,7 +236,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       });
       expect(res.status).toBe(201);
 
-      const body = (await res.json()) as SeedAuthor;
+      const body = (await res.json()) as AuthorDto;
       expect(body.id).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       );
@@ -264,7 +264,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const res = await app.request("/v1/readings");
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as PaginatedResponse<SeedReading>;
+      const body = (await res.json()) as PaginatedResponse<ReadingDto>;
       expect(body.items.length).toBeGreaterThan(0);
       expect(body.meta.limit).toBe(20);
       expect(body.meta.offset).toBe(0);
@@ -284,7 +284,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       );
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as PaginatedResponse<SeedReading>;
+      const body = (await res.json()) as PaginatedResponse<ReadingDto>;
       expect(body.items.length).toBeGreaterThan(0);
       for (const item of body.items ?? []) {
         expect(item.author_id).toBe(targetAuthorId);
@@ -297,7 +297,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       );
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as PaginatedResponse<SeedReading>;
+      const body = (await res.json()) as PaginatedResponse<ReadingDto>;
       expect(body.items.length).toBe(0);
       expect(body.meta.total).toBe(0);
       expect(body.meta.hasMore).toBe(false);
@@ -308,7 +308,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const res = await app.request(`/v1/readings/${targetId}`);
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as SeedReading;
+      const body = (await res.json()) as ReadingDto;
       expect(body.id).toBe(targetId);
       expect(body.author_id).toBe(SEED_READINGS[0].author_id);
     });
@@ -346,7 +346,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       });
       expect(res.status).toBe(201);
 
-      const body = (await res.json()) as SeedReading;
+      const body = (await res.json()) as ReadingDto;
       expect(body.id).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       );
@@ -359,7 +359,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const createdId = body.id;
       const getRes = await app.request(`/v1/readings/${createdId}`);
       expect(getRes.status).toBe(200);
-      const getBody = (await getRes.json()) as SeedReading;
+      const getBody = (await getRes.json()) as ReadingDto;
       expect(getBody.id).toBe(createdId);
     });
 

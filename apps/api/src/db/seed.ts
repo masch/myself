@@ -24,7 +24,7 @@ export async function seedDatabase(db: DbClient): Promise<void> {
         id: author.id,
         name: author.name,
         bio: author.bio ?? null,
-        createdAt: author.createdAt,
+        createdAt: author.created_at,
       })
       .onConflictDoNothing();
   }
@@ -73,7 +73,10 @@ export async function seedFromConfig(config: AppConfig): Promise<void> {
   const normalizedUrl = url === "memory" ? IN_MEMORY_DB : url;
   const db = createDb({ url: normalizedUrl, authToken });
   if (isLocalDatabase(normalizedUrl)) {
-    const migrationsFolder = join(import.meta.dir, "./migrations");
+    const migrationsFolder = join(
+      import.meta.dir,
+      "../../../../packages/shared/src/db/migrations",
+    );
     await migrate(db, { migrationsFolder });
   }
   await seedDatabase(db);

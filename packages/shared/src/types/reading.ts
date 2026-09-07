@@ -7,14 +7,6 @@ export interface AuthorDto {
   bio?: string;
   created_at: string;
 }
-export type { AuthorDto as Author };
-
-export interface SeedAuthor {
-  id: EntityId;
-  name: string;
-  bio?: string;
-  createdAt: string;
-}
 
 export interface MeditationReading {
   id: EntityId;
@@ -56,10 +48,12 @@ export type ReadingTranslationsMap = Partial<
   es: ReadingTranslationInput;
 };
 
-export interface SeedReading {
+export interface ReadingDto {
   id: EntityId;
   author_id: EntityId;
   createdAt: string;
   readDates: string[];
   translations: ReadingTranslationsMap;
 }
+
+export type SeedReading = ReadingDto;

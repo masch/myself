@@ -4,7 +4,7 @@ export { type UserDto, type UserProfile, type SeedUser } from "./types/user";
 export * from "./types/task";
 export {
   type AuthorDto,
-  type SeedAuthor,
+  type ReadingDto,
   type MeditationReading,
   type MeditationReadingTranslation,
   type ReadingLog,
@@ -22,3 +22,5 @@ export * from "./utils/date";
 export * from "./constants/http";
 export * from "./constants/errors";
 export * from "./domain";
+export * from "./db/schema";
+export * from "./db/migrations";

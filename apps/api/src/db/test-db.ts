@@ -11,7 +11,10 @@ export async function createTestDatabase(
   options: { seed?: boolean } = { seed: true },
 ): Promise<DbClient> {
   const db = createDb({ url: IN_MEMORY_DB });
-  const migrationsFolder = join(import.meta.dir, "./migrations");
+  const migrationsFolder = join(
+    import.meta.dir,
+    "../../../../packages/shared/src/db/migrations",
+  );
   await migrate(db, { migrationsFolder });
 
   if (options.seed) {

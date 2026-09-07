@@ -8,12 +8,11 @@ export interface UserDto {
   avatar_url?: string;
   created_at: string;
 }
-export type { UserDto as User };
 
 export type UserProfile = Pick<UserDto, "id" | "name" | "email" | "avatar_url">;
 
 export interface SeedUser {
-  id: string;
+  id: EntityId;
   name: string;
   email: string;
   tasks: SeedTask[];

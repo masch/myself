@@ -18,6 +18,8 @@ import {
   SEED_AUTHORS,
   SEED_AUTHOR_IDS,
   SEED_READINGS,
+  SEED_USERS,
+  SEED_USER_IDS,
 } from "./index";
 
 describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
@@ -31,7 +33,7 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       for (const author of SEED_AUTHORS) {
         expect(author.id).toBeDefined();
         expect(author.name.trim().length).toBeGreaterThan(0);
-        expect(author.createdAt.trim().length).toBeGreaterThan(0);
+        expect(author.created_at.trim().length).toBeGreaterThan(0);
       }
     });
 
@@ -46,6 +48,20 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
         expect(reading.translations.es.content.trim().length).toBeGreaterThan(
           0,
         );
+      }
+    });
+
+    it("SEED_USERS contains non-empty valid users with EntityId IDs", () => {
+      expect(SEED_USERS.length).toBeGreaterThan(0);
+      const userIdSet = new Set(Object.values(SEED_USER_IDS));
+
+      for (const user of SEED_USERS) {
+        expect(user.id).toBeDefined();
+        expect(userIdSet.has(user.id)).toBe(true);
+        expect(entityIdSchema.safeParse(user.id).success).toBe(true);
+        expect(user.name.trim().length).toBeGreaterThan(0);
+        expect(user.email.trim().length).toBeGreaterThan(0);
+        expect(Array.isArray(user.tasks)).toBe(true);
       }
     });
   });
