@@ -7,6 +7,8 @@ import {
   type ReadingTranslationsMap,
 } from "@myself/shared";
 
+const REQUEST_TIMEOUT_MS = 10_000;
+
 export interface RemoteReadingDto {
   id: EntityId;
   author_id: EntityId;
@@ -18,20 +20,22 @@ export interface RemoteReadingDto {
 }
 
 export class HttpReadingApiAdapter {
+  private readonly baseUrl: string;
   private client: ReturnType<typeof createApiClient>;
 
   constructor(
     baseUrl: string = process.env.EXPO_PUBLIC_API_URL ??
       "http://localhost:8787",
   ) {
+    this.baseUrl = baseUrl;
     this.client = createApiClient(baseUrl);
   }
 
   async fetchReadings(): Promise<Reading[]> {
     try {
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8787"}/v1/readings`,
-      );
+      const res = await fetch(`${this.baseUrl}/v1/readings`, {
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
       if (!res.ok) {
         throw new Error(`Failed to fetch readings: ${res.statusText}`);
       }
@@ -70,14 +74,12 @@ export class HttpReadingApiAdapter {
 
   async postReading(input: CreateReadingInput): Promise<boolean> {
     try {
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8787"}/v1/readings`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(input),
-        },
-      );
+      const res = await fetch(`${this.baseUrl}/v1/readings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
       return res.ok;
     } catch (error) {
       console.warn("[HttpReadingApiAdapter] postReading network error:", error);
@@ -93,14 +95,12 @@ export class HttpReadingApiAdapter {
     },
   ): Promise<boolean> {
     try {
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8787"}/v1/readings/${id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(input),
-        },
-      );
+      const res = await fetch(`${this.baseUrl}/v1/readings/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
       return res.ok;
     } catch (error) {
       console.warn("[HttpReadingApiAdapter] putReading network error:", error);
@@ -110,12 +110,10 @@ export class HttpReadingApiAdapter {
 
   async deleteReading(id: string): Promise<boolean> {
     try {
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8787"}/v1/readings/${id}`,
-        {
-          method: "DELETE",
-        },
-      );
+      const res = await fetch(`${this.baseUrl}/v1/readings/${id}`, {
+        method: "DELETE",
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
       return res.ok;
     } catch (error) {
       console.warn(
@@ -132,18 +130,16 @@ export class HttpReadingApiAdapter {
     bio?: string;
   }): Promise<string | null> {
     try {
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8787"}/v1/authors`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: input.id,
-            name: input.name,
-            bio: input.bio,
-          }),
-        },
-      );
+      const res = await fetch(`${this.baseUrl}/v1/authors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: input.id,
+          name: input.name,
+          bio: input.bio,
+        }),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
       if (!res.ok) return null;
       const json = await res.json();
       return json.data?.id ?? json.id ?? null;

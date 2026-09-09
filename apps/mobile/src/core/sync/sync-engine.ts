@@ -50,6 +50,8 @@ export class SyncEngine {
    */
   async pushPendingOutbox(): Promise<void> {
     const pending = await this.db.getAllAsync<SyncOutboxRecord>(
+      // created_at is inserted with subsecond precision (see SqliteReadingRepository),
+      // so ordering by created_at ASC preserves insertion order reliably.
       "SELECT id, entity, entity_id AS entityId, operation, payload, status, attempts, last_error AS lastError, created_at AS createdAt FROM sync_outbox WHERE status = 'pending' ORDER BY created_at ASC, id ASC",
     );
 
@@ -157,6 +159,13 @@ export class SyncEngine {
         } catch (err) {
           await this.recordFailure(record.id, record.attempts, String(err));
         }
+      } else if (record.entity === "reading_log") {
+        // reading_log sync is not yet implemented on the remote API.
+        // Mark as synced so these records do not accumulate in the outbox forever.
+        await this.db.runAsync(
+          "UPDATE sync_outbox SET status = 'synced' WHERE id = ?",
+          [record.id],
+        );
       }
     }
 
@@ -172,11 +181,12 @@ export class SyncEngine {
     const remoteReadings = await this.apiAdapter.fetchReadings();
     if (remoteReadings.length === 0) return;
 
-    // Identify readings currently queued for deletion to prevent resurrection
-    const pendingDeletes = await this.db.getAllAsync<{ entityId: string }>(
-      "SELECT entity_id AS entityId FROM sync_outbox WHERE entity = 'reading' AND operation = 'DELETE' AND status = 'pending'",
+    // Identify readings with any pending local mutation to prevent remote data
+    // from overwriting uncommitted local edits (DELETE or UPDATE).
+    const pendingMutations = await this.db.getAllAsync<{ entityId: string }>(
+      "SELECT entity_id AS entityId FROM sync_outbox WHERE entity = 'reading' AND operation IN ('DELETE', 'UPDATE') AND status = 'pending'",
     );
-    const deletedIds = new Set(pendingDeletes.map((r) => r.entityId));
+    const deletedIds = new Set(pendingMutations.map((r) => r.entityId));
 
     for (const reading of remoteReadings) {
       if (deletedIds.has(reading.id)) {

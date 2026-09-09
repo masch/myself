@@ -6,7 +6,7 @@ export interface SyncOutboxRecord {
   entity: string;
   entityId: string;
   operation: OutboxOperation;
-  payload: Record<string, unknown>;
+  payload: string;
   status: OutboxStatus;
   attempts: number;
   lastError?: string;

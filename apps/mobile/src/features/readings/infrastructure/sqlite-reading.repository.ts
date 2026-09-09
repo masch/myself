@@ -127,13 +127,16 @@ export class SqliteReadingRepository implements IReadingRepository {
       translations: reading.translations,
     });
 
-    const existing = await this.db.getFirstAsync<{ id: string }>(
-      "SELECT id FROM meditation_readings WHERE id = ?",
-      [reading.id],
-    );
-    const operation = existing ? "UPDATE" : "CREATE";
-
     await this.db.withTransactionAsync(async () => {
+      // Check existence inside the transaction to avoid a race condition with
+      // SyncEngine.pullRemoteUpdates, which could upsert the same ID between
+      // the check and the write and cause CREATE to be queued for an existing record.
+      const existing = await this.db.getFirstAsync<{ id: string }>(
+        "SELECT id FROM meditation_readings WHERE id = ?",
+        [reading.id],
+      );
+      const operation = existing ? "UPDATE" : "CREATE";
+
       await this.db.runAsync(
         `INSERT INTO meditation_readings (id, author_id, created_at)
          VALUES (?, ?, ?)
@@ -164,7 +167,7 @@ export class SqliteReadingRepository implements IReadingRepository {
 
       await this.db.runAsync(
         `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)
-         VALUES (?, 'reading', ?, ?, ?, 'pending', datetime('now'))`,
+         VALUES (?, 'reading', ?, ?, ?, 'pending', strftime('%Y-%m-%dT%H:%M:%f', 'now'))`,
         [outboxId, reading.id, operation, payload],
       );
     });
