@@ -165,7 +165,7 @@ export async function addAuthor(
     );
     await db.runAsync(
       `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)
-       VALUES (?, 'author', ?, 'CREATE', ?, 'pending', datetime('now'))`,
+       VALUES (?, 'author', ?, 'CREATE', ?, 'pending', strftime('%Y-%m-%dT%H:%M:%f', 'now'))`,
       [outboxId, id, payload],
     );
   });

@@ -61,4 +61,6 @@ export const colors = {
   white: "#FFFFFF" as const,
   /** Subdued white at 80% opacity — used for secondary text on colored backgrounds. */
   whiteSubdued: "rgba(255, 255, 255, 0.8)" as const,
+  /** systemGray at 15% opacity — used as background for subdued/gray buttons. */
+  systemGray15: "rgba(142, 142, 147, 0.15)" as const,
 };

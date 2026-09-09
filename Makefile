@@ -27,7 +27,8 @@ setup-hooks: ## Configure git to use versioned .githooks
 	git config core.hooksPath .githooks
 
 .PHONY: playwright-install
-playwright-install: ## Install Playwright browser binaries
+playwright-install: ## Install Playwright browser binaries and system deps
+	bunx playwright install-deps chromium
 	bunx playwright install chromium
 
 

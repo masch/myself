@@ -76,7 +76,7 @@ export function AppButton({
         };
       case "gray":
         return {
-          containerBg: "rgba(142, 142, 147, 0.15)",
+          containerBg: colors.systemGray15,
           textColor: colors.label,
           subtextColor: colors.secondaryLabel,
           iconColor: colors.secondaryLabel,

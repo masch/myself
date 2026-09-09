@@ -182,7 +182,7 @@ export class SqliteReadingRepository implements IReadingRepository {
 
       await this.db.runAsync(
         `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)
-         VALUES (?, 'reading', ?, 'DELETE', '{}', 'pending', datetime('now'))`,
+         VALUES (?, 'reading', ?, 'DELETE', '{}', 'pending', strftime('%Y-%m-%dT%H:%M:%f', 'now'))`,
         [outboxId, id],
       );
     });
@@ -202,7 +202,7 @@ export class SqliteReadingRepository implements IReadingRepository {
 
       await this.db.runAsync(
         `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)
-         VALUES (?, 'reading_log', ?, 'CREATE', ?, 'pending', datetime('now'))`,
+         VALUES (?, 'reading_log', ?, 'CREATE', ?, 'pending', strftime('%Y-%m-%dT%H:%M:%f', 'now'))`,
         [outboxId, readingId, payload],
       );
     });
@@ -226,7 +226,7 @@ export class SqliteReadingRepository implements IReadingRepository {
 
       await this.db.runAsync(
         `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)
-         VALUES (?, 'reading_log', ?, 'DELETE', '{}', 'pending', datetime('now'))`,
+         VALUES (?, 'reading_log', ?, 'DELETE', '{}', 'pending', strftime('%Y-%m-%dT%H:%M:%f', 'now'))`,
         [outboxId, readingId],
       );
     });

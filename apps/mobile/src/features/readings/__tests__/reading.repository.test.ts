@@ -9,7 +9,7 @@ import type { IReadingRepository } from "../domain/reading.repository";
 
 export class MockReadingRepository implements IReadingRepository {
   private items: Reading[] = [];
-  private logs: { [readingId: string]: string[] } = {};
+  private logs: { [readingId: string]: { id: string; readAt: string }[] } = {};
 
   async getAll(locale: SupportedLocale = "es"): Promise<Reading[]> {
     return [...this.items];
@@ -37,7 +37,7 @@ export class MockReadingRepository implements IReadingRepository {
     if (!this.logs[readingId]) {
       this.logs[readingId] = [];
     }
-    this.logs[readingId].push(new Date().toISOString());
+    this.logs[readingId].push({ id: logId, readAt: new Date().toISOString() });
     return logId;
   }
 
@@ -50,9 +50,9 @@ export class MockReadingRepository implements IReadingRepository {
   async getLogs(
     readingId: EntityId,
   ): Promise<{ id: string; readAt: string }[]> {
-    return (this.logs[readingId] ?? []).map((date, idx) => ({
-      id: `log-${idx}`,
-      readAt: date,
+    return (this.logs[readingId] ?? []).map((entry) => ({
+      id: entry.id,
+      readAt: entry.readAt,
     }));
   }
 }
