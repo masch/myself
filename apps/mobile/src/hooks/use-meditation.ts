@@ -178,11 +178,11 @@ export function useMeditation() {
   ]);
 
   const startSession = useCallback(async () => {
+    await MeditationSessionService.stopSession();
     setElapsedSeconds(0);
     setCurrentMomentIndex(0);
     setHasAlarmTriggered(false);
     setStatus("running");
-    await MeditationSessionService.stopSession();
     await playSingleGong();
   }, [playSingleGong]);
 
@@ -250,11 +250,11 @@ export function useMeditation() {
   ]);
 
   const resetSession = useCallback(async () => {
+    await MeditationSessionService.stopSession();
     setStatus("idle");
     setElapsedSeconds(0);
     setCurrentMomentIndex(0);
     setHasAlarmTriggered(false);
-    await MeditationSessionService.stopSession();
   }, []);
 
   return {

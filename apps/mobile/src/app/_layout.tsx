@@ -49,7 +49,7 @@ function AppNavigation() {
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack
           screenOptions={{
-            contentStyle: { backgroundColor: "transparent" },
+            contentStyle: { backgroundColor: colors.transparent },
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

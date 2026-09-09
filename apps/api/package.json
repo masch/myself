@@ -7,6 +7,18 @@
     ".": {
       "types": "./src/index.ts",
       "import": "./src/index.ts"
+    },
+    "./src/app": {
+      "types": "./src/app.ts",
+      "import": "./src/app.ts"
+    },
+    "./src/config": {
+      "types": "./src/config.ts",
+      "import": "./src/config.ts"
+    },
+    "./src/db/test-db": {
+      "types": "./src/db/test-db.ts",
+      "import": "./src/db/test-db.ts"
     }
   },
   "scripts": {

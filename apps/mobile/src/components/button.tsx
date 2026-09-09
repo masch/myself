@@ -49,23 +49,23 @@ export function AppButton({
       case "purple":
         return {
           containerBg: colors.systemPurple,
-          textColor: "#FFFFFF",
-          subtextColor: "rgba(255, 255, 255, 0.8)",
-          iconColor: "#FFFFFF",
+          textColor: colors.white,
+          subtextColor: colors.whiteSubdued,
+          iconColor: colors.white,
         };
       case "green":
         return {
           containerBg: colors.systemGreen,
-          textColor: "#FFFFFF",
-          subtextColor: "rgba(255, 255, 255, 0.8)",
-          iconColor: "#FFFFFF",
+          textColor: colors.white,
+          subtextColor: colors.whiteSubdued,
+          iconColor: colors.white,
         };
       case "destructive":
         return {
           containerBg: colors.systemRed,
-          textColor: "#FFFFFF",
-          subtextColor: "rgba(255, 255, 255, 0.8)",
-          iconColor: "#FFFFFF",
+          textColor: colors.white,
+          subtextColor: colors.whiteSubdued,
+          iconColor: colors.white,
         };
       case "secondary":
         return {
@@ -85,9 +85,9 @@ export function AppButton({
       default:
         return {
           containerBg: colors.systemBlue,
-          textColor: "#FFFFFF",
-          subtextColor: "rgba(255, 255, 255, 0.8)",
-          iconColor: "#FFFFFF",
+          textColor: colors.white,
+          subtextColor: colors.whiteSubdued,
+          iconColor: colors.white,
         };
     }
   };
