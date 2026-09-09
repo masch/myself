@@ -1,11 +1,12 @@
 import { useCallback } from "react";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { View, StyleSheet, ScrollView, Text, Alert } from "react-native";
+import { View, StyleSheet, ScrollView, Text } from "react-native";
 import { Image } from "expo-image";
 import { useReadings } from "@/hooks/use-readings";
 import { type MeditationReadingWithAuthor } from "@/db/database";
 import { AppButton, IconButton } from "@/components";
 import { ReadingCard } from "@/features/readings/components/reading-card";
+import { confirmDelete } from "@/features/readings/confirm-delete";
 import { colors } from "@/theme/colors";
 import { appErrorHandler } from "@/core/errors/mobile-error-handler";
 
@@ -42,31 +43,15 @@ export default function ReadingsScreen() {
   };
 
   const handleDelete = (reading: MeditationReadingWithAuthor) => {
-    if (typeof window !== "undefined" && typeof window.confirm === "function") {
-      const confirmed = window.confirm(
-        `Are you sure you want to delete this passage by ${reading.author_name}?`,
-      );
-      if (confirmed) {
+    confirmDelete(
+      `Are you sure you want to delete this passage by ${reading.author_name}?`,
+      () => {
         void deleteReading(reading.id).catch((error) => {
           appErrorHandler.handle(error, {
             source: "ReadingsScreen.handleDelete",
           });
         });
-      }
-      return;
-    }
-
-    Alert.alert(
-      "Delete Reading",
-      `Are you sure you want to delete this passage by ${reading.author_name}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteReading(reading.id),
-        },
-      ],
+      },
     );
   };
 

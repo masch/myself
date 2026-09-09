@@ -10,6 +10,7 @@ import {
 } from "@myself/shared";
 import { SqliteReadingRepository } from "../infrastructure/sqlite-reading.repository";
 import { SyncEngine } from "@/core/sync/sync-engine";
+import { generateUUID } from "@/utils/uuid";
 import {
   getAllReadings,
   getReadingTranslations as dbGetReadingTranslations,
@@ -99,7 +100,7 @@ export function useReadings(locale: SupportedLocale = "es") {
   const addReadingMutation = useMutation({
     mutationFn: async (input: CreateReadingInput) => {
       const reading = new Reading({
-        id: crypto.randomUUID() as EntityId,
+        id: generateUUID() as EntityId,
         authorId: input.authorId,
         createdAt: DateTime.now(),
         readDates: [],
