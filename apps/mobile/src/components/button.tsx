@@ -10,8 +10,8 @@ import {
   type ColorValue,
   View,
 } from "react-native";
-import { Image } from "expo-image";
 import { colors } from "@/theme/colors";
+import { AppIcon } from "./app-icon";
 
 export type ButtonVariant =
   "primary" | "secondary" | "purple" | "green" | "destructive" | "gray";
@@ -49,30 +49,23 @@ export function AppButton({
       case "purple":
         return {
           containerBg: colors.systemPurple,
-          textColor: "#FFFFFF",
-          subtextColor: "rgba(255, 255, 255, 0.8)",
-          iconColor: "#FFFFFF",
+          textColor: colors.white,
+          subtextColor: colors.whiteSubdued,
+          iconColor: colors.white,
         };
       case "green":
         return {
           containerBg: colors.systemGreen,
-          textColor: "#FFFFFF",
-          subtextColor: "rgba(255, 255, 255, 0.8)",
-          iconColor: "#FFFFFF",
+          textColor: colors.white,
+          subtextColor: colors.whiteSubdued,
+          iconColor: colors.white,
         };
       case "destructive":
         return {
           containerBg: colors.systemRed,
-          textColor: "#FFFFFF",
-          subtextColor: "rgba(255, 255, 255, 0.8)",
-          iconColor: "#FFFFFF",
-        };
-      case "gray":
-        return {
-          containerBg: colors.systemGray,
-          textColor: "#FFFFFF",
-          subtextColor: "rgba(255, 255, 255, 0.8)",
-          iconColor: "#FFFFFF",
+          textColor: colors.white,
+          subtextColor: colors.whiteSubdued,
+          iconColor: colors.white,
         };
       case "secondary":
         return {
@@ -81,13 +74,20 @@ export function AppButton({
           subtextColor: colors.secondaryLabel,
           iconColor: colors.label,
         };
+      case "gray":
+        return {
+          containerBg: colors.systemGray15,
+          textColor: colors.label,
+          subtextColor: colors.secondaryLabel,
+          iconColor: colors.secondaryLabel,
+        };
       case "primary":
       default:
         return {
           containerBg: colors.systemBlue,
-          textColor: "#FFFFFF",
-          subtextColor: "rgba(255, 255, 255, 0.8)",
-          iconColor: "#FFFFFF",
+          textColor: colors.white,
+          subtextColor: colors.whiteSubdued,
+          iconColor: colors.white,
         };
     }
   };
@@ -112,12 +112,7 @@ export function AppButton({
       {...props}
     >
       <View style={styles.contentRow}>
-        {icon && (
-          <Image
-            source={icon}
-            style={[styles.icon, { tintColor: iconColor as any }]}
-          />
-        )}
+        {icon && <AppIcon name={icon} size={20} color={iconColor as any} />}
         <Text
           style={[styles.titleText, { color: textColor as any }, titleStyle]}
         >

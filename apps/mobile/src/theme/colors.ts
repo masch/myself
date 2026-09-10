@@ -55,4 +55,12 @@ export const colors = {
     ios: Color.ios.systemGray,
     default: "#8E8E93",
   })!,
+  /** Fully transparent color for backgrounds that must not obstruct content. */
+  transparent: "transparent" as const,
+  /** Full white — used for text/icons on colored backgrounds. */
+  white: "#FFFFFF" as const,
+  /** Subdued white at 80% opacity — used for secondary text on colored backgrounds. */
+  whiteSubdued: "rgba(255, 255, 255, 0.8)" as const,
+  /** systemGray at 15% opacity — used as background for subdued/gray buttons. */
+  systemGray15: "rgba(142, 142, 147, 0.15)" as const,
 };

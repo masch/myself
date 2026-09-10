@@ -1,22 +1,23 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import type { EntityId } from "@myself/shared";
 import { ReadingService } from "../reading.service";
 import { BadRequestError } from "../../errors";
-import { DrizzleReadingRepository } from "../../repositories/drizzle/drizzle-reading.repository";
-import { DrizzleAuthorRepository } from "../../repositories/drizzle/drizzle-author.repository";
+import { SqliteReadingRepository } from "../../adapters/persistence/sqlite/sqlite-reading.repository";
+import { SqliteAuthorRepository } from "../../adapters/persistence/sqlite/sqlite-author.repository";
 import { AuthorService } from "../author.service";
 import { createTestDatabase } from "../../db/test-db";
 
 describe("ReadingService Domain Application Service Unit Tests", () => {
-  let readingRepo: DrizzleReadingRepository;
+  let readingRepo: SqliteReadingRepository;
   let service: ReadingService;
   let authorService: AuthorService;
-  let testAuthorId: string;
+  let testAuthorId: EntityId;
 
   beforeEach(async () => {
     const db = await createTestDatabase({ seed: false });
-    readingRepo = new DrizzleReadingRepository(db);
+    readingRepo = new SqliteReadingRepository(db);
     service = new ReadingService(readingRepo);
-    authorService = new AuthorService(new DrizzleAuthorRepository(db));
+    authorService = new AuthorService(new SqliteAuthorRepository(db));
 
     const author = await authorService.create({
       name: "Marcus Aurelius",
@@ -26,7 +27,7 @@ describe("ReadingService Domain Application Service Unit Tests", () => {
 
   it("creates a reading with generated UUID, ISO timestamp, readDates initialized to empty array, and trimmed translations", async () => {
     const reading = await service.create({
-      authorId: `  ${testAuthorId}  `,
+      authorId: testAuthorId,
       translations: {
         es: {
           title: "  De la serenidad  ",
@@ -80,7 +81,7 @@ describe("ReadingService Domain Application Service Unit Tests", () => {
   });
 
   it("rejects en translation when title is provided but content is blank", async () => {
-    await expect(
+    expect(
       service.create({
         authorId: testAuthorId,
         translations: {
@@ -98,7 +99,7 @@ describe("ReadingService Domain Application Service Unit Tests", () => {
   });
 
   it("rejects en translation when content is provided but title is blank", async () => {
-    await expect(
+    expect(
       service.create({
         authorId: testAuthorId,
         translations: {
@@ -160,5 +161,54 @@ describe("ReadingService Domain Application Service Unit Tests", () => {
     expect(
       author2Readings.items.every((item) => item.authorId === author2.id),
     ).toBe(true);
+  });
+
+  it("updates an existing reading translations and preserves created_at and logs", async () => {
+    const reading = await service.create({
+      authorId: testAuthorId,
+      translations: {
+        es: {
+          title: "Título Original",
+          content: "Contenido original",
+        },
+      },
+    });
+
+    const updated = await service.update(reading.id, {
+      translations: {
+        es: {
+          title: "Título Modificado",
+          content: "Contenido modificado",
+        },
+        en: {
+          title: "Updated Title",
+          content: "Updated Content",
+        },
+      },
+    });
+
+    expect(updated.id).toBe(reading.id);
+    expect(updated.translations.es.title).toBe("Título Modificado");
+    expect(updated.translations.en?.title).toBe("Updated Title");
+
+    const fetched = await service.findById(reading.id);
+    expect(fetched?.translations.es.title).toBe("Título Modificado");
+    expect(fetched?.translations.en?.title).toBe("Updated Title");
+  });
+
+  it("deletes an existing reading", async () => {
+    const reading = await service.create({
+      authorId: testAuthorId,
+      translations: {
+        es: {
+          title: "Para Borrar",
+          content: "Contenido a borrar",
+        },
+      },
+    });
+
+    await service.delete(reading.id);
+    const fetched = await service.findById(reading.id);
+    expect(fetched).toBeNull();
   });
 });

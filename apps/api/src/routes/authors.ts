@@ -3,13 +3,23 @@ import {
   createAuthorSchema,
   HttpStatus,
   listAuthorsQuerySchema,
+  type Author,
+  type AuthorDto,
 } from "@myself/shared";
 import type { AppEnv } from "../types";
 import { defaultHook } from "../lib/validator";
 import { ok } from "../lib/response";
 import { buildPaginated } from "../lib/pagination";
-import { AuthorMapper } from "../domain";
 import { AuthorService } from "../services/author.service";
+
+function toAuthorDto(author: Author): AuthorDto {
+  return {
+    id: author.id,
+    name: author.name,
+    bio: author.bio,
+    created_at: author.createdAt.toISOString(),
+  };
+}
 
 export const listAuthorsRoute = createRoute({
   method: "get",
@@ -61,16 +71,17 @@ export const authorsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
     const service = new AuthorService(c.var.authorRepo);
     const { items, total } = await service.list({ limit, offset });
 
-    const dtoList = items.map((author) => AuthorMapper.toDto(author));
+    const dtoList = items.map((author) => toAuthorDto(author));
     return ok(c, buildPaginated(dtoList, total, limit, offset));
   })
   .openapi(createAuthorRoute, async (c) => {
     const body = c.req.valid("json");
     const service = new AuthorService(c.var.authorRepo);
     const newAuthor = await service.create({
+      id: body.id,
       name: body.name,
       bio: body.bio,
     });
 
-    return ok(c, AuthorMapper.toDto(newAuthor), HttpStatus.CREATED);
+    return ok(c, toAuthorDto(newAuthor), HttpStatus.CREATED);
   });

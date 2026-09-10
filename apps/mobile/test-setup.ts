@@ -1,6 +1,20 @@
 import { mock } from "bun:test";
+import { plugin } from "bun";
 // @ts-expect-error react-native-web untyped in test harness
 import * as ReactNativeWeb from "react-native-web";
+
+plugin({
+  name: "sql-loader",
+  setup(build) {
+    build.onLoad({ filter: /\.sql$/ }, async (args) => {
+      const text = await Bun.file(args.path).text();
+      return {
+        contents: `export default ${JSON.stringify(text)};`,
+        loader: "js",
+      };
+    });
+  },
+});
 
 process.env.EXPO_OS = "android";
 process.env.NODE_ENV = "test";
@@ -152,4 +166,17 @@ mock.module("expo-notifications", () => ({
     mockNotifications.addNotificationReceivedListener(cb),
   addNotificationResponseReceivedListener: (cb: any) =>
     mockNotifications.addNotificationResponseReceivedListener(cb),
+}));
+
+const mockNetInfo = {
+  addEventListener: () => () => {},
+  fetch: async () => ({
+    isConnected: true,
+    isInternetReachable: true,
+  }),
+};
+
+mock.module("@react-native-community/netinfo", () => ({
+  default: mockNetInfo,
+  ...mockNetInfo,
 }));

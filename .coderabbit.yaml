@@ -26,7 +26,8 @@ reviews:
     - "!apps/mobile/.expo/**"
     - "!apps/mobile/dist/**"
     - "!apps/api/.wrangler/**"
-    - "!openspec/changes/archive/**"
+    - "!openspec/**"
+    # Binary assets
     - "!**/*.png"
     - "!**/*.jpg"
     - "!**/*.jpeg"
@@ -36,6 +37,28 @@ reviews:
     - "!**/*.wasm"
     - "!**/*.mp3"
     - "!**/*.wav"
+    # DB migrations — generated, not reviewed
+    - "!**/migrations/**"
+    - "!**/*.sql"
+    # Config & tooling — low signal
+    - "!**/drizzle.config.*"
+    - "!**/eslint.config.*"
+    - "!.gitignore"
+    - "!.github/**"
+    - "!Makefile"
+    - "!README.md"
+    - "!**/README.md"
+    # Test files — reviewed separately
+    - "!**/__tests__/**"
+    - "!**/*.test.ts"
+    - "!**/*.test.tsx"
+    - "!**/*.spec.ts"
+    - "!e2e/**"
+    - "!**/test-setup.*"
+    - "!**/playwright.config.*"
+    # Seed & dev utilities
+    - "!**/seed.ts"
+    - "!**/test-db.ts"
 
   path_instructions:
     - path: "apps/mobile/**"

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { getTableConfig } from "drizzle-orm/sqlite-core";
-import { authors } from "../schema/authors";
 import {
+  authors,
   meditationReadings,
   meditationReadingTranslations,
   readingLogs,
-} from "../schema/readings";
-import { users } from "../schema/users";
+  users,
+} from "@myself/shared";
 
 describe("Database Schema Integrity Unit Tests", () => {
   it("validates that all schema foreign keys resolve to valid tables and columns", () => {

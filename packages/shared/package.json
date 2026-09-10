@@ -10,10 +10,12 @@
   },
   "devDependencies": {
     "@types/bun": "^1.4.0",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.69.0"
   },
   "private": true,
   "dependencies": {
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.13.5",
     "zod": "^4.5.4"
   }

@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { AuthorService } from "../author.service";
-import { DrizzleAuthorRepository } from "../../repositories/drizzle/drizzle-author.repository";
+import { SqliteAuthorRepository } from "../../adapters/persistence/sqlite/sqlite-author.repository";
 import { createTestDatabase } from "../../db/test-db";
 
 describe("AuthorService Domain Application Service Unit Tests", () => {
-  let repo: DrizzleAuthorRepository;
+  let repo: SqliteAuthorRepository;
   let service: AuthorService;
 
   beforeEach(async () => {
     const db = await createTestDatabase({ seed: false });
-    repo = new DrizzleAuthorRepository(db);
+    repo = new SqliteAuthorRepository(db);
     service = new AuthorService(repo);
   });
 

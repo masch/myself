@@ -7,8 +7,8 @@ import {
   type PressableProps,
   type ColorValue,
 } from "react-native";
-import { Image } from "expo-image";
 import { colors } from "@/theme/colors";
+import { AppIcon } from "./app-icon";
 
 export type IconButtonSize = "small" | "medium" | "large";
 
@@ -33,6 +33,8 @@ export function IconButton({
 
   return (
     <Pressable
+      role="button"
+      aria-label={props.accessibilityLabel}
       hitSlop={hitSlop}
       style={({ pressed }) => [
         styles.base,
@@ -45,14 +47,7 @@ export function IconButton({
       disabled={disabled}
       {...props}
     >
-      <Image
-        source={icon}
-        style={{
-          width: iconPixelSize,
-          height: iconPixelSize,
-          tintColor: color as any,
-        }}
-      />
+      <AppIcon name={icon} size={iconPixelSize} color={color} />
     </Pressable>
   );
 }

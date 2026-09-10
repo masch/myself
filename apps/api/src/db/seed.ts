@@ -1,6 +1,13 @@
 import { join } from "node:path";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { SEED_AUTHORS, SEED_READINGS } from "@myself/shared";
+import {
+  authors,
+  meditationReadings,
+  meditationReadingTranslations,
+  readingLogs,
+  SEED_AUTHORS,
+  SEED_READINGS,
+} from "@myself/shared";
 import {
   createDb,
   IN_MEMORY_DB,
@@ -8,12 +15,6 @@ import {
   type DbClient,
 } from "./client";
 import type { AppConfig } from "../config";
-import { authors } from "./schema/authors";
-import {
-  meditationReadings,
-  meditationReadingTranslations,
-  readingLogs,
-} from "./schema/readings";
 
 export async function seedDatabase(db: DbClient): Promise<void> {
   // 1. Seed Authors
@@ -24,7 +25,7 @@ export async function seedDatabase(db: DbClient): Promise<void> {
         id: author.id,
         name: author.name,
         bio: author.bio ?? null,
-        createdAt: author.createdAt,
+        createdAt: author.created_at,
       })
       .onConflictDoNothing();
   }
@@ -73,7 +74,10 @@ export async function seedFromConfig(config: AppConfig): Promise<void> {
   const normalizedUrl = url === "memory" ? IN_MEMORY_DB : url;
   const db = createDb({ url: normalizedUrl, authToken });
   if (isLocalDatabase(normalizedUrl)) {
-    const migrationsFolder = join(import.meta.dir, "./migrations");
+    const migrationsFolder = join(
+      import.meta.dir,
+      "../../../../packages/shared/src/db/migrations",
+    );
     await migrate(db, { migrationsFolder });
   }
   await seedDatabase(db);

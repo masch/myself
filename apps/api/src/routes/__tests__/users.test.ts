@@ -4,7 +4,7 @@ import {
   ErrorCode,
   DateTime,
   type PaginatedResponse,
-  type User,
+  type UserDto,
 } from "@myself/shared";
 import type { AppEnv } from "../../types";
 import type { RepositoriesDependencies } from "../../middleware/repositories";
@@ -30,7 +30,7 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     const res = await app.request("/users");
     expect(res.status).toBe(200);
 
-    const body = (await res.json()) as PaginatedResponse<User>;
+    const body = (await res.json()) as PaginatedResponse<UserDto>;
     expect(Array.isArray(body.items)).toBe(true);
     expect(body.meta.limit).toBe(20);
     expect(body.meta.offset).toBe(0);
@@ -50,7 +50,7 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     });
     expect(createRes.status).toBe(201);
 
-    const createBody = (await createRes.json()) as User;
+    const createBody = (await createRes.json()) as UserDto;
     expect(createBody.id).toBeDefined();
     expect(createBody.name).toBe("Marcus Aurelius");
     expect(createBody.email).toBe("marcus@rome.gov");
@@ -58,7 +58,7 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
 
     const getRes = await app.request(`/users/${createBody.id}`);
     expect(getRes.status).toBe(200);
-    const getBody = (await getRes.json()) as User;
+    const getBody = (await getRes.json()) as UserDto;
     expect(getBody.id).toBe(createBody.id);
 
     // Verify directly in the SQLite database that the row was persisted:

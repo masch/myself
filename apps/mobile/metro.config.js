@@ -19,4 +19,7 @@ config.resolver.nodeModulesPaths = [
 // Enable WebAssembly (.wasm) support for expo-sqlite on web
 config.resolver.assetExts.push("wasm");
 
+// Enable .sql files as source modules for inline import migrations
+config.resolver.sourceExts.push("sql");
+
 module.exports = config;

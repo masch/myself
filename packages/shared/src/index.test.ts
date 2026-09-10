@@ -6,6 +6,7 @@ import {
   createReadingSchema,
   createUserSchema,
   entityIdSchema,
+  type EntityId,
   DateTime,
   ErrorCode,
   generateEntityId,
@@ -17,6 +18,8 @@ import {
   SEED_AUTHORS,
   SEED_AUTHOR_IDS,
   SEED_READINGS,
+  SEED_USERS,
+  SEED_USER_IDS,
 } from "./index";
 
 describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
@@ -30,7 +33,7 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       for (const author of SEED_AUTHORS) {
         expect(author.id).toBeDefined();
         expect(author.name.trim().length).toBeGreaterThan(0);
-        expect(author.createdAt.trim().length).toBeGreaterThan(0);
+        expect(author.created_at.trim().length).toBeGreaterThan(0);
       }
     });
 
@@ -45,6 +48,20 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
         expect(reading.translations.es.content.trim().length).toBeGreaterThan(
           0,
         );
+      }
+    });
+
+    it("SEED_USERS contains non-empty valid users with EntityId IDs", () => {
+      expect(SEED_USERS.length).toBeGreaterThan(0);
+      const userIdSet = new Set(Object.values(SEED_USER_IDS));
+
+      for (const user of SEED_USERS) {
+        expect(user.id).toBeDefined();
+        expect(userIdSet.has(user.id)).toBe(true);
+        expect(entityIdSchema.safeParse(user.id).success).toBe(true);
+        expect(user.name.trim().length).toBeGreaterThan(0);
+        expect(user.email.trim().length).toBeGreaterThan(0);
+        expect(Array.isArray(user.tasks)).toBe(true);
       }
     });
   });
@@ -69,11 +86,12 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
     });
 
     it("listReadingsQuerySchema parses authorId correctly alongside pagination", () => {
+      const validAuthorId = "550e8400-e29b-41d4-a716-446655440000" as EntityId;
       const parsed = listReadingsQuerySchema.parse({
-        authorId: " author-123 ",
+        authorId: `  ${validAuthorId}  `,
         limit: "10",
       });
-      expect(parsed.authorId).toBe("author-123");
+      expect(parsed.authorId).toBe(validAuthorId);
       expect(parsed.limit).toBe(10);
       expect(parsed.offset).toBe(0);
     });
@@ -95,8 +113,9 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
     });
 
     it("createReadingSchema parses valid reading with spanish translation", () => {
+      const validAuthorId = "550e8400-e29b-41d4-a716-446655440000" as EntityId;
       const parsed = createReadingSchema.parse({
-        authorId: "author-1",
+        authorId: validAuthorId,
         translations: {
           es: {
             title: " Título en español ",
@@ -104,7 +123,7 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
           },
         },
       });
-      expect(parsed.authorId).toBe("author-1");
+      expect(parsed.authorId).toBe(validAuthorId);
       expect(parsed.translations.es.title).toBe("Título en español");
       expect(parsed.translations.es.content).toBe("Contenido en español");
       expect(parsed.translations.en).toBeUndefined();

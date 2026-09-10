@@ -1,17 +1,29 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import {
   createReadingSchema,
+  updateReadingSchema,
   ErrorCode,
   HttpStatus,
   listReadingsQuerySchema,
   readingParamSchema,
+  type Reading,
+  type ReadingDto,
 } from "@myself/shared";
 import type { AppEnv } from "../types";
 import { defaultHook } from "../lib/validator";
 import { ok, fail } from "../lib/response";
 import { buildPaginated } from "../lib/pagination";
-import { ReadingMapper } from "../domain";
 import { ReadingService } from "../services/reading.service";
+
+function toReadingDto(entity: Reading): ReadingDto {
+  return {
+    id: entity.id,
+    author_id: entity.authorId,
+    createdAt: entity.createdAt.toISOString(),
+    readDates: entity.readDates.map((d) => d.toISOString()),
+    translations: entity.translations,
+  };
+}
 
 export const listReadingsRoute = createRoute({
   method: "get",
@@ -76,6 +88,54 @@ export const createReadingRoute = createRoute({
   },
 });
 
+export const updateReadingRoute = createRoute({
+  method: "put",
+  path: "/:id",
+  tags: ["Readings"],
+  summary: "Update reading",
+  description: "Updates an existing reading and its multilingual translations.",
+  request: {
+    params: readingParamSchema,
+    body: {
+      content: {
+        "application/json": {
+          schema: updateReadingSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    [HttpStatus.OK]: {
+      description: "Reading updated successfully",
+    },
+    [HttpStatus.BAD_REQUEST]: {
+      description: "Validation error",
+    },
+    [HttpStatus.NOT_FOUND]: {
+      description: "Reading not found",
+    },
+  },
+});
+
+export const deleteReadingRoute = createRoute({
+  method: "delete",
+  path: "/:id",
+  tags: ["Readings"],
+  summary: "Delete reading",
+  description: "Permanently deletes a reading and its translations.",
+  request: {
+    params: readingParamSchema,
+  },
+  responses: {
+    [HttpStatus.OK]: {
+      description: "Reading deleted successfully",
+    },
+    [HttpStatus.NOT_FOUND]: {
+      description: "Reading not found",
+    },
+  },
+});
+
 export const readingsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
   .openapi(listReadingsRoute, async (c) => {
     const { limit, offset, authorId } = c.req.valid("query");
@@ -86,7 +146,7 @@ export const readingsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
       authorId,
     });
 
-    const dtoList = items.map((item) => ReadingMapper.toDto(item));
+    const dtoList = items.map((item) => toReadingDto(item));
     return ok(c, buildPaginated(dtoList, total, limit, offset));
   })
   .openapi(getReadingByIdRoute, async (c) => {
@@ -103,12 +163,27 @@ export const readingsRoute = new OpenAPIHono<AppEnv>({ defaultHook })
       );
     }
 
-    return ok(c, ReadingMapper.toDto(reading));
+    return ok(c, toReadingDto(reading));
   })
   .openapi(createReadingRoute, async (c) => {
     const body = c.req.valid("json");
     const service = new ReadingService(c.var.readingRepo);
     const newReading = await service.create(body);
 
-    return ok(c, ReadingMapper.toDto(newReading), HttpStatus.CREATED);
+    return ok(c, toReadingDto(newReading), HttpStatus.CREATED);
+  })
+  .openapi(updateReadingRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const body = c.req.valid("json");
+    const service = new ReadingService(c.var.readingRepo);
+    const updated = await service.update(id, body);
+
+    return ok(c, toReadingDto(updated), HttpStatus.OK);
+  })
+  .openapi(deleteReadingRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const service = new ReadingService(c.var.readingRepo);
+    await service.delete(id);
+
+    return ok(c, { id, deleted: true }, HttpStatus.OK);
   });

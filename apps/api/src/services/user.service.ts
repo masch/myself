@@ -9,7 +9,7 @@ import type {
   UserRepository,
   ListUsersParams,
   ListUsersResult,
-} from "../repositories/contracts/user.repository";
+} from "../ports";
 import { UserConflictError } from "../errors";
 
 export { UserConflictError };

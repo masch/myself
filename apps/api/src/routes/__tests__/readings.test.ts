@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { Hono } from "hono";
-import type { PaginatedResponse, SeedReading } from "@myself/shared";
+import type { PaginatedResponse, ReadingDto } from "@myself/shared";
 import type { AppEnv } from "../../types";
 import { repositoriesMiddleware } from "../../middleware/repositories";
 import { createTestRepositories } from "../../db/test-db";
@@ -20,7 +20,7 @@ describe("Readings API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     const res = await app.request("/readings");
     expect(res.status).toBe(200);
 
-    const body = (await res.json()) as PaginatedResponse<SeedReading>;
+    const body = (await res.json()) as PaginatedResponse<ReadingDto>;
     expect(body.items.length).toBeGreaterThan(0);
     expect(body.meta.limit).toBe(20);
     expect(body.meta.offset).toBe(0);
@@ -30,7 +30,7 @@ describe("Readings API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
     const res = await app.request("/readings?limit=2&offset=2");
     expect(res.status).toBe(200);
 
-    const body = (await res.json()) as PaginatedResponse<SeedReading>;
+    const body = (await res.json()) as PaginatedResponse<ReadingDto>;
     expect(body.items.length).toBe(2);
     expect(body.meta.limit).toBe(2);
     expect(body.meta.offset).toBe(2);

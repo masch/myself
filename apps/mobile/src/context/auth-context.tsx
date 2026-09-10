@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    fetchInitialUsers();
+    void fetchInitialUsers();
 
     return () => {
       isMounted = false;

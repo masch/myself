@@ -7,6 +7,7 @@ import { useTasks } from "@/hooks/use-tasks";
 import { type TaskItem } from "@/db/database";
 import { AppButton, TaskRow } from "@/components";
 import { colors } from "@/theme/colors";
+import { appErrorHandler } from "@/core/errors/mobile-error-handler";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -21,12 +22,16 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      refreshTasks();
+      refreshTasks().catch((error) => {
+        appErrorHandler.handle(error, { source: "HomeScreen.useFocusEffect" });
+      });
     }, [refreshTasks]),
   );
 
   const handleToggle = (task: TaskItem) => {
-    toggleTask(task.id, !task.is_done);
+    toggleTask(task.id, !task.is_done).catch((error) => {
+      appErrorHandler.handle(error, { source: "HomeScreen.handleToggle" });
+    });
   };
 
   const handleDelete = (task: TaskItem) => {

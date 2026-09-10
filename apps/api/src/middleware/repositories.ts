@@ -2,12 +2,14 @@ import { createMiddleware } from "hono/factory";
 import type { AppEnv, ApiBindings } from "../types";
 import { createDb } from "../db/client";
 import type { AppConfig } from "../config";
-import type { AuthorRepository } from "../repositories/contracts/author.repository";
-import type { ReadingRepository } from "../repositories/contracts/reading.repository";
-import type { UserRepository } from "../repositories/contracts/user.repository";
-import { DrizzleAuthorRepository } from "../repositories/drizzle/drizzle-author.repository";
-import { DrizzleReadingRepository } from "../repositories/drizzle/drizzle-reading.repository";
-import { DrizzleUserRepository } from "../repositories/drizzle/drizzle-user.repository";
+import type {
+  AuthorRepository,
+  ReadingRepository,
+  UserRepository,
+} from "../ports";
+import { SqliteAuthorRepository } from "../adapters/persistence/sqlite/sqlite-author.repository";
+import { SqliteReadingRepository } from "../adapters/persistence/sqlite/sqlite-reading.repository";
+import { SqliteUserRepository } from "../adapters/persistence/sqlite/sqlite-user.repository";
 
 export interface RepositoriesDependencies {
   authorRepo: AuthorRepository;
@@ -26,9 +28,9 @@ export function createRepositories(
   const db = createDb({ url, authToken });
 
   return {
-    authorRepo: new DrizzleAuthorRepository(db),
-    readingRepo: new DrizzleReadingRepository(db),
-    userRepo: new DrizzleUserRepository(db),
+    authorRepo: new SqliteAuthorRepository(db),
+    readingRepo: new SqliteReadingRepository(db),
+    userRepo: new SqliteUserRepository(db),
   };
 }
 

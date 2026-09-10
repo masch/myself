@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { UserService, UserConflictError } from "../user.service";
-import { DrizzleUserRepository } from "../../repositories/drizzle/drizzle-user.repository";
+import { SqliteUserRepository } from "../../adapters/persistence/sqlite/sqlite-user.repository";
 import { createTestDatabase } from "../../db/test-db";
 
 describe("UserService Domain Application Service Unit Tests", () => {
-  let repo: DrizzleUserRepository;
+  let repo: SqliteUserRepository;
   let service: UserService;
 
   beforeEach(async () => {
     const db = await createTestDatabase({ seed: false });
-    repo = new DrizzleUserRepository(db);
+    repo = new SqliteUserRepository(db);
     service = new UserService(repo);
   });
 
@@ -50,7 +50,7 @@ describe("UserService Domain Application Service Unit Tests", () => {
       email: "marcus@rome.gov",
     });
 
-    await expect(
+    expect(
       service.create({
         name: "Different Marcus",
         email: "MARCUS@rome.gov",

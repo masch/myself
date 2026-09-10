@@ -3,81 +3,16 @@ import {
   SEED_AUTHOR_IDS,
   SEED_AUTHORS,
   SEED_READINGS,
+  SEED_USERS,
   type ReadingTranslationInput,
-  type SeedAuthor,
+  type AuthorDto,
   type SeedReading,
   type SeedUser,
 } from "@myself/shared";
 import { type SQLiteDatabase } from "expo-sqlite";
 
-export { SEED_AUTHOR_IDS, SEED_AUTHORS, SEED_READINGS };
-export type { ReadingTranslationInput, SeedReading, SeedAuthor };
-
-export const SEED_USERS: SeedUser[] = [
-  {
-    id: "u0000000-0000-4000-8000-000000000001",
-    name: "My self",
-    email: "the.masch@gmail.com",
-    tasks: [
-      {
-        title: "Setup Expo SDK 57 project",
-        category: "Work",
-        description: "Configure Expo Router, Native Tabs, and @expo/ui",
-        is_done: 1,
-      },
-      {
-        title: "Implement Local-First SQLite storage",
-        category: "Work",
-        description: "Create schema, domain hooks, and auto-migrations",
-        is_done: 1,
-      },
-      {
-        title: "Review PR for Offline Sync",
-        category: "Work",
-        description: "Evaluate PowerSync vs ElectricSQL architecture",
-        is_done: 0,
-      },
-      {
-        title: "Buy specialty coffee beans",
-        category: "Shopping",
-        description: "Ethiopian Yirgacheffe medium roast",
-        is_done: 0,
-      },
-    ],
-  },
-  {
-    id: "u0000000-0000-4000-8000-000000000002",
-    name: "Elena Gómez",
-    email: "elena.gomez@example.com",
-    tasks: [
-      {
-        title: "Design UI tokens in Figma",
-        category: "Design",
-        description: "Apple HIG dynamic colors & Material 3 palette",
-        is_done: 1,
-      },
-      {
-        title: "Conduct user testing session",
-        category: "Work",
-        description: "Interview 5 mobile beta testers on tabs navigation",
-        is_done: 0,
-      },
-    ],
-  },
-  {
-    id: "u0000000-0000-4000-8000-000000000003",
-    name: "Lucas Rossi",
-    email: "lucas.rossi@example.com",
-    tasks: [
-      {
-        title: "Prepare Sprint Review demo",
-        category: "Work",
-        description: "Showcase multi-user database switching and SQLite CRUD",
-        is_done: 0,
-      },
-    ],
-  },
-];
+export { SEED_AUTHOR_IDS, SEED_AUTHORS, SEED_READINGS, SEED_USERS };
+export type { ReadingTranslationInput, SeedReading, AuthorDto, SeedUser };
 
 /**
  * Seeds the database with users, tasks, authors, readings, and reading logs.
@@ -86,12 +21,12 @@ export async function seedDatabase(db: SQLiteDatabase) {
   // 1. Always Sync / Upsert Authors
   for (const author of SEED_AUTHORS) {
     await db.runAsync(
-      `INSERT INTO authors (id, name, bio) 
-       VALUES (?, ?, ?)
+      `INSERT INTO authors (id, name, bio, created_at) 
+       VALUES (?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET 
          name = excluded.name, 
          bio = excluded.bio`,
-      [author.id, author.name, author.bio ?? ""],
+      [author.id, author.name, author.bio ?? "", author.created_at],
     );
   }
 
@@ -158,20 +93,20 @@ export async function seedDatabase(db: SQLiteDatabase) {
   if (existingUsers.length === 0) {
     for (const user of SEED_USERS) {
       await db.runAsync(
-        "INSERT OR IGNORE INTO users (id, name, email) VALUES (?, ?, ?)",
+        "INSERT OR IGNORE INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
         [user.id, user.name, user.email],
       );
 
       for (const task of user.tasks) {
         const taskId = generateUUID();
         await db.runAsync(
-          "INSERT INTO tasks (id, user_id, title, category, description, is_done) VALUES (?, ?, ?, ?, ?, ?)",
+          "INSERT INTO tasks (id, user_id, title, category, description, is_done, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))",
           [
             taskId,
             user.id,
             task.title,
             task.category,
-            task.description,
+            task.description ?? "",
             task.is_done,
           ],
         );

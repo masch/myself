@@ -49,7 +49,10 @@ describe("Database Client Factory Unit Tests", () => {
 
   it("seeds the database directly with seedDatabase", async () => {
     const db = createDb({ url: ":memory:" });
-    const migrationsFolder = join(import.meta.dir, "../migrations");
+    const migrationsFolder = join(
+      import.meta.dir,
+      "../../../../../packages/shared/src/db/migrations",
+    );
     await migrate(db, { migrationsFolder });
     await seedDatabase(db);
   });
