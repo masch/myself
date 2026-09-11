@@ -6,6 +6,7 @@ import {
   type ReadingTranslationsMap,
 } from "@myself/shared";
 import { createApiClient } from "../../../infrastructure/http";
+import { appConfig, type MobileConfig } from "../../../infrastructure/config";
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -22,11 +23,17 @@ export interface RemoteReadingDto {
 export class HttpReadingApiAdapter {
   private client: ReturnType<typeof createApiClient>;
 
-  constructor(
-    baseUrl: string = process.env.EXPO_PUBLIC_API_URL ??
-      "http://localhost:8787",
-  ) {
-    this.client = createApiClient({ baseUrl, timeoutMs: REQUEST_TIMEOUT_MS });
+  constructor(configOrBaseUrl: MobileConfig | string = appConfig) {
+    const baseUrl =
+      typeof configOrBaseUrl === "string"
+        ? configOrBaseUrl
+        : configOrBaseUrl.apiUrl;
+    const timeoutMs =
+      typeof configOrBaseUrl === "string"
+        ? REQUEST_TIMEOUT_MS
+        : configOrBaseUrl.apiTimeoutMs;
+
+    this.client = createApiClient({ baseUrl, timeoutMs });
   }
 
   async fetchReadings(): Promise<Reading[]> {

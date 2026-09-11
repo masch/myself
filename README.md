@@ -40,6 +40,28 @@ You can start developing by editing the files inside the **app** directory. This
 
 ---
 
+## Environments & Deployed URLs
+
+| Environment    | Component                      | URL                                                                                                                                            | Notes                                    |
+| :------------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------- |
+| **Staging**    | Mobile Web                     | [https://myself--staging.expo.app](https://myself--staging.expo.app)                                                                           | EAS Hosting alias                        |
+| **Staging**    | Backend API                    | [https://myself-api-staging.impenetrable-connect.workers.dev](https://myself-api-staging.impenetrable-connect.workers.dev)                     | Cloudflare Worker                        |
+| **Staging**    | API Interactive Testing & Docs | [https://myself-api-staging.impenetrable-connect.workers.dev/reference](https://myself-api-staging.impenetrable-connect.workers.dev/reference) | Scalar Interactive API Explorer & Tester |
+| **Staging**    | API Health Check               | [https://myself-api-staging.impenetrable-connect.workers.dev/health](https://myself-api-staging.impenetrable-connect.workers.dev/health)       | Uptime & Environment verification        |
+| **Staging**    | OpenAPI Spec                   | [https://myself-api-staging.impenetrable-connect.workers.dev/doc](https://myself-api-staging.impenetrable-connect.workers.dev/doc)             | OpenAPI 3.1 JSON Schema                  |
+| **Production** | Mobile Web                     | [https://myself.expo.app](https://myself.expo.app)                                                                                             | EAS Hosting production                   |
+| **Production** | Backend API                    | [https://myself-api.impenetrable-connect.workers.dev](https://myself-api.impenetrable-connect.workers.dev)                                     | Cloudflare Worker                        |
+| **Production** | API Interactive Testing & Docs | [https://myself-api.impenetrable-connect.workers.dev/reference](https://myself-api.impenetrable-connect.workers.dev/reference)                 | Scalar Interactive API Explorer & Tester |
+| **Production** | API Health Check               | [https://myself-api.impenetrable-connect.workers.dev/health](https://myself-api.impenetrable-connect.workers.dev/health)                       | Uptime & Environment verification        |
+| **Production** | OpenAPI Spec                   | [https://myself-api.impenetrable-connect.workers.dev/doc](https://myself-api.impenetrable-connect.workers.dev/doc)                             | OpenAPI 3.1 JSON Schema                  |
+| **Local Dev**  | Mobile Web                     | `http://localhost:8081`                                                                                                                        | Expo web dev server (`make mobile-web`)  |
+| **Local Dev**  | Backend API                    | `http://localhost:8787`                                                                                                                        | Hono dev server (`make api-dev`)         |
+| **Local Dev**  | API Interactive Testing & Docs | [http://localhost:8787/reference](http://localhost:8787/reference)                                                                             | Local Scalar Interactive Reference       |
+| **Local Dev**  | API Health Check               | [http://localhost:8787/health](http://localhost:8787/health)                                                                                   | Local health status                      |
+| **Local Dev**  | OpenAPI Spec                   | [http://localhost:8787/doc](http://localhost:8787/doc)                                                                                         | Local OpenAPI 3.1 JSON                   |
+
+---
+
 ## Meditation Session Architecture (Multiplatform SDD)
 
 Software Design Document (SDD) specifying session lifecycle, background execution, and lockscreen notifications across Android, iOS, and Web.
