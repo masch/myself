@@ -89,8 +89,16 @@ check-format-staged: ## Check code formatting on staged files using prettier
 	@git diff --cached --name-only -z --diff-filter=d 2>/dev/null | xargs -0 -r bun prettier --check --ignore-unknown --
 
 .PHONY: check-doctor
-check-doctor: ## Run Expo Doctor to verify dependency compatibility
+check-doctor: ## Run Expo Doctor to verify project health (skips remote dependency version check)
+	cd $(MOBILE_DIR) && APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_DOCTOR_SKIP_DEPENDENCY_VERSION_CHECK=1 bunx expo-doctor
+
+.PHONY: check-doctor-strict
+check-doctor-strict: ## Run Expo Doctor with strict remote dependency version check
 	cd $(MOBILE_DIR) && APP_VERSION_NAME="$(APP_VERSION_NAME)" bunx expo-doctor
+
+.PHONY: ci-weekly-deps
+ci-weekly-deps: ## Run weekly dependencies update and open a pull request if changes are detected
+	@./scripts/ci-weekly-deps.sh
 
 .PHONY: check-static
 check-static: check-lint check-types ## Run lint + typecheck

@@ -5,7 +5,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MOBILE="${ROOT}/apps/mobile"
 APP_VERSION_NAME="${APP_VERSION_NAME:-}"
 
-read -r -p "Minimum release age in days (0 = immediate, default 4): " DAYS
+if [ -t 0 ] && [ -z "${DAYS:-}" ]; then
+	read -r -p "Minimum release age in days (0 = immediate, default 4): " DAYS
+fi
 DAYS="${DAYS:-4}"
 SECONDS=$(( DAYS * 86400 ))
 
