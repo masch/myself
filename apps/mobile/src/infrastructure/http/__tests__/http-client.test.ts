@@ -1,6 +1,11 @@
 import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { HttpClient } from "../http-client";
-import { ApiHttpError, ApiNetworkError, ApiTimeoutError } from "../errors";
+import {
+  ApiClientError,
+  ApiHttpError,
+  ApiNetworkError,
+  ApiTimeoutError,
+} from "../errors";
 
 describe("Mobile HttpClient", () => {
   const baseUrl = "https://api.example.com";
@@ -38,6 +43,25 @@ describe("Mobile HttpClient", () => {
     await client.post("/v1/items", { name: "item-1" });
 
     expect(capturedReq.body).toBe(JSON.stringify({ name: "item-1" }));
+  });
+
+  it("should handle 204 No Content response", async () => {
+    globalThis.fetch = mock(
+      async () => new Response(null, { status: 204, statusText: "No Content" }),
+    ) as unknown as typeof fetch;
+
+    const client = new HttpClient({ baseUrl });
+    const res = await client.delete("/v1/items/123");
+
+    expect(res).toBeUndefined();
+  });
+
+  it("should throw ApiClientError when request body serialization fails", async () => {
+    const client = new HttpClient({ baseUrl });
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+
+    expect(client.post("/v1/items", circular)).rejects.toThrow(ApiClientError);
   });
 
   it("should throw ApiHttpError on 4xx/5xx responses with parsed error data", async () => {

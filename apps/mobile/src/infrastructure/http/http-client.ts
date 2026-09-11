@@ -38,10 +38,26 @@ export class HttpClient {
     this.getAuthToken = config.getAuthToken;
   }
 
-  async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  request(path: string, options?: RequestOptions): Promise<void>;
+  request<T>(path: string, options?: RequestOptions): Promise<T>;
+  async request<T>(
+    path: string,
+    options: RequestOptions = {},
+  ): Promise<T | void> {
     const url = `${this.baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
     const method = options.method ?? "GET";
     const timeoutMs = options.timeoutMs ?? this.defaultTimeoutMs;
+
+    let serializedBody: string | undefined;
+    if (options.body !== undefined) {
+      try {
+        serializedBody = JSON.stringify(options.body);
+      } catch (err: unknown) {
+        throw new ApiClientError(
+          `Failed to serialize request body: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
 
     const headers: Record<string, string> = {
       ...this.defaultHeaders,
@@ -72,10 +88,7 @@ export class HttpClient {
         res = await fetch(url, {
           method,
           headers,
-          body:
-            options.body !== undefined
-              ? JSON.stringify(options.body)
-              : undefined,
+          body: serializedBody,
           signal: controller.signal,
         });
       } catch (err: unknown) {
@@ -103,7 +116,7 @@ export class HttpClient {
 
       // Handle 204 No Content
       if (res.status === 204) {
-        return undefined as unknown as T;
+        return;
       }
 
       try {
@@ -128,7 +141,7 @@ export class HttpClient {
     return this.request<T>(path, { ...options, method: "GET" });
   }
 
-  post<T>(
+  post<T = void>(
     path: string,
     body?: unknown,
     options?: Omit<RequestOptions, "method" | "body">,
@@ -136,7 +149,7 @@ export class HttpClient {
     return this.request<T>(path, { ...options, method: "POST", body });
   }
 
-  put<T>(
+  put<T = void>(
     path: string,
     body?: unknown,
     options?: Omit<RequestOptions, "method" | "body">,
@@ -144,7 +157,7 @@ export class HttpClient {
     return this.request<T>(path, { ...options, method: "PUT", body });
   }
 
-  delete<T>(
+  delete<T = void>(
     path: string,
     options?: Omit<RequestOptions, "method" | "body">,
   ): Promise<T> {
