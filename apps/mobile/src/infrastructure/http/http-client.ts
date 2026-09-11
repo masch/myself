@@ -66,48 +66,58 @@ export class HttpClient {
       controller.abort();
     }, timeoutMs);
 
-    let res: Response;
     try {
-      res = await fetch(url, {
-        method,
-        headers,
-        body:
-          options.body !== undefined ? JSON.stringify(options.body) : undefined,
-        signal: controller.signal,
-      });
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") {
-        throw new ApiTimeoutError(timeoutMs);
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method,
+          headers,
+          body:
+            options.body !== undefined
+              ? JSON.stringify(options.body)
+              : undefined,
+          signal: controller.signal,
+        });
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") {
+          throw new ApiTimeoutError(timeoutMs);
+        }
+        throw new ApiNetworkError(
+          `Network request to ${url} failed: ${err instanceof Error ? err.message : String(err)}`,
+          err,
+        );
       }
-      throw new ApiNetworkError(
-        `Network request to ${url} failed: ${err instanceof Error ? err.message : String(err)}`,
-        err,
-      );
+
+      if (!res.ok) {
+        let errorData: unknown;
+        try {
+          errorData = await res.json();
+        } catch (err: unknown) {
+          if (err instanceof Error && err.name === "AbortError") {
+            throw new ApiTimeoutError(timeoutMs);
+          }
+          // Response wasn't json, ignore parsing error
+        }
+        throw new ApiHttpError(res.status, res.statusText, errorData);
+      }
+
+      // Handle 204 No Content
+      if (res.status === 204) {
+        return undefined as unknown as T;
+      }
+
+      try {
+        return (await res.json()) as T;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") {
+          throw new ApiTimeoutError(timeoutMs);
+        }
+        throw new ApiClientError(
+          `Failed to parse response JSON from ${url}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     } finally {
       clearTimeout(timer);
-    }
-
-    if (!res.ok) {
-      let errorData: unknown;
-      try {
-        errorData = await res.json();
-      } catch {
-        // Response wasn't json, ignore parsing error
-      }
-      throw new ApiHttpError(res.status, res.statusText, errorData);
-    }
-
-    // Handle 204 No Content
-    if (res.status === 204) {
-      return undefined as unknown as T;
-    }
-
-    try {
-      return (await res.json()) as T;
-    } catch (err) {
-      throw new ApiClientError(
-        `Failed to parse response JSON from ${url}: ${err instanceof Error ? err.message : String(err)}`,
-      );
     }
   }
 

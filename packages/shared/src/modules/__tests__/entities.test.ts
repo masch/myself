@@ -96,4 +96,25 @@ describe("Shared Kernel Domain Entities", () => {
         }),
     ).toThrow();
   });
+
+  it("should reject creating entities with invalid ID format", () => {
+    expect(
+      () =>
+        new Author({
+          id: "not-a-valid-uuid" as EntityId,
+          name: "Valid Name",
+          createdAt: DateTime.now(),
+        }),
+    ).toThrow();
+
+    expect(
+      () =>
+        new User({
+          id: "invalid-id" as EntityId,
+          name: "Valid User",
+          email: "user@example.com",
+          createdAt: DateTime.now(),
+        }),
+    ).toThrow();
+  });
 });

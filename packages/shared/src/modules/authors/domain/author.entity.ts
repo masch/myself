@@ -1,4 +1,8 @@
-import type { DateTime, EntityId } from "../../../primitives";
+import {
+  entityIdSchema,
+  type DateTime,
+  type EntityId,
+} from "../../../primitives";
 
 export interface AuthorProps {
   id: EntityId;
@@ -11,14 +15,13 @@ export class Author {
   public readonly props: AuthorProps;
 
   constructor(rawProps: AuthorProps) {
-    if (!rawProps.id) {
-      throw new Error("Invalid ID format");
-    }
+    const id = entityIdSchema.parse(rawProps.id);
     if (!rawProps.name || rawProps.name.trim().length === 0) {
       throw new Error("Author name is required");
     }
     this.props = {
       ...rawProps,
+      id,
       name: rawProps.name.trim(),
       bio: rawProps.bio?.trim(),
     };

@@ -87,6 +87,25 @@ describe("Mobile HttpClient", () => {
     expect(client.get("/v1/slow")).rejects.toThrow(ApiTimeoutError);
   });
 
+  it("should throw ApiTimeoutError when body stream aborts during json parsing", async () => {
+    globalThis.fetch = mock(
+      async () =>
+        ({
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          json: async () => {
+            const err = new Error("The operation was aborted");
+            err.name = "AbortError";
+            throw err;
+          },
+        }) as unknown as Response,
+    ) as unknown as typeof fetch;
+
+    const client = new HttpClient({ baseUrl });
+    expect(client.get("/v1/stalled-body")).rejects.toThrow(ApiTimeoutError);
+  });
+
   it("should throw ApiNetworkError on connection failures", async () => {
     globalThis.fetch = mock(async () => {
       throw new TypeError("Failed to fetch (network disconnected)");

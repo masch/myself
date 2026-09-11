@@ -1,4 +1,9 @@
-import type { DateTime, EntityId, SupportedLocale } from "../../../primitives";
+import {
+  entityIdSchema,
+  type DateTime,
+  type EntityId,
+  type SupportedLocale,
+} from "../../../primitives";
 
 export interface ReadingTranslation {
   title: string;
@@ -23,19 +28,19 @@ export class Reading {
   public readonly props: ReadingProps;
 
   constructor(rawProps: ReadingProps) {
-    if (!rawProps.id) {
-      throw new Error("Invalid ID format");
-    }
-    if (!rawProps.authorId) {
-      throw new Error("Author ID is required");
-    }
+    const id = entityIdSchema.parse(rawProps.id);
+    const authorId = entityIdSchema.parse(rawProps.authorId);
     if (
       !rawProps.translations?.es?.title ||
       !rawProps.translations?.es?.content
     ) {
       throw new Error("Spanish translation (title and content) is required");
     }
-    this.props = rawProps;
+    this.props = {
+      ...rawProps,
+      id,
+      authorId,
+    };
   }
 
   get id(): EntityId {
