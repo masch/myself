@@ -270,7 +270,7 @@ mobile-firebase-distribute: ## Distribute Android APK via Firebase App Distribut
 	cd $(MOBILE_DIR) && bun run firebase appdistribution:distribute "$(abspath $(FIREBASE_APK_PATH))" \
 		--app "$(FIREBASE_TARGET_APP_ID)" \
 		--groups "$(GROUPS)" \
-		--release-notes "$$FIREBASE_RELEASE_NOTES" \
+		--release-notes "$(FIREBASE_RELEASE_NOTES)" \
 		--non-interactive
 
 .PHONY: stg-mobile-firebase-distribute-dev
