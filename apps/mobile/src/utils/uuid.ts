@@ -1,3 +1,4 @@
+import "@/infrastructure/crypto/polyfill";
 import { generateEntityId } from "@myself/shared";
 
 /**

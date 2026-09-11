@@ -180,3 +180,20 @@ mock.module("@react-native-community/netinfo", () => ({
   default: mockNetInfo,
   ...mockNetInfo,
 }));
+
+mock.module("expo-crypto", () => ({
+  randomUUID: () => "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+  getRandomValues: <T extends ArrayBufferView | null>(array: T): T => {
+    if (array) {
+      const bytes = new Uint8Array(
+        array.buffer,
+        array.byteOffset,
+        array.byteLength,
+      );
+      for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = (Math.random() * 256) | 0;
+      }
+    }
+    return array;
+  },
+}));

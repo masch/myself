@@ -1,4 +1,6 @@
+import "@/infrastructure/crypto/polyfill";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
+
 import {
   ThemeProvider,
   DarkTheme,
