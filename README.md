@@ -1,6 +1,6 @@
-# Welcome to your Expo app 👋
+# Myself
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A cross-platform mindfulness and meditation monorepo built with **Expo (React Native)**, **Hono on Cloudflare Workers**, and **Turso (libSQL)**.
 
 ## Get started
 
@@ -37,6 +37,16 @@ You can start developing by editing the files inside the **app** directory. This
 - To run the full quality check suite in parallel: `make check`
 - To auto-format the whole codebase: `make fix-format` (or `make fix`)
 - To auto-format git-staged files: `make fix-format-staged`
+
+---
+
+## Environments & Deployed URLs
+
+| Environment       | Mobile Web (EAS)                                             | Backend API (Cloudflare)                                                          | Interactive Docs (Scalar)                                                                   | Health & Spec                                                                                                                                                 |
+| :---------------- | :----------------------------------------------------------- | :-------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **🚀 Production** | [myself.expo.app](https://myself.expo.app)                   | [myself-api](https://myself-api.impenetrable-connect.workers.dev)                 | [Interactive Docs ↗](https://myself-api.impenetrable-connect.workers.dev/reference)         | [Health](https://myself-api.impenetrable-connect.workers.dev/health) · [OpenAPI 3.1](https://myself-api.impenetrable-connect.workers.dev/doc)                 |
+| **🧪 Staging**    | [myself--staging.expo.app](https://myself--staging.expo.app) | [myself-api-staging](https://myself-api-staging.impenetrable-connect.workers.dev) | [Interactive Docs ↗](https://myself-api-staging.impenetrable-connect.workers.dev/reference) | [Health](https://myself-api-staging.impenetrable-connect.workers.dev/health) · [OpenAPI 3.1](https://myself-api-staging.impenetrable-connect.workers.dev/doc) |
+| **💻 Local Dev**  | [`localhost:8081`](http://localhost:8081)                    | [`localhost:8787`](http://localhost:8787)                                         | [Interactive Docs ↗](http://localhost:8787/reference)                                       | [Health](http://localhost:8787/health) · [OpenAPI 3.1](http://localhost:8787/doc)                                                                             |
 
 ---
 

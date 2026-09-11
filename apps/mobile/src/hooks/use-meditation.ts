@@ -1,4 +1,5 @@
 import { MEDITATION_SOUNDS } from "@/constants/sounds";
+import { appConfig } from "@/infrastructure/config";
 import { MeditationSessionService } from "@/services/meditation-session";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import { useCallback, useEffect, useState } from "react";
@@ -41,6 +42,18 @@ export function getTargetDate(now: Date, hour: number, minute: number): Date {
 export function useMeditation() {
   const singleGongPlayer = useAudioPlayer(MEDITATION_SOUNDS.SINGLE_GONG);
   const tripleGongPlayer = useAudioPlayer(MEDITATION_SOUNDS.TRIPLE_GONG);
+
+  // Sync player volume with appConfig
+  useEffect(() => {
+    if (singleGongPlayer) {
+      // eslint-disable-next-line react-hooks/immutability -- AudioPlayer is a native SharedObject handle with mutable volume
+      singleGongPlayer.volume = appConfig.meditationGongVolume;
+    }
+    if (tripleGongPlayer) {
+      // eslint-disable-next-line react-hooks/immutability -- AudioPlayer is a native SharedObject handle with mutable volume
+      tripleGongPlayer.volume = appConfig.meditationGongVolume;
+    }
+  }, [singleGongPlayer, tripleGongPlayer]);
 
   const [status, setStatus] = useState<
     "idle" | "running" | "paused" | "completed"

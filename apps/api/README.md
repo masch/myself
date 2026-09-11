@@ -4,6 +4,16 @@ Backend service built with **Hono** running on **Cloudflare Workers** (V8 isolat
 
 ---
 
+## Deployed Environments
+
+| Environment    | Base API URL                                                  | Interactive Testing & Docs (Scalar)                                                 | Health Check                                                                  | OpenAPI 3.1 Spec                                                        |
+| :------------- | :------------------------------------------------------------ | :---------------------------------------------------------------------------------- | :---------------------------------------------------------------------------- | :---------------------------------------------------------------------- |
+| **Local**      | `http://localhost:8787`                                       | [/reference](http://localhost:8787/reference)                                       | [/health](http://localhost:8787/health)                                       | [/doc](http://localhost:8787/doc)                                       |
+| **Staging**    | `https://myself-api-staging.impenetrable-connect.workers.dev` | [/reference](https://myself-api-staging.impenetrable-connect.workers.dev/reference) | [/health](https://myself-api-staging.impenetrable-connect.workers.dev/health) | [/doc](https://myself-api-staging.impenetrable-connect.workers.dev/doc) |
+| **Production** | `https://myself-api.impenetrable-connect.workers.dev`         | [/reference](https://myself-api.impenetrable-connect.workers.dev/reference)         | [/health](https://myself-api.impenetrable-connect.workers.dev/health)         | [/doc](https://myself-api.impenetrable-connect.workers.dev/doc)         |
+
+---
+
 ## 1. Architecture Overview
 
 - **Routing & HTTP Layer**: Hono router (`src/routes/`) enforcing `@hono/zod-validator` and standard `ApiResponse<T>` envelopes. Handlers do NOT contain raw SQL or direct DB queries.

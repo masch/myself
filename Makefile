@@ -206,7 +206,9 @@ mobile-expo-whoami: ## Show current Expo CLI authenticated user
 
 # ── Mobile EAS Deploy ────────────────────────
 
-EAS_CLI_VERSION ?= 20.1.0
+EAS_CLI_VERSION    ?= 20.1.0
+API_STAGING_URL    ?= https://myself-api-staging.impenetrable-connect.workers.dev
+API_PRODUCTION_URL ?= https://myself-api.impenetrable-connect.workers.dev
 
 .PHONY: mobile-eas-whoami
 mobile-eas-whoami: ## Check current EAS authenticated account
@@ -226,7 +228,7 @@ stg-mobile-deploy: mobile-eas-whoami ## Deploy mobile web build to EAS Hosting (
 
 .PHONY: prd-mobile-deploy
 prd-mobile-deploy: mobile-eas-whoami ## Deploy mobile web build to EAS Hosting (production)
-	cd $(MOBILE_DIR) && bun run export-web --clear && bunx eas-cli@$(EAS_CLI_VERSION) deploy --prod
+	cd $(MOBILE_DIR) && export APP_ENV=production APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_PUBLIC_API_URL="$(API_PRODUCTION_URL)" && bun run export-web --clear && bunx eas-cli@$(EAS_CLI_VERSION) deploy --prod
 
 .PHONY: mobile-eas-build-android-preview-local
 mobile-eas-build-android-preview-local: mobile-eas-whoami ## Build Android APK locally with EAS CLI
@@ -332,9 +334,9 @@ api-db-migrate-remote: ## Apply Drizzle migrations to remote database
 api-db-seed-remote: ## Seed default data in remote Turso database (idempotent)
 	@url="$${TURSO_DATABASE_URL:-}"; token="$${TURSO_AUTH_TOKEN:-}"; \
 	if [ -n "$$url" ] && [ -n "$$token" ]; then \
-		cd $(API_DIR) && TURSO_DATABASE_URL="$$url" TURSO_AUTH_TOKEN="$$token" bun run src/infrastructure/persistence/seed.ts; \
+		cd $(API_DIR) && ENVIRONMENT="$${ENVIRONMENT:-development}" TURSO_DATABASE_URL="$$url" TURSO_AUTH_TOKEN="$$token" bun run src/infrastructure/persistence/seed.ts; \
 	elif [ -z "$$url" ] && [ -z "$$token" ] && [ -f $(API_DIR)/.dev.vars ]; then \
-		cd $(API_DIR) && bun --env-file=.dev.vars run src/infrastructure/persistence/seed.ts; \
+		cd $(API_DIR) && ENVIRONMENT="$${ENVIRONMENT:-development}" bun --env-file=.dev.vars run src/infrastructure/persistence/seed.ts; \
 	else \
 		echo "ERROR: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be set (or configured in $(API_DIR)/.dev.vars)"; \
 		exit 1; \
@@ -343,6 +345,41 @@ api-db-seed-remote: ## Seed default data in remote Turso database (idempotent)
 .PHONY: api-db-studio
 api-db-studio: ## Launch Drizzle Studio web UI
 	cd $(API_DIR) && if [ -f .dev.vars ]; then bun --env-file=.dev.vars drizzle-kit studio; else bun drizzle-kit studio; fi
+
+# ── Database Shell Targets ───────────────────
+
+TURSO_DB_PRODUCTION ?= myself
+TURSO_DB_STAGING    ?= myself-staging
+
+.PHONY: api-db-shell
+api-db-shell: api-db-shell-local ## Open interactive SQL shell to local SQLite database (alias for api-db-shell-local)
+
+.PHONY: api-db-shell-local
+api-db-shell-local: ## Open interactive SQL shell to local SQLite database
+	@if command -v sqlite3 >/dev/null 2>&1; then \
+		sqlite3 $(API_DIR)/local.db; \
+	elif command -v turso >/dev/null 2>&1; then \
+		XDG_CONFIG_HOME= turso db shell file:$(API_DIR)/local.db; \
+	else \
+		echo "ERROR: Neither sqlite3 nor turso CLI found on PATH"; exit 1; \
+	fi
+
+.PHONY: stg-api-db-shell
+stg-api-db-shell: ## Open interactive Turso shell to staging database
+	@if ! command -v turso >/dev/null 2>&1; then echo "ERROR: turso CLI not found. Run: curl -sSfL https://get.tur.so/install.sh | bash"; exit 1; fi
+	XDG_CONFIG_HOME= turso db shell $(TURSO_DB_STAGING)
+
+.PHONY: api-db-shell-staging
+api-db-shell-staging: stg-api-db-shell ## Alias for stg-api-db-shell
+
+.PHONY: prd-api-db-shell
+prd-api-db-shell: ## Open interactive Turso shell to production database
+	@if ! command -v turso >/dev/null 2>&1; then echo "ERROR: turso CLI not found. Run: curl -sSfL https://get.tur.so/install.sh | bash"; exit 1; fi
+	XDG_CONFIG_HOME= turso db shell $(TURSO_DB_PRODUCTION)
+
+.PHONY: api-db-shell-production
+api-db-shell-production: prd-api-db-shell ## Alias for prd-api-db-shell
+
 
 .PHONY: prd-api-deploy
 prd-api-deploy: ## Deploy API to Cloudflare Workers (production)
