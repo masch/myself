@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
   APP_NAME,
-  createApiClient,
   createAuthorSchema,
   createReadingSchema,
   createUserSchema,
@@ -178,12 +177,6 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
 
       expect(() => entityIdSchema.parse("invalid-id")).toThrow();
       expect(() => entityIdSchema.parse("")).toThrow();
-    });
-  });
-
-  describe("RPC Client Factory", () => {
-    it("exports createApiClient function", () => {
-      expect(typeof createApiClient).toBe("function");
     });
   });
 

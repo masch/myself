@@ -89,8 +89,16 @@ check-format-staged: ## Check code formatting on staged files using prettier
 	@git diff --cached --name-only -z --diff-filter=d 2>/dev/null | xargs -0 -r bun prettier --check --ignore-unknown --
 
 .PHONY: check-doctor
-check-doctor: ## Run Expo Doctor to verify dependency compatibility
+check-doctor: ## Run Expo Doctor to verify project health (skips remote dependency version check)
+	cd $(MOBILE_DIR) && APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_DOCTOR_SKIP_DEPENDENCY_VERSION_CHECK=1 bunx expo-doctor
+
+.PHONY: check-doctor-strict
+check-doctor-strict: ## Run Expo Doctor with strict remote dependency version check
 	cd $(MOBILE_DIR) && APP_VERSION_NAME="$(APP_VERSION_NAME)" bunx expo-doctor
+
+.PHONY: ci-weekly-deps
+ci-weekly-deps: ## Run weekly dependencies update and open a pull request if changes are detected
+	@./scripts/ci-weekly-deps.sh
 
 .PHONY: check-static
 check-static: check-lint check-types ## Run lint + typecheck
@@ -324,9 +332,9 @@ api-db-migrate-remote: ## Apply Drizzle migrations to remote database
 api-db-seed-remote: ## Seed default data in remote Turso database (idempotent)
 	@url="$${TURSO_DATABASE_URL:-}"; token="$${TURSO_AUTH_TOKEN:-}"; \
 	if [ -n "$$url" ] && [ -n "$$token" ]; then \
-		cd $(API_DIR) && TURSO_DATABASE_URL="$$url" TURSO_AUTH_TOKEN="$$token" bun run scripts/seed.ts; \
+		cd $(API_DIR) && TURSO_DATABASE_URL="$$url" TURSO_AUTH_TOKEN="$$token" bun run src/infrastructure/persistence/seed.ts; \
 	elif [ -z "$$url" ] && [ -z "$$token" ] && [ -f $(API_DIR)/.dev.vars ]; then \
-		cd $(API_DIR) && bun --env-file=.dev.vars run scripts/seed.ts; \
+		cd $(API_DIR) && bun --env-file=.dev.vars run src/infrastructure/persistence/seed.ts; \
 	else \
 		echo "ERROR: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be set (or configured in $(API_DIR)/.dev.vars)"; \
 		exit 1; \

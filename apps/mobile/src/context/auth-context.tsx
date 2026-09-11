@@ -7,7 +7,12 @@ import {
   type ReactNode,
 } from "react";
 import { useSQLiteContext } from "expo-sqlite";
-import { getUsers, getUserById, createUser, type User } from "@/db/database";
+import {
+  getUsers,
+  getUserById,
+  createUser,
+  type User,
+} from "@/infrastructure/persistence/database";
 
 interface AuthContextType {
   currentUser: User | null;

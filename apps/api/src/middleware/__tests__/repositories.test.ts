@@ -3,9 +3,9 @@ import { Hono } from "hono";
 import type { AppEnv } from "../../types";
 import { AppConfig } from "../../config";
 import { createRepositories, repositoriesMiddleware } from "../repositories";
-import { SqliteAuthorRepository } from "../../adapters/persistence/sqlite/sqlite-author.repository";
-import { SqliteReadingRepository } from "../../adapters/persistence/sqlite/sqlite-reading.repository";
-import { SqliteUserRepository } from "../../adapters/persistence/sqlite/sqlite-user.repository";
+import { SqliteAuthorRepository } from "../../infrastructure/persistence/repositories/sqlite-author.repository";
+import { SqliteReadingRepository } from "../../infrastructure/persistence/repositories/sqlite-reading.repository";
+import { SqliteUserRepository } from "../../infrastructure/persistence/repositories/sqlite-user.repository";
 
 describe("repositoriesMiddleware & createRepositories Unit Tests", () => {
   it("creates Drizzle repositories when database url is local file", () => {

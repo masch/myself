@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useSQLiteContext } from "expo-sqlite";
-import { SyncEngine } from "@/core/sync/sync-engine";
+import { SyncEngine } from "@/infrastructure/sync/sync-engine";
 import {
   getAuthors as dbGetAuthors,
   getAuthorById as dbGetAuthorById,
@@ -8,7 +8,7 @@ import {
   updateAuthor as dbUpdateAuthor,
   deleteAuthor as dbDeleteAuthor,
   type Author,
-} from "@/db/database";
+} from "@/infrastructure/persistence/database";
 
 export interface CreateAuthorInput {
   name: string;

@@ -3,8 +3,8 @@ import {
   type EntityId,
   DateTime,
   generateEntityId,
+  User,
 } from "@myself/shared";
-import { User } from "../domain";
 import type {
   UserRepository,
   ListUsersParams,

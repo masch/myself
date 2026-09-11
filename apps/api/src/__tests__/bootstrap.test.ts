@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { AppConfig, getProcessEnv } from "../config";
 import { createApp } from "../app";
-import { seedFromConfig } from "../db/seed";
+import { seedFromConfig } from "../infrastructure/persistence/seed";
 import entrypoint, { getDefaultApp, resolveRuntimeEnv } from "../index";
 
 import { existsSync, rmSync } from "node:fs";

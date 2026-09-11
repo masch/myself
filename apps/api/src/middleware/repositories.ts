@@ -1,15 +1,15 @@
 import { createMiddleware } from "hono/factory";
 import type { AppEnv, ApiBindings } from "../types";
-import { createDb } from "../db/client";
+import { createDb } from "../infrastructure/persistence/client";
 import type { AppConfig } from "../config";
 import type {
   AuthorRepository,
   ReadingRepository,
   UserRepository,
 } from "../ports";
-import { SqliteAuthorRepository } from "../adapters/persistence/sqlite/sqlite-author.repository";
-import { SqliteReadingRepository } from "../adapters/persistence/sqlite/sqlite-reading.repository";
-import { SqliteUserRepository } from "../adapters/persistence/sqlite/sqlite-user.repository";
+import { SqliteAuthorRepository } from "../infrastructure/persistence/repositories/sqlite-author.repository";
+import { SqliteReadingRepository } from "../infrastructure/persistence/repositories/sqlite-reading.repository";
+import { SqliteUserRepository } from "../infrastructure/persistence/repositories/sqlite-user.repository";
 
 export interface RepositoriesDependencies {
   authorRepo: AuthorRepository;

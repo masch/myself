@@ -16,9 +16,9 @@
       "types": "./src/config.ts",
       "import": "./src/config.ts"
     },
-    "./src/db/test-db": {
-      "types": "./src/db/test-db.ts",
-      "import": "./src/db/test-db.ts"
+    "./src/infrastructure/persistence/test-db": {
+      "types": "./src/infrastructure/persistence/test-db.ts",
+      "import": "./src/infrastructure/persistence/test-db.ts"
     }
   },
   "scripts": {
@@ -31,10 +31,10 @@
     "lint": "eslint .",
     "test": "ENVIRONMENT=\"test\" bun test",
     "test:e2e": "ENVIRONMENT=\"test\" bun test src/index.test.ts src/routes/__tests__/",
-    "test:unit": "ENVIRONMENT=\"test\" bun test src/__tests__/ src/lib/__tests__/ src/errors/__tests__/ src/middleware/__tests__/ src/services/__tests__/ src/db/__tests__/",
+    "test:unit": "ENVIRONMENT=\"test\" bun test src/__tests__/ src/lib/__tests__/ src/errors/__tests__/ src/middleware/__tests__/ src/services/__tests__/ src/infrastructure/persistence/__tests__/",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "ENVIRONMENT=\"${ENVIRONMENT:-development}\" bun run scripts/seed.ts",
+    "db:seed": "ENVIRONMENT=\"${ENVIRONMENT:-development}\" bun run src/infrastructure/persistence/seed.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

@@ -5,8 +5,8 @@ import {
   type EntityId,
   generateEntityId,
   type ReadingTranslationsMap,
+  Reading,
 } from "@myself/shared";
-import { Reading } from "../domain";
 import type {
   ListReadingsParams,
   ListReadingsResult,

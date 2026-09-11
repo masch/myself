@@ -1,14 +1,20 @@
 export {
-  type AuthorRepositoryPort as AuthorRepository,
-  type ReadingRepositoryPort as ReadingRepository,
-  type UserRepositoryPort as UserRepository,
+  type AuthorRepository,
+  type AuthorRepositoryPort,
   type ListAuthorsParams,
   type ListAuthorsResult,
+} from "./author.repository";
+
+export {
+  type ReadingRepository,
+  type ReadingRepositoryPort,
   type ListReadingsParams,
   type ListReadingsResult,
+} from "./reading.repository";
+
+export {
+  type UserRepository,
+  type UserRepositoryPort,
   type ListUsersParams,
   type ListUsersResult,
-} from "@myself/shared";
-export type { AuthorRepositoryPort } from "@myself/shared";
-export type { ReadingRepositoryPort } from "@myself/shared";
-export type { UserRepositoryPort } from "@myself/shared";
+} from "./user.repository";

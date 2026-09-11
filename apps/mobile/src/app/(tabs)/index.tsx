@@ -4,10 +4,10 @@ import { View, StyleSheet, ScrollView, Text, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTasks } from "@/hooks/use-tasks";
-import { type TaskItem } from "@/db/database";
+import { type TaskItem } from "@/infrastructure/persistence/database";
 import { AppButton, TaskRow } from "@/components";
 import { colors } from "@/theme/colors";
-import { appErrorHandler } from "@/core/errors/mobile-error-handler";
+import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();

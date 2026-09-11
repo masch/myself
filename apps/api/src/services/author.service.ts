@@ -1,5 +1,9 @@
-import { DateTime, type EntityId, generateEntityId } from "@myself/shared";
-import { Author } from "../domain";
+import {
+  DateTime,
+  type EntityId,
+  generateEntityId,
+  Author,
+} from "@myself/shared";
 import type {
   AuthorRepository,
   ListAuthorsParams,

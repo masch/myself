@@ -8,8 +8,15 @@ The Meditation Session capability orchestrates timed meditation sequences across
 
 ### REQ-1: Domain Contract Decoupling
 
-- The presentation layer (`src/app/(tabs)/meditation.tsx`) and the custom hook (`src/hooks/use-meditation.ts`) SHALL interact exclusively with `IMeditationSessionService`.
+- The presentation layer (`src/app/(tabs)/meditation.tsx`) and the custom hook (`src/hooks/use-meditation.ts`) SHALL interact exclusively with `IMeditationSessionService` for session timing, audio, and foreground services.
+- The retrieval of meditation readings and logs in `src/app/(tabs)/meditation.tsx` SHALL interact exclusively with the new `useReadings` hook backed by `IReadingRepository` port, without direct access to `useSQLiteContext` or `src/db/database.ts`.
 - `SessionParams` SHALL accept `targetDate: Date` as the single source of truth.
+
+#### Scenario: Meditation screen reading catalog consumption
+
+- **Given** `MeditationScreen` renders the reading catalog
+- **When** displaying the list of readings or logging a completion
+- **Then** all data interactions SHALL execute through `useReadings`, completely decoupled from raw database calls.
 
 ### REQ-2: Android Background Execution (Doze Mode Immunity)
 

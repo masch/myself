@@ -11,7 +11,7 @@ import {
 import { createApp } from "./index";
 import { AppConfig } from "./config";
 import { createRepositories } from "./middleware/repositories";
-import { createTestRepositories } from "./db/test-db";
+import { createTestRepositories } from "./infrastructure/persistence/test-db";
 
 describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", () => {
   let app: ReturnType<typeof createApp>;
