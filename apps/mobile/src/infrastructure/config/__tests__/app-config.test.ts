@@ -43,6 +43,18 @@ describe("MobileConfig", () => {
       meditationGongVolume: -0.2,
     });
     expect(clampedLow.meditationGongVolume).toBe(0.0);
+
+    const nonFinite = new MobileConfig({
+      meditationGongVolume: Infinity,
+    });
+    expect(nonFinite.meditationGongVolume).toBe(0.9);
+  });
+
+  it("rejects malformed env volume values and falls back to default", () => {
+    const config = MobileConfig.fromEnv({
+      EXPO_PUBLIC_MEDITATION_GONG_VOLUME: "0.5invalid",
+    });
+    expect(config.meditationGongVolume).toBe(0.9);
   });
 
   it("parses staging environment from env correctly", () => {

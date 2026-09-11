@@ -39,7 +39,7 @@ export class MobileConfig {
     this.apiTimeoutMs = props.apiTimeoutMs ?? DEFAULT_TIMEOUT_MS;
 
     const parsedVolume = props.meditationGongVolume;
-    if (typeof parsedVolume === "number" && !isNaN(parsedVolume)) {
+    if (typeof parsedVolume === "number" && Number.isFinite(parsedVolume)) {
       this.meditationGongVolume = Math.max(0, Math.min(1, parsedVolume));
     } else {
       this.meditationGongVolume = DEFAULT_GONG_VOLUME;
@@ -59,9 +59,9 @@ export class MobileConfig {
       ? (rawEnv as Environment)
       : "development";
 
-    const envVolume = env.EXPO_PUBLIC_MEDITATION_GONG_VOLUME
-      ? parseFloat(env.EXPO_PUBLIC_MEDITATION_GONG_VOLUME)
-      : undefined;
+    const rawVolume = env.EXPO_PUBLIC_MEDITATION_GONG_VOLUME?.trim();
+    const parsed = rawVolume ? Number(rawVolume) : NaN;
+    const envVolume = Number.isFinite(parsed) ? parsed : undefined;
 
     return new MobileConfig({
       apiUrl: env.EXPO_PUBLIC_API_URL,

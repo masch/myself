@@ -1,6 +1,6 @@
-# Welcome to your Expo app 👋
+# Myself
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A cross-platform mindfulness and meditation monorepo built with **Expo (React Native)**, **Hono on Cloudflare Workers**, and **Turso (libSQL)**.
 
 ## Get started
 
@@ -42,23 +42,11 @@ You can start developing by editing the files inside the **app** directory. This
 
 ## Environments & Deployed URLs
 
-| Environment    | Component                      | URL                                                                                                                                            | Notes                                    |
-| :------------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------- |
-| **Staging**    | Mobile Web                     | [https://myself--staging.expo.app](https://myself--staging.expo.app)                                                                           | EAS Hosting alias                        |
-| **Staging**    | Backend API                    | [https://myself-api-staging.impenetrable-connect.workers.dev](https://myself-api-staging.impenetrable-connect.workers.dev)                     | Cloudflare Worker                        |
-| **Staging**    | API Interactive Testing & Docs | [https://myself-api-staging.impenetrable-connect.workers.dev/reference](https://myself-api-staging.impenetrable-connect.workers.dev/reference) | Scalar Interactive API Explorer & Tester |
-| **Staging**    | API Health Check               | [https://myself-api-staging.impenetrable-connect.workers.dev/health](https://myself-api-staging.impenetrable-connect.workers.dev/health)       | Uptime & Environment verification        |
-| **Staging**    | OpenAPI Spec                   | [https://myself-api-staging.impenetrable-connect.workers.dev/doc](https://myself-api-staging.impenetrable-connect.workers.dev/doc)             | OpenAPI 3.1 JSON Schema                  |
-| **Production** | Mobile Web                     | [https://myself.expo.app](https://myself.expo.app)                                                                                             | EAS Hosting production                   |
-| **Production** | Backend API                    | [https://myself-api.impenetrable-connect.workers.dev](https://myself-api.impenetrable-connect.workers.dev)                                     | Cloudflare Worker                        |
-| **Production** | API Interactive Testing & Docs | [https://myself-api.impenetrable-connect.workers.dev/reference](https://myself-api.impenetrable-connect.workers.dev/reference)                 | Scalar Interactive API Explorer & Tester |
-| **Production** | API Health Check               | [https://myself-api.impenetrable-connect.workers.dev/health](https://myself-api.impenetrable-connect.workers.dev/health)                       | Uptime & Environment verification        |
-| **Production** | OpenAPI Spec                   | [https://myself-api.impenetrable-connect.workers.dev/doc](https://myself-api.impenetrable-connect.workers.dev/doc)                             | OpenAPI 3.1 JSON Schema                  |
-| **Local Dev**  | Mobile Web                     | `http://localhost:8081`                                                                                                                        | Expo web dev server (`make mobile-web`)  |
-| **Local Dev**  | Backend API                    | `http://localhost:8787`                                                                                                                        | Hono dev server (`make api-dev`)         |
-| **Local Dev**  | API Interactive Testing & Docs | [http://localhost:8787/reference](http://localhost:8787/reference)                                                                             | Local Scalar Interactive Reference       |
-| **Local Dev**  | API Health Check               | [http://localhost:8787/health](http://localhost:8787/health)                                                                                   | Local health status                      |
-| **Local Dev**  | OpenAPI Spec                   | [http://localhost:8787/doc](http://localhost:8787/doc)                                                                                         | Local OpenAPI 3.1 JSON                   |
+| Environment       | Mobile Web (EAS)                                             | Backend API (Cloudflare)                                                          | Interactive Docs (Scalar)                                                                   | Health & Spec                                                                                                                                                 |
+| :---------------- | :----------------------------------------------------------- | :-------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **🚀 Production** | [myself.expo.app](https://myself.expo.app)                   | [myself-api](https://myself-api.impenetrable-connect.workers.dev)                 | [Interactive Docs ↗](https://myself-api.impenetrable-connect.workers.dev/reference)         | [Health](https://myself-api.impenetrable-connect.workers.dev/health) · [OpenAPI 3.1](https://myself-api.impenetrable-connect.workers.dev/doc)                 |
+| **🧪 Staging**    | [myself--staging.expo.app](https://myself--staging.expo.app) | [myself-api-staging](https://myself-api-staging.impenetrable-connect.workers.dev) | [Interactive Docs ↗](https://myself-api-staging.impenetrable-connect.workers.dev/reference) | [Health](https://myself-api-staging.impenetrable-connect.workers.dev/health) · [OpenAPI 3.1](https://myself-api-staging.impenetrable-connect.workers.dev/doc) |
+| **💻 Local Dev**  | [`localhost:8081`](http://localhost:8081)                    | [`localhost:8787`](http://localhost:8787)                                         | [Interactive Docs ↗](http://localhost:8787/reference)                                       | [Health](http://localhost:8787/health) · [OpenAPI 3.1](http://localhost:8787/doc)                                                                             |
 
 ---
 
