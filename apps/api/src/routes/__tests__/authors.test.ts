@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import type { PaginatedResponse, AuthorDto } from "@myself/shared";
 import type { AppEnv } from "../../types";
 import { repositoriesMiddleware } from "../../middleware/repositories";
-import { createTestRepositories } from "../../db/test-db";
+import { createTestRepositories } from "../../infrastructure/persistence/test-db";
 import { authorsRoute } from "../authors";
 
 describe("Authors API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {

@@ -6,7 +6,7 @@ import {
   toggleTask as dbToggleTask,
   deleteTask as dbDeleteTask,
   type TaskItem,
-} from "@/db/database";
+} from "@/infrastructure/persistence/database";
 import { useAuth } from "@/context/auth-context";
 
 export interface CreateTaskInput {

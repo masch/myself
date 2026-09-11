@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import type { EntityId } from "@myself/shared";
 import { ReadingService } from "../reading.service";
 import { BadRequestError } from "../../errors";
-import { SqliteReadingRepository } from "../../adapters/persistence/sqlite/sqlite-reading.repository";
-import { SqliteAuthorRepository } from "../../adapters/persistence/sqlite/sqlite-author.repository";
+import { SqliteReadingRepository } from "../../infrastructure/persistence/repositories/sqlite-reading.repository";
+import { SqliteAuthorRepository } from "../../infrastructure/persistence/repositories/sqlite-author.repository";
 import { AuthorService } from "../author.service";
-import { createTestDatabase } from "../../db/test-db";
+import { createTestDatabase } from "../../infrastructure/persistence/test-db";
 
 describe("ReadingService Domain Application Service Unit Tests", () => {
   let readingRepo: SqliteReadingRepository;

@@ -8,9 +8,9 @@ import {
 } from "@myself/shared";
 import { createApp } from "@myself/api/src/app";
 import { AppConfig } from "@myself/api/src/config";
-import { createTestRepositories } from "@myself/api/src/db/test-db";
+import { createTestRepositories } from "@myself/api/src/infrastructure/persistence/test-db";
 import { SqliteReadingRepository } from "../infrastructure/sqlite-reading.repository";
-import { SyncEngine } from "../../../core/sync/sync-engine";
+import { SyncEngine } from "../../../infrastructure/sync/sync-engine";
 import { HttpReadingApiAdapter } from "../infrastructure/http-reading-api.adapter";
 import { Reading } from "@myself/shared";
 

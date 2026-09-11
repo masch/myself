@@ -3,12 +3,12 @@ import { Stack, router, useFocusEffect } from "expo-router";
 import { View, StyleSheet, ScrollView, Text } from "react-native";
 import { Image } from "expo-image";
 import { useReadings } from "@/hooks/use-readings";
-import { type MeditationReadingWithAuthor } from "@/db/database";
+import { type MeditationReadingWithAuthor } from "@/infrastructure/persistence/database";
 import { AppButton, IconButton } from "@/components";
 import { ReadingCard } from "@/features/readings/components/reading-card";
 import { confirmDelete } from "@/features/readings/confirm-delete";
 import { colors } from "@/theme/colors";
-import { appErrorHandler } from "@/core/errors/mobile-error-handler";
+import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
 
 export default function ReadingsScreen() {
   const {

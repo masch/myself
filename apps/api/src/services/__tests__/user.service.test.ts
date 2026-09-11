@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { UserService, UserConflictError } from "../user.service";
-import { SqliteUserRepository } from "../../adapters/persistence/sqlite/sqlite-user.repository";
-import { createTestDatabase } from "../../db/test-db";
+import { SqliteUserRepository } from "../../infrastructure/persistence/repositories/sqlite-user.repository";
+import { createTestDatabase } from "../../infrastructure/persistence/test-db";
 
 describe("UserService Domain Application Service Unit Tests", () => {
   let repo: SqliteUserRepository;

@@ -9,14 +9,14 @@ import {
   DateTime,
 } from "@myself/shared";
 import { SqliteReadingRepository } from "../infrastructure/sqlite-reading.repository";
-import { SyncEngine } from "@/core/sync/sync-engine";
+import { SyncEngine } from "@/infrastructure/sync/sync-engine";
 import { generateUUID } from "@/utils/uuid";
 import {
   getAllReadings,
   getReadingTranslations as dbGetReadingTranslations,
   type MeditationReadingTranslation,
   type ReadingLog,
-} from "@/db/database";
+} from "@/infrastructure/persistence/database";
 
 export interface UpdateReadingInput {
   id: EntityId;

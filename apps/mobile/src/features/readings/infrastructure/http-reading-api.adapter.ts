@@ -1,11 +1,11 @@
 import {
   Reading,
   DateTime,
-  createApiClient,
   type CreateReadingInput,
   type EntityId,
   type ReadingTranslationsMap,
 } from "@myself/shared";
+import { createApiClient } from "../../../infrastructure/http";
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -20,31 +20,18 @@ export interface RemoteReadingDto {
 }
 
 export class HttpReadingApiAdapter {
-  private readonly baseUrl: string;
   private client: ReturnType<typeof createApiClient>;
 
   constructor(
     baseUrl: string = process.env.EXPO_PUBLIC_API_URL ??
       "http://localhost:8787",
   ) {
-    this.baseUrl = baseUrl;
-    this.client = createApiClient(baseUrl);
+    this.client = createApiClient({ baseUrl, timeoutMs: REQUEST_TIMEOUT_MS });
   }
 
   async fetchReadings(): Promise<Reading[]> {
     try {
-      const res = await fetch(`${this.baseUrl}/v1/readings`, {
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
-      if (!res.ok) {
-        throw new Error(`Failed to fetch readings: ${res.statusText}`);
-      }
-
-      const json = (await res.json()) as {
-        items?: RemoteReadingDto[];
-        data?: { items?: RemoteReadingDto[] };
-      };
-      const items = json.items ?? json.data?.items ?? [];
+      const items = await this.client.readings.getAll();
 
       return items.map((item) => {
         const transMap: ReadingTranslationsMap = {
@@ -52,8 +39,8 @@ export class HttpReadingApiAdapter {
           en: item.translations?.en,
         };
 
-        const rawCreatedAt = item.createdAt ?? item.created_at ?? "";
-        const rawReadDates = item.readDates ?? item.read_dates ?? [];
+        const rawCreatedAt = item.createdAt ?? "";
+        const rawReadDates = item.readDates ?? [];
 
         return new Reading({
           id: item.id,
@@ -74,13 +61,7 @@ export class HttpReadingApiAdapter {
 
   async postReading(input: CreateReadingInput): Promise<boolean> {
     try {
-      const res = await fetch(`${this.baseUrl}/v1/readings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
-      return res.ok;
+      return await this.client.readings.create(input);
     } catch (error) {
       console.warn("[HttpReadingApiAdapter] postReading network error:", error);
       return false;
@@ -95,13 +76,10 @@ export class HttpReadingApiAdapter {
     },
   ): Promise<boolean> {
     try {
-      const res = await fetch(`${this.baseUrl}/v1/readings/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      return await this.client.readings.update(id as EntityId, {
+        authorId: input.authorId as EntityId | undefined,
+        translations: input.translations,
       });
-      return res.ok;
     } catch (error) {
       console.warn("[HttpReadingApiAdapter] putReading network error:", error);
       return false;
@@ -110,11 +88,7 @@ export class HttpReadingApiAdapter {
 
   async deleteReading(id: string): Promise<boolean> {
     try {
-      const res = await fetch(`${this.baseUrl}/v1/readings/${id}`, {
-        method: "DELETE",
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
-      return res.ok;
+      return await this.client.readings.delete(id as EntityId);
     } catch (error) {
       console.warn(
         "[HttpReadingApiAdapter] deleteReading network error:",
@@ -130,19 +104,11 @@ export class HttpReadingApiAdapter {
     bio?: string;
   }): Promise<string | null> {
     try {
-      const res = await fetch(`${this.baseUrl}/v1/authors`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: input.id,
-          name: input.name,
-          bio: input.bio,
-        }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      return await this.client.authors.create({
+        id: input.id as EntityId | undefined,
+        name: input.name,
+        bio: input.bio,
       });
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.data?.id ?? json.id ?? null;
     } catch (error) {
       console.warn("[HttpReadingApiAdapter] postAuthor network error:", error);
       return null;

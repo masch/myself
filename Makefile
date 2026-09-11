@@ -324,9 +324,9 @@ api-db-migrate-remote: ## Apply Drizzle migrations to remote database
 api-db-seed-remote: ## Seed default data in remote Turso database (idempotent)
 	@url="$${TURSO_DATABASE_URL:-}"; token="$${TURSO_AUTH_TOKEN:-}"; \
 	if [ -n "$$url" ] && [ -n "$$token" ]; then \
-		cd $(API_DIR) && TURSO_DATABASE_URL="$$url" TURSO_AUTH_TOKEN="$$token" bun run scripts/seed.ts; \
+		cd $(API_DIR) && TURSO_DATABASE_URL="$$url" TURSO_AUTH_TOKEN="$$token" bun run src/infrastructure/persistence/seed.ts; \
 	elif [ -z "$$url" ] && [ -z "$$token" ] && [ -f $(API_DIR)/.dev.vars ]; then \
-		cd $(API_DIR) && bun --env-file=.dev.vars run scripts/seed.ts; \
+		cd $(API_DIR) && bun --env-file=.dev.vars run src/infrastructure/persistence/seed.ts; \
 	else \
 		echo "ERROR: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be set (or configured in $(API_DIR)/.dev.vars)"; \
 		exit 1; \

@@ -5,13 +5,13 @@ import {
   DateTime,
   type PaginatedResponse,
   type UserDto,
+  User as UserDomain,
 } from "@myself/shared";
 import type { AppEnv } from "../../types";
 import type { RepositoriesDependencies } from "../../middleware/repositories";
 import { repositoriesMiddleware } from "../../middleware/repositories";
-import { createTestRepositories } from "../../db/test-db";
+import { createTestRepositories } from "../../infrastructure/persistence/test-db";
 import { handleApiError } from "../../errors";
-import { User as UserDomain } from "../../domain";
 import { usersRoute } from "../users";
 
 describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
