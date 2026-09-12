@@ -4,11 +4,13 @@ import { IosGongPlaybackStrategy } from "./ios-strategy";
 import type { FallbackAudioPlayer, IGongPlaybackStrategy } from "./types";
 import { WebGongPlaybackStrategy } from "./web-strategy";
 
-class LazyGongPlaybackService implements IGongPlaybackStrategy {
+export class LazyGongPlaybackService implements IGongPlaybackStrategy {
   private delegate: IGongPlaybackStrategy | null = null;
+  private currentPlatform: string | null = null;
 
   private getStrategy(): IGongPlaybackStrategy {
-    if (!this.delegate) {
+    if (!this.delegate || this.currentPlatform !== Platform.OS) {
+      this.currentPlatform = Platform.OS;
       if (Platform.OS === "android") {
         this.delegate = new AndroidGongPlaybackStrategy();
       } else if (Platform.OS === "ios") {

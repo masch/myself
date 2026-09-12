@@ -181,6 +181,26 @@ describe("Gong Playback Strategies", () => {
       await strategy.stopGong(player);
       expect(mockPause).toHaveBeenCalledTimes(1);
     });
+
+    it("handles null and undefined fallback players safely on stopGong", async () => {
+      const strategy = new IosGongPlaybackStrategy();
+      const mockPause = mock(() => {});
+      const throwingPlayer = {
+        play: mockPlay,
+        pause: () => {
+          throw new Error("iOS Pause error");
+        },
+        seekTo: mockSeekTo,
+      };
+      const validPlayer = {
+        play: mockPlay,
+        pause: mockPause,
+        seekTo: mockSeekTo,
+      };
+
+      await strategy.stopGong(null, undefined, throwingPlayer, validPlayer);
+      expect(mockPause).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("WebGongPlaybackStrategy", () => {
@@ -212,10 +232,30 @@ describe("Gong Playback Strategies", () => {
       await strategy.stopGong(player);
       expect(mockPause).toHaveBeenCalledTimes(1);
     });
+
+    it("handles null and undefined fallback players safely on stopGong", async () => {
+      const strategy = new WebGongPlaybackStrategy();
+      const mockPause = mock(() => {});
+      const throwingPlayer = {
+        play: mockPlay,
+        pause: () => {
+          throw new Error("Web Pause error");
+        },
+        seekTo: mockSeekTo,
+      };
+      const validPlayer = {
+        play: mockPlay,
+        pause: mockPause,
+        seekTo: mockSeekTo,
+      };
+
+      await strategy.stopGong(null, undefined, throwingPlayer, validPlayer);
+      expect(mockPause).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("LazyGongPlaybackService (Delegation)", () => {
-    it("delegates to platform strategy according to Platform.OS", async () => {
+    it("delegates to Android strategy and forwards variadic fallback players on stopGong", async () => {
       const originalOS = Platform.OS;
 
       try {
@@ -226,8 +266,55 @@ describe("Gong Playback Strategies", () => {
         await GongPlaybackService.playGong(1, player, 1.0);
         expect(mockMeditationSession.playAlarmSound).toHaveBeenCalled();
 
-        await GongPlaybackService.stopGong();
+        const mockPause1 = mock(() => {});
+        const mockPause2 = mock(() => {});
+        const p1 = { play: mockPlay, pause: mockPause1, seekTo: mockSeekTo };
+        const p2 = { play: mockPlay, pause: mockPause2, seekTo: mockSeekTo };
+
+        await GongPlaybackService.stopGong(p1, null, p2);
         expect(mockMeditationSession.stopAlarmSound).toHaveBeenCalled();
+        expect(mockPause1).toHaveBeenCalledTimes(1);
+        expect(mockPause2).toHaveBeenCalledTimes(1);
+      } finally {
+        Platform.OS = originalOS;
+      }
+    });
+
+    it("delegates to iOS strategy and forwards variadic fallback players on stopGong", async () => {
+      const originalOS = Platform.OS;
+
+      try {
+        Platform.OS = "ios";
+        await GongPlaybackService.preload(1);
+
+        const mockPause1 = mock(() => {});
+        const mockPause2 = mock(() => {});
+        const p1 = { play: mockPlay, pause: mockPause1, seekTo: mockSeekTo };
+        const p2 = { play: mockPlay, pause: mockPause2, seekTo: mockSeekTo };
+
+        await GongPlaybackService.stopGong(p1, undefined, p2);
+        expect(mockPause1).toHaveBeenCalledTimes(1);
+        expect(mockPause2).toHaveBeenCalledTimes(1);
+      } finally {
+        Platform.OS = originalOS;
+      }
+    });
+
+    it("delegates to Web strategy and forwards variadic fallback players on stopGong", async () => {
+      const originalOS = Platform.OS;
+
+      try {
+        Platform.OS = "web";
+        await GongPlaybackService.preload(1);
+
+        const mockPause1 = mock(() => {});
+        const mockPause2 = mock(() => {});
+        const p1 = { play: mockPlay, pause: mockPause1, seekTo: mockSeekTo };
+        const p2 = { play: mockPlay, pause: mockPause2, seekTo: mockSeekTo };
+
+        await GongPlaybackService.stopGong(p1, null, undefined, p2);
+        expect(mockPause1).toHaveBeenCalledTimes(1);
+        expect(mockPause2).toHaveBeenCalledTimes(1);
       } finally {
         Platform.OS = originalOS;
       }
