@@ -31,6 +31,12 @@ class LazyGongPlaybackService implements IGongPlaybackStrategy {
   ): Promise<void> {
     return this.getStrategy().playGong(source, fallbackPlayer, volume);
   }
+
+  stopGong(
+    ...fallbackPlayers: (FallbackAudioPlayer | null | undefined)[]
+  ): Promise<void> {
+    return this.getStrategy().stopGong(...fallbackPlayers);
+  }
 }
 
 export const GongPlaybackService: IGongPlaybackStrategy =

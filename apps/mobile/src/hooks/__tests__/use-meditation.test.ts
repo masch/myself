@@ -187,6 +187,7 @@ describe("useMeditation State Machine & Lifecycle", () => {
 
     await hookState.resetSession();
     expect(mockServiceStop).toHaveBeenCalledTimes(2);
+    expect(mockMeditationSession.stopAlarmSound).toHaveBeenCalled();
   });
 
   it("handles sound playback errors gracefully", async () => {
@@ -302,10 +303,12 @@ describe("useMeditation State Machine & Lifecycle", () => {
 
       // 3. Pause session when running -> sets status to paused and calls stopSession
       mockServiceStop.mockClear();
+      mockMeditationSession.stopAlarmSound.mockClear();
       hook.pauseSession();
       hook = runner.render();
       expect(hook.status).toBe("paused");
       expect(mockServiceStop).toHaveBeenCalled();
+      expect(mockMeditationSession.stopAlarmSound).toHaveBeenCalled();
 
       // 4. Resume session when paused -> sets status to running
       mockServiceStart.mockClear();
@@ -327,6 +330,19 @@ describe("useMeditation State Machine & Lifecycle", () => {
       hook = runner.render();
       expect(hook.status).toBe("running");
       expect(mockServiceStart).toHaveBeenCalled();
+    } finally {
+      runner.restore();
+    }
+  });
+
+  it("cleans up active gong playback on unmount", () => {
+    const runner = createHookRunner();
+    try {
+      runner.render();
+      const cleanup = runner.runEffects();
+      mockMeditationSession.stopAlarmSound.mockClear();
+      cleanup();
+      expect(mockMeditationSession.stopAlarmSound).toHaveBeenCalled();
     } finally {
       runner.restore();
     }

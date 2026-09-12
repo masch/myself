@@ -110,6 +110,21 @@ export function useMeditation() {
     }
   }, [tripleGongPlayer]);
 
+  const stopGong = useCallback(async () => {
+    try {
+      await GongPlaybackService.stopGong(singleGongPlayer, tripleGongPlayer);
+    } catch (err) {
+      console.warn("Failed to stop gong:", err);
+    }
+  }, [singleGongPlayer, tripleGongPlayer]);
+
+  // Cleanup active gong playback on unmount
+  useEffect(() => {
+    return () => {
+      void stopGong().catch(() => {});
+    };
+  }, [stopGong]);
+
   // Subscribe to platform-agnostic session completion events
   useEffect(() => {
     const handleCompletion = () => {
@@ -208,8 +223,9 @@ export function useMeditation() {
     if (status === "running") {
       setStatus("paused");
       void MeditationSessionService.stopSession().catch(() => {});
+      void stopGong().catch(() => {});
     }
-  }, [status]);
+  }, [status, stopGong]);
 
   const resumeSession = useCallback(() => {
     if (status === "paused") {
@@ -269,11 +285,12 @@ export function useMeditation() {
 
   const resetSession = useCallback(async () => {
     await MeditationSessionService.stopSession();
+    await stopGong();
     setStatus("idle");
     setElapsedSeconds(0);
     setCurrentMomentIndex(0);
     setHasAlarmTriggered(false);
-  }, []);
+  }, [stopGong]);
 
   return {
     status,
@@ -298,5 +315,6 @@ export function useMeditation() {
     resetSession,
     playSingleGong,
     playTripleGong,
+    stopGong,
   };
 }

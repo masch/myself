@@ -19,6 +19,7 @@ describe("Gong Playback Strategies", () => {
     mockPlay.mockClear();
     mockSeekTo.mockClear();
     mockMeditationSession.playAlarmSound.mockClear();
+    mockMeditationSession.stopAlarmSound.mockClear();
   });
 
   describe("AndroidGongPlaybackStrategy", () => {
@@ -111,6 +112,31 @@ describe("Gong Playback Strategies", () => {
       expect(mockPlay).toHaveBeenCalledTimes(1);
       expect(throwingSeekTo).toHaveBeenCalledWith(0);
     });
+
+    it("stops sound via stopAlarmSound and pauses fallback player", async () => {
+      const strategy = new AndroidGongPlaybackStrategy();
+      const mockPause = mock(() => {});
+      const player = { play: mockPlay, pause: mockPause, seekTo: mockSeekTo };
+
+      await strategy.stopGong(player);
+
+      expect(mockMeditationSession.stopAlarmSound).toHaveBeenCalledTimes(1);
+      expect(mockPause).toHaveBeenCalledTimes(1);
+    });
+
+    it("handles null/undefined players and pause errors gracefully", async () => {
+      const strategy = new AndroidGongPlaybackStrategy();
+      const throwingPlayer = {
+        play: mockPlay,
+        pause: () => {
+          throw new Error("Pause failed");
+        },
+        seekTo: mockSeekTo,
+      };
+
+      await strategy.stopGong(null, undefined, throwingPlayer);
+      expect(mockMeditationSession.stopAlarmSound).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("IosGongPlaybackStrategy", () => {
@@ -146,6 +172,15 @@ describe("Gong Playback Strategies", () => {
 
       expect(mockPlay).toHaveBeenCalledTimes(1);
     });
+
+    it("pauses fallback player on stopGong", async () => {
+      const strategy = new IosGongPlaybackStrategy();
+      const mockPause = mock(() => {});
+      const player = { play: mockPlay, pause: mockPause, seekTo: mockSeekTo };
+
+      await strategy.stopGong(player);
+      expect(mockPause).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("WebGongPlaybackStrategy", () => {
@@ -168,6 +203,15 @@ describe("Gong Playback Strategies", () => {
       const strategy = new WebGongPlaybackStrategy();
       await strategy.playGong(1, null, 0.8);
     });
+
+    it("pauses fallback player on stopGong", async () => {
+      const strategy = new WebGongPlaybackStrategy();
+      const mockPause = mock(() => {});
+      const player = { play: mockPlay, pause: mockPause, seekTo: mockSeekTo };
+
+      await strategy.stopGong(player);
+      expect(mockPause).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("LazyGongPlaybackService (Delegation)", () => {
@@ -181,6 +225,9 @@ describe("Gong Playback Strategies", () => {
         const player = createMockPlayer();
         await GongPlaybackService.playGong(1, player, 1.0);
         expect(mockMeditationSession.playAlarmSound).toHaveBeenCalled();
+
+        await GongPlaybackService.stopGong();
+        expect(mockMeditationSession.stopAlarmSound).toHaveBeenCalled();
       } finally {
         Platform.OS = originalOS;
       }

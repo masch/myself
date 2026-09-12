@@ -1,4 +1,4 @@
-import { playAlarmSound } from "@/modules/meditation-session";
+import { playAlarmSound, stopAlarmSound } from "@/modules/meditation-session";
 import { Asset } from "expo-asset";
 import type { FallbackAudioPlayer, IGongPlaybackStrategy } from "./types";
 
@@ -45,6 +45,17 @@ export class AndroidGongPlaybackStrategy implements IGongPlaybackStrategy {
         await fallbackPlayer.seekTo(0);
       } catch {}
       fallbackPlayer.play();
+    }
+  }
+
+  async stopGong(
+    ...fallbackPlayers: (FallbackAudioPlayer | null | undefined)[]
+  ): Promise<void> {
+    stopAlarmSound();
+    for (const player of fallbackPlayers) {
+      try {
+        player?.pause?.();
+      } catch {}
     }
   }
 }

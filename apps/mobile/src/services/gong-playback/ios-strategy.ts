@@ -17,4 +17,14 @@ export class IosGongPlaybackStrategy implements IGongPlaybackStrategy {
       fallbackPlayer.play();
     }
   }
+
+  async stopGong(
+    ...fallbackPlayers: (FallbackAudioPlayer | null | undefined)[]
+  ): Promise<void> {
+    for (const player of fallbackPlayers) {
+      try {
+        player?.pause?.();
+      } catch {}
+    }
+  }
 }
