@@ -1,11 +1,10 @@
 import { MEDITATION_SOUNDS } from "@/constants/sounds";
 import { appConfig } from "@/infrastructure/config";
-import { playAlarmSound } from "@/modules/meditation-session";
+import { GongPlaybackService } from "@/services/gong-playback";
 import { MeditationSessionService } from "@/services/meditation-session";
-import { Asset } from "expo-asset";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import { useCallback, useEffect, useState } from "react";
-import { AppState, Platform, type AppStateStatus } from "react-native";
+import { AppState, type AppStateStatus } from "react-native";
 
 export interface MeditationState {
   status: "idle" | "running" | "paused" | "completed";
@@ -23,62 +22,6 @@ const DEFAULT_MOMENTS = [
   "Momento 2: Meditación hacia Hora Programada",
   "Momento 3: Cierre e Integración",
 ];
-
-const assetUriCache = new Map<number | string, string>();
-
-/**
- * Resolves local file URI for bundled sound asset to enable low-latency playback.
- */
-export async function resolveAssetUri(
-  source: number | string,
-): Promise<string | null> {
-  if (assetUriCache.has(source)) {
-    return assetUriCache.get(source)!;
-  }
-  try {
-    const asset = Asset.fromModule(source);
-    await asset.downloadAsync();
-    const uri = asset.localUri ?? asset.uri;
-    if (uri) {
-      assetUriCache.set(source, uri);
-      return uri;
-    }
-  } catch (err) {
-    console.warn("Failed to resolve asset URI for alarm channel:", err);
-  }
-  return null;
-}
-
-/**
- * Plays a meditation gong sound through Android's native STREAM_ALARM channel
- * so it rings with the device's Alarm Volume even if Media Volume is low or silenced.
- * Gracefully falls back to standard expo-audio player on iOS, Web, or failure.
- */
-export async function playGongWithAlarmChannel(
-  soundSource: any,
-  fallbackPlayer: {
-    play: () => void;
-    seekTo: (pos: number) => Promise<void>;
-  } | null,
-  volume: number,
-): Promise<void> {
-  if (Platform.OS === "android") {
-    const uri = await resolveAssetUri(soundSource);
-    if (uri) {
-      const played = playAlarmSound(uri, volume);
-      if (played) {
-        return;
-      }
-    }
-  }
-
-  if (fallbackPlayer) {
-    try {
-      await fallbackPlayer.seekTo(0);
-    } catch {}
-    fallbackPlayer.play();
-  }
-}
 
 /**
  * Calculates the next upcoming Date instance for a configured wall-clock time (hour & minute).
@@ -113,12 +56,10 @@ export function useMeditation() {
     }
   }, [singleGongPlayer, tripleGongPlayer]);
 
-  // Pre-cache gong assets on Android
+  // Pre-cache gong assets via platform strategy
   useEffect(() => {
-    if (Platform.OS === "android") {
-      void resolveAssetUri(MEDITATION_SOUNDS.SINGLE_GONG);
-      void resolveAssetUri(MEDITATION_SOUNDS.TRIPLE_GONG);
-    }
+    void GongPlaybackService.preload(MEDITATION_SOUNDS.SINGLE_GONG);
+    void GongPlaybackService.preload(MEDITATION_SOUNDS.TRIPLE_GONG);
   }, []);
 
   const [status, setStatus] = useState<
@@ -147,7 +88,7 @@ export function useMeditation() {
 
   const playSingleGong = useCallback(async () => {
     try {
-      await playGongWithAlarmChannel(
+      await GongPlaybackService.playGong(
         MEDITATION_SOUNDS.SINGLE_GONG,
         singleGongPlayer,
         appConfig.meditationGongVolume,
@@ -159,7 +100,7 @@ export function useMeditation() {
 
   const playTripleGong = useCallback(async () => {
     try {
-      await playGongWithAlarmChannel(
+      await GongPlaybackService.playGong(
         MEDITATION_SOUNDS.TRIPLE_GONG,
         tripleGongPlayer,
         appConfig.meditationGongVolume,

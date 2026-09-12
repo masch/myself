@@ -1,15 +1,9 @@
 import { describe, expect, it, mock, beforeEach } from "bun:test";
 import React from "react";
 import { renderToString } from "react-dom/server";
-import { Asset } from "expo-asset";
-import { Platform, AppState } from "react-native";
+import { AppState } from "react-native";
 import { mockMeditationSession } from "../../../test-setup";
-import {
-  getTargetDate,
-  useMeditation,
-  resolveAssetUri,
-  playGongWithAlarmChannel,
-} from "../use-meditation";
+import { getTargetDate, useMeditation } from "../use-meditation";
 
 // Mock sound assets
 mock.module("../constants/sounds", () => ({
@@ -518,91 +512,20 @@ describe("useMeditation State Machine & Lifecycle", () => {
     }
   });
 
-  describe("Alarm Channel Audio Functions", () => {
-    it("resolves and caches asset URI correctly", async () => {
-      const uri1 = await resolveAssetUri(1);
-      expect(uri1).toBe("file:///mock-sound.m4a");
+  describe("Gong Playback via useMeditation", () => {
+    it("plays single gong and triple gong through GongPlaybackService", async () => {
+      const runner = createHookRunner();
+      const hook = runner.render();
 
-      // Cached branch
-      const uri2 = await resolveAssetUri(1);
-      expect(uri2).toBe("file:///mock-sound.m4a");
-    });
-
-    it("handles asset resolution failure gracefully", async () => {
-      const spyFromModule = mock(() => {
-        throw new Error("Asset load failure");
-      });
-      const originalFromModule = Asset.fromModule;
-      Asset.fromModule = spyFromModule as any;
-
-      const uri = await resolveAssetUri("nonexistent-sound");
-      expect(uri).toBeNull();
-
-      Asset.fromModule = originalFromModule;
-    });
-
-    it("plays sound via playAlarmSound on Android and returns early on success", async () => {
       mockMeditationSession.playAlarmSound.mockClear();
-      mockPlay.mockClear();
-      const mockPlayer = { play: mockPlay, seekTo: mockSeekTo };
-
-      await playGongWithAlarmChannel(1, mockPlayer, 0.9);
-
-      expect(mockMeditationSession.playAlarmSound).toHaveBeenCalledWith(
-        "file:///mock-sound.m4a",
-        0.9,
-      );
-      expect(mockPlay).not.toHaveBeenCalled();
-    });
-
-    it("falls back to expo-audio when native alarm playback returns false", async () => {
-      mockMeditationSession.playAlarmSound.mockImplementationOnce(() => false);
-      mockPlay.mockClear();
-      const mockPlayer = { play: mockPlay, seekTo: mockSeekTo };
-
-      await playGongWithAlarmChannel(1, mockPlayer, 0.9);
-
+      await hook.playSingleGong();
       expect(mockMeditationSession.playAlarmSound).toHaveBeenCalled();
-      expect(mockPlay).toHaveBeenCalledTimes(1);
-    });
 
-    it("falls back to expo-audio when asset uri cannot be resolved", async () => {
-      const originalFromModule = Asset.fromModule;
-      Asset.fromModule = (() => {
-        throw new Error("Cannot resolve");
-      }) as any;
+      mockMeditationSession.playAlarmSound.mockClear();
+      await hook.playTripleGong();
+      expect(mockMeditationSession.playAlarmSound).toHaveBeenCalled();
 
-      mockPlay.mockClear();
-      const mockPlayer = { play: mockPlay, seekTo: mockSeekTo };
-
-      await playGongWithAlarmChannel("unresolvable-key", mockPlayer, 0.9);
-
-      expect(mockPlay).toHaveBeenCalledTimes(1);
-
-      Asset.fromModule = originalFromModule;
-    });
-
-    it("falls back to expo-audio on iOS platform and handles seekTo error", async () => {
-      const originalOS = Platform.OS;
-      Platform.OS = "ios";
-      mockPlay.mockClear();
-      const throwingSeekTo = mock(async () => {
-        throw new Error("Seek error");
-      });
-      const mockPlayer = { play: mockPlay, seekTo: throwingSeekTo };
-
-      await playGongWithAlarmChannel(1, mockPlayer, 0.8);
-
-      expect(mockPlay).toHaveBeenCalledTimes(1);
-      expect(throwingSeekTo).toHaveBeenCalledWith(0);
-
-      Platform.OS = originalOS;
-    });
-
-    it("handles null fallback player safely", async () => {
-      mockMeditationSession.playAlarmSound.mockImplementationOnce(() => false);
-      const res = await playGongWithAlarmChannel(1, null, 0.9);
-      expect(res).toBeUndefined();
+      runner.restore();
     });
   });
 });

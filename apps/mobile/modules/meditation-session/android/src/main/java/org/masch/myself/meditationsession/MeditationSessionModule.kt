@@ -82,10 +82,20 @@ class MeditationSessionModule : Module() {
 
     Function("playAlarmSound") { uriString: String, volume: Double ->
       val context = appContext.reactContext ?: return@Function false
+      var createdPlayer: MediaPlayer? = null
       try {
         stopAlarmSoundInternal()
 
         val mediaPlayer = MediaPlayer()
+        createdPlayer = mediaPlayer
+
+        mediaPlayer.setOnCompletionListener { mp ->
+          mp.release()
+          if (activeMediaPlayer == mp) {
+            activeMediaPlayer = null
+          }
+        }
+
         val audioAttributes = AudioAttributes.Builder()
           .setUsage(AudioAttributes.USAGE_ALARM)
           .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -110,18 +120,15 @@ class MeditationSessionModule : Module() {
         val vol = volume.toFloat().coerceIn(0f, 1f)
         mediaPlayer.setVolume(vol, vol)
         mediaPlayer.prepare()
-        mediaPlayer.start()
-
-        mediaPlayer.setOnCompletionListener { mp ->
-          mp.release()
-          if (activeMediaPlayer == mp) {
-            activeMediaPlayer = null
-          }
-        }
 
         activeMediaPlayer = mediaPlayer
+        mediaPlayer.start()
         true
-      } catch (e: Exception) {
+      } catch (_: Exception) {
+        if (activeMediaPlayer == createdPlayer) {
+          activeMediaPlayer = null
+        }
+        runCatching { createdPlayer?.release() }
         false
       }
     }
