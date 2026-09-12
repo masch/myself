@@ -43,17 +43,32 @@ class MockNativeModule {
   emit() {}
 }
 
+export const mockMeditationSession = {
+  startSession: mock((_opts?: any) => true),
+  stopSession: mock(() => true),
+  isSessionActive: mock(() => true),
+  playAlarmSound: mock((_uri: string, _volume?: number) => true),
+  stopAlarmSound: mock(() => true),
+  addListener: mock((_event: string, _cb: any) => ({ remove: () => {} })),
+  removeListeners: mock(() => {}),
+};
+
 (globalThis as any).expo = {
   EventEmitter: MockEventEmitter,
   NativeModule: MockNativeModule,
   modules: {
     ExpoAsset: {},
     ExponentConstants: {},
+    MeditationSession: mockMeditationSession,
   },
 };
 
 mock.module("react-native", () => ({
   ...ReactNativeWeb,
+  AppState: {
+    ...ReactNativeWeb.AppState,
+    addEventListener: () => ({ remove: () => {} }),
+  },
   Platform: {
     ...ReactNativeWeb.Platform,
     OS: "android",
@@ -98,7 +113,11 @@ mock.module("expo-router", () => ({
 
 mock.module("expo-asset", () => ({
   Asset: {
-    fromModule: () => ({ uri: "mock-sound.m4a" }),
+    fromModule: () => ({
+      uri: "file:///mock-sound.m4a",
+      localUri: "file:///mock-sound.m4a",
+      downloadAsync: async () => {},
+    }),
     loadAsync: async () => {},
   },
 }));

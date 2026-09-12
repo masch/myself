@@ -41,5 +41,14 @@ public class MeditationSessionModule: Module {
     Function("isSessionActive") { () -> Bool in
       return self.isActive
     }
+
+    Function("playAlarmSound") { (uriString: String, volume: Double) -> Bool in
+      return false
+    }
+
+    Function("stopAlarmSound") { () -> Bool in
+      return true
+    }
   }
 }
+

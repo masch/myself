@@ -1,5 +1,6 @@
 import { MEDITATION_SOUNDS } from "@/constants/sounds";
 import { appConfig } from "@/infrastructure/config";
+import { GongPlaybackService } from "@/services/gong-playback";
 import { MeditationSessionService } from "@/services/meditation-session";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import { useCallback, useEffect, useState } from "react";
@@ -55,6 +56,12 @@ export function useMeditation() {
     }
   }, [singleGongPlayer, tripleGongPlayer]);
 
+  // Pre-cache gong assets via platform strategy
+  useEffect(() => {
+    void GongPlaybackService.preload(MEDITATION_SOUNDS.SINGLE_GONG);
+    void GongPlaybackService.preload(MEDITATION_SOUNDS.TRIPLE_GONG);
+  }, []);
+
   const [status, setStatus] = useState<
     "idle" | "running" | "paused" | "completed"
   >("idle");
@@ -81,12 +88,11 @@ export function useMeditation() {
 
   const playSingleGong = useCallback(async () => {
     try {
-      if (singleGongPlayer) {
-        try {
-          await singleGongPlayer.seekTo(0);
-        } catch {}
-        singleGongPlayer.play();
-      }
+      await GongPlaybackService.playGong(
+        MEDITATION_SOUNDS.SINGLE_GONG,
+        singleGongPlayer,
+        appConfig.meditationGongVolume,
+      );
     } catch (err) {
       console.warn("Failed to play single gong:", err);
     }
@@ -94,16 +100,30 @@ export function useMeditation() {
 
   const playTripleGong = useCallback(async () => {
     try {
-      if (tripleGongPlayer) {
-        try {
-          await tripleGongPlayer.seekTo(0);
-        } catch {}
-        tripleGongPlayer.play();
-      }
+      await GongPlaybackService.playGong(
+        MEDITATION_SOUNDS.TRIPLE_GONG,
+        tripleGongPlayer,
+        appConfig.meditationGongVolume,
+      );
     } catch (err) {
       console.warn("Failed to play triple gong:", err);
     }
   }, [tripleGongPlayer]);
+
+  const stopGong = useCallback(async () => {
+    try {
+      await GongPlaybackService.stopGong(singleGongPlayer, tripleGongPlayer);
+    } catch (err) {
+      console.warn("Failed to stop gong:", err);
+    }
+  }, [singleGongPlayer, tripleGongPlayer]);
+
+  // Cleanup active gong playback on unmount
+  useEffect(() => {
+    return () => {
+      void stopGong().catch(() => {});
+    };
+  }, [stopGong]);
 
   // Subscribe to platform-agnostic session completion events
   useEffect(() => {
@@ -178,7 +198,7 @@ export function useMeditation() {
 
     return () => {
       clearInterval(interval);
-      sub.remove();
+      sub?.remove?.();
     };
   }, [
     status,
@@ -203,8 +223,9 @@ export function useMeditation() {
     if (status === "running") {
       setStatus("paused");
       void MeditationSessionService.stopSession().catch(() => {});
+      void stopGong().catch(() => {});
     }
-  }, [status]);
+  }, [status, stopGong]);
 
   const resumeSession = useCallback(() => {
     if (status === "paused") {
@@ -264,11 +285,12 @@ export function useMeditation() {
 
   const resetSession = useCallback(async () => {
     await MeditationSessionService.stopSession();
+    await stopGong();
     setStatus("idle");
     setElapsedSeconds(0);
     setCurrentMomentIndex(0);
     setHasAlarmTriggered(false);
-  }, []);
+  }, [stopGong]);
 
   return {
     status,
@@ -293,5 +315,6 @@ export function useMeditation() {
     resetSession,
     playSingleGong,
     playTripleGong,
+    stopGong,
   };
 }
