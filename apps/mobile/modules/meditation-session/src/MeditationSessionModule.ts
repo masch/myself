@@ -8,6 +8,21 @@ declare class MeditationSessionModuleType extends NativeModule<MeditationSession
   startSession(options: StartSessionOptions): boolean;
   stopSession(): boolean;
   isSessionActive(): boolean;
+  playAlarmSound(uri: string, volume: number): boolean;
+  stopAlarmSound(): boolean;
+}
+
+export function createFallbackMeditationSessionModule(): MeditationSessionModuleType {
+  return {
+    startSession: () => false,
+    stopSession: () => false,
+    isSessionActive: () => false,
+    playAlarmSound: () => false,
+    stopAlarmSound: () => false,
+    addListener: () => ({ remove: () => {} }),
+    removeListener: () => {},
+    removeAllListeners: () => {},
+  } as unknown as MeditationSessionModuleType;
 }
 
 let MeditationSessionModule: MeditationSessionModuleType;
@@ -17,13 +32,7 @@ try {
     requireNativeModule<MeditationSessionModuleType>("MeditationSession");
 } catch {
   // Safe fallback when running on Web or environment without native binary
-  MeditationSessionModule = {
-    startSession: () => false,
-    stopSession: () => false,
-    isSessionActive: () => false,
-    addListener: () => ({ remove: () => {} }),
-    removeListeners: () => {},
-  } as unknown as MeditationSessionModuleType;
+  MeditationSessionModule = createFallbackMeditationSessionModule();
 }
 
 export default MeditationSessionModule;

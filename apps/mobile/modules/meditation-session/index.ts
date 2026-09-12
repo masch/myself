@@ -46,5 +46,22 @@ export function addSessionErrorListener(
   }
 }
 
+export function playAlarmSound(uri: string, volume = 1.0): boolean {
+  try {
+    return MeditationSessionModule.playAlarmSound(uri, volume);
+  } catch {
+    return false;
+  }
+}
+
+export function stopAlarmSound(): boolean {
+  try {
+    return MeditationSessionModule.stopAlarmSound();
+  } catch {
+    return false;
+  }
+}
+
 export { MeditationSessionModule };
+
 export type { StartSessionOptions, MeditationSessionEvents };
