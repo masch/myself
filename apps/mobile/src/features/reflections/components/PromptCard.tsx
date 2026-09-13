@@ -84,7 +84,7 @@ export function PromptCard({
                 styles.timePill,
                 {
                   backgroundColor: isLocked
-                    ? "rgba(255, 149, 0, 0.15)"
+                    ? colors.warningSubdued
                     : colors.systemGray15,
                 },
               ]}

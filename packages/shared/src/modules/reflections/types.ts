@@ -74,7 +74,11 @@ export const reflectionQuestionSchema = z.object({
   themeId: entityIdSchema.nullable().optional(),
   prompt: z.string().trim().min(1),
   periodicity: z.enum(PERIODICITIES),
-  preferredTimeOfDay: z.string().nullable().optional(), // e.g. "08:00"
+  preferredTimeOfDay: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Must be HH:mm")
+    .nullable()
+    .optional(),
   responseType: z.enum(RESPONSE_TYPES).default("text"),
   isDefaultSuggested: z.boolean().default(false),
   orderIndex: z.number().int().nonnegative().default(0),

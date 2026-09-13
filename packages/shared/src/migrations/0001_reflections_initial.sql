@@ -94,3 +94,6 @@ CREATE TABLE IF NOT EXISTS `user_reflections` (
 	FOREIGN KEY (`cycle_run_id`) REFERENCES `user_theme_progress`(`id`) ON UPDATE no action ON DELETE set null,
 	CONSTRAINT "numeric_value_range" CHECK("user_reflections"."numeric_value" IS NULL OR ("user_reflections"."numeric_value" >= 1 AND "user_reflections"."numeric_value" <= 10))
 );
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS `user_question_preferences_user_question_idx` ON `user_question_preferences` (`user_id`, `question_id`);
+

@@ -86,10 +86,24 @@ describe("Reflections Module - Zod Validation Schemas", () => {
       categoryId: sampleId,
       prompt: "Rate your focus today from 1 to 10",
       periodicity: "daily",
+      preferredTimeOfDay: "08:30",
       responseType: "scale_1_10",
       createdAt: "2026-09-12T00:00:00.000Z",
     });
     expect(scaleQ.responseType).toBe("scale_1_10");
+    expect(scaleQ.preferredTimeOfDay).toBe("08:30");
+
+    // Rejects non-zero padded or invalid times (e.g. "8:00", "25:00", "08:60")
+    expect(() =>
+      reflectionQuestionSchema.parse({
+        id: questionId,
+        categoryId: sampleId,
+        prompt: "Invalid time format",
+        periodicity: "daily",
+        preferredTimeOfDay: "8:00",
+        createdAt: "2026-09-12T00:00:00.000Z",
+      }),
+    ).toThrow("Must be HH:mm");
   });
 
   it("should validate UserQuestionPreference for routine opt-out and shortcuts", () => {

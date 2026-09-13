@@ -332,6 +332,22 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       expect(reflections[0].content).toBe(
         "Ahora sí puedo reflexionar sobre la mañana.",
       );
+
+      // 3. Transition back from answered to skipped
+      await repo.saveReflection({
+        userId: testUserId,
+        questionId: questions[0].id,
+        themeId: cohort.themeId,
+        cycleRunId: progress.id,
+        status: "skipped",
+        responseType: "text",
+        skipReason: "Decido saltear después de todo",
+        forDate: "2026-09-12",
+      });
+
+      prog = await repo.getCohortProgressById(progress.id);
+      expect(prog?.skippedCount).toBe(1);
+      expect(prog?.answeredCount).toBe(0);
     });
 
     it("completes cycle when reaching target count", async () => {

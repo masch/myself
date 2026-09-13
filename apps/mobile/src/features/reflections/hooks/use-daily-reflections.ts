@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -9,10 +9,12 @@ import {
 } from "@myself/shared";
 import { SqliteReflectionRepository } from "../infrastructure/sqlite-reflection.repository";
 import { ExpoNotificationAdapter } from "../infrastructure/expo-notification.adapter";
+import { getLocalDateString } from "../domain/time-lock";
 
 export function useDailyReflections() {
   const db = useSQLiteContext();
   const { currentUser } = useAuth();
+  const activeUserIdRef = useRef<string | null>(null);
 
   const repository = useMemo(() => new SqliteReflectionRepository(db), [db]);
   const notificationService = useMemo(() => new ExpoNotificationAdapter(), []);
@@ -37,9 +39,10 @@ export function useDailyReflections() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
-
   const refresh = useCallback(async () => {
+    const currentUserId = currentUser?.id ?? null;
+    activeUserIdRef.current = currentUserId;
+
     if (!currentUser) {
       setRoutineQuestions([]);
       setAdHocQuestions([]);
@@ -50,6 +53,8 @@ export function useDailyReflections() {
       return;
     }
 
+    const currentTodayStr = getLocalDateString();
+
     try {
       setIsLoading(true);
       const [routine, adHoc, prefs, missed] = await Promise.all([
@@ -58,9 +63,11 @@ export function useDailyReflections() {
         repository.getUserPreferences(currentUser.id as EntityId),
         repository.getMissedDailyQuestions(
           currentUser.id as EntityId,
-          todayStr,
+          currentTodayStr,
         ),
       ]);
+
+      if (activeUserIdRef.current !== currentUserId) return;
 
       setRoutineQuestions(routine);
       setAdHocQuestions(adHoc);
@@ -74,11 +81,13 @@ export function useDailyReflections() {
           const ref = await repository.getReflectionForQuestionAndDate(
             currentUser.id as EntityId,
             qId,
-            todayStr,
+            currentTodayStr,
           );
           return [qId, ref] as const;
         }),
       );
+
+      if (activeUserIdRef.current !== currentUserId) return;
 
       const reflectionsMap: Record<string, UserReflection> = {};
       for (const [qId, ref] of reflectionEntries) {
@@ -88,11 +97,15 @@ export function useDailyReflections() {
       }
       setTodayReflections(reflectionsMap);
     } catch (error) {
-      console.error("Failed to load daily reflections:", error);
+      if (activeUserIdRef.current === currentUserId) {
+        console.error("Failed to load daily reflections:", error);
+      }
     } finally {
-      setIsLoading(false);
+      if (activeUserIdRef.current === currentUserId) {
+        setIsLoading(false);
+      }
     }
-  }, [currentUser, repository, todayStr]);
+  }, [currentUser, repository]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -114,6 +127,7 @@ export function useDailyReflections() {
 
       try {
         setIsSubmitting(true);
+        const effectiveDate = input.forDate ?? getLocalDateString();
         const reflection = await repository.saveReflection({
           userId: currentUser.id as EntityId,
           questionId: question.id,
@@ -123,7 +137,7 @@ export function useDailyReflections() {
           responseType: question.responseType,
           content: input.content,
           numericValue: input.numericValue,
-          forDate: input.forDate ?? todayStr,
+          forDate: effectiveDate,
         });
 
         await refresh();
@@ -132,7 +146,7 @@ export function useDailyReflections() {
         setIsSubmitting(false);
       }
     },
-    [currentUser, repository, todayStr, refresh],
+    [currentUser, repository, refresh],
   );
 
   const skipQuestion = useCallback(
@@ -147,6 +161,7 @@ export function useDailyReflections() {
 
       try {
         setIsSubmitting(true);
+        const effectiveDate = forDate ?? getLocalDateString();
         const reflection = await repository.saveReflection({
           userId: currentUser.id as EntityId,
           questionId: question.id,
@@ -155,7 +170,7 @@ export function useDailyReflections() {
           status: "skipped",
           responseType: question.responseType,
           skipReason,
-          forDate: forDate ?? todayStr,
+          forDate: effectiveDate,
         });
 
         await refresh();
@@ -164,7 +179,7 @@ export function useDailyReflections() {
         setIsSubmitting(false);
       }
     },
-    [currentUser, repository, todayStr, refresh],
+    [currentUser, repository, refresh],
   );
 
   const toggleRoutineOptOut = useCallback(

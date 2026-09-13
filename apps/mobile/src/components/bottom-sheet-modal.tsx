@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   scrim: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    backgroundColor: colors.scrim,
   },
   sheet: {
     width: "100%",

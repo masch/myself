@@ -10,6 +10,16 @@ export function getCurrentTimeHHMM(date: Date = new Date()): string {
 }
 
 /**
+ * Formats a Date object into a local calendar date string "YYYY-MM-DD".
+ */
+export function getLocalDateString(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Determines whether a reflection question is locked because its preferred time of day
  * has not yet arrived for today.
  *
@@ -24,7 +34,7 @@ export function isReflectionLocked(
   reflection?: UserReflection | null,
   currentTimeStr: string = getCurrentTimeHHMM(),
   forDate?: string,
-  todayStr: string = new Date().toISOString().split("T")[0],
+  todayStr: string = getLocalDateString(),
 ): boolean {
   if (reflection?.status === "answered" || reflection?.status === "skipped") {
     return false;
@@ -43,7 +53,7 @@ export function isReflectionLocked(
  */
 export function isCohortStarted(
   programStartDate: string,
-  currentDateStr: string = new Date().toISOString().split("T")[0],
+  currentDateStr: string = getLocalDateString(),
 ): boolean {
   return currentDateStr >= programStartDate;
 }
@@ -69,7 +79,7 @@ export function formatDateDDMM(isoDate: string): string {
  */
 export function formatRelativeMissedDate(
   missedDate: string,
-  todayStr: string = new Date().toISOString().split("T")[0],
+  todayStr: string = getLocalDateString(),
   catchUpWindowDays: number = 2,
 ): string {
   const missedTime = new Date(`${missedDate}T00:00:00Z`).getTime();

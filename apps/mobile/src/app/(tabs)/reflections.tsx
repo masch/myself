@@ -419,7 +419,7 @@ export default function ReflectionsScreen() {
                 <View
                   style={[
                     styles.missedNotice,
-                    { backgroundColor: "rgba(255, 149, 0, 0.15)" },
+                    { backgroundColor: colors.warningSubdued },
                   ]}
                 >
                   <Text
@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   tabItemActive: {
-    shadowColor: "#000",
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 2,

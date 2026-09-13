@@ -63,4 +63,16 @@ export const colors = {
   whiteSubdued: "rgba(255, 255, 255, 0.8)" as const,
   /** systemGray at 15% opacity — used as background for subdued/gray buttons. */
   systemGray15: "rgba(142, 142, 147, 0.15)" as const,
+  /** Semi-transparent backdrop scrim for modals and bottom sheets. */
+  scrim: "rgba(0, 0, 0, 0.45)" as const,
+  /** Default shadow color for elevated cards and buttons. */
+  shadow: "rgba(0, 0, 0, 0.2)" as const,
+  /** Subdued systemOrange at 15% opacity — used for locked pill and warning notices. */
+  warningSubdued: "rgba(255, 149, 0, 0.15)" as const,
+  /** Subdued systemRed at 15% opacity — used for destructive chip backgrounds. */
+  destructiveSubdued: "rgba(255, 59, 48, 0.15)" as const,
+  /** Subdued systemPurple at 15% opacity — used for purple chip backgrounds. */
+  systemPurpleSubdued: "rgba(175, 82, 222, 0.15)" as const,
+  /** Subdued systemBlue at 15% opacity — used for blue chip backgrounds. */
+  systemBlueSubdued: "rgba(0, 122, 255, 0.15)" as const,
 };

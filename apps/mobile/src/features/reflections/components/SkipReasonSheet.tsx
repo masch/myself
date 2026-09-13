@@ -6,7 +6,7 @@ import { AppButton, AppBottomSheetModal } from "@/components";
 interface SkipReasonSheetProps {
   visible: boolean;
   promptText: string;
-  onConfirm: (reason: string) => void;
+  onConfirm: (reason: string) => Promise<void> | void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -30,10 +30,14 @@ export function SkipReasonSheet({
     setReason(text);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (reason.trim().length === 0) return;
-    onConfirm(reason.trim());
-    setReason("");
+    try {
+      await onConfirm(reason.trim());
+      setReason("");
+    } catch {
+      // Retain reason on submission failure so user input is not lost
+    }
   };
 
   const handleClose = () => {

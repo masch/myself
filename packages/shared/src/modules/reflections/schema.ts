@@ -1,4 +1,10 @@
-import { check, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  check,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import type { EntityId } from "../../primitives/entity-id";
 import { users } from "../users/schema";
@@ -99,6 +105,12 @@ export const userQuestionPreferences = sqliteTable(
       .default(false),
     updatedAt: text("updated_at").notNull(),
   },
+  (table) => [
+    uniqueIndex("user_question_preferences_user_question_idx").on(
+      table.userId,
+      table.questionId,
+    ),
+  ],
 );
 
 export const userThemeProgress = sqliteTable("user_theme_progress", {

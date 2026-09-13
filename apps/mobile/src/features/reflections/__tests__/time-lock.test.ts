@@ -6,6 +6,7 @@ import {
 } from "@myself/shared";
 import {
   getCurrentTimeHHMM,
+  getLocalDateString,
   isReflectionLocked,
   isCohortStarted,
   formatDateDDMM,
@@ -25,6 +26,11 @@ describe("time-lock utility", () => {
     orderIndex: 0,
     createdAt: new Date().toISOString(),
   };
+
+  it("formats date to YYYY-MM-DD local calendar date correctly", () => {
+    const d = new Date(2026, 8, 13); // September 13, 2026 (local)
+    expect(getLocalDateString(d)).toBe("2026-09-13");
+  });
 
   it("formats date to HH:mm correctly", () => {
     const fixedDate = new Date("2026-09-13T08:05:00");

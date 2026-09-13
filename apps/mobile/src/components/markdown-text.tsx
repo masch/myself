@@ -7,6 +7,7 @@ import {
   type StyleProp,
   type TextStyle,
 } from "react-native";
+import { colors } from "@/theme/colors";
 
 export interface InlineSpan {
   text: string;
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
       android: "monospace",
       default: "monospace",
     }),
-    backgroundColor: "rgba(142, 142, 147, 0.15)",
+    backgroundColor: colors.systemGray15,
     paddingHorizontal: 4,
     borderRadius: 4,
   },

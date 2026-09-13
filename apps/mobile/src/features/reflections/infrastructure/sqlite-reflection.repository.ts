@@ -447,18 +447,29 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
           ],
         );
 
-        // If transitioning from skipped -> answered in cycle run:
-        if (
-          existing.status === "skipped" &&
-          validated.status === "answered" &&
-          validated.cycleRunId
-        ) {
-          await this.db.runAsync(
-            `UPDATE user_theme_progress 
-             SET answered_count = answered_count + 1, skipped_count = MAX(0, skipped_count - 1)
-             WHERE id = ?`,
-            [validated.cycleRunId],
-          );
+        // If transitioning status in a cycle run, update counters accordingly:
+        if (validated.cycleRunId && existing.status !== validated.status) {
+          if (
+            existing.status === "skipped" &&
+            validated.status === "answered"
+          ) {
+            await this.db.runAsync(
+              `UPDATE user_theme_progress 
+               SET answered_count = answered_count + 1, skipped_count = MAX(0, skipped_count - 1)
+               WHERE id = ?`,
+              [validated.cycleRunId],
+            );
+          } else if (
+            existing.status === "answered" &&
+            validated.status === "skipped"
+          ) {
+            await this.db.runAsync(
+              `UPDATE user_theme_progress 
+               SET answered_count = MAX(0, answered_count - 1), skipped_count = skipped_count + 1
+               WHERE id = ?`,
+              [validated.cycleRunId],
+            );
+          }
         }
       } else {
         reflectionId = generateEntityId();

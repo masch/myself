@@ -50,25 +50,25 @@ export function ChipButton({
         };
       case "purple":
         return {
-          bg: "rgba(175, 82, 222, 0.15)",
+          bg: colors.systemPurpleSubdued,
           text: colors.systemPurple,
           iconColor: colors.systemPurple,
         };
       case "blue":
         return {
-          bg: "rgba(0, 122, 255, 0.15)",
+          bg: colors.systemBlueSubdued,
           text: colors.systemBlue,
           iconColor: colors.systemBlue,
         };
       case "secondary":
         return {
-          bg: "rgba(142, 142, 147, 0.15)",
+          bg: colors.systemGray15,
           text: colors.secondaryLabel,
           iconColor: colors.secondaryLabel,
         };
       case "destructive":
         return {
-          bg: "rgba(255, 59, 48, 0.15)",
+          bg: colors.destructiveSubdued,
           text: colors.systemRed,
           iconColor: colors.systemRed,
         };

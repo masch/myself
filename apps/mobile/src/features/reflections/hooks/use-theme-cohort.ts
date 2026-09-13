@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -10,11 +10,12 @@ import {
 } from "@myself/shared";
 import { type ActiveCohortProgressDetail } from "../domain/ports/reflection.repository.port";
 import { SqliteReflectionRepository } from "../infrastructure/sqlite-reflection.repository";
-import { isCohortStarted } from "../domain/time-lock";
+import { isCohortStarted, getLocalDateString } from "../domain/time-lock";
 
 export function useThemeCohort() {
   const db = useSQLiteContext();
   const { currentUser } = useAuth();
+  const activeUserIdRef = useRef<string | null>(null);
 
   const repository = useMemo(() => new SqliteReflectionRepository(db), [db]);
 
@@ -33,6 +34,9 @@ export function useThemeCohort() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const refresh = useCallback(async () => {
+    const currentUserId = currentUser?.id ?? null;
+    activeUserIdRef.current = currentUserId;
+
     if (!currentUser) {
       setActiveCohorts([]);
       setOpenCohorts([]);
@@ -51,6 +55,8 @@ export function useThemeCohort() {
         repository.getThemes(),
       ]);
 
+      if (activeUserIdRef.current !== currentUserId) return;
+
       setActiveCohorts(active);
       setOpenCohorts(open);
       setThemes(allThemes);
@@ -68,12 +74,19 @@ export function useThemeCohort() {
           questionsMap[progress.id] = questions;
         }),
       );
+
+      if (activeUserIdRef.current !== currentUserId) return;
+
       setCycleReflections(reflectionsMap);
       setCohortQuestions(questionsMap);
     } catch (error) {
-      console.error("Failed to load theme cohorts:", error);
+      if (activeUserIdRef.current === currentUserId) {
+        console.error("Failed to load theme cohorts:", error);
+      }
     } finally {
-      setIsLoading(false);
+      if (activeUserIdRef.current === currentUserId) {
+        setIsLoading(false);
+      }
     }
   }, [currentUser, repository]);
 
@@ -135,8 +148,7 @@ export function useThemeCohort() {
         throw new Error("No active user session");
       }
 
-      const effectiveDate =
-        input.forDate ?? new Date().toISOString().split("T")[0];
+      const effectiveDate = input.forDate ?? getLocalDateString();
       if (!isCohortStarted(progress.cohort.programStartDate, effectiveDate)) {
         throw new Error(
           `Cannot submit reflection before program starts on ${progress.cohort.programStartDate}`,
@@ -177,7 +189,7 @@ export function useThemeCohort() {
         throw new Error("No active user session");
       }
 
-      const effectiveDate = forDate ?? new Date().toISOString().split("T")[0];
+      const effectiveDate = forDate ?? getLocalDateString();
       if (!isCohortStarted(progress.cohort.programStartDate, effectiveDate)) {
         throw new Error(
           `Cannot skip question before program starts on ${progress.cohort.programStartDate}`,
