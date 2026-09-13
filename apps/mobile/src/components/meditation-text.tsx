@@ -13,8 +13,6 @@ import {
   type InlineSpan,
 } from "./markdown-text";
 
-export { parseInlineSpans, type InlineSpan };
-
 export interface MeditationTextProps {
   content: string;
   style?: TextStyle;
