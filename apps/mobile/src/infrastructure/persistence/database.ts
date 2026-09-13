@@ -49,6 +49,28 @@ export async function initDatabase(db: SQLiteDatabase) {
 }
 
 /**
+ * Drops all user tables/views and completely re-initializes migrations and seed data.
+ */
+export async function resetDatabase(db: SQLiteDatabase): Promise<void> {
+  await db.execAsync("PRAGMA foreign_keys = OFF;");
+
+  const entities = await db.getAllAsync<{ name: string; type: string }>(
+    "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%';",
+  );
+
+  for (const entity of entities) {
+    if (entity.type === "view") {
+      await db.execAsync(`DROP VIEW IF EXISTS "${entity.name}";`);
+    } else if (entity.type === "table") {
+      await db.execAsync(`DROP TABLE IF EXISTS "${entity.name}";`);
+    }
+  }
+
+  await db.execAsync("PRAGMA foreign_keys = ON;");
+  await initDatabase(db);
+}
+
+/**
  * User Operations
  */
 
