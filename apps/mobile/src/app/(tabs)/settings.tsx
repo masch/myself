@@ -8,12 +8,19 @@ import {
   Alert,
   TextInput,
   Switch as RNSwitch,
-  Modal,
 } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSQLiteContext } from "expo-sqlite";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/auth-context";
-import { AppButton, ChipButton, IconButton } from "@/components";
+import { resetDatabase } from "@/infrastructure/persistence/database";
+import {
+  AppButton,
+  ChipButton,
+  IconButton,
+  AppBottomSheetModal,
+} from "@/components";
 import { colors } from "@/theme/colors";
 
 // Only import @expo/ui on platforms that fully support it without Compose SlotView crashes
@@ -44,7 +51,10 @@ const LANGUAGES = [
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { currentUser, users, switchUser, registerUser } = useAuth();
+  const db = useSQLiteContext();
+  const queryClient = useQueryClient();
+  const { currentUser, users, switchUser, registerUser, refreshAuth } =
+    useAuth();
 
   // State for controls
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -57,6 +67,7 @@ export default function SettingsScreen() {
   const [isNewUserSheetOpen, setIsNewUserSheetOpen] = useState(false);
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
 
   const handleCreateUser = async () => {
     if (!newUserName.trim() || !newUserEmail.trim()) {
@@ -72,6 +83,56 @@ export default function SettingsScreen() {
     } catch (error) {
       console.error("Failed to create user:", error);
       Alert.alert("Error", "Email must be unique.");
+    }
+  };
+
+  const handleResetDatabase = () => {
+    const executeReset = async () => {
+      try {
+        setIsResetting(true);
+        await resetDatabase(db);
+        await refreshAuth();
+        await queryClient.resetQueries();
+        queryClient.clear();
+
+        if (Platform.OS === "web") {
+          window.alert("Local database reset successfully.");
+        } else {
+          Alert.alert("Success", "Local database reset successfully.");
+        }
+      } catch (error) {
+        console.error("Failed to reset database:", error);
+        if (Platform.OS === "web") {
+          window.alert("Failed to reset database. Please check console logs.");
+        } else {
+          Alert.alert("Error", "Failed to reset database.");
+        }
+      } finally {
+        setIsResetting(false);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      if (
+        window.confirm(
+          "Are you sure you want to reset the local database? All local reflections, logs, and custom profiles will be erased and default seeds restored.",
+        )
+      ) {
+        void executeReset();
+      }
+    } else {
+      Alert.alert(
+        "Reset Local Database",
+        "Are you sure you want to reset the database? All local reflections, logs, and custom profiles will be erased and default seeds restored.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Reset Database",
+            style: "destructive",
+            onPress: () => void executeReset(),
+          },
+        ],
+      );
     }
   };
 
@@ -278,6 +339,22 @@ export default function SettingsScreen() {
                 onPress={() => setIsAboutSheetOpen(true)}
               >
                 About Myself App
+              </ListItem>
+            </FieldGroup.Section>
+
+            {/* Database & Storage */}
+            <FieldGroup.Section title="Database & Storage">
+              <ListItem
+                leading={
+                  <Image
+                    source="sf:trash.fill"
+                    style={[styles.icon, { tintColor: colors.systemRed }]}
+                  />
+                }
+                supportingText="Erases all local data and restores default seed data"
+                onPress={handleResetDatabase}
+              >
+                Reset Local Database
               </ListItem>
             </FieldGroup.Section>
           </FieldGroup>
@@ -625,118 +702,135 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {/* Modal for New User (Android) */}
-      <Modal
-        visible={isNewUserSheetOpen}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsNewUserSheetOpen(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalCard,
-              { backgroundColor: colors.systemBackground },
-            ]}
-          >
-            <View style={styles.modalHeaderRow}>
-              <Text style={[styles.modalTitle, { color: colors.label }]}>
-                Create User Profile
+      {/* 5. Database & Storage */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+          DATABASE & STORAGE
+        </Text>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.secondarySystemBackground },
+          ]}
+        >
+          <View style={styles.row}>
+            <Image
+              source="sf:trash.fill"
+              style={[styles.rowIcon, { tintColor: colors.systemRed }]}
+            />
+            <View style={styles.rowContent}>
+              <Text style={[styles.rowTitle, { color: colors.systemRed }]}>
+                Reset Local Database
               </Text>
-              <IconButton
-                icon="sf:xmark"
-                color={colors.secondaryLabel}
-                size="small"
-                onPress={() => setIsNewUserSheetOpen(false)}
-              />
+              <Text
+                style={[styles.rowSubtitle, { color: colors.secondaryLabel }]}
+              >
+                Erases all local data and restores default seeds
+              </Text>
             </View>
-
-            <View style={styles.modalBody}>
-              <TextInput
-                placeholder="Full Name (e.g. Maria Perez)"
-                placeholderTextColor={colors.secondaryLabel}
-                value={newUserName}
-                onChangeText={setNewUserName}
-                style={[
-                  styles.modalInput,
-                  {
-                    color: colors.label,
-                    borderColor: "rgba(142, 142, 147, 0.3)",
-                  },
-                ]}
-              />
-              <TextInput
-                placeholder="Email (e.g. maria@example.com)"
-                placeholderTextColor={colors.secondaryLabel}
-                value={newUserEmail}
-                onChangeText={setNewUserEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={[
-                  styles.modalInput,
-                  {
-                    color: colors.label,
-                    borderColor: "rgba(142, 142, 147, 0.3)",
-                  },
-                ]}
-              />
-            </View>
-
-            <AppButton
-              title="Create & Switch"
-              variant="primary"
-              onPress={handleCreateUser}
+            <ChipButton
+              title={isResetting ? "Resetting..." : "Reset"}
+              variant="destructive"
+              disabled={isResetting}
+              onPress={handleResetDatabase}
             />
           </View>
         </View>
-      </Modal>
+      </View>
 
-      {/* Modal for About (Android) */}
-      <Modal
-        visible={isAboutSheetOpen}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setIsAboutSheetOpen(false)}
+      {/* Modal for New User (Android / Web) */}
+      <AppBottomSheetModal
+        visible={isNewUserSheetOpen}
+        onClose={() => setIsNewUserSheetOpen(false)}
+        maxWidth={460}
       >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalCard,
-              styles.aboutModalCard,
-              { backgroundColor: colors.systemBackground },
-            ]}
-          >
-            <Image
-              source="sf:app.badge.checkmark.fill"
-              style={[styles.aboutIcon, { tintColor: colors.systemBlue }]}
-            />
-            <Text style={[styles.aboutTitle, { color: colors.label }]}>
-              Myself App
-            </Text>
-            <Text
-              style={[styles.aboutVersion, { color: colors.secondaryLabel }]}
-            >
-              Version 1.0.0 (Expo SDK 57)
-            </Text>
-            <Text
-              style={[
-                styles.aboutDescription,
-                { color: colors.secondaryLabel },
-              ]}
-            >
-              Local-first SQLite database with pre-meditation reading passages,
-              multi-moment practice timer, and clean atomic design.
-            </Text>
+        <View style={styles.modalHeaderRow}>
+          <Text style={[styles.modalTitle, { color: colors.label }]}>
+            Create User Profile
+          </Text>
+          <IconButton
+            icon="sf:xmark"
+            color={colors.secondaryLabel}
+            size="small"
+            onPress={() => setIsNewUserSheetOpen(false)}
+          />
+        </View>
 
+        <View style={styles.modalBody}>
+          <TextInput
+            placeholder="Full Name (e.g. Maria Perez)"
+            placeholderTextColor={colors.secondaryLabel}
+            value={newUserName}
+            onChangeText={setNewUserName}
+            style={[
+              styles.modalInput,
+              {
+                color: colors.label,
+                backgroundColor: colors.systemBackground,
+                borderColor: colors.systemGray15,
+              },
+            ]}
+          />
+          <TextInput
+            placeholder="Email (e.g. maria@example.com)"
+            placeholderTextColor={colors.secondaryLabel}
+            value={newUserEmail}
+            onChangeText={setNewUserEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            style={[
+              styles.modalInput,
+              {
+                color: colors.label,
+                backgroundColor: colors.systemBackground,
+                borderColor: colors.systemGray15,
+              },
+            ]}
+          />
+        </View>
+
+        <View style={{ marginTop: 16 }}>
+          <AppButton
+            title="Create & Switch"
+            variant="primary"
+            onPress={handleCreateUser}
+          />
+        </View>
+      </AppBottomSheetModal>
+
+      {/* Modal for About (Android / Web) */}
+      <AppBottomSheetModal
+        visible={isAboutSheetOpen}
+        onClose={() => setIsAboutSheetOpen(false)}
+        maxWidth={460}
+      >
+        <View style={styles.aboutModalCard}>
+          <Image
+            source="sf:app.badge.checkmark.fill"
+            style={[styles.aboutIcon, { tintColor: colors.systemBlue }]}
+          />
+          <Text style={[styles.aboutTitle, { color: colors.label }]}>
+            Myself App
+          </Text>
+          <Text style={[styles.aboutVersion, { color: colors.secondaryLabel }]}>
+            Version 1.0.0 (Expo SDK 57)
+          </Text>
+          <Text
+            style={[styles.aboutDescription, { color: colors.secondaryLabel }]}
+          >
+            Local-first SQLite database with pre-meditation reading passages,
+            multi-moment practice timer, and clean atomic design.
+          </Text>
+
+          <View style={{ width: "100%", marginTop: 16 }}>
             <AppButton
               title="Close"
               variant="secondary"
-              style={{ width: "100%", marginTop: 12 }}
               onPress={() => setIsAboutSheetOpen(false)}
             />
           </View>
         </View>
-      </Modal>
+      </AppBottomSheetModal>
     </ScrollView>
   );
 }
@@ -834,27 +928,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 380,
-    borderRadius: 20,
-    padding: 20,
-    gap: 16,
-    borderCurve: "continuous",
-    boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.2)",
-    elevation: 8,
-  },
   modalHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 8,
   },
   modalTitle: {
     fontSize: 18,
@@ -862,13 +940,15 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     gap: 12,
+    marginTop: 8,
   },
   modalInput: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
     fontSize: 15,
+    width: "100%",
   },
   aboutModalCard: {
     alignItems: "center",

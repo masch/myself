@@ -13,7 +13,7 @@ import { colors } from "@/theme/colors";
 import { AppIcon } from "./app-icon";
 
 export type ChipVariant =
-  "default" | "success" | "purple" | "blue" | "secondary";
+  "default" | "success" | "purple" | "blue" | "secondary" | "destructive";
 
 export interface ChipButtonProps extends Omit<PressableProps, "style"> {
   title: string;
@@ -65,6 +65,12 @@ export function ChipButton({
           bg: "rgba(142, 142, 147, 0.15)",
           text: colors.secondaryLabel,
           iconColor: colors.secondaryLabel,
+        };
+      case "destructive":
+        return {
+          bg: "rgba(255, 59, 48, 0.15)",
+          text: colors.systemRed,
+          iconColor: colors.systemRed,
         };
       case "default":
       default:
