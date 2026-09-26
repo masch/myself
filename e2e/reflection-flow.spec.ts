@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { TestClock } from "./helpers/clock";
 
 const SEEDED_IDS = {
   morning: "b2000000-0000-4000-8000-000000000001",
@@ -21,6 +22,9 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     // 1. Verify backend API is running
     const health = await request.get("http://localhost:8788/health");
     expect(health.ok()).toBe(true);
+
+    // 1b. Mock browser clock to fixed daytime (12:00 PM) for deterministic testing
+    await TestClock.install(page);
 
     // 2. Navigate directly to reflections screen
     await page.goto("/reflections");

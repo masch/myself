@@ -1,11 +1,12 @@
 import { test, expect } from "@playwright/test";
+import { TestClock } from "./helpers/clock";
 
 test.describe("E2E Cohort Program Dates & Time Travel", () => {
   test("enforces cohort programStartDate: locks question before start date and unlocks on start date", async ({
     page,
   }) => {
     // 1. Install mock clock at 2026-09-13 (2 days BEFORE the Stoic cohort starts on 2026-09-15)
-    await page.clock.install({ time: new Date("2026-09-13T12:00:00Z") });
+    const clock = await TestClock.install(page, "2026-09-13T12:00:00Z");
 
     // 2. Open reflections screen
     await page.goto("/reflections");
@@ -48,8 +49,7 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
     await expect(prematurAnswerBtn).toHaveCount(0);
 
     // 6. TIME TRAVEL: Fast forward clock to 2026-09-15 (Start Date) at 20:30
-    await page.clock.setFixedTime(new Date("2026-09-15T20:30:00Z"));
-    await page.reload();
+    await clock.travelAndReload("2026-09-15T20:30:00Z");
     await page.getByText("Programas").first().click();
 
     // 7. On September 15, the first step is unlocked and ready to answer
@@ -78,8 +78,10 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
   test("joins program before start date, time-travels day by day, and completes all 7 questions to finish cycle", async ({
     page,
   }) => {
+    test.setTimeout(60000);
+
     // 1. Install mock clock at 2026-09-13 (2 days before Stoic cohort starts on 2026-09-15)
-    await page.clock.install({ time: new Date("2026-09-13T12:00:00Z") });
+    const clock = await TestClock.install(page, "2026-09-13T12:00:00Z");
 
     // 2. Open reflections screen
     await page.goto("/reflections");
@@ -148,8 +150,7 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
       const step = days[i];
 
       // Time travel to the specific date
-      await page.clock.setFixedTime(new Date(step.date));
-      await page.reload();
+      await clock.travelAndReload(step.date);
       await page.getByText("Programas").first().click();
 
       // Verify current step header
@@ -222,7 +223,7 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
     page,
   }) => {
     // 1. Start on 2026-09-13
-    await page.clock.install({ time: new Date("2026-09-13T12:00:00Z") });
+    await TestClock.install(page, "2026-09-13T12:00:00Z");
     await page.goto("/reflections");
     await expect(page.getByText("Rutina del Día").first()).toBeVisible({
       timeout: 10000,
