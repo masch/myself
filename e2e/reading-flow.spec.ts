@@ -39,7 +39,8 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
 
     const authorInput = page.getByPlaceholder(/Author name/i);
     await expect(authorInput).toBeVisible({ timeout: 5000 });
-    await authorInput.fill("Marcus Aurelius");
+    const testAuthor = `Author ${Date.now()}`;
+    await authorInput.fill(testAuthor);
 
     // 5. Fill in the reading form
     const testTitle = `E2E Browser Test ${Date.now()}`;

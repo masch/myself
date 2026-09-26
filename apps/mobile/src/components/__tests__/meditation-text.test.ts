@@ -1,11 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import React from "react";
 import { renderToString } from "react-dom/server";
-import {
-  parseInlineSpans,
-  parseMeditationText,
-  MeditationText,
-} from "../meditation-text";
+import { parseInlineSpans } from "../markdown-text";
+import { parseMeditationText, MeditationText } from "../meditation-text";
 
 describe("parseInlineSpans", () => {
   it("parses plain text without tokens", () => {

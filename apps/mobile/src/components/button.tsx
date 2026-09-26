@@ -99,6 +99,7 @@ export function AppButton({
 
   return (
     <Pressable
+      accessibilityRole="button"
       style={({ pressed }) => [
         styles.baseButton,
         {

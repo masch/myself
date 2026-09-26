@@ -20,6 +20,7 @@ interface AuthContextType {
   isLoadingAuth: boolean;
   switchUser: (id: string) => Promise<void>;
   registerUser: (name: string, email: string) => Promise<void>;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -36,7 +37,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const allUsers = await getUsers(db);
       setUsers(allUsers);
       if (allUsers.length > 0) {
-        setCurrentUser((prev) => prev ?? allUsers[0]);
+        setCurrentUser((prev) =>
+          prev && allUsers.some((u) => u.id === prev.id) ? prev : allUsers[0],
+        );
+      } else {
+        setCurrentUser(null);
       }
     } catch (error) {
       console.error("Failed to load auth users:", error);
@@ -94,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoadingAuth,
         switchUser,
         registerUser,
+        refreshAuth: loadAuth,
       }}
     >
       {children}

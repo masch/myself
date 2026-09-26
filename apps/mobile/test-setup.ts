@@ -156,6 +156,7 @@ export const mockNotifications = {
   scheduleNotificationAsync: mock(async (_req: any) => "mock-notif-id"),
   cancelAllScheduledNotificationsAsync: mock(async () => {}),
   cancelScheduledNotificationAsync: mock(async (_id: any) => {}),
+  getAllScheduledNotificationsAsync: mock(async () => []),
   setNotificationChannelAsync: mock(async (_id: any, _config: any) => {}),
   addNotificationReceivedListener: mock((_cb: any) => ({
     remove: mock(() => {}),
@@ -169,7 +170,11 @@ mock.module("expo-notifications", () => ({
   AndroidImportance: { HIGH: 4 },
   AndroidNotificationVisibility: { PUBLIC: 1 },
   AndroidNotificationPriority: { HIGH: "high" },
-  SchedulableTriggerInputTypes: { TIME_INTERVAL: "timeInterval" },
+  SchedulableTriggerInputTypes: {
+    TIME_INTERVAL: "timeInterval",
+    DAILY: "daily",
+    CALENDAR: "calendar",
+  },
   setNotificationHandler: () => {},
   setNotificationChannelAsync: (id: any, config: any) =>
     mockNotifications.setNotificationChannelAsync(id, config),
@@ -181,6 +186,8 @@ mock.module("expo-notifications", () => ({
     mockNotifications.cancelAllScheduledNotificationsAsync(),
   cancelScheduledNotificationAsync: (id: any) =>
     mockNotifications.cancelScheduledNotificationAsync(id),
+  getAllScheduledNotificationsAsync: () =>
+    mockNotifications.getAllScheduledNotificationsAsync(),
   addNotificationReceivedListener: (cb: any) =>
     mockNotifications.addNotificationReceivedListener(cb),
   addNotificationResponseReceivedListener: (cb: any) =>

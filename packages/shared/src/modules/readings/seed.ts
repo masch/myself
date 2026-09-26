@@ -14,6 +14,7 @@ export const SEED_AUTHOR_IDS: Record<string, EntityId> = {
   MARY_OLIVER: "a0000000-0000-4000-8000-000000000009" as EntityId,
   CHARLES_BAUDELAIRE: "a0000000-0000-4000-8000-000000000010" as EntityId,
   DAVID_WHYTE: "a0000000-0000-4000-8000-000000000011" as EntityId,
+  BERNARDO_NANTE: "a0000000-0000-4000-8000-000000000012" as EntityId,
 };
 
 export const SEED_AUTHORS: AuthorDto[] = [
@@ -82,6 +83,12 @@ export const SEED_AUTHORS: AuthorDto[] = [
     name: "David Whyte",
     bio: "Poeta y filósofo angloirlandés, célebre por su mirada profunda sobre la quietud, el coraje y la vida contemplativa.",
     created_at: "2026-09-04T08:00:00-03:00",
+  },
+  {
+    id: SEED_AUTHOR_IDS.BERNARDO_NANTE,
+    name: "Bernardo Nante",
+    bio: "Filósofo argentino, especialista en el pensamiento de C. G. Jung, la dimensión espiritual del símbolo y fundador de la Fundación Vocación Humana (FVH).",
+    created_at: "2026-09-10T08:00:00-03:00",
   },
 ];
 
@@ -436,4 +443,77 @@ who helped to make it.`,
       },
     },
   },
+  {
+    id: "b0000000-0000-4000-8000-000000000012" as EntityId,
+    author_id: SEED_AUTHOR_IDS.JOHN_O_DONOHUE,
+    createdAt: "2026-09-07T08:00:00-03:00",
+    readDates: ["2026-09-07T08:30:00-03:00"],
+    translations: {
+      es: {
+        title: "EL ANHELO DE TU ALMA",
+        content: `El anhelo es la voz de tu alma. Él te llama constantemente a estar plenamente presente en tu vida, a vivir plenamente la única vida que te ha sido dada. Rilke le dijo al joven poeta: "Vívelo todo". Tú estás aquí, ahora, sobre esta Tierra, y sin embargo, te olvidas tan fácilmente. Has viajado una gran distancia para llegar hasta aquí. El sueño de tu vida ha sido soñado desde la eternidad. Perteneces a un gran abrazo que te insta a tener el coraje de honrar la inmensidad que duerme en tu corazón. Cuando aprendas a escuchar y a confiar en la sabiduría del anhelo de tu alma, despertarás a la invitación de pertenencia agraciada que habita en las profundidades generosas de tu destino. Serás consciente del milagro de la presencia dentro tuyo y alrededor tuyo.
+
+        Traducción del extracto del libro Ecos eternos, de John O’Donohue.`,
+      },
+      en: {
+        title: "EL ANHELO DE TU ALMA",
+        content: `Longing is the voice of your soul, it constantly calls you to be fully present in your life, to live to the full the one life given to you. Rilke said to the young poet, "Live everything." You are here on earth now, yet you forget so easily. You traveled a great distance to get here. The dream of your life has been dreamed from eternity. You belong within a great embrace that urges you to have the courage to honor the immensity that sleeps in your heart. When you learn to listen to and trust the wisdom of your soul's longing, you will awaken to the invitation of graced belonging that inhabits the generous depths of your destiny. You will become aware of the miracle of presence within and around you.
+
+        Excerpt from the book Eternal Echoes
+        `,
+      },
+    },
+  },
+  {
+    id: "b0000000-0000-4000-8000-000000000013" as EntityId,
+    author_id: SEED_AUTHOR_IDS.JOHN_O_DONOHUE,
+    createdAt: "2026-09-09T08:00:00-03:00",
+    readDates: ["2026-09-09T08:30:00-03:00"],
+    translations: {
+      es: {
+        title: "El Secreto de La Flor de Oro",
+        content: `FLOR DE ORO, ELIXIR DE VIDA
+"Cuando la Luz gira, el Elixir se engendra por sí mismo ..."
+" << Cuando uno cuida su conducta en mezcla con el mundo y no obstante al unísono con la Luz, entonces lo redondo es redondo y los anguloso, anguloso; entonces vive uno entre los hombres misteriosamente manifiesto, distinto y sin embargo igual, y ninguno puede sondearlo; entonces nadie nota nuestra conducta secreta >>.
+El modo viviente del curso circular de la Luz justamente tiene el sentido de vivir en mezcla con el mundo y no obstante al unísono con la Luz".                                                                                   
+        `,
+      },
+      en: {
+        title: "",
+        content: ``,
+      },
+    },
+  },
+  {
+    id: "b0000000-0000-4000-8000-000000000014" as EntityId,
+    author_id: SEED_AUTHOR_IDS.BERNARDO_NANTE,
+    createdAt: "2026-09-04T08:00:00-03:00",
+    readDates: ["2026-09-04T08:30:00-03:00"],
+    translations: {
+      es: {
+        title: "El nacimiento de la Aurora",
+        content: `La aurora despierta todas las cosas, anuncia un himno védico. El nacimiento de la aurora es una imagen universal para referirse al surgimiento sutil, vacilante y matizado de la luz oculta en la densa oscuridad de la noche. No se trata de una mera imagen literaria sino de un símbolo, es decir, de la epifanía de un misterio. Por ello, esa oscuridad y esa luz naciente acompaña el despertar del alma. Para decirlo en otras palabras: con esta imagen no se pretende ilustrar literariamente un fenómeno espiritual, sino limpiar la mirada para ver, en y a través de esa imagen el misterio de ese despertar. 
+Según un relato jasídico más o menos reciente, un discípulo pregunta a su Maestro porqué Dios ya no le habla al hombre. El Maestro responde “Porque nadie quiere humillarse tanto”. Humillarse no significa golpearse el pecho reconociéndose un vil pecador, sino acallar al yo, generar un silencio tan profundo, tan intenso, como para empezar a ver. ¿Y qué empezamos a ver? Nuestro abismo que es el Abismo del mundo, nuestra luz que es la Luz del mundo. Pero el hombre contemporáneo es vocinglero y ha decidido condenarse a vivir en una “tierra baldía”.Cree saber que no puede saber y cierra sus ojos aunque la ventana pueda abrirse.`,
+      },
+    },
+  },
+
+  /*  
+      {
+        id: "b0000000-0000-4000-8000-000000000015" as EntityId,
+        author_id: SEED_AUTHOR_IDS.,
+        createdAt: "2026-09-04T08:00:00-03:00",
+        readDates: ["2026-09-04T08:30:00-03:00"],
+        translations: {
+          es: {
+            title: "",
+            content: ``,
+          },
+          en: {
+            title: "",
+            content: ``,
+          },
+        },
+      },
+    */
 ];

@@ -1,6 +1,7 @@
 /// <reference path="../primitives/sql.d.ts" />
 import journal from "./meta/_journal.json";
 import m0000 from "./0000_hard_jigsaw.sql";
+import m0001 from "./0001_reflections_initial.sql";
 
 export interface MigrationJournalEntry {
   idx: number;
@@ -25,5 +26,6 @@ export const SHARED_MIGRATIONS: SharedMigrationsBundle = {
   journal: journal as MigrationJournal,
   migrations: {
     m0000,
+    m0001,
   },
 };
