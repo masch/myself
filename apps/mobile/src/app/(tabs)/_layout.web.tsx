@@ -3,7 +3,7 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {
   return (
-    <NativeTabs>
+    <NativeTabs labelStyle={{ fontSize: 11 }}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Icon sf="house.fill" md="home" />
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>

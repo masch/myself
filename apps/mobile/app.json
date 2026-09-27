@@ -46,7 +46,8 @@
       ],
       "expo-asset",
       "expo-font",
-      "expo-image"
+      "expo-image",
+      "./plugins/with-android-tab-height.js"
     ],
     "experiments": {
       "typedRoutes": true,
