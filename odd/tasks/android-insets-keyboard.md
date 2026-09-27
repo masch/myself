@@ -28,4 +28,5 @@ Standardize Android and iOS screen layouts by creating a reusable `ScreenContain
 - `TASK-4`: verified via `make check` (prettier, 173 unit tests, lint, tsc, expo-doctor 20/20) and `make check-e2e-browser` (5/5 Playwright e2e tests passing).
 - `TASK-5`: commit `45c549b` (`feat(mobile): position web native tabs at the bottom`)
 - `TASK-6`: commit `6d41da6` (`feat(mobile): compact native android tabs height to 56dp via config plugin`), commit `0e6b1bc` (`test(mobile): add unit tests for withAndroidTabHeight config plugin`, 100% line & func coverage), and commit `da81d5e` (`refactor(mobile): resolve dimens.xml via AndroidConfig.Paths in tab height plugin`).
-- `TASK-7`: pure compound component architecture, `useScreenPadding` DRY single source of truth, and `Component Architecture & UI Guidelines` documented in `AGENTS.md`.
+- `TASK-7`: pure compound component architecture, `useScreenPadding` DRY single source of truth, and `Component Architecture & UI Guidelines` documented in `AGENTS.md` (commits `f8be8c6`, `7a775db`, `a497383`).
+- `Review Fixes`: commits `6e6b0ba` (Expo environment typecheck CI generation), `c98ff4a` (Yoga padding precedence, iOS double inset prevention, XML attribute regex), and `b539102` (consolidated dimension overrides DRY). All 174 tests and CI pipeline passing in green.
