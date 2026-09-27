@@ -8,6 +8,7 @@ import {
   NativeListItem,
   NativeSwitch,
   NativePicker,
+  ThemedText,
 } from "@/components";
 
 import { useAuth } from "@/context/auth-context";
@@ -23,7 +24,6 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from "react-native";
@@ -443,9 +443,13 @@ export default function SettingsScreen() {
     <ScreenContainer.Scroll>
       {/* 1. Account Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.sectionTitle}
+        >
           ACTIVE PROFILE
-        </Text>
+        </ThemedText>
         <View
           style={[
             styles.card,
@@ -458,14 +462,16 @@ export default function SettingsScreen() {
               style={[styles.rowIcon, { tintColor: colors.systemBlue }]}
             />
             <View style={styles.rowContent}>
-              <Text style={[styles.rowTitle, { color: colors.label }]}>
+              <ThemedText variant="body" style={styles.rowTitle}>
                 {currentUser?.name ?? "No user"}
-              </Text>
-              <Text
-                style={[styles.rowSubtitle, { color: colors.secondaryLabel }]}
+              </ThemedText>
+              <ThemedText
+                variant="caption1"
+                color={colors.secondaryLabel}
+                style={styles.rowSubtitle}
               >
                 {currentUser?.email ?? "No email"}
-              </Text>
+              </ThemedText>
             </View>
           </View>
 
@@ -473,11 +479,13 @@ export default function SettingsScreen() {
             <>
               <View style={styles.divider} />
               <View style={styles.accountsContainer}>
-                <Text
-                  style={[styles.subheading, { color: colors.secondaryLabel }]}
+                <ThemedText
+                  variant="caption2"
+                  color={colors.secondaryLabel}
+                  style={styles.subheading}
                 >
                   Switch Account:
-                </Text>
+                </ThemedText>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -691,9 +699,9 @@ export default function SettingsScreen() {
         maxWidth={460}
       >
         <View style={styles.modalHeaderRow}>
-          <Text style={[styles.modalTitle, { color: colors.label }]}>
+          <ThemedText variant="headline" style={styles.modalTitle}>
             Create User Profile
-          </Text>
+          </ThemedText>
           <IconButton
             icon="sf:xmark"
             color={colors.secondaryLabel}
@@ -755,18 +763,24 @@ export default function SettingsScreen() {
             source="sf:app.badge.checkmark.fill"
             style={[styles.aboutIcon, { tintColor: colors.systemBlue }]}
           />
-          <Text style={[styles.aboutTitle, { color: colors.label }]}>
+          <ThemedText variant="headline" style={styles.aboutTitle}>
             Myself App
-          </Text>
-          <Text style={[styles.aboutVersion, { color: colors.secondaryLabel }]}>
+          </ThemedText>
+          <ThemedText
+            variant="caption1"
+            color={colors.secondaryLabel}
+            style={styles.aboutVersion}
+          >
             Version 1.0.0 (Expo SDK 57)
-          </Text>
-          <Text
-            style={[styles.aboutDescription, { color: colors.secondaryLabel }]}
+          </ThemedText>
+          <ThemedText
+            variant="body"
+            color={colors.secondaryLabel}
+            style={styles.aboutDescription}
           >
             Local-first SQLite database with pre-meditation reading passages,
             multi-moment practice timer, and clean atomic design.
-          </Text>
+          </ThemedText>
 
           <View style={{ width: "100%", marginTop: 16 }}>
             <AppButton

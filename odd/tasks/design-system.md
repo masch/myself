@@ -44,6 +44,12 @@ Establish a unified, platform-first design system architecture for the mobile ap
 - [x] **TASK-5**: Phase 5 — Developer Showcase & Visual Verification:
   - Implement developer showcase screen in `apps/mobile/src/app/dev-showcase.tsx` documenting token scales and primitives.
   - Ensure zero regressions across full test suite and quality gates.
+- [x] **TASK-6**: Phase 6 — Comprehensive Screen Refactoring to Design System Primitives:
+  - Refactor `meditation.tsx` to eliminate all raw `<Text>` and ad-hoc card `<View>`s in favor of `<ThemedText>` and `<Card>`.
+  - Refactor `reflections.tsx` to eliminate all raw `<Text>` and ad-hoc container `<View>`s in favor of `<ThemedText>` and `<Card>`.
+  - Refactor `settings.tsx` to eliminate remaining raw `<Text>` in favor of `<ThemedText>`.
+  - Refactor modals (`modal.tsx`, `reading-modal.tsx`) and root layout to eliminate raw `<Text>`.
+  - Verify all quality gates (`make check`).
 
 ## Evidence & Verification
 
@@ -87,8 +93,12 @@ Establish a unified, platform-first design system architecture for the mobile ap
   - Enhanced `apps/mobile/test-setup.ts` with test mocks for `expo-image` and `react-native-safe-area-context`.
   - Resolved web React DOM compatibility by applying `StyleSheet.flatten` to `<Accordion>` and `<Collapsible>` primitive styles, preventing `@radix-ui/react-slot` array spread onto DOM `CSSStyleDeclaration`.
   - Verified quality gates (`make check-format`, `make check-static`, `make check-tests`: 202 passed, `make check-doctor`: 20/20 passed).
+- Commit `26d70d7` (`refactor(ui): complete comprehensive screen migration to design system primitives`):
+  - `TASK-6`: Conducted full sweep across all application screens (`meditation.tsx`, `reflections.tsx`, `settings.tsx`, `modal.tsx`, `reading-modal.tsx`, and `_layout.tsx`), systematically replacing 100% of raw React Native `<Text>` elements with semantic `<ThemedText>` and migrating container views to `<Card>`.
+  - Verified zero remaining raw `<Text>` occurrences in `src/app/`.
+  - Verified all quality gates (`make check-format`, `make check-static`, `make check-tests`: 202 passed, `make check-doctor`: 20/20 passed).
 - **Completion & Delivery**:
-  - Successfully executed all 5 roadmap phases for issue [#53](https://github.com/masch/myself/issues/53).
+  - Successfully executed all 6 roadmap phases for issue [#53](https://github.com/masch/myself/issues/53).
   - All quality gates observed passing in green (`make check-format`, `make check-static`, `make check-tests`: 202 passed, `make check-doctor`: 20/20 passed).
-  - Clean architecture enforced with 100% tokens and primitives encapsulation and zero direct deep imports.
+  - Clean architecture enforced with 100% tokens and primitives encapsulation, zero raw typography, and zero direct deep imports.
   - Delivery completed on feature branch `feat/53-design-system`.

@@ -1,16 +1,9 @@
 import { useState } from "react";
 import { router, Stack } from "expo-router";
-import {
-  View,
-  StyleSheet,
-  TextInput,
-  Text,
-  Alert,
-  ScrollView,
-} from "react-native";
+import { View, StyleSheet, TextInput, Alert, ScrollView } from "react-native";
 import { Image } from "expo-image";
 import { useTasks } from "@/hooks/use-tasks";
-import { HeaderButton, ChipButton } from "@/components";
+import { HeaderButton, ChipButton, ThemedText, Card } from "@/components";
 import { colors } from "@/theme";
 
 const CATEGORIES = ["Work", "Personal", "Shopping", "Design", "Urgent"];
@@ -65,9 +58,13 @@ export default function ModalScreen() {
 
       {/* Category selector chips */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.sectionTitle}
+        >
           CATEGORY
-        </Text>
+        </ThemedText>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -89,15 +86,14 @@ export default function ModalScreen() {
 
       {/* Task input card */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-          TASK DETAILS
-        </Text>
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.secondarySystemBackground },
-          ]}
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.sectionTitle}
         >
+          TASK DETAILS
+        </ThemedText>
+        <Card variant="subdued" padding="none" style={styles.card}>
           <View style={styles.inputRow}>
             <Image
               source="sf:text.badge.plus"
@@ -130,7 +126,7 @@ export default function ModalScreen() {
               numberOfLines={3}
             />
           </View>
-        </View>
+        </Card>
       </View>
     </ScrollView>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, Text, Switch, Alert } from "react-native";
+import { View, StyleSheet, Switch, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useKeepAwake } from "expo-keep-awake";
 import {
@@ -18,6 +18,8 @@ import {
   MeditationText,
   ScreenContainer,
   Collapsible,
+  ThemedText,
+  Card,
 } from "@/components";
 
 import { colors } from "@/theme";
@@ -154,56 +156,60 @@ export default function MeditationScreen() {
   return (
     <ScreenContainer.Scroll>
       {/* Main Timer Display Card */}
-      <View
-        style={[
-          styles.timerCard,
-          { backgroundColor: colors.secondarySystemBackground },
-        ]}
-      >
-        <Text style={[styles.statusBadge, { color: colors.secondaryLabel }]}>
+      <Card variant="elevated" padding="none" style={styles.timerCard}>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.statusBadge}
+        >
           {isIdle && "LISTO PARA COMENZAR"}
           {isRunning && "EN MEDITACIÓN"}
           {isPaused && "EN PAUSA"}
           {isCompleted && "SESIÓN COMPLETADA"}
-        </Text>
+        </ThemedText>
 
-        <Text style={[styles.timerText, { color: colors.label }]}>
+        <ThemedText variant="largeTitle" style={styles.timerText}>
           {formatTime(elapsedSeconds)}
-        </Text>
+        </ThemedText>
 
         {/* Current Phase Indicator */}
         {!isIdle && !isCompleted && (
           <View style={styles.momentContainer}>
-            <Text style={[styles.momentStep, { color: colors.systemBlue }]}>
+            <ThemedText
+              variant="caption1"
+              color={colors.systemBlue}
+              style={styles.momentStep}
+            >
               Momento {currentMomentIndex + 1} de {moments.length}
-            </Text>
-            <Text style={[styles.momentTitle, { color: colors.label }]}>
+            </ThemedText>
+            <ThemedText variant="title2" style={styles.momentTitle}>
               {currentMoment}
-            </Text>
+            </ThemedText>
             {isWaitingForScheduledTime && (
-              <Text
-                style={[
-                  styles.scheduledNotice,
-                  { color: colors.secondaryLabel },
-                ]}
+              <ThemedText
+                variant="callout"
+                color={colors.secondaryLabel}
+                style={styles.scheduledNotice}
               >
                 🔔 Avanzará al Momento 3 al llegar a las{" "}
                 {formatClock(targetHour, targetMinute)} hs
-              </Text>
+              </ThemedText>
             )}
           </View>
         )}
 
         {isCompleted && (
           <View style={styles.momentContainer}>
-            <Text style={[styles.momentTitle, { color: colors.label }]}>
+            <ThemedText variant="title2" style={styles.momentTitle}>
               ¡Meditación Finalizada!
-            </Text>
-            <Text
-              style={[styles.momentSubtitle, { color: colors.secondaryLabel }]}
+            </ThemedText>
+            <ThemedText
+              variant="callout"
+              color={colors.secondaryLabel}
+              style={styles.momentSubtitle}
             >
               Completaste los 3 momentos de la práctica.
-            </Text>
+            </ThemedText>
           </View>
         )}
 
@@ -231,18 +237,14 @@ export default function MeditationScreen() {
             );
           })}
         </View>
-      </View>
+      </Card>
 
       {/* DND Reminder Notice on Moment 1 if inactive or on iOS */}
       {showDndNotice && (isRunning || isPaused) && currentMomentIndex === 0 && (
-        <View
-          style={[
-            styles.dndNoticeCard,
-            {
-              backgroundColor: colors.secondarySystemBackground,
-              borderColor: colors.systemPurple,
-            },
-          ]}
+        <Card
+          variant="outlined"
+          padding="none"
+          style={[styles.dndNoticeCard, { borderColor: colors.systemPurple }]}
         >
           <View style={styles.dndNoticeHeader}>
             <View style={styles.dndNoticeLeft}>
@@ -254,21 +256,20 @@ export default function MeditationScreen() {
                 ]}
               />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.dndNoticeTitle, { color: colors.label }]}>
+                <ThemedText variant="headline" style={styles.dndNoticeTitle}>
                   {isDndCheckSupported()
                     ? "Modo No Molestar desactivado"
                     : "Sugerencia: activá No Molestar"}
-                </Text>
-                <Text
-                  style={[
-                    styles.dndNoticeSubtitle,
-                    { color: colors.secondaryLabel },
-                  ]}
+                </ThemedText>
+                <ThemedText
+                  variant="caption1"
+                  color={colors.secondaryLabel}
+                  style={styles.dndNoticeSubtitle}
                 >
                   {isDndCheckSupported()
                     ? "Detectamos que las notificaciones están activas. Te sugerimos poner el teléfono en No Molestar para meditar sin interrupciones."
                     : "Poné tu teléfono en modo Enfoque / No Molestar para meditar sin interrupciones."}
-                </Text>
+                </ThemedText>
               </View>
             </View>
             <ChipButton
@@ -277,18 +278,17 @@ export default function MeditationScreen() {
               onPress={() => setShowDndNotice(false)}
             />
           </View>
-        </View>
+        </Card>
       )}
 
       {/* Reading Card: Selected before starting OR during Moment 1 */}
       {(isIdle || (!isCompleted && currentMomentIndex === 0)) && (
-        <View
+        <Card
+          variant="subdued"
+          padding="none"
           style={[
             styles.readingStepCard,
-            {
-              backgroundColor: colors.secondarySystemBackground,
-              borderLeftColor: colors.systemPurple,
-            },
+            { borderLeftColor: colors.systemPurple },
           ]}
         >
           {activeReading ? (
@@ -303,33 +303,29 @@ export default function MeditationScreen() {
                     ]}
                   />
                   <View style={{ flex: 1 }}>
-                    <Text
-                      style={[
-                        styles.readingCardTag,
-                        { color: colors.systemPurple },
-                      ]}
+                    <ThemedText
+                      variant="caption2"
+                      color={colors.systemPurple}
+                      style={styles.readingCardTag}
                     >
                       {isIdle
                         ? "LECTURA SELECCIONADA PARA LA SESIÓN"
                         : "MOMENTO 1: LECTURA Y REFLEXIÓN"}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.readingAuthorName,
-                        { color: colors.label },
-                      ]}
+                    </ThemedText>
+                    <ThemedText
+                      variant="headline"
+                      style={styles.readingAuthorName}
                     >
                       {activeReading.author_name}
-                    </Text>
+                    </ThemedText>
                     {activeReading.author_bio ? (
-                      <Text
-                        style={[
-                          styles.readingAuthorBio,
-                          { color: colors.secondaryLabel },
-                        ]}
+                      <ThemedText
+                        variant="caption1"
+                        color={colors.secondaryLabel}
+                        style={styles.readingAuthorBio}
                       >
                         {activeReading.author_bio}
-                      </Text>
+                      </ThemedText>
                     ) : null}
                   </View>
                 </View>
@@ -346,14 +342,13 @@ export default function MeditationScreen() {
 
               <View style={styles.quoteBox}>
                 {Boolean(activeReading.title) && (
-                  <Text
-                    style={[
-                      styles.readingTitle,
-                      { color: colors.systemPurple },
-                    ]}
+                  <ThemedText
+                    variant="headline"
+                    color={colors.systemPurple}
+                    style={styles.readingTitle}
                   >
                     {activeReading.title}
-                  </Text>
+                  </ThemedText>
                 )}
                 <MeditationText
                   content={activeReading.content}
@@ -365,27 +360,25 @@ export default function MeditationScreen() {
               </View>
 
               <View style={styles.readingFooter}>
-                <Text
-                  style={[
-                    styles.readCountBadge,
-                    { color: colors.secondaryLabel },
-                  ]}
+                <ThemedText
+                  variant="caption1"
+                  color={colors.secondaryLabel}
+                  style={styles.readCountBadge}
                 >
                   {activeReading.times_read === 0
                     ? "✨ Texto nuevo (sin leer)"
                     : `📖 Leído ${activeReading.times_read} ${activeReading.times_read === 1 ? "vez" : "veces"}`}
-                </Text>
+                </ThemedText>
 
-                <Text
-                  style={[
-                    styles.autoRecordHint,
-                    { color: colors.secondaryLabel },
-                  ]}
+                <ThemedText
+                  variant="caption2"
+                  color={colors.secondaryLabel}
+                  style={styles.autoRecordHint}
                 >
                   {isIdle
                     ? "Se marcará como leído al pasar al Momento 2"
                     : "Pasa al Momento 2 para registrarla como leída"}
-                </Text>
+                </ThemedText>
               </View>
             </>
           ) : (
@@ -397,42 +390,40 @@ export default function MeditationScreen() {
                   { tintColor: colors.systemPurple },
                 ]}
               />
-              <Text style={[styles.emptyReadingTitle, { color: colors.label }]}>
+              <ThemedText variant="headline" style={styles.emptyReadingTitle}>
                 Sin textos en la biblioteca
-              </Text>
-              <Text
-                style={[
-                  styles.emptyReadingSubtitle,
-                  { color: colors.secondaryLabel },
-                ]}
+              </ThemedText>
+              <ThemedText
+                variant="callout"
+                color={colors.secondaryLabel}
+                style={styles.emptyReadingSubtitle}
               >
                 Podés crear nuevas lecturas en la pestaña &apos;Lecturas&apos;.
-              </Text>
+              </ThemedText>
             </View>
           )}
-        </View>
+        </Card>
       )}
 
       {/* Moment 2 & 3: Badge confirming read has been registered */}
       {!isIdle && !isCompleted && currentMomentIndex >= 1 && activeReading && (
-        <View
-          style={[
-            styles.readRegisteredBadge,
-            { backgroundColor: colors.secondarySystemBackground },
-          ]}
+        <Card
+          variant="subdued"
+          padding="none"
+          style={styles.readRegisteredBadge}
         >
           <Image
             source="sf:checkmark.circle.fill"
             style={[styles.checkIcon, { tintColor: colors.systemGreen }]}
           />
-          <Text style={[styles.readRegisteredText, { color: colors.label }]}>
+          <ThemedText variant="callout" style={styles.readRegisteredText}>
             Lectura de{" "}
-            <Text style={{ fontWeight: "600" }}>
+            <ThemedText variant="callout" style={{ fontWeight: "600" }}>
               {activeReading.author_name}
-            </Text>{" "}
+            </ThemedText>{" "}
             registrada como leída en esta sesión.
-          </Text>
-        </View>
+          </ThemedText>
+        </Card>
       )}
 
       {/* Primary Actions */}
@@ -507,16 +498,15 @@ export default function MeditationScreen() {
       {/* Scheduled Clock Alarm Settings & Sound test */}
       <View style={styles.settingsSection}>
         <View style={styles.groupContainer}>
-          <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-            CONFIGURACIÓN DE ALARMA Y SONIDOS
-          </Text>
-
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: colors.secondarySystemBackground },
-            ]}
+          <ThemedText
+            variant="caption1"
+            color={colors.secondaryLabel}
+            style={styles.sectionTitle}
           >
+            CONFIGURACIÓN DE ALARMA Y SONIDOS
+          </ThemedText>
+
+          <Card variant="subdued" padding="none" style={styles.card}>
             {/* Alarm Active Switch */}
             <View style={styles.settingRow}>
               <Image
@@ -524,17 +514,16 @@ export default function MeditationScreen() {
                 style={[styles.iconSetting, { tintColor: colors.systemOrange }]}
               />
               <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, { color: colors.label }]}>
+                <ThemedText variant="body" style={styles.settingTitle}>
                   Alarma de Pared Programada
-                </Text>
-                <Text
-                  style={[
-                    styles.settingSubtitle,
-                    { color: colors.secondaryLabel },
-                  ]}
+                </ThemedText>
+                <ThemedText
+                  variant="caption1"
+                  color={colors.secondaryLabel}
+                  style={styles.settingSubtitle}
                 >
                   Suena 1 gong al llegar a la hora objetivo
-                </Text>
+                </ThemedText>
               </View>
               <Switch
                 value={alarmEnabled}
@@ -556,17 +545,16 @@ export default function MeditationScreen() {
                   style={[styles.iconSetting, { tintColor: colors.systemBlue }]}
                 />
                 <View style={styles.settingContent}>
-                  <Text style={[styles.settingTitle, { color: colors.label }]}>
+                  <ThemedText variant="body" style={styles.settingTitle}>
                     Hora Objetivo
-                  </Text>
-                  <Text
-                    style={[
-                      styles.settingSubtitle,
-                      { color: colors.secondaryLabel },
-                    ]}
+                  </ThemedText>
+                  <ThemedText
+                    variant="caption1"
+                    color={colors.secondaryLabel}
+                    style={styles.settingSubtitle}
                   >
                     {formatClock(targetHour, targetMinute)} hs
-                  </Text>
+                  </ThemedText>
                 </View>
                 <Collapsible.Trigger asChild>
                   <ChipButton
@@ -581,41 +569,37 @@ export default function MeditationScreen() {
                 <View style={styles.timePickerContainer}>
                   {/* Hours column */}
                   <View style={styles.pickerColumn}>
-                    <Text
-                      style={[
-                        styles.pickerLabel,
-                        { color: colors.secondaryLabel },
-                      ]}
+                    <ThemedText
+                      variant="caption2"
+                      color={colors.secondaryLabel}
+                      style={styles.pickerLabel}
                     >
                       HORA
-                    </Text>
+                    </ThemedText>
                     <StepperButton direction="up" onPress={incrementHour} />
-                    <Text style={[styles.pickerValue, { color: colors.label }]}>
+                    <ThemedText variant="title1" style={styles.pickerValue}>
                       {targetHour.toString().padStart(2, "0")}
-                    </Text>
+                    </ThemedText>
                     <StepperButton direction="down" onPress={decrementHour} />
                   </View>
 
-                  <Text
-                    style={[styles.colonSeparator, { color: colors.label }]}
-                  >
+                  <ThemedText variant="title1" style={styles.colonSeparator}>
                     :
-                  </Text>
+                  </ThemedText>
 
                   {/* Minutes column */}
                   <View style={styles.pickerColumn}>
-                    <Text
-                      style={[
-                        styles.pickerLabel,
-                        { color: colors.secondaryLabel },
-                      ]}
+                    <ThemedText
+                      variant="caption2"
+                      color={colors.secondaryLabel}
+                      style={styles.pickerLabel}
                     >
                       MINUTO
-                    </Text>
+                    </ThemedText>
                     <StepperButton direction="up" onPress={incrementMinute} />
-                    <Text style={[styles.pickerValue, { color: colors.label }]}>
+                    <ThemedText variant="title1" style={styles.pickerValue}>
                       {targetMinute.toString().padStart(2, "0")}
-                    </Text>
+                    </ThemedText>
                     <StepperButton direction="down" onPress={decrementMinute} />
                   </View>
                 </View>
@@ -631,17 +615,16 @@ export default function MeditationScreen() {
                 style={[styles.iconSetting, { tintColor: colors.systemPurple }]}
               />
               <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, { color: colors.label }]}>
+                <ThemedText variant="body" style={styles.settingTitle}>
                   Probar Gong Simple
-                </Text>
-                <Text
-                  style={[
-                    styles.settingSubtitle,
-                    { color: colors.secondaryLabel },
-                  ]}
+                </ThemedText>
+                <ThemedText
+                  variant="caption1"
+                  color={colors.secondaryLabel}
+                  style={styles.settingSubtitle}
                 >
                   Sonido de inicio y cambio de fase
-                </Text>
+                </ThemedText>
               </View>
               <ChipButton
                 title="1 Gong"
@@ -659,17 +642,16 @@ export default function MeditationScreen() {
                 style={[styles.iconSetting, { tintColor: colors.systemGreen }]}
               />
               <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, { color: colors.label }]}>
+                <ThemedText variant="body" style={styles.settingTitle}>
                   Probar Triple Gong
-                </Text>
-                <Text
-                  style={[
-                    styles.settingSubtitle,
-                    { color: colors.secondaryLabel },
-                  ]}
+                </ThemedText>
+                <ThemedText
+                  variant="caption1"
+                  color={colors.secondaryLabel}
+                  style={styles.settingSubtitle}
                 >
                   Sonido de cierre de meditación
-                </Text>
+                </ThemedText>
               </View>
               <ChipButton
                 title="3 Gongs"
@@ -677,7 +659,7 @@ export default function MeditationScreen() {
                 onPress={playTripleGong}
               />
             </View>
-          </View>
+          </Card>
         </View>
       </View>
     </ScreenContainer.Scroll>
