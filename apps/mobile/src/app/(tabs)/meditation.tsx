@@ -150,13 +150,7 @@ export default function MeditationScreen() {
   };
 
   return (
-    <ScreenContainer
-      scrollable
-      edges={["top", "bottom"]}
-      topOffset={8}
-      bottomOffset={48}
-      contentContainerStyle={styles.contentContainer}
-    >
+    <ScreenContainer.Scroll contentContainerStyle={styles.contentContainer}>
       {/* Main Timer Display Card */}
       <View
         style={[
@@ -684,7 +678,7 @@ export default function MeditationScreen() {
           </View>
         </View>
       </View>
-    </ScreenContainer>
+    </ScreenContainer.Scroll>
   );
 }
 

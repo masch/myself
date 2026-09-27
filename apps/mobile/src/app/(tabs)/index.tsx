@@ -51,13 +51,7 @@ export default function HomeScreen() {
   const completedTasks = tasks.filter((t) => !!t.is_done);
 
   return (
-    <ScreenContainer
-      scrollable
-      edges={["top", "bottom"]}
-      topOffset={8}
-      bottomOffset={16}
-      contentContainerStyle={styles.contentContainer}
-    >
+    <ScreenContainer.Scroll contentContainerStyle={styles.contentContainer}>
       {/* Summary Card */}
       <View
         style={[
@@ -182,7 +176,7 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
-    </ScreenContainer>
+    </ScreenContainer.Scroll>
   );
 }
 

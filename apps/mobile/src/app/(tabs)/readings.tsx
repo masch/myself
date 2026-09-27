@@ -60,13 +60,7 @@ export default function ReadingsScreen() {
   const totalSessionsCount = readings.reduce((acc, r) => acc + r.times_read, 0);
 
   return (
-    <ScreenContainer
-      scrollable
-      edges={["top", "bottom"]}
-      topOffset={8}
-      bottomOffset={16}
-      contentContainerStyle={styles.contentContainer}
-    >
+    <ScreenContainer.Scroll contentContainerStyle={styles.contentContainer}>
       <Stack.Screen
         options={{
           title: "Meditation Readings",
@@ -213,7 +207,7 @@ export default function ReadingsScreen() {
           />
         </View>
       )}
-    </ScreenContainer>
+    </ScreenContainer.Scroll>
   );
 }
 

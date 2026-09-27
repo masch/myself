@@ -140,7 +140,7 @@ export default function SettingsScreen() {
   // -------------------------------------------------------------------------
   if (Platform.OS !== "android") {
     return (
-      <ScreenContainer edges={["top", "bottom"]} topOffset={8} bottomOffset={8}>
+      <ScreenContainer>
         <Host style={{ flex: 1 }}>
           <FieldGroup>
             {/* Active Profile Section */}
@@ -419,13 +419,7 @@ export default function SettingsScreen() {
   // Android: High-Performance, Crash-Free Native System UI
   // -------------------------------------------------------------------------
   return (
-    <ScreenContainer
-      scrollable
-      edges={["top", "bottom"]}
-      topOffset={8}
-      bottomOffset={32}
-      contentContainerStyle={styles.contentContainer}
-    >
+    <ScreenContainer.Scroll contentContainerStyle={styles.contentContainer}>
       {/* 1. Account Section */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
@@ -817,7 +811,7 @@ export default function SettingsScreen() {
           </View>
         </View>
       </AppBottomSheetModal>
-    </ScreenContainer>
+    </ScreenContainer.Scroll>
   );
 }
 

@@ -39,3 +39,21 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+## Component Architecture & UI Guidelines
+
+1. **Compound Components over Boolean Flags**:
+   - Never use boolean flags (e.g. `scrollable={true|false}`) to toggle fundamentally different underlying trees (e.g. `View` vs `ScrollView`).
+   - Prefer explicit compound components (e.g. `<ScreenContainer>` for fixed layouts, `<ScreenContainer.Scroll>` for scrollable layouts).
+
+2. **Interface Segregation (ISP)**:
+   - Do not pollute root component interfaces with specialized props (e.g. `contentContainerStyle` or `refreshControl` belong exclusively to scroll components).
+
+3. **Design Tokens over Magic Numbers**:
+   - Centralize layout metrics (`DEFAULT_EDGES`, `topOffset`, `bottomOffset`) as sane component defaults.
+   - Do not pass arbitrary, ad-hoc offset numbers from individual screens unless strictly justified by floating overlays.
+
+4. **Single Source of Truth for Insets (DRY)**:
+   - All tab and stack screens must use `<ScreenContainer>` or `<ScreenContainer.Scroll>`.
+   - Never duplicate safe-area inset math across siblings; extract shared geometry to dedicated hooks (e.g. `useScreenPadding`).
+

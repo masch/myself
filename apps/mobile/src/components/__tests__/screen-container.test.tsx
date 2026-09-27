@@ -1,20 +1,46 @@
 import { beforeAll, describe, expect, it, mock } from "bun:test";
 import React from "react";
 import { renderToString } from "react-dom/server";
-import type { ScreenContainer as ScreenContainerComponent } from "../screen-container";
+import type {
+  ScreenContainer as ScreenContainerComponent,
+  ScrollScreenContainer as ScrollScreenContainerComponent,
+  useScreenPadding as useScreenPaddingHook,
+} from "../screen-container";
 
 let ScreenContainer: typeof ScreenContainerComponent;
+let ScrollScreenContainer: typeof ScrollScreenContainerComponent;
+let useScreenPadding: typeof useScreenPaddingHook;
 
 beforeAll(async () => {
   mock.module("react-native-safe-area-context", () => ({
-    useSafeAreaInsets: () => ({ top: 48, bottom: 34, left: 0, right: 0 }),
+    useSafeAreaInsets: () => ({ top: 48, bottom: 34, left: 10, right: 12 }),
   }));
 
   const mod = await import("../screen-container");
   ScreenContainer = mod.ScreenContainer;
+  ScrollScreenContainer = mod.ScrollScreenContainer;
+  useScreenPadding = mod.useScreenPadding;
 });
 
-describe("ScreenContainer component", () => {
+describe("ScreenContainer component & useScreenPadding hook", () => {
+  it("computes safe area padding correctly via useScreenPadding hook", () => {
+    const defaultPadding = useScreenPadding();
+    expect(defaultPadding.paddingTop).toBe(48 + 8);
+    expect(defaultPadding.paddingBottom).toBe(34 + 16);
+    expect(defaultPadding.paddingLeft).toBe(0);
+    expect(defaultPadding.paddingRight).toBe(0);
+
+    const customPadding = useScreenPadding({
+      edges: ["left", "right"],
+      topOffset: 0,
+      bottomOffset: 0,
+    });
+    expect(customPadding.paddingTop).toBe(0);
+    expect(customPadding.paddingBottom).toBe(0);
+    expect(customPadding.paddingLeft).toBe(10);
+    expect(customPadding.paddingRight).toBe(12);
+  });
+
   it("renders children cleanly within safe area container", () => {
     const html = renderToString(
       <ScreenContainer>
@@ -35,13 +61,23 @@ describe("ScreenContainer component", () => {
     expect(html).toContain("Screen Body");
   });
 
-  it("renders scrollable container when scrollable prop is true", () => {
+  it("renders via ScreenContainer.Scroll compound component", () => {
     const html = renderToString(
-      <ScreenContainer scrollable testID="scroll-screen">
-        <span>Scroll Content</span>
-      </ScreenContainer>,
+      <ScreenContainer.Scroll testID="compound-scroll">
+        <span>Compound Scroll Content</span>
+      </ScreenContainer.Scroll>,
     );
 
-    expect(html).toContain("Scroll Content");
+    expect(html).toContain("Compound Scroll Content");
+  });
+
+  it("renders via ScrollScreenContainer named export", () => {
+    const html = renderToString(
+      <ScrollScreenContainer testID="named-scroll">
+        <span>Named Scroll Content</span>
+      </ScrollScreenContainer>,
+    );
+
+    expect(html).toContain("Named Scroll Content");
   });
 });
