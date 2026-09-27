@@ -177,9 +177,15 @@ jobs:
     steps:
       - name: Evaluate Validation Results
         run: |
-          echo "Static Analysis: ${{ needs.static-analysis.result }}"
-          echo "Unit Tests:      ${{ needs.unit-tests.result }}"
-          echo "E2E Browser:     ${{ needs.e2e-browser.result }}"
+          echo "Changes Detection: ${{ needs.changes.result }}"
+          echo "Static Analysis:   ${{ needs.static-analysis.result }}"
+          echo "Unit Tests:        ${{ needs.unit-tests.result }}"
+          echo "E2E Browser:       ${{ needs.e2e-browser.result }}"
+
+          if [ "${{ needs.changes.result }}" != "success" ]; then
+            echo "::error::Changes detection failed"
+            exit 1
+          fi
 
           if [ "${{ needs.static-analysis.result }}" != "success" ]; then
             echo "::error::Static Analysis failed"

@@ -793,7 +793,7 @@ export default function SettingsScreen() {
             Myself App
           </Text>
           <Text style={[styles.aboutVersion, { color: colors.secondaryLabel }]}>
-            Version 1.0.1 (Expo SDK 57)
+            Version 1.0.0 (Expo SDK 57)
           </Text>
           <Text
             style={[styles.aboutDescription, { color: colors.secondaryLabel }]}
