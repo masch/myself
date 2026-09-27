@@ -17,7 +17,9 @@ import {
   StepperButton,
   MeditationText,
   ScreenContainer,
+  Collapsible,
 } from "@/components";
+
 import { colors } from "@/theme";
 
 function formatTime(totalSeconds: number): string {
@@ -546,35 +548,35 @@ export default function MeditationScreen() {
 
             <View style={styles.divider} />
 
-            {/* Target Time Setting Row */}
-            <View style={styles.settingRow}>
-              <Image
-                source="sf:clock.fill"
-                style={[styles.iconSetting, { tintColor: colors.systemBlue }]}
-              />
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, { color: colors.label }]}>
-                  Hora Objetivo
-                </Text>
-                <Text
-                  style={[
-                    styles.settingSubtitle,
-                    { color: colors.secondaryLabel },
-                  ]}
-                >
-                  {formatClock(targetHour, targetMinute)} hs
-                </Text>
+            {/* Target Time Setting Collapsible */}
+            <Collapsible open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+              <View style={styles.settingRow}>
+                <Image
+                  source="sf:clock.fill"
+                  style={[styles.iconSetting, { tintColor: colors.systemBlue }]}
+                />
+                <View style={styles.settingContent}>
+                  <Text style={[styles.settingTitle, { color: colors.label }]}>
+                    Hora Objetivo
+                  </Text>
+                  <Text
+                    style={[
+                      styles.settingSubtitle,
+                      { color: colors.secondaryLabel },
+                    ]}
+                  >
+                    {formatClock(targetHour, targetMinute)} hs
+                  </Text>
+                </View>
+                <Collapsible.Trigger asChild>
+                  <ChipButton
+                    title={isConfigOpen ? "Cerrar" : "Editar"}
+                    variant="blue"
+                  />
+                </Collapsible.Trigger>
               </View>
-              <ChipButton
-                title={isConfigOpen ? "Cerrar" : "Editar"}
-                variant="blue"
-                onPress={() => setIsConfigOpen((prev) => !prev)}
-              />
-            </View>
 
-            {/* Stepper Inline Time Picker */}
-            {isConfigOpen && (
-              <>
+              <Collapsible.Content>
                 <View style={styles.divider} />
                 <View style={styles.timePickerContainer}>
                   {/* Hours column */}
@@ -617,8 +619,8 @@ export default function MeditationScreen() {
                     <StepperButton direction="down" onPress={decrementMinute} />
                   </View>
                 </View>
-              </>
-            )}
+              </Collapsible.Content>
+            </Collapsible>
 
             <View style={styles.divider} />
 

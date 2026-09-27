@@ -11,3 +11,4 @@ export * from "./markdown-text";
 export * from "./screen-container";
 export * from "./surface";
 export * from "./themed-text";
+export * from "./primitives";

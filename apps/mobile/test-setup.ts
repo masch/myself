@@ -13,6 +13,13 @@ plugin({
         loader: "js",
       };
     });
+    build.onLoad({ filter: /@rn-primitives.*\.m?js$/ }, async (args) => {
+      const text = await Bun.file(args.path).text();
+      return {
+        contents: text,
+        loader: "jsx",
+      };
+    });
   },
 });
 

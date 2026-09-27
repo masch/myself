@@ -16,7 +16,13 @@ import {
   type UserReflection,
 } from "@myself/shared";
 import { colors } from "@/theme";
-import { ScreenContainer } from "@/components";
+import {
+  ScreenContainer,
+  Accordion,
+  Collapsible,
+  ThemedText,
+} from "@/components";
+
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
 import { useThemeCohort } from "@/features/reflections/hooks/use-theme-cohort";
 import { type ActiveCohortProgressDetail } from "@/features/reflections/domain/ports/reflection.repository.port";
@@ -633,7 +639,11 @@ export default function ReflectionsScreen() {
               {/* MACRO-BLOCK 2: RESPONDIDAS HOY                      */}
               {/* ---------------------------------------------------- */}
               {answeredQuestionsToday.length > 0 && (
-                <View style={styles.answeredMacroBlock}>
+                <Collapsible
+                  open={showAnswered}
+                  onOpenChange={setShowAnswered}
+                  style={styles.answeredMacroBlock}
+                >
                   <View style={styles.macroBlockHeader}>
                     <View style={{ flex: 1 }}>
                       <Text
@@ -664,30 +674,28 @@ export default function ReflectionsScreen() {
                     />
                   </View>
 
-                  {showAnswered && (
-                    <View style={{ marginTop: 6 }}>
-                      {answeredQuestionsToday.map(
-                        ({ question, reflection, dateLabel }) => (
-                          <PromptCard
-                            key={`answered-${question.id}-${reflection.id}`}
-                            question={question}
-                            reflection={reflection}
-                            dateLabel={dateLabel}
-                            hideStatusBadge={true}
-                            onAnswer={() =>
-                              handleOpenAnswer(
-                                question,
-                                null,
-                                reflection.forDate,
-                                reflection,
-                              )
-                            }
-                          />
-                        ),
-                      )}
-                    </View>
-                  )}
-                </View>
+                  <Collapsible.Content style={{ marginTop: 6 }}>
+                    {answeredQuestionsToday.map(
+                      ({ question, reflection, dateLabel }) => (
+                        <PromptCard
+                          key={`answered-${question.id}-${reflection.id}`}
+                          question={question}
+                          reflection={reflection}
+                          dateLabel={dateLabel}
+                          hideStatusBadge={true}
+                          onAnswer={() =>
+                            handleOpenAnswer(
+                              question,
+                              null,
+                              reflection.forDate,
+                              reflection,
+                            )
+                          }
+                        />
+                      ),
+                    )}
+                  </Collapsible.Content>
+                </Collapsible>
               )}
             </>
           ) : (
@@ -862,34 +870,57 @@ export default function ReflectionsScreen() {
                             return null;
 
                           return (
-                            <View style={{ marginTop: 14 }}>
-                              <Text
-                                style={[
-                                  styles.subHeader,
-                                  { color: colors.secondaryLabel },
-                                ]}
+                            <Accordion
+                              type="single"
+                              collapsible
+                              defaultValue={`cohort-completed-${active.id}`}
+                              style={{ marginTop: 14 }}
+                            >
+                              <Accordion.Item
+                                value={`cohort-completed-${active.id}`}
+                                style={{ borderBottomWidth: 0 }}
                               >
-                                Pasos completados ({completedSteps.length}):
-                              </Text>
-                              {completedSteps.map(
-                                ({ question, reflection }) => (
-                                  <PromptCard
-                                    key={`cohort-step-${active.id}-${question.id}`}
-                                    question={question}
-                                    reflection={reflection}
-                                    dateLabel={`Paso ${question.orderIndex} • ${formatDateDDMM(reflection.forDate)}`}
-                                    onAnswer={() =>
-                                      handleOpenAnswer(
-                                        question,
-                                        active,
-                                        reflection.forDate,
-                                        reflection,
+                                <Accordion.Header>
+                                  <Accordion.Trigger
+                                    style={{
+                                      paddingVertical: 6,
+                                      minHeight: 36,
+                                    }}
+                                  >
+                                    <ThemedText
+                                      variant="callout"
+                                      color={colors.secondaryLabel}
+                                      style={{ fontWeight: "600" }}
+                                    >
+                                      Pasos completados ({completedSteps.length}
                                       )
-                                    }
-                                  />
-                                ),
-                              )}
-                            </View>
+                                    </ThemedText>
+                                  </Accordion.Trigger>
+                                </Accordion.Header>
+                                <Accordion.Content
+                                  style={{ gap: 8, paddingBottom: 4 }}
+                                >
+                                  {completedSteps.map(
+                                    ({ question, reflection }) => (
+                                      <PromptCard
+                                        key={`cohort-step-${active.id}-${question.id}`}
+                                        question={question}
+                                        reflection={reflection}
+                                        dateLabel={`Paso ${question.orderIndex} • ${formatDateDDMM(reflection.forDate)}`}
+                                        onAnswer={() =>
+                                          handleOpenAnswer(
+                                            question,
+                                            active,
+                                            reflection.forDate,
+                                            reflection,
+                                          )
+                                        }
+                                      />
+                                    ),
+                                  )}
+                                </Accordion.Content>
+                              </Accordion.Item>
+                            </Accordion>
                           );
                         })()}
                       </>
