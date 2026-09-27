@@ -30,7 +30,7 @@ Establish a unified, platform-first design system architecture for the mobile ap
   - Define `spacing.ts`, `typography.ts`, `radius.ts`, and `shadows.ts` under `apps/mobile/src/theme/tokens/`.
   - Export tokens and existing `colors.ts` via `apps/mobile/src/theme/index.ts`.
   - Add unit tests verifying token scale completeness and type soundness.
-- [ ] **TASK-2**: Phase 2 — Core Primitives (Surfaces & Typography):
+- [x] **TASK-2**: Phase 2 — Core Primitives (Surfaces & Typography):
   - Build `<Surface>` / `<Card>` primitive supporting `elevated`, `outlined`, and `subdued` variants with continuous curvature.
   - Build `<ThemedText>` typography primitive enforcing font sizes, line heights, and weights.
   - Add unit tests for `<Surface>` and `<ThemedText>`.
@@ -57,3 +57,11 @@ Establish a unified, platform-first design system architecture for the mobile ap
   - Re-exported all tokens (`colors`, `spacing`, `typography`, `radius`, `shadows`) exclusively from `@/theme`.
   - Refactored all 25 application files importing `@/theme/colors` to import from `@/theme`.
   - Verified zero remaining deep imports and all verification checks green.
+- Commit `d2c965e` (`feat(ui): implement Surface and ThemedText primitives and migrate tab screens`):
+  - `TASK-2`: Added semantic `colors.separator` token for cross-platform borders/dividers.
+  - Built `<Surface>` and `<Card>` primitives in `apps/mobile/src/components/surface.tsx` supporting `elevated`, `outlined`, and `subdued` variants with continuous curvature and token padding.
+  - Built `<ThemedText>` primitive in `apps/mobile/src/components/themed-text.tsx` enforcing typography token scales with `ColorValue` support.
+  - Exported primitives via `apps/mobile/src/components/index.ts`.
+  - Added unit tests in `apps/mobile/src/components/__tests__/surface.test.tsx` and `apps/mobile/src/components/__tests__/themed-text.test.tsx` (12 unit tests).
+  - Migrated `index.tsx`, `readings.tsx`, and `reading-card.tsx` to `<Card>` and `<ThemedText>`, eliminating ad-hoc styling and hardcoded fonts.
+  - Verified quality gates (`make check-format`, `make check-lint`, `make check-types`, `make check-tests`: 193 passed).
