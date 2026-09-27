@@ -1,40 +1,40 @@
-import { useState } from "react";
 import {
-  Platform,
-  View,
-  ScrollView,
-  StyleSheet,
-  Text,
-  Alert,
-  TextInput,
-  Switch as RNSwitch,
-} from "react-native";
-import { Image } from "expo-image";
-import { useSQLiteContext } from "expo-sqlite";
-import { useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/context/auth-context";
-import { resetDatabase } from "@/infrastructure/persistence/database";
-import {
+  AppBottomSheetModal,
   AppButton,
   ChipButton,
   IconButton,
-  AppBottomSheetModal,
   ScreenContainer,
 } from "@/components";
+import { useAuth } from "@/context/auth-context";
+import { resetDatabase } from "@/infrastructure/persistence/database";
 import { colors } from "@/theme/colors";
+import { useQueryClient } from "@tanstack/react-query";
+import { Image } from "expo-image";
+import { useSQLiteContext } from "expo-sqlite";
+import { useState } from "react";
+import {
+  Alert,
+  Platform,
+  Switch as RNSwitch,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 // Only import @expo/ui on platforms that fully support it without Compose SlotView crashes
 import {
-  Host,
-  FieldGroup,
-  ListItem,
-  Switch as ExpoSwitch,
-  Slider as ExpoSlider,
-  Picker as ExpoPicker,
   BottomSheet,
   Column,
   Button as ExpoButton,
+  Picker as ExpoPicker,
+  Slider as ExpoSlider,
+  Switch as ExpoSwitch,
   Text as ExpoText,
+  FieldGroup,
+  Host,
+  ListItem,
 } from "@expo/ui";
 
 const THEMES = [
@@ -623,7 +623,7 @@ export default function SettingsScreen() {
       {/* 4. Privacy & Info */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-          PRIVACY & DIAGNOSTICS
+          PRIVACY & INFO
         </Text>
         <View
           style={[
