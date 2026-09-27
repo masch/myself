@@ -231,11 +231,34 @@ mock.module("expo-crypto", () => ({
   },
 }));
 
+mock.module("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ top: 48, bottom: 34, left: 10, right: 12 }),
+  SafeAreaProvider: ({ children }: any) => children,
+  SafeAreaView: ({ children }: any) => children,
+  initialWindowMetrics: {
+    insets: { top: 48, bottom: 34, left: 10, right: 12 },
+    frame: { x: 0, y: 0, width: 390, height: 844 },
+  },
+}));
+
+mock.module("expo-image", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require("react");
+  const { View } = ReactNativeWeb;
+
+  const Image = ({ style, ...props }: any) =>
+    React.createElement(View, { style, ...props });
+  Image.displayName = "Image";
+
+  return {
+    Image,
+  };
+});
+
 mock.module("@expo/ui", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require("react");
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { View, Text, Switch: RNSwitch, Pressable } = require("react-native");
+  const { View, Text, Switch: RNSwitch, Pressable } = ReactNativeWeb;
 
   const Host = ({ children, style, ...props }: any) =>
     React.createElement(View, { style, ...props }, children);

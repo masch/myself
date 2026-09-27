@@ -15,6 +15,7 @@ import { resetDatabase } from "@/infrastructure/persistence/database";
 import { colors } from "@/theme";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
+import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useState } from "react";
 import {
@@ -336,6 +337,22 @@ export default function SettingsScreen() {
               </ListItem>
             </FieldGroup.Section>
 
+            {/* Developer & Design System */}
+            <FieldGroup.Section title="Developer & Design System">
+              <ListItem
+                leading={
+                  <Image
+                    source="sf:paintpalette.fill"
+                    style={[styles.icon, { tintColor: colors.systemBlue }]}
+                  />
+                }
+                supportingText="Living catalog of tokens, primitives, and controls"
+                onPress={() => router.push("/(tabs)/dev-showcase" as any)}
+              >
+                Design System Showcase
+              </ListItem>
+            </FieldGroup.Section>
+
             {/* Database & Storage */}
             <FieldGroup.Section title="Database & Storage">
               <ListItem
@@ -612,6 +629,32 @@ export default function SettingsScreen() {
           }
         >
           About Myself App
+        </NativeListItem>
+      </NativeFieldGroup.Section>
+
+      {/* Developer & Design System */}
+      <NativeFieldGroup.Section
+        title="Developer & Design System"
+        style={styles.section}
+      >
+        <NativeListItem
+          leading={
+            <Image
+              source="sf:paintpalette.fill"
+              style={[styles.rowIcon, { tintColor: colors.systemBlue }]}
+            />
+          }
+          supportingText="Living catalog of tokens, primitives, and controls"
+          trailing={
+            <ChipButton
+              title="Open"
+              variant="secondary"
+              onPress={() => router.push("/(tabs)/dev-showcase" as any)}
+            />
+          }
+          onPress={() => router.push("/(tabs)/dev-showcase" as any)}
+        >
+          Design System Showcase
         </NativeListItem>
       </NativeFieldGroup.Section>
 
