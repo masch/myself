@@ -52,3 +52,8 @@ Establish a unified, platform-first design system architecture for the mobile ap
   - Re-exported semantic tokens and `colors.ts` through unified `@/theme` (`apps/mobile/src/theme/index.ts`).
   - Created unit tests in `apps/mobile/src/theme/__tests__/tokens.test.ts` verifying 4-point spacing grid, Apple HIG typography scales with paired font/lineHeight/weight, radii, and `boxShadow` presets.
   - Verified static analysis (`make check-lint`, `make check-types`, `make check-format`) and unit test suite (181 passed).
+- Commit `9c08e37` (`refactor(theme): move colors to tokens/colors and enforce unified @/theme entry point`):
+  - Enforced strict architecture: moved `colors.ts` to `apps/mobile/src/theme/tokens/colors.ts`.
+  - Re-exported all tokens (`colors`, `spacing`, `typography`, `radius`, `shadows`) exclusively from `@/theme`.
+  - Refactored all 25 application files importing `@/theme/colors` to import from `@/theme`.
+  - Verified zero remaining deep imports and all verification checks green.
