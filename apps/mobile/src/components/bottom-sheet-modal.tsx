@@ -21,6 +21,7 @@ export interface BottomSheetModalProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
   sheetStyle?: StyleProp<ViewStyle>;
   testID?: string;
+  keyboardVerticalOffset?: number;
 }
 
 export function AppBottomSheetModal({
@@ -32,6 +33,7 @@ export function AppBottomSheetModal({
   contentContainerStyle,
   sheetStyle,
   testID,
+  keyboardVerticalOffset = 0,
 }: BottomSheetModalProps) {
   if (!visible) return null;
 
@@ -43,9 +45,11 @@ export function AppBottomSheetModal({
       onRequestClose={onClose}
       testID={testID}
       accessibilityViewIsModal
+      statusBarTranslucent
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={keyboardVerticalOffset}
         style={styles.backdrop}
       >
         <Pressable
@@ -77,6 +81,7 @@ export function AppBottomSheetModal({
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               bounces={false}
+              automaticallyAdjustKeyboardInsets
             >
               {children}
             </ScrollView>
