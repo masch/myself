@@ -39,7 +39,7 @@ Establish a unified, platform-first design system architecture for the mobile ap
   - Install targeted `@rn-primitives/*` dependencies.
   - Create token-wrapped accessible components in `apps/mobile/src/components/primitives/`.
   - Refactor accordion and collapsible patterns in `reflections.tsx` and `meditation.tsx`.
-- [ ] **TASK-4**: Phase 4 — Platform-Native Controls (`@expo/ui`):
+- [x] **TASK-4**: Phase 4 — Platform-Native Controls (`@expo/ui`):
   - Expand `@expo/ui` usage for settings, form modals, switches, and pickers with cross-platform parity.
 - [ ] **TASK-5**: Phase 5 — Developer Showcase & Visual Verification:
   - Implement developer showcase screen in `apps/mobile/src/app/(tabs)/dev-showcase.tsx` documenting token scales and primitives.
@@ -74,3 +74,9 @@ Establish a unified, platform-first design system architecture for the mobile ap
   - Refactored target time configuration in `apps/mobile/src/app/(tabs)/meditation.tsx` to use `<Collapsible>`.
   - Refactored answered reflections macroblock and completed cohort steps in `apps/mobile/src/app/(tabs)/reflections.tsx` to use `<Collapsible>` and `<Accordion>`.
   - Verified quality gates (`make check-format`, `make check-static`, `make check-tests`: 198 passed, `make check-doctor`: 20/20 passed).
+- Commit `406229f` (`feat(ui): implement NativeFieldGroup and NativeSwitch controls and refactor settings screen`):
+  - `TASK-4`: Built `NativeSwitch`, `NativeListItem`, `NativeFieldGroup` (with `NativeFieldGroup.Section`), and `NativePicker` in `apps/mobile/src/components/native-controls.tsx`.
+  - Refactored `<AppBottomSheetModal>` into a compound component with `<AppBottomSheetModal.Scroll>` enforcing Interface Segregation Principle (ISP) and design tokens.
+  - Added `@expo/ui` mocks in `apps/mobile/test-setup.ts` and created unit test suite in `apps/mobile/src/components/__tests__/native-controls.test.tsx` plus updated `bottom-sheet-modal.test.tsx` (7 unit tests).
+  - Migrated `apps/mobile/src/app/(tabs)/settings.tsx` to use `NativeFieldGroup.Section`, `NativeListItem`, `NativeSwitch`, and `AppBottomSheetModal.Scroll`.
+  - Verified quality gates (`make check-format`, `make check-static`, `make check-tests`: 201 passed).
