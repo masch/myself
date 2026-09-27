@@ -65,14 +65,25 @@ jobs:
         with:
           bun-version: 1.3.14
 
-      - name: Cache Turborepo & Bun
+      - name: Cache Node Modules & Bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-modules-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-modules-
+
+      - name: Cache Turborepo
         uses: actions/cache@v4
         with:
           path: |
             .turbo
             apps/*/.turbo
             packages/*/.turbo
-            ~/.bun/install/cache
           key: ${{ runner.os }}-turbo-static-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-turbo-static-
@@ -99,14 +110,25 @@ jobs:
         with:
           bun-version: 1.3.14
 
-      - name: Cache Turborepo & Bun
+      - name: Cache Node Modules & Bun
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-modules-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-modules-
+
+      - name: Cache Turborepo
         uses: actions/cache@v4
         with:
           path: |
             .turbo
             apps/*/.turbo
             packages/*/.turbo
-            ~/.bun/install/cache
           key: ${{ runner.os }}-turbo-tests-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-turbo-tests-
@@ -135,18 +157,17 @@ jobs:
         with:
           bun-version: 1.3.14
 
-      - name: Cache Turborepo & Bun
+      - name: Cache Node Modules & Bun
         uses: actions/cache@v4
         with:
           path: |
-            .turbo
-            apps/*/.turbo
-            packages/*/.turbo
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
             ~/.bun/install/cache
-          key: ${{ runner.os }}-turbo-e2e-${{ github.sha }}
+          key: ${{ runner.os }}-bun-modules-${{ hashFiles('bun.lock') }}
           restore-keys: |
-            ${{ runner.os }}-turbo-e2e-
-            ${{ runner.os }}-turbo-
+            ${{ runner.os }}-bun-modules-
 
       - name: Install dependencies
         run: make install-ci

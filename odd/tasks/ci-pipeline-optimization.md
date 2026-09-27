@@ -40,3 +40,6 @@ Optimize `.github/workflows/ci.yml` pipeline by parallelizing validation jobs (s
 - Commit `106b8c1` (`fix(ci): validate changes job result in quality gate and revert test version label`):
   - Added explicit check for `needs.changes.result == 'success'` in the `CI Quality Gate` aggregator job within `.github/workflows/ci.yml` to prevent false greens if change detection encounters infrastructure errors.
   - Reverted test version label in `apps/mobile/src/app/(tabs)/settings.tsx` from `1.0.1` back to `1.0.0 (Expo SDK 57)` to maintain consistency across app configuration and settings modals.
+- Commit `db9ca82` (`perf(ci): cache node_modules across validation jobs to accelerate bun install`):
+  - Added dedicated `actions/cache@v4` on root and workspace `node_modules` (`node_modules`, `apps/*/node_modules`, `packages/*/node_modules`, `~/.bun/install/cache`) keyed by `${{ runner.os }}-bun-modules-${{ hashFiles('bun.lock') }}` across `static-analysis`, `unit-tests`, and `e2e-browser` jobs.
+  - Decoupled Turborepo cache (`.turbo`) from dependency cache, allowing exact lockfile cache hits to skip ~50s of package unpacking and avoid redundant cache re-uploads.
