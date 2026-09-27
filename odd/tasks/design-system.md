@@ -45,4 +45,8 @@ Establish a unified, platform-first design system architecture for the mobile ap
 
 ## Evidence & Verification
 
-_(Will be populated with work-unit commits and check results)_
+- Commit `492112d` (`feat(theme): establish platform-first semantic design tokens and unit tests`):
+  - `TASK-1`: Established modular design tokens in `apps/mobile/src/theme/tokens/` (`spacing.ts`, `typography.ts`, `radius.ts`, `shadows.ts`).
+  - Re-exported semantic tokens and `colors.ts` through unified `@/theme` (`apps/mobile/src/theme/index.ts`).
+  - Created unit tests in `apps/mobile/src/theme/__tests__/tokens.test.ts` verifying 4-point spacing grid, Apple HIG typography scales with paired font/lineHeight/weight, radii, and `boxShadow` presets.
+  - Verified static analysis (`make check-lint`, `make check-types`, `make check-format`) and unit test suite (181 passed).
