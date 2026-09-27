@@ -24,6 +24,6 @@ Standardize Android and iOS screen layouts by creating a reusable `ScreenContain
 - `TASK-1`: commit `eca9e8d` (`feat(mobile): add reusable ScreenContainer for safe-area insets`)
 - `TASK-2`: commit `0858df5` (`refactor(mobile): integrate ScreenContainer across all tab screens`)
 - `TASK-3`: commit `9f0ddf1` (`fix(mobile): enable Android keyboard avoidance in bottom sheet modals`)
-- `TASK-4`: verified via `make check` (prettier, 166 unit tests, lint, tsc, expo-doctor 20/20) and `make check-e2e-browser` (5/5 Playwright e2e tests passing).
+- `TASK-4`: verified via `make check` (prettier, 170 unit tests, lint, tsc, expo-doctor 20/20) and `make check-e2e-browser` (5/5 Playwright e2e tests passing).
 - `TASK-5`: commit `45c549b` (`feat(mobile): position web native tabs at the bottom`)
-- `TASK-6`: commit `6d41da6` (`feat(mobile): compact native android tabs height to 56dp via config plugin`)
+- `TASK-6`: commit `6d41da6` (`feat(mobile): compact native android tabs height to 56dp via config plugin`) and commit `0e6b1bc` (`test(mobile): add unit tests for withAndroidTabHeight config plugin`, 100% line & func coverage).
