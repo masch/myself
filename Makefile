@@ -96,6 +96,11 @@ check-format: ## Check code formatting using prettier
 check-format-staged: ## Check code formatting on staged files using prettier
 	@git diff --cached --name-only -z --diff-filter=d 2>/dev/null | xargs -0 -r bun prettier --check --ignore-unknown --
 
+.PHONY: check-odd
+check-odd: ## Verify all ODD task documents are completed and closed
+	@./scripts/check-odd.sh
+
+
 .PHONY: check-doctor
 check-doctor: ## Run Expo Doctor to verify project health (skips remote dependency version check)
 	cd $(MOBILE_DIR) && APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_DOCTOR_SKIP_DEPENDENCY_VERSION_CHECK=1 bunx expo-doctor
@@ -128,7 +133,7 @@ check-shared: ## Run all checks for Shared workspace
 	bun turbo run lint typecheck test --filter=@myself/shared
 
 .PHONY: check
-check: check-format ## Run full quality check suite via unified Turborepo pipeline
+check: check-format check-odd ## Run full quality check suite via unified Turborepo pipeline
 	bun turbo run lint typecheck test
 	$(MAKE) check-doctor
 
