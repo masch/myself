@@ -81,7 +81,6 @@ export function AppBottomSheetModal({
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               bounces={false}
-              automaticallyAdjustKeyboardInsets
             >
               {children}
             </ScrollView>
@@ -112,7 +111,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     maxHeight: "90%",
     paddingTop: 12,
-    paddingBottom: 36,
+    paddingBottom: 16,
     overflow: "hidden",
   },
   dragIndicator: {
@@ -128,10 +127,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 0,
   },
   nonScrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 0,
   },
 });

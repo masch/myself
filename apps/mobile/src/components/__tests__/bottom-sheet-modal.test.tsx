@@ -33,7 +33,7 @@ describe("AppBottomSheetModal component", () => {
     );
   });
 
-  it("renders ScrollView with automaticallyAdjustKeyboardInsets when scrollable is true", () => {
+  it("renders ScrollView with keyboardShouldPersistTaps handled when scrollable is true", () => {
     const element = AppBottomSheetModal({
       visible: true,
       scrollable: true,
@@ -46,8 +46,8 @@ describe("AppBottomSheetModal component", () => {
     const sheetView = keyboardAvoidingView.props.children[1];
     const scrollView = sheetView.props.children[1];
 
-    expect(scrollView.props.automaticallyAdjustKeyboardInsets).toBe(true);
     expect(scrollView.props.keyboardShouldPersistTaps).toBe("handled");
+    expect(scrollView.props.automaticallyAdjustKeyboardInsets).toBeFalsy();
   });
 
   it("renders non-scrollable View when scrollable is false", () => {
