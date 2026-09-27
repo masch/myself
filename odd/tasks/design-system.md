@@ -8,7 +8,9 @@ Establish a unified, platform-first design system architecture for the mobile ap
 
 - Monorepo package: `apps/mobile`.
 - Architectural boundary enforcement:
-  - Tokens layer: pure TypeScript definitions under `src/theme/tokens/`, zero React dependencies, 100% unit tested.
+  - Tokens layer: pure TypeScript definitions strictly housed under `src/theme/tokens/` (`colors.ts`, `spacing.ts`, `typography.ts`, `radius.ts`, `shadows.ts`), zero React dependencies, 100% unit tested.
+  - Strict encapsulation & single public entry point: all consumers must import exclusively from `@/theme` (`src/theme/index.ts`). Deep imports (`@/theme/colors`, `@/theme/tokens/*`) are strictly prohibited.
+  - Zero internal backward-compatibility shims: intermediate compatibility layers are rejected; existing codebases must be refactored to canonical architecture.
   - Universal layout layer: `<ScreenContainer>` for safe-area and root layouts, adhering to existing `AGENTS.md` guidelines.
   - Core primitives: `<Card>`/`<Surface>` and `<ThemedText>` enforcing continuous curvature and token scales.
   - Headless layer: `@rn-primitives/*` wrapped in design tokens, zero direct raw imports in screens.

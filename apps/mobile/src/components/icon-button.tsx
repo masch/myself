@@ -7,7 +7,7 @@ import {
   type PressableProps,
   type ColorValue,
 } from "react-native";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { AppIcon } from "./app-icon";
 
 export type IconButtonSize = "small" | "medium" | "large";

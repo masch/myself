@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { IconButton, ChipButton, MeditationText, AppIcon } from "@/components";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { type MeditationReadingWithAuthor } from "@myself/shared";
 
 export interface ReadingCardProps {

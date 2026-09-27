@@ -18,7 +18,7 @@ import {
   MeditationText,
   ScreenContainer,
 } from "@/components";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 
 function formatTime(totalSeconds: number): string {
   const mins = Math.floor(totalSeconds / 60);

@@ -11,7 +11,7 @@ import {
 import { Image } from "expo-image";
 import { useTasks } from "@/hooks/use-tasks";
 import { HeaderButton, ChipButton } from "@/components";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 
 const CATEGORIES = ["Work", "Personal", "Shopping", "Design", "Urgent"];
 

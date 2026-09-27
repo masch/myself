@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { View, Text, TextInput, StyleSheet, Pressable } from "react-native";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { AppButton, AppBottomSheetModal } from "@/components";
 
 interface SkipReasonSheetProps {

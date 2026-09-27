@@ -7,7 +7,7 @@ import { type MeditationReadingWithAuthor } from "@/infrastructure/persistence/d
 import { AppButton, IconButton, ScreenContainer } from "@/components";
 import { ReadingCard } from "@/features/readings/components/reading-card";
 import { confirmDelete } from "@/features/readings/confirm-delete";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
 
 export default function ReadingsScreen() {

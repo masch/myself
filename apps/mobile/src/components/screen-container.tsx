@@ -8,7 +8,7 @@ import {
   type ScrollViewProps,
 } from "react-native";
 import { useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 
 const DEFAULT_EDGES: Edge[] = ["top", "bottom"];
 const DEFAULT_TOP_OFFSET = 8;

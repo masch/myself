@@ -14,7 +14,7 @@ import { queryClient } from "@/infrastructure/query/query-client";
 import { initDatabase } from "@/infrastructure/persistence/database";
 import { AuthProvider } from "@/context/auth-context";
 import { AppButton } from "@/components";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 
 /**
  * Global Error Boundary for Expo Router.

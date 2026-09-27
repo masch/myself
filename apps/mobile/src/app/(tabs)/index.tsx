@@ -5,7 +5,7 @@ import { Image } from "expo-image";
 import { useTasks } from "@/hooks/use-tasks";
 import { type TaskItem } from "@/infrastructure/persistence/database";
 import { AppButton, TaskRow, ScreenContainer } from "@/components";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
 
 export default function HomeScreen() {

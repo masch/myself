@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import { type ReflectionQuestion } from "@myself/shared";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { AppButton, AppBottomSheetModal, AppMarkdownText } from "@/components";
 import { ScaleSelector1To10 } from "./ScaleSelector1To10";
 

@@ -7,7 +7,7 @@ import {
 } from "@/components";
 import { useAuth } from "@/context/auth-context";
 import { resetDatabase } from "@/infrastructure/persistence/database";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useSQLiteContext } from "expo-sqlite";

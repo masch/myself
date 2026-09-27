@@ -1,6 +1,6 @@
 import { ChipButton, HeaderButton, MeditationText } from "@/components";
 import { useReadingForm } from "@/hooks/use-reading-form";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";

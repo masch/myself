@@ -15,7 +15,7 @@ import {
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { ScreenContainer } from "@/components";
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
 import { useThemeCohort } from "@/features/reflections/hooks/use-theme-cohort";

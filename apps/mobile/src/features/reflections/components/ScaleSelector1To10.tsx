@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 
 interface ScaleSelectorProps {
   value: number | null;
