@@ -28,6 +28,11 @@ export const colors = {
     android: Color.android.dynamic.onSurfaceVariant,
     default: "var(--secondary-label, #8E8E93)",
   })!,
+  separator: Platform.select({
+    ios: Color.ios.separator,
+    android: Color.android.dynamic.outlineVariant,
+    default: "var(--separator, #38383A)",
+  })!,
   systemBlue: Platform.select({
     ios: Color.ios.systemBlue,
     android: Color.android.dynamic.primary,
