@@ -1,6 +1,6 @@
 SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := dev-web
 
 .PHONY: help
 help: ## Show this help menu
@@ -33,7 +33,8 @@ playwright-install: ## Install Playwright browser binaries and system deps
 
 
 .PHONY: dev
-dev: dev-web ## Run API and Mobile Web dev servers concurrently (default)
+dev: ## Run dev servers concurrently via Turborepo
+	bun run dev
 
 .PHONY: dev-web
 dev-web: ## Run API and Mobile Web dev servers concurrently
