@@ -7,7 +7,10 @@ export type AccordionProps = AccordionPrimitive.RootProps;
 
 export function AccordionRoot({ children, style, ...props }: AccordionProps) {
   return (
-    <AccordionPrimitive.Root style={[styles.root, style]} {...props}>
+    <AccordionPrimitive.Root
+      style={StyleSheet.flatten([styles.root, style])}
+      {...props}
+    >
       {children}
     </AccordionPrimitive.Root>
   );
@@ -21,7 +24,10 @@ export function AccordionItem({
   ...props
 }: AccordionItemProps) {
   return (
-    <AccordionPrimitive.Item style={[styles.item, style]} {...props}>
+    <AccordionPrimitive.Item
+      style={StyleSheet.flatten([styles.item, style])}
+      {...props}
+    >
       {children}
     </AccordionPrimitive.Item>
   );
@@ -35,7 +41,10 @@ export function AccordionHeader({
   ...props
 }: AccordionHeaderProps) {
   return (
-    <AccordionPrimitive.Header style={[styles.header, style]} {...props}>
+    <AccordionPrimitive.Header
+      style={StyleSheet.flatten([styles.header, style])}
+      {...props}
+    >
       {children}
     </AccordionPrimitive.Header>
   );
@@ -50,11 +59,13 @@ export function AccordionTrigger({
 }: AccordionTriggerProps) {
   return (
     <AccordionPrimitive.Trigger
-      style={(state) => [
-        styles.trigger,
-        state.pressed && styles.triggerPressed,
-        typeof style === "function" ? style(state) : style,
-      ]}
+      style={(state) =>
+        StyleSheet.flatten([
+          styles.trigger,
+          state.pressed && styles.triggerPressed,
+          typeof style === "function" ? style(state) : style,
+        ])
+      }
       {...props}
     >
       {children}
@@ -70,7 +81,10 @@ export function AccordionContent({
   ...props
 }: AccordionContentProps) {
   return (
-    <AccordionPrimitive.Content style={[styles.content, style]} {...props}>
+    <AccordionPrimitive.Content
+      style={StyleSheet.flatten([styles.content, style])}
+      {...props}
+    >
       {children}
     </AccordionPrimitive.Content>
   );

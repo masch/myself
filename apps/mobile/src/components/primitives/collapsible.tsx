@@ -12,7 +12,10 @@ export function CollapsibleRoot({
   ...props
 }: CollapsibleProps) {
   return (
-    <CollapsiblePrimitive.Root style={style} {...props}>
+    <CollapsiblePrimitive.Root
+      style={style ? StyleSheet.flatten(style) : undefined}
+      {...props}
+    >
       {children}
     </CollapsiblePrimitive.Root>
   );
@@ -27,11 +30,13 @@ export function CollapsibleTrigger({
 }: CollapsibleTriggerProps) {
   return (
     <CollapsiblePrimitive.Trigger
-      style={(state) => [
-        styles.trigger,
-        state.pressed && styles.triggerPressed,
-        typeof style === "function" ? style(state) : style,
-      ]}
+      style={(state) =>
+        StyleSheet.flatten([
+          styles.trigger,
+          state.pressed && styles.triggerPressed,
+          typeof style === "function" ? style(state) : style,
+        ])
+      }
       {...props}
     >
       {children}
@@ -47,7 +52,10 @@ export function CollapsibleContent({
   ...props
 }: CollapsibleContentProps) {
   return (
-    <CollapsiblePrimitive.Content style={[styles.content, style]} {...props}>
+    <CollapsiblePrimitive.Content
+      style={StyleSheet.flatten([styles.content, style])}
+      {...props}
+    >
       {children}
     </CollapsiblePrimitive.Content>
   );

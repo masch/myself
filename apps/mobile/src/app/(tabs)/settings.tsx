@@ -347,7 +347,7 @@ export default function SettingsScreen() {
                   />
                 }
                 supportingText="Living catalog of tokens, primitives, and controls"
-                onPress={() => router.push("/(tabs)/dev-showcase" as any)}
+                onPress={() => router.push("/dev-showcase")}
               >
                 Design System Showcase
               </ListItem>
@@ -649,10 +649,10 @@ export default function SettingsScreen() {
             <ChipButton
               title="Open"
               variant="secondary"
-              onPress={() => router.push("/(tabs)/dev-showcase" as any)}
+              onPress={() => router.push("/dev-showcase")}
             />
           }
-          onPress={() => router.push("/(tabs)/dev-showcase" as any)}
+          onPress={() => router.push("/dev-showcase")}
         >
           Design System Showcase
         </NativeListItem>

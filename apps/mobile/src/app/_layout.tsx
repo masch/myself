@@ -69,6 +69,12 @@ function AppNavigation() {
               headerTitle: "Meditation Reading",
             }}
           />
+          <Stack.Screen
+            name="dev-showcase"
+            options={{
+              headerTitle: "Design System",
+            }}
+          />
         </Stack>
       </ThemeProvider>
     </AuthProvider>
