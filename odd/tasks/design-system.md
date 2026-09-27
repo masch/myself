@@ -35,7 +35,7 @@ Establish a unified, platform-first design system architecture for the mobile ap
   - Build `<ThemedText>` typography primitive enforcing font sizes, line heights, and weights.
   - Add unit tests for `<Surface>` and `<ThemedText>`.
   - Refactor `index.tsx` (Home) and `readings.tsx` (Readings) to consume the new primitives.
-- [ ] **TASK-3**: Phase 3 — Headless Accessible Primitives (`@rn-primitives`):
+- [x] **TASK-3**: Phase 3 — Headless Accessible Primitives (`@rn-primitives`):
   - Install targeted `@rn-primitives/*` dependencies.
   - Create token-wrapped accessible components in `apps/mobile/src/components/primitives/`.
   - Refactor accordion and collapsible patterns in `reflections.tsx` and `meditation.tsx`.
@@ -65,3 +65,12 @@ Establish a unified, platform-first design system architecture for the mobile ap
   - Added unit tests in `apps/mobile/src/components/__tests__/surface.test.tsx` and `apps/mobile/src/components/__tests__/themed-text.test.tsx` (12 unit tests).
   - Migrated `index.tsx`, `readings.tsx`, and `reading-card.tsx` to `<Card>` and `<ThemedText>`, eliminating ad-hoc styling and hardcoded fonts.
   - Verified quality gates (`make check-format`, `make check-lint`, `make check-types`, `make check-tests`: 193 passed).
+- Commit `65f5403` (`feat(ui): implement accessible Accordion and Collapsible primitives with screen refactors`):
+  - `TASK-3`: Installed `@rn-primitives/accordion` and `@rn-primitives/collapsible` under `apps/mobile`.
+  - Configured Bun test JSX loader for `@rn-primitives` in `test-setup.ts`.
+  - Implemented token-wrapped `<Accordion>` and `<Collapsible>` compound components in `apps/mobile/src/components/primitives/`.
+  - Exported primitives via `@/components`.
+  - Added unit test suite in `apps/mobile/src/components/__tests__/primitives.test.tsx` (5 unit tests covering open/close, `asChild`, and multiple mode).
+  - Refactored target time configuration in `apps/mobile/src/app/(tabs)/meditation.tsx` to use `<Collapsible>`.
+  - Refactored answered reflections macroblock and completed cohort steps in `apps/mobile/src/app/(tabs)/reflections.tsx` to use `<Collapsible>` and `<Accordion>`.
+  - Verified quality gates (`make check-format`, `make check-static`, `make check-tests`: 198 passed, `make check-doctor`: 20/20 passed).
