@@ -1,14 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Text,
-  Switch,
-  Alert,
-} from "react-native";
+import { View, StyleSheet, Text, Switch, Alert } from "react-native";
 import { Image } from "expo-image";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useKeepAwake } from "expo-keep-awake";
 import {
   isDndActive,
@@ -24,6 +16,7 @@ import {
   ChipButton,
   StepperButton,
   MeditationText,
+  ScreenContainer,
 } from "@/components";
 import { colors } from "@/theme/colors";
 
@@ -41,7 +34,6 @@ function formatClock(hour: number, minute: number): string {
 
 export default function MeditationScreen() {
   useKeepAwake();
-  const insets = useSafeAreaInsets();
   const {
     status,
     moments,
@@ -158,16 +150,12 @@ export default function MeditationScreen() {
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.systemBackground }]}
-      contentContainerStyle={[
-        styles.contentContainer,
-        {
-          paddingTop: insets.top + 8,
-          paddingBottom: insets.bottom + 48,
-        },
-      ]}
-      contentInsetAdjustmentBehavior="automatic"
+    <ScreenContainer
+      scrollable
+      edges={["top", "bottom"]}
+      topOffset={8}
+      bottomOffset={48}
+      contentContainerStyle={styles.contentContainer}
     >
       {/* Main Timer Display Card */}
       <View
@@ -696,7 +684,7 @@ export default function MeditationScreen() {
           </View>
         </View>
       </View>
-    </ScrollView>
+    </ScreenContainer>
   );
 }
 

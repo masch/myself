@@ -34,4 +34,14 @@ describe("ScreenContainer component", () => {
 
     expect(html).toContain("Screen Body");
   });
+
+  it("renders scrollable container when scrollable prop is true", () => {
+    const html = renderToString(
+      <ScreenContainer scrollable testID="scroll-screen">
+        <span>Scroll Content</span>
+      </ScreenContainer>,
+    );
+
+    expect(html).toContain("Scroll Content");
+  });
 });

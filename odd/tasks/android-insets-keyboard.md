@@ -13,11 +13,11 @@ Standardize Android and iOS screen layouts by creating a reusable `ScreenContain
 ## Tasks
 
 - [x] **TASK-1**: Create `ScreenContainer` component and unit tests (`apps/mobile/src/components/screen-container.tsx`)
-- [ ] **TASK-2**: Integrate `ScreenContainer` across tab screens (`reflections.tsx`, `index.tsx`, `meditation.tsx`, `readings.tsx`, `settings.tsx`)
+- [x] **TASK-2**: Integrate `ScreenContainer` across tab screens (`reflections.tsx`, `index.tsx`, `meditation.tsx`, `readings.tsx`, `settings.tsx`)
 - [ ] **TASK-3**: Enhance `AppBottomSheetModal` with Android keyboard avoidance (`behavior="height"`, `automaticallyAdjustKeyboardInsets`)
 - [ ] **TASK-4**: Verify full quality suite (`make check`, `make check-e2e-browser`)
 
 ## Evidence & Verification
 
-- Commits will be recorded per task.
-- Automated tests and visual consistency checks.
+- `TASK-1`: commit `eca9e8d` (`feat(mobile): add reusable ScreenContainer for safe-area insets`)
+- `TASK-2`: verified with `tsc --noEmit`, `expo lint`, and `bun test` across 162 unit tests.
