@@ -135,6 +135,53 @@ describe("withAndroidTabHeight Expo Config Plugin", () => {
       expect(updatedContent).not.toContain(
         '<dimen name="m3_navigation_bar_height">80dp</dimen>',
       );
+      expect(updatedContent).toContain(
+        '<dimen name="m3_bottom_nav_min_height">56dp</dimen>',
+      );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves XML attributes on <resources> tag in existing dimens.xml", async () => {
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "expo-tab-height-test-"),
+    );
+    const androidDir = path.join(tempDir, "android");
+    fs.mkdirSync(androidDir, { recursive: true });
+
+    try {
+      const resDir = path.join(androidDir, "app/src/main/res/values");
+      fs.mkdirSync(resDir, { recursive: true });
+      const dimensPath = path.join(resDir, "dimens.xml");
+
+      const initialContent = `<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <dimen name="existing_custom_dimen">16dp</dimen>
+</resources>`;
+      fs.writeFileSync(dimensPath, initialContent, "utf-8");
+
+      const config = withAndroidTabHeight(
+        { name: "test-app" },
+        { height: "56dp" },
+      );
+      const modFn = config.mods.android.dangerous;
+
+      await modFn({
+        ...config,
+        modRequest: { projectRoot: tempDir, platformProjectRoot: androidDir },
+      });
+
+      const updatedContent = fs.readFileSync(dimensPath, "utf-8");
+      expect(updatedContent).toContain(
+        '<resources xmlns:tools="http://schemas.android.com/tools">',
+      );
+      expect(updatedContent).toContain(
+        '<dimen name="existing_custom_dimen">16dp</dimen>',
+      );
+      expect(updatedContent).toContain(
+        '<dimen name="m3_bottom_nav_min_height">56dp</dimen>',
+      );
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

@@ -42,31 +42,39 @@ const withAndroidTabHeight = (config, options = {}) => {
 
       const dimensEntries = [
         `<dimen name="m3_navigation_bar_height">${height}</dimen>`,
+        `<dimen name="m3_bottom_nav_min_height">${height}</dimen>`,
         `<dimen name="design_bottom_navigation_height">${height}</dimen>`,
         `<dimen name="m3_navigation_item_active_indicator_height">${indicatorHeight}</dimen>`,
+        `<dimen name="m3_bottom_nav_item_active_indicator_height">${indicatorHeight}</dimen>`,
         `<dimen name="m3_navigation_item_padding_top">4dp</dimen>`,
+        `<dimen name="m3_bottom_nav_item_padding_top">4dp</dimen>`,
         `<dimen name="m3_navigation_item_padding_bottom">6dp</dimen>`,
+        `<dimen name="m3_bottom_nav_item_padding_bottom">6dp</dimen>`,
       ];
 
       // Remove existing overrides if present to avoid duplication
       for (const entry of [
         "m3_navigation_bar_height",
+        "m3_bottom_nav_min_height",
         "design_bottom_navigation_height",
         "m3_navigation_item_active_indicator_height",
+        "m3_bottom_nav_item_active_indicator_height",
         "m3_navigation_item_padding_top",
+        "m3_bottom_nav_item_padding_top",
         "m3_navigation_item_padding_bottom",
+        "m3_bottom_nav_item_padding_bottom",
       ]) {
         const regex = new RegExp(`\\s*<dimen name="${entry}">.*?</dimen>`, "g");
         content = content.replace(regex, "");
       }
 
-      if (!content || !content.includes("<resources>")) {
+      if (!content || !/<resources[^>]*>/i.test(content)) {
         content = `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    ${dimensEntries.join(
           "\n    ",
         )}\n</resources>\n`;
       } else {
         content = content.replace(
-          "</resources>",
+          /<\/resources>/i,
           `    ${dimensEntries.join("\n    ")}\n</resources>`,
         );
       }

@@ -71,9 +71,14 @@ describe("ScreenContainer component & useScreenPadding hook", () => {
     expect(html).toContain("Compound Scroll Content");
   });
 
-  it("renders via ScrollScreenContainer named export", () => {
+  it("renders via ScrollScreenContainer named export with custom horizontalPadding and contentInsetAdjustmentBehavior", () => {
     const html = renderToString(
-      <ScrollScreenContainer testID="named-scroll">
+      <ScrollScreenContainer
+        testID="named-scroll"
+        horizontalPadding={20}
+        gap={24}
+        contentInsetAdjustmentBehavior="never"
+      >
         <span>Named Scroll Content</span>
       </ScrollScreenContainer>,
     );

@@ -32,8 +32,16 @@ export interface ScrollScreenContainerProps extends ScreenContainerBaseProps {
   keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
   showsVerticalScrollIndicator?: boolean;
   refreshControl?: ScrollViewProps["refreshControl"];
+  contentInsetAdjustmentBehavior?: ScrollViewProps["contentInsetAdjustmentBehavior"];
   horizontalPadding?: number;
   gap?: number;
+}
+
+export interface ScreenPaddingStyle {
+  paddingTop: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  paddingRight: number;
 }
 
 /**
@@ -46,7 +54,7 @@ export function useScreenPadding({
 }: Pick<
   ScreenContainerBaseProps,
   "edges" | "topOffset" | "bottomOffset"
-> = {}): ViewStyle {
+> = {}): ScreenPaddingStyle {
   const insets = useSafeAreaInsets();
 
   return {
@@ -74,6 +82,7 @@ export function ScrollScreenContainer({
   keyboardShouldPersistTaps = "handled",
   showsVerticalScrollIndicator,
   refreshControl,
+  contentInsetAdjustmentBehavior = "never",
 }: ScrollScreenContainerProps) {
   const containerPadding = useScreenPadding({ edges, topOffset, bottomOffset });
 
@@ -88,7 +97,9 @@ export function ScrollScreenContainer({
       contentContainerStyle={[
         containerPadding,
         {
-          paddingHorizontal: horizontalPadding,
+          paddingLeft: (containerPadding.paddingLeft ?? 0) + horizontalPadding,
+          paddingRight:
+            (containerPadding.paddingRight ?? 0) + horizontalPadding,
           gap,
         },
         contentContainerStyle,
@@ -96,7 +107,7 @@ export function ScrollScreenContainer({
       keyboardShouldPersistTaps={keyboardShouldPersistTaps}
       showsVerticalScrollIndicator={showsVerticalScrollIndicator}
       refreshControl={refreshControl}
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior={contentInsetAdjustmentBehavior}
     >
       {children}
     </ScrollView>
