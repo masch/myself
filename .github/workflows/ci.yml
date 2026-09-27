@@ -188,7 +188,7 @@ jobs:
         run: make check-e2e-browser
 
   validate:
-    name: Lint, Typecheck & Test
+    name: CI Quality Gate
     needs: [changes, static-analysis, unit-tests, e2e-browser]
     if: always()
     runs-on: ubuntu-latest
