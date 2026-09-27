@@ -22,6 +22,10 @@ install: ## Install dependencies across all workspaces and configure git hooks
 	@$(MAKE) setup-hooks
 	@$(MAKE) playwright-install
 
+.PHONY: install-ci
+install-ci: ## Install dependencies reproducibly in CI environments
+	bun install --frozen-lockfile
+
 .PHONY: setup-hooks
 setup-hooks: ## Configure git to use versioned .githooks
 	git config core.hooksPath .githooks
@@ -30,6 +34,10 @@ setup-hooks: ## Configure git to use versioned .githooks
 playwright-install: ## Install Playwright browser binaries and system deps
 	bunx playwright install-deps chromium
 	bunx playwright install chromium
+
+.PHONY: playwright-install-deps
+playwright-install-deps: ## Install Playwright system dependencies only
+	bunx playwright install-deps chromium
 
 
 .PHONY: dev
