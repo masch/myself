@@ -52,7 +52,7 @@
     "typescript-eslint": "^8.69.0"
   },
   "scripts": {
-    "dev": "expo start --web",
+    "dev": "expo start -c",
     "start": "expo start -c",
     "android": "expo run:android",
     "ios": "expo run:ios",

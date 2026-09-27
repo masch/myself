@@ -33,8 +33,7 @@ playwright-install: ## Install Playwright browser binaries and system deps
 
 
 .PHONY: dev
-dev: ## Run dev servers concurrently via Turborepo
-	bun run dev
+dev: dev-web ## Run API and Mobile Web dev servers concurrently (default)
 
 .PHONY: dev-web
 dev-web: ## Run API and Mobile Web dev servers concurrently
