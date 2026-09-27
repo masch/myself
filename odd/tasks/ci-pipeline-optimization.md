@@ -33,7 +33,10 @@ Optimize `.github/workflows/ci.yml` pipeline by parallelizing validation jobs (s
 - Commit `2477c17` (`perf(ci): rename aggregator job to CI Quality Gate and align branch protection`):
   - Renamed aggregator job from `Lint, Typecheck & Test` to `CI Quality Gate` to eliminate visual duplication in the workflow graph.
   - Updated GitHub branch protection on `main` via GitHub API to require `CI Quality Gate` and `Check PR broccoli comment`.
-- Commit decoupling CD:
+- Commit `2820130` (`refactor(ci): decouple continuous deployment into dedicated cd.yml workflow`):
   - Extracted deployment jobs (`deploy_mobile_staging`, `deploy_api_staging`, `deploy_mobile_production`, `deploy_api_production`) into dedicated `.github/workflows/cd.yml`.
   - Configured `cd.yml` with `workflow_run` on `CI` completion and `workflow_dispatch` for on-demand/production deploys.
   - Left `.github/workflows/ci.yml` purely dedicated to Continuous Integration, eliminating all gray/skipped deploy boxes from PR workflow graphs.
+- Commit `106b8c1` (`fix(ci): validate changes job result in quality gate and revert test version label`):
+  - Added explicit check for `needs.changes.result == 'success'` in the `CI Quality Gate` aggregator job within `.github/workflows/ci.yml` to prevent false greens if change detection encounters infrastructure errors.
+  - Reverted test version label in `apps/mobile/src/app/(tabs)/settings.tsx` from `1.0.1` back to `1.0.0 (Expo SDK 57)` to maintain consistency across app configuration and settings modals.
