@@ -56,4 +56,3 @@ Docs: https://docs.expo.dev/eas/index.md
 4. **Single Source of Truth for Insets (DRY)**:
    - All tab and stack screens must use `<ScreenContainer>` or `<ScreenContainer.Scroll>`.
    - Never duplicate safe-area inset math across siblings; extract shared geometry to dedicated hooks (e.g. `useScreenPadding`).
-
