@@ -14,10 +14,12 @@ describe("withAndroidTabHeight Expo Config Plugin", () => {
     expect(typeof config.mods.android.dangerous).toBe("function");
   });
 
-  it("creates dimens.xml with default 56dp values when file does not exist", async () => {
+  it("resolves dimens.xml via AndroidConfig.Paths and creates default 56dp values", async () => {
     const tempDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "expo-tab-height-test-"),
     );
+    const androidDir = path.join(tempDir, "android");
+    fs.mkdirSync(androidDir, { recursive: true });
 
     try {
       const config = withAndroidTabHeight({ name: "test-app" });
@@ -25,11 +27,11 @@ describe("withAndroidTabHeight Expo Config Plugin", () => {
 
       await modFn({
         ...config,
-        modRequest: { platformProjectRoot: tempDir },
+        modRequest: { projectRoot: tempDir, platformProjectRoot: androidDir },
       });
 
       const dimensPath = path.join(
-        tempDir,
+        androidDir,
         "app/src/main/res/values/dimens.xml",
       );
       expect(fs.existsSync(dimensPath)).toBe(true);
@@ -59,6 +61,8 @@ describe("withAndroidTabHeight Expo Config Plugin", () => {
     const tempDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "expo-tab-height-test-"),
     );
+    const androidDir = path.join(tempDir, "android");
+    fs.mkdirSync(androidDir, { recursive: true });
 
     try {
       const config = withAndroidTabHeight(
@@ -69,11 +73,11 @@ describe("withAndroidTabHeight Expo Config Plugin", () => {
 
       await modFn({
         ...config,
-        modRequest: { platformProjectRoot: tempDir },
+        modRequest: { projectRoot: tempDir, platformProjectRoot: androidDir },
       });
 
       const dimensPath = path.join(
-        tempDir,
+        androidDir,
         "app/src/main/res/values/dimens.xml",
       );
       const content = fs.readFileSync(dimensPath, "utf-8");
@@ -95,9 +99,11 @@ describe("withAndroidTabHeight Expo Config Plugin", () => {
     const tempDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "expo-tab-height-test-"),
     );
+    const androidDir = path.join(tempDir, "android");
+    fs.mkdirSync(androidDir, { recursive: true });
 
     try {
-      const resDir = path.join(tempDir, "app/src/main/res/values");
+      const resDir = path.join(androidDir, "app/src/main/res/values");
       fs.mkdirSync(resDir, { recursive: true });
       const dimensPath = path.join(resDir, "dimens.xml");
 
@@ -116,7 +122,7 @@ describe("withAndroidTabHeight Expo Config Plugin", () => {
 
       await modFn({
         ...config,
-        modRequest: { platformProjectRoot: tempDir },
+        modRequest: { projectRoot: tempDir, platformProjectRoot: androidDir },
       });
 
       const updatedContent = fs.readFileSync(dimensPath, "utf-8");
@@ -126,9 +132,37 @@ describe("withAndroidTabHeight Expo Config Plugin", () => {
       expect(updatedContent).toContain(
         '<dimen name="m3_navigation_bar_height">56dp</dimen>',
       );
-      // Ensure the old 80dp entry was removed
       expect(updatedContent).not.toContain(
         '<dimen name="m3_navigation_bar_height">80dp</dimen>',
+      );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to platformProjectRoot when AndroidConfig projectRoot lookup fails", async () => {
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "expo-tab-height-fallback-"),
+    );
+
+    try {
+      const config = withAndroidTabHeight({ name: "test-app" });
+      const modFn = config.mods.android.dangerous;
+
+      // Passing only platformProjectRoot without an 'android' parent subfolder triggers the fallback path
+      await modFn({
+        ...config,
+        modRequest: { platformProjectRoot: tempDir },
+      });
+
+      const dimensPath = path.join(
+        tempDir,
+        "app/src/main/res/values/dimens.xml",
+      );
+      expect(fs.existsSync(dimensPath)).toBe(true);
+      const content = fs.readFileSync(dimensPath, "utf-8");
+      expect(content).toContain(
+        '<dimen name="m3_navigation_bar_height">56dp</dimen>',
       );
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });

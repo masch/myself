@@ -1,4 +1,4 @@
-const { withDangerousMod } = require("@expo/config-plugins");
+const { withDangerousMod, AndroidConfig } = require("@expo/config-plugins");
 const fs = require("fs");
 const path = require("path");
 
@@ -13,13 +13,28 @@ const withAndroidTabHeight = (config, options = {}) => {
   return withDangerousMod(config, [
     "android",
     async (config) => {
-      const resDir = path.join(
-        config.modRequest.platformProjectRoot,
-        "app/src/main/res/values",
-      );
+      let dimensPath;
+      try {
+        const projectRoot =
+          config.modRequest?.projectRoot ||
+          (config.modRequest?.platformProjectRoot
+            ? path.dirname(config.modRequest.platformProjectRoot)
+            : process.cwd());
+
+        dimensPath = await AndroidConfig.Paths.getResourceXMLPathAsync(
+          projectRoot,
+          { name: "dimens" },
+        );
+      } catch {
+        dimensPath = path.join(
+          config.modRequest?.platformProjectRoot || process.cwd(),
+          "app/src/main/res/values/dimens.xml",
+        );
+      }
+
+      const resDir = path.dirname(dimensPath);
       fs.mkdirSync(resDir, { recursive: true });
 
-      const dimensPath = path.join(resDir, "dimens.xml");
       let content = "";
       if (fs.existsSync(dimensPath)) {
         content = fs.readFileSync(dimensPath, "utf-8");
