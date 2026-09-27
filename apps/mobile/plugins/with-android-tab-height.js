@@ -40,33 +40,33 @@ const withAndroidTabHeight = (config, options = {}) => {
         content = fs.readFileSync(dimensPath, "utf-8");
       }
 
-      const dimensEntries = [
-        `<dimen name="m3_navigation_bar_height">${height}</dimen>`,
-        `<dimen name="m3_bottom_nav_min_height">${height}</dimen>`,
-        `<dimen name="design_bottom_navigation_height">${height}</dimen>`,
-        `<dimen name="m3_navigation_item_active_indicator_height">${indicatorHeight}</dimen>`,
-        `<dimen name="m3_bottom_nav_item_active_indicator_height">${indicatorHeight}</dimen>`,
-        `<dimen name="m3_navigation_item_padding_top">4dp</dimen>`,
-        `<dimen name="m3_bottom_nav_item_padding_top">4dp</dimen>`,
-        `<dimen name="m3_navigation_item_padding_bottom">6dp</dimen>`,
-        `<dimen name="m3_bottom_nav_item_padding_bottom">6dp</dimen>`,
+      const dimensionOverrides = [
+        { name: "m3_navigation_bar_height", value: height },
+        { name: "m3_bottom_nav_min_height", value: height },
+        { name: "design_bottom_navigation_height", value: height },
+        {
+          name: "m3_navigation_item_active_indicator_height",
+          value: indicatorHeight,
+        },
+        {
+          name: "m3_bottom_nav_item_active_indicator_height",
+          value: indicatorHeight,
+        },
+        { name: "m3_navigation_item_padding_top", value: "4dp" },
+        { name: "m3_bottom_nav_item_padding_top", value: "4dp" },
+        { name: "m3_navigation_item_padding_bottom", value: "6dp" },
+        { name: "m3_bottom_nav_item_padding_bottom", value: "6dp" },
       ];
 
       // Remove existing overrides if present to avoid duplication
-      for (const entry of [
-        "m3_navigation_bar_height",
-        "m3_bottom_nav_min_height",
-        "design_bottom_navigation_height",
-        "m3_navigation_item_active_indicator_height",
-        "m3_bottom_nav_item_active_indicator_height",
-        "m3_navigation_item_padding_top",
-        "m3_bottom_nav_item_padding_top",
-        "m3_navigation_item_padding_bottom",
-        "m3_bottom_nav_item_padding_bottom",
-      ]) {
-        const regex = new RegExp(`\\s*<dimen name="${entry}">.*?</dimen>`, "g");
+      for (const { name } of dimensionOverrides) {
+        const regex = new RegExp(`\\s*<dimen name="${name}">.*?</dimen>`, "g");
         content = content.replace(regex, "");
       }
+
+      const dimensEntries = dimensionOverrides.map(
+        ({ name, value }) => `<dimen name="${name}">${value}</dimen>`,
+      );
 
       if (!content || !/<resources[^>]*>/i.test(content)) {
         content = `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    ${dimensEntries.join(
