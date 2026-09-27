@@ -30,6 +30,10 @@ Optimize `.github/workflows/ci.yml` pipeline by parallelizing validation jobs (s
 - Commit `abf4002` (`refactor(ci): standardize ci installation via make install-ci target`):
   - Added `.PHONY: install-ci` (`bun install --frozen-lockfile`) and `.PHONY: playwright-install-deps` (`bunx playwright install-deps chromium`) to `Makefile` as single source of truth.
   - Replaced ad-hoc `bun install --frozen-lockfile` invocations across `.github/workflows/ci.yml` with `make install-ci` and standardized Playwright install steps with `make playwright-install` and `make playwright-install-deps`.
-- Commit updating `ci.yml`:
+- Commit `2477c17` (`perf(ci): rename aggregator job to CI Quality Gate and align branch protection`):
   - Renamed aggregator job from `Lint, Typecheck & Test` to `CI Quality Gate` to eliminate visual duplication in the workflow graph.
   - Updated GitHub branch protection on `main` via GitHub API to require `CI Quality Gate` and `Check PR broccoli comment`.
+- Commit decoupling CD:
+  - Extracted deployment jobs (`deploy_mobile_staging`, `deploy_api_staging`, `deploy_mobile_production`, `deploy_api_production`) into dedicated `.github/workflows/cd.yml`.
+  - Configured `cd.yml` with `workflow_run` on `CI` completion and `workflow_dispatch` for on-demand/production deploys.
+  - Left `.github/workflows/ci.yml` purely dedicated to Continuous Integration, eliminating all gray/skipped deploy boxes from PR workflow graphs.
