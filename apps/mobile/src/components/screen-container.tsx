@@ -13,6 +13,8 @@ import { colors } from "@/theme/colors";
 const DEFAULT_EDGES: Edge[] = ["top", "bottom"];
 const DEFAULT_TOP_OFFSET = 8;
 const DEFAULT_BOTTOM_OFFSET = 16;
+const DEFAULT_HORIZONTAL_PADDING = 16;
+const DEFAULT_GAP = 16;
 
 export interface ScreenContainerBaseProps {
   children: ReactNode;
@@ -30,6 +32,8 @@ export interface ScrollScreenContainerProps extends ScreenContainerBaseProps {
   keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
   showsVerticalScrollIndicator?: boolean;
   refreshControl?: ScrollViewProps["refreshControl"];
+  horizontalPadding?: number;
+  gap?: number;
 }
 
 /**
@@ -54,7 +58,8 @@ export function useScreenPadding({
 }
 
 /**
- * Specialized scrollable container with standardized safe-area insets.
+ * Specialized scrollable container with standardized safe-area insets,
+ * default horizontal padding (16dp), and vertical section gap (16dp).
  */
 export function ScrollScreenContainer({
   children,
@@ -63,6 +68,8 @@ export function ScrollScreenContainer({
   edges = DEFAULT_EDGES,
   topOffset = DEFAULT_TOP_OFFSET,
   bottomOffset = DEFAULT_BOTTOM_OFFSET,
+  horizontalPadding = DEFAULT_HORIZONTAL_PADDING,
+  gap = DEFAULT_GAP,
   testID,
   keyboardShouldPersistTaps = "handled",
   showsVerticalScrollIndicator,
@@ -78,7 +85,14 @@ export function ScrollScreenContainer({
         { backgroundColor: colors.systemBackground },
         style,
       ]}
-      contentContainerStyle={[containerPadding, contentContainerStyle]}
+      contentContainerStyle={[
+        containerPadding,
+        {
+          paddingHorizontal: horizontalPadding,
+          gap,
+        },
+        contentContainerStyle,
+      ]}
       keyboardShouldPersistTaps={keyboardShouldPersistTaps}
       showsVerticalScrollIndicator={showsVerticalScrollIndicator}
       refreshControl={refreshControl}
@@ -94,7 +108,8 @@ export function ScrollScreenContainer({
  * across all Android and iOS screens, preventing overlaps with system status bar,
  * notch, and home indicator.
  *
- * For scrollable screens, use the compound subcomponent <ScreenContainer.Scroll>.
+ * For scrollable screens, use the compound subcomponent <ScreenContainer.Scroll>,
+ * which automatically applies standard horizontal padding and vertical gap.
  */
 export function ScreenContainer({
   children,

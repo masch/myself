@@ -150,7 +150,7 @@ export default function MeditationScreen() {
   };
 
   return (
-    <ScreenContainer.Scroll contentContainerStyle={styles.contentContainer}>
+    <ScreenContainer.Scroll>
       {/* Main Timer Display Card */}
       <View
         style={[
@@ -685,10 +685,6 @@ export default function MeditationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 20,
-    gap: 16,
   },
   timerCard: {
     borderRadius: 24,

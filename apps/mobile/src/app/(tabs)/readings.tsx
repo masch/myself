@@ -60,7 +60,7 @@ export default function ReadingsScreen() {
   const totalSessionsCount = readings.reduce((acc, r) => acc + r.times_read, 0);
 
   return (
-    <ScreenContainer.Scroll contentContainerStyle={styles.contentContainer}>
+    <ScreenContainer.Scroll>
       <Stack.Screen
         options={{
           title: "Meditation Readings",
@@ -214,10 +214,6 @@ export default function ReadingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    gap: 18,
   },
   heroCard: {
     padding: 20,

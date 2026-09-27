@@ -51,7 +51,7 @@ export default function HomeScreen() {
   const completedTasks = tasks.filter((t) => !!t.is_done);
 
   return (
-    <ScreenContainer.Scroll contentContainerStyle={styles.contentContainer}>
+    <ScreenContainer.Scroll>
       {/* Summary Card */}
       <View
         style={[
@@ -183,10 +183,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-    gap: 20,
   },
   heroCard: {
     padding: 20,

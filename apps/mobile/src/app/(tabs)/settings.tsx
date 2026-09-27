@@ -419,7 +419,7 @@ export default function SettingsScreen() {
   // Android: High-Performance, Crash-Free Native System UI
   // -------------------------------------------------------------------------
   return (
-    <ScreenContainer.Scroll contentContainerStyle={styles.contentContainer}>
+    <ScreenContainer.Scroll>
       {/* 1. Account Section */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
@@ -834,10 +834,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-    gap: 20,
   },
   section: {
     gap: 8,
