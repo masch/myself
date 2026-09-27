@@ -65,4 +65,19 @@ describe("AppBottomSheetModal component", () => {
 
     expect(nonScrollView.props.children).toBeDefined();
   });
+
+  it("renders ScrollView via AppBottomSheetModal.Scroll compound component", () => {
+    const element = AppBottomSheetModal.Scroll({
+      visible: true,
+      onClose: () => {},
+      children: <span key="5">Scrollable Compound Content</span>,
+    });
+
+    expect(element).not.toBeNull();
+    const keyboardAvoidingView = element?.props.children;
+    const sheetView = keyboardAvoidingView.props.children[1];
+    const scrollView = sheetView.props.children[1];
+
+    expect(scrollView.props.keyboardShouldPersistTaps).toBe("handled");
+  });
 });

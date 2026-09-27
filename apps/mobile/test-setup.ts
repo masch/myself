@@ -230,3 +230,92 @@ mock.module("expo-crypto", () => ({
     return array;
   },
 }));
+
+mock.module("@expo/ui", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require("react");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { View, Text, Switch: RNSwitch, Pressable } = require("react-native");
+
+  const Host = ({ children, style, ...props }: any) =>
+    React.createElement(View, { style, ...props }, children);
+  Host.displayName = "Host";
+
+  const Column = ({ children, style, ...props }: any) =>
+    React.createElement(View, { style, ...props }, children);
+  Column.displayName = "Column";
+
+  const Row = ({ children, style, ...props }: any) =>
+    React.createElement(
+      View,
+      { style: [{ flexDirection: "row" }, style], ...props },
+      children,
+    );
+  Row.displayName = "Row";
+
+  const Switch = ({ value, onValueChange, disabled, style, ...props }: any) =>
+    React.createElement(RNSwitch, {
+      value,
+      onValueChange,
+      disabled,
+      style,
+      ...props,
+    });
+  Switch.displayName = "Switch";
+
+  const Slider = ({ style, ...props }: any) =>
+    React.createElement(View, { style, ...props });
+  Slider.displayName = "Slider";
+
+  const Picker = ({ children, ...props }: any) =>
+    React.createElement(View, { ...props }, children);
+  Picker.displayName = "Picker";
+
+  const FieldGroup = Object.assign(
+    ({ children, ...props }: any) => React.createElement(View, props, children),
+    {
+      Section: ({ children, title, ...props }: any) =>
+        React.createElement(
+          View,
+          props,
+          title ? React.createElement(Text, null, title) : null,
+          children,
+        ),
+    },
+  );
+
+  const ListItem = ({
+    children,
+    leading,
+    trailing,
+    supportingText,
+    ...props
+  }: any) =>
+    React.createElement(
+      View,
+      props,
+      leading,
+      React.createElement(Text, null, children),
+      supportingText ? React.createElement(Text, null, supportingText) : null,
+      trailing,
+    );
+
+  const BottomSheet = ({ children, isPresented, ...props }: any) =>
+    isPresented ? React.createElement(View, props, children) : null;
+
+  return {
+    Host,
+    Column,
+    Row,
+    Switch,
+    Slider,
+    Picker,
+    FieldGroup,
+    ListItem,
+    BottomSheet,
+    Button: ({ children, onPress, ...props }: any) =>
+      React.createElement(Pressable, { onPress, ...props }, children),
+    Text: ({ children, ...props }: any) =>
+      React.createElement(Text, props, children),
+  };
+});

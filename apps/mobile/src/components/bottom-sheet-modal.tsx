@@ -10,31 +10,36 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { colors } from "@/theme";
+import { colors, spacing, radius } from "@/theme";
 
-export interface BottomSheetModalProps {
+export interface BottomSheetModalBaseProps {
   visible: boolean;
   onClose: () => void;
   children: ReactNode;
   maxWidth?: number;
-  scrollable?: boolean;
-  contentContainerStyle?: StyleProp<ViewStyle>;
   sheetStyle?: StyleProp<ViewStyle>;
   testID?: string;
   keyboardVerticalOffset?: number;
 }
 
-export function AppBottomSheetModal({
+export interface BottomSheetModalProps extends BottomSheetModalBaseProps {
+  scrollable?: boolean;
+  contentContainerStyle?: StyleProp<ViewStyle>;
+}
+
+export interface BottomSheetModalScrollProps extends BottomSheetModalBaseProps {
+  contentContainerStyle?: StyleProp<ViewStyle>;
+}
+
+function renderModalShell({
   visible,
   onClose,
-  children,
   maxWidth = 580,
-  scrollable = true,
-  contentContainerStyle,
   sheetStyle,
   testID,
   keyboardVerticalOffset = 0,
-}: BottomSheetModalProps) {
+  innerContent,
+}: BottomSheetModalBaseProps & { innerContent: ReactNode }) {
   if (!visible) return null;
 
   return (
@@ -70,30 +75,58 @@ export function AppBottomSheetModal({
           ]}
         >
           <View style={styles.dragIndicator} />
-
-          {scrollable ? (
-            <ScrollView
-              style={styles.scrollView}
-              contentContainerStyle={[
-                styles.scrollContent,
-                contentContainerStyle,
-              ]}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              bounces={false}
-            >
-              {children}
-            </ScrollView>
-          ) : (
-            <View style={[styles.nonScrollContent, contentContainerStyle]}>
-              {children}
-            </View>
-          )}
+          {innerContent}
         </View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
+
+export function AppBottomSheetModalScroll(props: BottomSheetModalScrollProps) {
+  if (!props.visible) return null;
+
+  return renderModalShell({
+    ...props,
+    innerContent: (
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          props.contentContainerStyle,
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {props.children}
+      </ScrollView>
+    ),
+  });
+}
+
+export function AppBottomSheetModalRoot({
+  scrollable = true,
+  ...props
+}: BottomSheetModalProps) {
+  if (!props.visible) return null;
+
+  if (scrollable) {
+    return AppBottomSheetModalScroll(props);
+  }
+
+  return renderModalShell({
+    ...props,
+    innerContent: (
+      <View style={[styles.nonScrollContent, props.contentContainerStyle]}>
+        {props.children}
+      </View>
+    ),
+  });
+}
+
+export const AppBottomSheetModal = Object.assign(AppBottomSheetModalRoot, {
+  Scroll: AppBottomSheetModalScroll,
+});
 
 const styles = StyleSheet.create({
   backdrop: {
@@ -107,11 +140,12 @@ const styles = StyleSheet.create({
   },
   sheet: {
     width: "100%",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderCurve: "continuous",
     maxHeight: "90%",
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingTop: spacing.sm + 4,
+    paddingBottom: spacing.md,
     overflow: "hidden",
   },
   dragIndicator: {
@@ -120,17 +154,18 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: colors.systemGray,
     alignSelf: "center",
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
+
   scrollView: {
     width: "100%",
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg - 4,
     paddingBottom: 0,
   },
   nonScrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg - 4,
     paddingBottom: 0,
   },
 });

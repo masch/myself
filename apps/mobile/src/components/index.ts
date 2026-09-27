@@ -12,3 +12,4 @@ export * from "./screen-container";
 export * from "./surface";
 export * from "./themed-text";
 export * from "./primitives";
+export * from "./native-controls";

@@ -4,7 +4,12 @@ import {
   ChipButton,
   IconButton,
   ScreenContainer,
+  NativeFieldGroup,
+  NativeListItem,
+  NativeSwitch,
+  NativePicker,
 } from "@/components";
+
 import { useAuth } from "@/context/auth-context";
 import { resetDatabase } from "@/infrastructure/persistence/database";
 import { colors } from "@/theme";
@@ -15,7 +20,6 @@ import { useState } from "react";
 import {
   Alert,
   Platform,
-  Switch as RNSwitch,
   ScrollView,
   StyleSheet,
   Text,
@@ -491,235 +495,154 @@ export default function SettingsScreen() {
       </View>
 
       {/* 2. Preferences Section */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-          PREFERENCES
-        </Text>
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.secondarySystemBackground },
-          ]}
-        >
-          <View style={styles.row}>
+      <NativeFieldGroup.Section title="Preferences" style={styles.section}>
+        <NativeListItem
+          leading={
             <Image
               source="sf:bell.fill"
               style={[styles.rowIcon, { tintColor: colors.systemRed }]}
             />
-            <View style={styles.rowContent}>
-              <Text style={[styles.rowTitle, { color: colors.label }]}>
-                Push Notifications
-              </Text>
-              <Text
-                style={[styles.rowSubtitle, { color: colors.secondaryLabel }]}
-              >
-                Daily reminder for meditation practice
-              </Text>
-            </View>
-            <RNSwitch
+          }
+          supportingText="Daily reminder for meditation practice"
+          trailing={
+            <NativeSwitch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
-              trackColor={{
-                false: "rgba(142, 142, 147, 0.3)",
-                true: colors.systemGreen as any,
-              }}
+              accessibilityLabel="Push Notifications"
             />
-          </View>
+          }
+        >
+          Push Notifications
+        </NativeListItem>
 
-          <View style={styles.divider} />
-
-          <View style={styles.row}>
+        <NativeListItem
+          leading={
             <Image
               source="sf:faceid"
               style={[styles.rowIcon, { tintColor: colors.systemGreen }]}
             />
-            <View style={styles.rowContent}>
-              <Text style={[styles.rowTitle, { color: colors.label }]}>
-                Biometrics / Face ID
-              </Text>
-              <Text
-                style={[styles.rowSubtitle, { color: colors.secondaryLabel }]}
-              >
-                Protect personal journals and reflections
-              </Text>
-            </View>
-            <RNSwitch
+          }
+          supportingText="Protect personal journals and reflections"
+          trailing={
+            <NativeSwitch
               value={biometricsEnabled}
               onValueChange={setBiometricsEnabled}
-              trackColor={{
-                false: "rgba(142, 142, 147, 0.3)",
-                true: colors.systemGreen as any,
-              }}
+              accessibilityLabel="Biometrics / Face ID"
             />
-          </View>
+          }
+        >
+          Biometrics / Face ID
+        </NativeListItem>
 
-          <View style={styles.divider} />
-
-          <View style={styles.selectorRow}>
-            <View style={styles.selectorHeader}>
-              <Image
-                source="sf:globe"
-                style={[styles.rowIcon, { tintColor: colors.systemBlue }]}
-              />
-              <Text style={[styles.rowTitle, { color: colors.label }]}>
-                Language
-              </Text>
-            </View>
-            <View style={styles.chipsRow}>
-              {LANGUAGES.map((lang) => {
-                const isSelected = selectedLanguage === lang.id;
-                return (
-                  <ChipButton
-                    key={lang.id}
-                    title={lang.label}
-                    variant={isSelected ? "blue" : "secondary"}
-                    onPress={() => setSelectedLanguage(lang.id)}
-                  />
-                );
-              })}
-            </View>
-          </View>
-        </View>
-      </View>
+        <NativeListItem
+          leading={
+            <Image
+              source="sf:globe"
+              style={[styles.rowIcon, { tintColor: colors.systemBlue }]}
+            />
+          }
+          trailing={
+            <NativePicker
+              value={selectedLanguage}
+              onValueChange={setSelectedLanguage}
+              options={LANGUAGES.map((l) => ({ label: l.label, value: l.id }))}
+            />
+          }
+        >
+          Language
+        </NativeListItem>
+      </NativeFieldGroup.Section>
 
       {/* 3. Appearance Section */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-          APPEARANCE
-        </Text>
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.secondarySystemBackground },
-          ]}
+      <NativeFieldGroup.Section title="Appearance" style={styles.section}>
+        <NativeListItem
+          leading={
+            <Image
+              source="sf:paintbrush.fill"
+              style={[styles.rowIcon, { tintColor: colors.systemPurple }]}
+            />
+          }
+          trailing={
+            <NativePicker
+              value={selectedTheme}
+              onValueChange={setSelectedTheme}
+              options={THEMES.map((t) => ({ label: t.label, value: t.id }))}
+            />
+          }
         >
-          <View style={styles.selectorRow}>
-            <View style={styles.selectorHeader}>
-              <Image
-                source="sf:paintbrush.fill"
-                style={[styles.rowIcon, { tintColor: colors.systemPurple }]}
-              />
-              <Text style={[styles.rowTitle, { color: colors.label }]}>
-                Theme
-              </Text>
-            </View>
-            <View style={styles.chipsRow}>
-              {THEMES.map((theme) => {
-                const isSelected = selectedTheme === theme.id;
-                return (
-                  <ChipButton
-                    key={theme.id}
-                    title={theme.label}
-                    variant={isSelected ? "purple" : "secondary"}
-                    onPress={() => setSelectedTheme(theme.id)}
-                  />
-                );
-              })}
-            </View>
-          </View>
-        </View>
-      </View>
+          Theme
+        </NativeListItem>
+      </NativeFieldGroup.Section>
 
       {/* 4. Privacy & Info */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-          PRIVACY & INFO
-        </Text>
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.secondarySystemBackground },
-          ]}
-        >
-          <View style={styles.row}>
+      <NativeFieldGroup.Section title="Privacy & Info" style={styles.section}>
+        <NativeListItem
+          leading={
             <Image
               source="sf:hand.raised.fill"
               style={[styles.rowIcon, { tintColor: colors.systemOrange }]}
             />
-            <View style={styles.rowContent}>
-              <Text style={[styles.rowTitle, { color: colors.label }]}>
-                Share Analytics
-              </Text>
-              <Text
-                style={[styles.rowSubtitle, { color: colors.secondaryLabel }]}
-              >
-                Help improve meditation features
-              </Text>
-            </View>
-            <RNSwitch
+          }
+          supportingText="Help improve meditation features"
+          trailing={
+            <NativeSwitch
               value={analyticsEnabled}
               onValueChange={setAnalyticsEnabled}
-              trackColor={{
-                false: "rgba(142, 142, 147, 0.3)",
-                true: colors.systemGreen as any,
-              }}
+              accessibilityLabel="Share Analytics"
             />
-          </View>
+          }
+        >
+          Share Analytics
+        </NativeListItem>
 
-          <View style={styles.divider} />
-
-          <View style={styles.row}>
+        <NativeListItem
+          leading={
             <Image
               source="sf:info.circle.fill"
               style={[styles.rowIcon, { tintColor: colors.systemGray }]}
             />
-            <View style={styles.rowContent}>
-              <Text style={[styles.rowTitle, { color: colors.label }]}>
-                About Myself App
-              </Text>
-              <Text
-                style={[styles.rowSubtitle, { color: colors.secondaryLabel }]}
-              >
-                Version 1.0.0 (Expo SDK 57)
-              </Text>
-            </View>
+          }
+          supportingText="Version 1.0.0 (Expo SDK 57)"
+          trailing={
             <ChipButton
               title="Details"
               variant="secondary"
               onPress={() => setIsAboutSheetOpen(true)}
             />
-          </View>
-        </View>
-      </View>
+          }
+        >
+          About Myself App
+        </NativeListItem>
+      </NativeFieldGroup.Section>
 
       {/* 5. Database & Storage */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
-          DATABASE & STORAGE
-        </Text>
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.secondarySystemBackground },
-          ]}
-        >
-          <View style={styles.row}>
+      <NativeFieldGroup.Section
+        title="Database & Storage"
+        style={styles.section}
+      >
+        <NativeListItem
+          leading={
             <Image
               source="sf:trash.fill"
               style={[styles.rowIcon, { tintColor: colors.systemRed }]}
             />
-            <View style={styles.rowContent}>
-              <Text style={[styles.rowTitle, { color: colors.systemRed }]}>
-                Reset Local Database
-              </Text>
-              <Text
-                style={[styles.rowSubtitle, { color: colors.secondaryLabel }]}
-              >
-                Erases all local data and restores default seeds
-              </Text>
-            </View>
+          }
+          supportingText="Erases all local data and restores default seeds"
+          trailing={
             <ChipButton
               title={isResetting ? "Resetting..." : "Reset"}
               variant="destructive"
               disabled={isResetting}
               onPress={handleResetDatabase}
             />
-          </View>
-        </View>
-      </View>
+          }
+        >
+          Reset Local Database
+        </NativeListItem>
+      </NativeFieldGroup.Section>
 
       {/* Modal for New User (Android / Web) */}
-      <AppBottomSheetModal
+      <AppBottomSheetModal.Scroll
         visible={isNewUserSheetOpen}
         onClose={() => setIsNewUserSheetOpen(false)}
         maxWidth={460}
@@ -776,10 +699,10 @@ export default function SettingsScreen() {
             onPress={handleCreateUser}
           />
         </View>
-      </AppBottomSheetModal>
+      </AppBottomSheetModal.Scroll>
 
       {/* Modal for About (Android / Web) */}
-      <AppBottomSheetModal
+      <AppBottomSheetModal.Scroll
         visible={isAboutSheetOpen}
         onClose={() => setIsAboutSheetOpen(false)}
         maxWidth={460}
@@ -810,7 +733,7 @@ export default function SettingsScreen() {
             />
           </View>
         </View>
-      </AppBottomSheetModal>
+      </AppBottomSheetModal.Scroll>
     </ScreenContainer.Scroll>
   );
 }
