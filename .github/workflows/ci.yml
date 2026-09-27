@@ -95,6 +95,9 @@ jobs:
       - name: Check Formatting
         run: make check-format
 
+      - name: Check ODD Task Status
+        run: make check-odd
+
       - name: Lint & Typecheck
         run: make check-static
 
