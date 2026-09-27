@@ -1,3 +1,4 @@
+import "./tabs-web.css";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {

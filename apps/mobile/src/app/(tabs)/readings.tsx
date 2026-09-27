@@ -1,10 +1,10 @@
 import { useCallback } from "react";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { View, StyleSheet, ScrollView, Text } from "react-native";
+import { View, StyleSheet, Text } from "react-native";
 import { Image } from "expo-image";
 import { useReadings } from "@/hooks/use-readings";
 import { type MeditationReadingWithAuthor } from "@/infrastructure/persistence/database";
-import { AppButton, IconButton } from "@/components";
+import { AppButton, IconButton, ScreenContainer } from "@/components";
 import { ReadingCard } from "@/features/readings/components/reading-card";
 import { confirmDelete } from "@/features/readings/confirm-delete";
 import { colors } from "@/theme/colors";
@@ -60,11 +60,7 @@ export default function ReadingsScreen() {
   const totalSessionsCount = readings.reduce((acc, r) => acc + r.times_read, 0);
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.systemBackground }]}
-      contentContainerStyle={styles.contentContainer}
-      contentInsetAdjustmentBehavior="automatic"
-    >
+    <ScreenContainer.Scroll>
       <Stack.Screen
         options={{
           title: "Meditation Readings",
@@ -211,17 +207,13 @@ export default function ReadingsScreen() {
           />
         </View>
       )}
-    </ScrollView>
+    </ScreenContainer.Scroll>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    gap: 18,
   },
   heroCard: {
     padding: 20,

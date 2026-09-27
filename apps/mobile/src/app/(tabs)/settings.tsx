@@ -2,15 +2,14 @@ import { useState } from "react";
 import {
   Platform,
   View,
-  StyleSheet,
   ScrollView,
+  StyleSheet,
   Text,
   Alert,
   TextInput,
   Switch as RNSwitch,
 } from "react-native";
 import { Image } from "expo-image";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSQLiteContext } from "expo-sqlite";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/auth-context";
@@ -20,6 +19,7 @@ import {
   ChipButton,
   IconButton,
   AppBottomSheetModal,
+  ScreenContainer,
 } from "@/components";
 import { colors } from "@/theme/colors";
 
@@ -50,7 +50,6 @@ const LANGUAGES = [
 ];
 
 export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
   const db = useSQLiteContext();
   const queryClient = useQueryClient();
   const { currentUser, users, switchUser, registerUser, refreshAuth } =
@@ -141,16 +140,7 @@ export default function SettingsScreen() {
   // -------------------------------------------------------------------------
   if (Platform.OS !== "android") {
     return (
-      <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: colors.systemBackground,
-            paddingTop: insets.top + 8,
-            paddingBottom: insets.bottom + 8,
-          },
-        ]}
-      >
+      <ScreenContainer>
         <Host style={{ flex: 1 }}>
           <FieldGroup>
             {/* Active Profile Section */}
@@ -421,7 +411,7 @@ export default function SettingsScreen() {
             </Column>
           </BottomSheet>
         </Host>
-      </View>
+      </ScreenContainer>
     );
   }
 
@@ -429,17 +419,7 @@ export default function SettingsScreen() {
   // Android: High-Performance, Crash-Free Native System UI
   // -------------------------------------------------------------------------
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.systemBackground }]}
-      contentContainerStyle={[
-        styles.contentContainer,
-        {
-          paddingTop: insets.top + 8,
-          paddingBottom: insets.bottom + 32,
-        },
-      ]}
-      contentInsetAdjustmentBehavior="automatic"
-    >
+    <ScreenContainer.Scroll>
       {/* 1. Account Section */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
@@ -831,7 +811,7 @@ export default function SettingsScreen() {
           </View>
         </View>
       </AppBottomSheetModal>
-    </ScrollView>
+    </ScreenContainer.Scroll>
   );
 }
 
@@ -854,10 +834,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-    gap: 20,
   },
   section: {
     gap: 8,

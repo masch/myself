@@ -1,16 +1,14 @@
 import { useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
-import { View, StyleSheet, ScrollView, Text, Alert } from "react-native";
+import { View, StyleSheet, Text, Alert } from "react-native";
 import { Image } from "expo-image";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTasks } from "@/hooks/use-tasks";
 import { type TaskItem } from "@/infrastructure/persistence/database";
-import { AppButton, TaskRow } from "@/components";
+import { AppButton, TaskRow, ScreenContainer } from "@/components";
 import { colors } from "@/theme/colors";
 import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
 
 export default function HomeScreen() {
-  const insets = useSafeAreaInsets();
   const {
     currentUser,
     tasks,
@@ -53,17 +51,7 @@ export default function HomeScreen() {
   const completedTasks = tasks.filter((t) => !!t.is_done);
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.systemBackground }]}
-      contentContainerStyle={[
-        styles.contentContainer,
-        {
-          paddingTop: insets.top + 8,
-          paddingBottom: insets.bottom + 16,
-        },
-      ]}
-      contentInsetAdjustmentBehavior="automatic"
-    >
+    <ScreenContainer.Scroll>
       {/* Summary Card */}
       <View
         style={[
@@ -188,17 +176,13 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
-    </ScrollView>
+    </ScreenContainer.Scroll>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-    gap: 20,
   },
   heroCard: {
     padding: 20,

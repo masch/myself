@@ -16,6 +16,7 @@ import {
   type UserReflection,
 } from "@myself/shared";
 import { colors } from "@/theme/colors";
+import { ScreenContainer } from "@/components";
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
 import { useThemeCohort } from "@/features/reflections/hooks/use-theme-cohort";
 import { type ActiveCohortProgressDetail } from "@/features/reflections/domain/ports/reflection.repository.port";
@@ -318,7 +319,7 @@ export default function ReflectionsScreen() {
   ]);
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.systemBackground }]}>
+    <ScreenContainer>
       <Stack.Screen
         options={{
           title: "Reflexiones",
@@ -963,7 +964,7 @@ export default function ReflectionsScreen() {
         }}
         isSubmitting={isSubmitting}
       />
-    </View>
+    </ScreenContainer>
   );
 }
 

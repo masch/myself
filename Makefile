@@ -1,6 +1,6 @@
 SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := dev-web
 
 .PHONY: help
 help: ## Show this help menu
