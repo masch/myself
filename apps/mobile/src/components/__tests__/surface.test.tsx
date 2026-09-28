@@ -64,4 +64,31 @@ describe("Surface / Card component", () => {
     // Outer and inner containers both render in html
     expect(html).toContain("div");
   });
+
+  it("renders with padding='none'", () => {
+    const html = renderToString(
+      <Surface padding="none">
+        <Text>No Padding</Text>
+      </Surface>,
+    );
+    expect(html).toContain("No Padding");
+  });
+
+  it("renders elevated variant with custom borderRadius and layout styles", () => {
+    const html = renderToString(
+      <Surface
+        variant="elevated"
+        padding="none"
+        style={{
+          borderRadius: 24,
+          alignItems: "center",
+          margin: 12,
+          flex: 1,
+        }}
+      >
+        <Text>Custom Elevated</Text>
+      </Surface>,
+    );
+    expect(html).toContain("Custom Elevated");
+  });
 });
