@@ -11,6 +11,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { colors, spacing, radius } from "@/theme";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export interface BottomSheetModalBaseProps {
   visible: boolean;
@@ -39,7 +40,9 @@ function renderModalShell({
   testID,
   keyboardVerticalOffset = 0,
   innerContent,
-}: BottomSheetModalBaseProps & { innerContent: ReactNode }) {
+}: BottomSheetModalBaseProps & {
+  innerContent: ReactNode;
+}) {
   if (!visible) return null;
 
   return (
@@ -51,33 +54,37 @@ function renderModalShell({
       testID={testID}
       accessibilityViewIsModal
       statusBarTranslucent
+      navigationBarTranslucent
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={keyboardVerticalOffset}
-        style={styles.backdrop}
-      >
-        <Pressable
-          style={styles.scrim}
-          onPress={onClose}
-          accessibilityRole="button"
-          accessibilityLabel="Cerrar modal"
-        />
-
-        <View
-          style={[
-            styles.sheet,
-            {
-              maxWidth,
-              backgroundColor: colors.secondarySystemBackground,
-            },
-            sheetStyle,
-          ]}
+      <SafeAreaProvider style={styles.provider}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={keyboardVerticalOffset}
+          style={styles.backdrop}
         >
-          <View style={styles.dragIndicator} />
-          {innerContent}
-        </View>
-      </KeyboardAvoidingView>
+          <Pressable
+            style={styles.scrim}
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar modal"
+          />
+
+          <SafeAreaView
+            edges={["bottom"]}
+            style={[
+              styles.sheet,
+              {
+                maxWidth,
+                backgroundColor: colors.secondarySystemBackground,
+              },
+              sheetStyle,
+            ]}
+          >
+            <View style={styles.dragIndicator} />
+            {innerContent}
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </SafeAreaProvider>
     </Modal>
   );
 }
@@ -129,6 +136,9 @@ export const AppBottomSheetModal = Object.assign(AppBottomSheetModalRoot, {
 });
 
 const styles = StyleSheet.create({
+  provider: {
+    flex: 1,
+  },
   backdrop: {
     flex: 1,
     justifyContent: "flex-end",

@@ -14,7 +14,7 @@ describe("AppBottomSheetModal component", () => {
     expect(element).toBeNull();
   });
 
-  it("configures Modal with slide animation, statusBarTranslucent and correct keyboard avoidance behavior", () => {
+  it("configures Modal with slide animation, statusBarTranslucent, navigationBarTranslucent and correct keyboard avoidance behavior", () => {
     const element = AppBottomSheetModal({
       visible: true,
       onClose: () => {},
@@ -25,12 +25,20 @@ describe("AppBottomSheetModal component", () => {
     expect(element?.props.visible).toBe(true);
     expect(element?.props.animationType).toBe("slide");
     expect(element?.props.statusBarTranslucent).toBe(true);
+    expect(element?.props.navigationBarTranslucent).toBe(true);
 
-    const keyboardAvoidingView = element?.props.children;
+    const provider = element?.props.children;
+    expect(provider).toBeDefined();
+
+    const keyboardAvoidingView = provider.props.children;
     expect(keyboardAvoidingView).toBeDefined();
     expect(keyboardAvoidingView.props.behavior).toBe(
       Platform.OS === "ios" ? "padding" : "height",
     );
+
+    const sheetView = keyboardAvoidingView.props.children[1];
+    expect(sheetView).toBeDefined();
+    expect(sheetView.props.edges).toEqual(["bottom"]);
   });
 
   it("renders ScrollView with keyboardShouldPersistTaps handled when scrollable is true", () => {
@@ -42,7 +50,8 @@ describe("AppBottomSheetModal component", () => {
     });
 
     expect(element).not.toBeNull();
-    const keyboardAvoidingView = element?.props.children;
+    const provider = element?.props.children;
+    const keyboardAvoidingView = provider.props.children;
     const sheetView = keyboardAvoidingView.props.children[1];
     const scrollView = sheetView.props.children[1];
 
@@ -59,7 +68,8 @@ describe("AppBottomSheetModal component", () => {
     });
 
     expect(element).not.toBeNull();
-    const keyboardAvoidingView = element?.props.children;
+    const provider = element?.props.children;
+    const keyboardAvoidingView = provider.props.children;
     const sheetView = keyboardAvoidingView.props.children[1];
     const nonScrollView = sheetView.props.children[1];
 
@@ -74,7 +84,8 @@ describe("AppBottomSheetModal component", () => {
     });
 
     expect(element).not.toBeNull();
-    const keyboardAvoidingView = element?.props.children;
+    const provider = element?.props.children;
+    const keyboardAvoidingView = provider.props.children;
     const sheetView = keyboardAvoidingView.props.children[1];
     const scrollView = sheetView.props.children[1];
 
