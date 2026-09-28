@@ -1,10 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import React from "react";
-import { Platform } from "react-native";
 import { renderToString } from "react-dom/server";
 import {
   AppBottomSheetModal,
-  BottomSheetBody,
+  BottomSheetModalContent,
   getBottomSheetSafeAreaEdges,
 } from "../bottom-sheet-modal";
 
@@ -19,7 +18,7 @@ describe("AppBottomSheetModal component", () => {
     expect(element).toBeNull();
   });
 
-  it("configures Modal with slide animation, statusBarTranslucent, navigationBarTranslucent and correct keyboard avoidance behavior", () => {
+  it("configures Modal with slide animation, statusBarTranslucent, navigationBarTranslucent and renders BottomSheetModalContent", () => {
     const element = AppBottomSheetModal({
       visible: true,
       onClose: () => {},
@@ -35,15 +34,10 @@ describe("AppBottomSheetModal component", () => {
     const provider = element?.props.children;
     expect(provider).toBeDefined();
 
-    const keyboardAvoidingView = provider.props.children;
-    expect(keyboardAvoidingView).toBeDefined();
-    expect(keyboardAvoidingView.props.behavior).toBe(
-      Platform.OS === "ios" ? "padding" : "height",
-    );
-
-    const sheetBody = keyboardAvoidingView.props.children[1];
-    expect(sheetBody).toBeDefined();
-    expect(sheetBody.type).toBe(BottomSheetBody);
+    const content = provider.props.children;
+    expect(content).toBeDefined();
+    expect(content.type).toBe(BottomSheetModalContent);
+    expect(content.props.onClose).toBeDefined();
   });
 
   it("renders ScrollView with keyboardShouldPersistTaps handled when scrollable is true", () => {
@@ -56,9 +50,8 @@ describe("AppBottomSheetModal component", () => {
 
     expect(element).not.toBeNull();
     const provider = element?.props.children;
-    const keyboardAvoidingView = provider.props.children;
-    const sheetBody = keyboardAvoidingView.props.children[1];
-    const scrollView = sheetBody.props.children;
+    const content = provider.props.children;
+    const scrollView = content.props.innerContent;
 
     expect(scrollView.props.keyboardShouldPersistTaps).toBe("handled");
     expect(scrollView.props.automaticallyAdjustKeyboardInsets).toBeFalsy();
@@ -74,9 +67,8 @@ describe("AppBottomSheetModal component", () => {
 
     expect(element).not.toBeNull();
     const provider = element?.props.children;
-    const keyboardAvoidingView = provider.props.children;
-    const sheetBody = keyboardAvoidingView.props.children[1];
-    const nonScrollView = sheetBody.props.children;
+    const content = provider.props.children;
+    const nonScrollView = content.props.innerContent;
 
     expect(nonScrollView.props.children).toBeDefined();
   });
@@ -90,14 +82,13 @@ describe("AppBottomSheetModal component", () => {
 
     expect(element).not.toBeNull();
     const provider = element?.props.children;
-    const keyboardAvoidingView = provider.props.children;
-    const sheetBody = keyboardAvoidingView.props.children[1];
-    const scrollView = sheetBody.props.children;
+    const content = provider.props.children;
+    const scrollView = content.props.innerContent;
 
     expect(scrollView.props.keyboardShouldPersistTaps).toBe("handled");
   });
 
-  describe("Keyboard visibility & safe area edge calculations", () => {
+  describe("BottomSheetModalContent structure & keyboard edge calculations", () => {
     it("returns bottom edge when keyboard is closed", () => {
       expect(getBottomSheetSafeAreaEdges(false)).toEqual(["bottom"]);
     });
@@ -106,13 +97,26 @@ describe("AppBottomSheetModal component", () => {
       expect(getBottomSheetSafeAreaEdges(true)).toEqual([]);
     });
 
-    it("renders children cleanly within BottomSheetBody via renderToString", () => {
+    it("renders children cleanly within BottomSheetModalContent via renderToString", () => {
       const html = renderToString(
-        <BottomSheetBody maxWidth={580}>
-          <span>Body Text</span>
-        </BottomSheetBody>,
+        <BottomSheetModalContent
+          onClose={() => {}}
+          innerContent={<span>Body Text</span>}
+          isKeyboardVisible={false}
+        />,
       );
       expect(html).toContain("Body Text");
+    });
+
+    it("renders cleanly when isKeyboardVisible is true", () => {
+      const html = renderToString(
+        <BottomSheetModalContent
+          onClose={() => {}}
+          innerContent={<span>Active Keyboard Content</span>}
+          isKeyboardVisible={true}
+        />,
+      );
+      expect(html).toContain("Active Keyboard Content");
     });
   });
 });

@@ -8,6 +8,8 @@ import {
   Platform,
   ScrollView,
   Keyboard,
+  Dimensions,
+  useWindowDimensions,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -83,40 +85,77 @@ export function useIsKeyboardVisible(): boolean {
   return isKeyboardVisible;
 }
 
-export interface BottomSheetBodyProps {
+export interface BottomSheetModalContentProps {
+  onClose: () => void;
   maxWidth?: number;
   sheetStyle?: StyleProp<ViewStyle>;
-  children: ReactNode;
+  keyboardVerticalOffset?: number;
+  innerContent: ReactNode;
   isKeyboardVisible?: boolean;
 }
 
-export function BottomSheetBody({
+export function BottomSheetModalContent({
+  onClose,
   maxWidth = 580,
   sheetStyle,
-  children,
+  keyboardVerticalOffset = 0,
+  innerContent,
   isKeyboardVisible: controlledKeyboardVisible,
-}: BottomSheetBodyProps) {
-  const detectedKeyboardVisible = useIsKeyboardVisible();
+}: BottomSheetModalContentProps) {
+  const { height: windowHeight } = useWindowDimensions();
+  const screenHeight = Dimensions.get("screen")?.height ?? 0;
+  const [containerHeight, setContainerHeight] = useState<number | null>(null);
+  const isKeyboardByListener = useIsKeyboardVisible();
+
+  // In Android native Dialog windows (Modal), Keyboard.addListener doesn't fire
+  // because the Dialog runs in a separate window from ReactRootView.
+  // However, Android's adjustResize physically resizes the Dialog window,
+  // causing container onLayout and useWindowDimensions to shrink significantly (> 100dp).
+  const effectiveHeight = containerHeight ?? windowHeight;
+  const isKeyboardByLayout =
+    screenHeight > 200 &&
+    effectiveHeight > 0 &&
+    screenHeight - effectiveHeight > 100;
+
   const isKeyboardVisible =
-    controlledKeyboardVisible ?? detectedKeyboardVisible;
+    controlledKeyboardVisible ?? (isKeyboardByListener || isKeyboardByLayout);
 
   return (
-    <SafeAreaView
-      edges={getBottomSheetSafeAreaEdges(isKeyboardVisible)}
-      style={[
-        styles.sheet,
-        {
-          maxWidth,
-          backgroundColor: colors.secondarySystemBackground,
-        },
-        sheetStyle,
-      ]}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={keyboardVerticalOffset}
+      style={styles.backdrop}
+      onLayout={(e) => {
+        setContainerHeight(e.nativeEvent.layout.height);
+      }}
     >
-      <View style={styles.dragIndicator} />
-      {children}
-    </SafeAreaView>
+      <Pressable
+        style={styles.scrim}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Cerrar modal"
+      />
+
+      <SafeAreaView
+        edges={getBottomSheetSafeAreaEdges(isKeyboardVisible)}
+        style={[
+          styles.sheet,
+          {
+            maxWidth,
+            backgroundColor: colors.secondarySystemBackground,
+          },
+          sheetStyle,
+        ]}
+      >
+        <View style={styles.dragIndicator} />
+        {innerContent}
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
+
+// Backwards-compatibility alias for tests
+export const BottomSheetBody = BottomSheetModalContent;
 
 function renderModalShell({
   visible,
@@ -144,26 +183,14 @@ function renderModalShell({
       navigationBarTranslucent
     >
       <SafeAreaProvider style={styles.provider}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        <BottomSheetModalContent
+          onClose={onClose}
+          maxWidth={maxWidth}
+          sheetStyle={sheetStyle}
           keyboardVerticalOffset={keyboardVerticalOffset}
-          style={styles.backdrop}
-        >
-          <Pressable
-            style={styles.scrim}
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Cerrar modal"
-          />
-
-          <BottomSheetBody
-            maxWidth={maxWidth}
-            sheetStyle={sheetStyle}
-            isKeyboardVisible={isKeyboardVisible}
-          >
-            {innerContent}
-          </BottomSheetBody>
-        </KeyboardAvoidingView>
+          innerContent={innerContent}
+          isKeyboardVisible={isKeyboardVisible}
+        />
       </SafeAreaProvider>
     </Modal>
   );
