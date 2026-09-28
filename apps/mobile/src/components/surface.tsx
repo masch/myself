@@ -27,6 +27,104 @@ export function Surface({
   const variantStyle = variantStyles[variant];
   const paddingValue = padding === "none" ? 0 : spacing[padding];
 
+  if (variant === "elevated") {
+    const flattened = StyleSheet.flatten(style);
+    const {
+      margin,
+      marginHorizontal,
+      marginVertical,
+      marginTop,
+      marginBottom,
+      marginLeft,
+      marginRight,
+      marginStart,
+      marginEnd,
+      flex,
+      flexGrow,
+      flexShrink,
+      flexBasis,
+      alignSelf,
+      position,
+      top,
+      bottom,
+      left,
+      right,
+      start,
+      end,
+      zIndex,
+      width,
+      height,
+      minWidth,
+      minHeight,
+      maxWidth,
+      maxHeight,
+      transform,
+      opacity,
+      ...innerStyle
+    } = flattened || {};
+
+    const outerPositioningStyle: ViewStyle = {};
+    if (margin !== undefined) outerPositioningStyle.margin = margin;
+    if (marginHorizontal !== undefined)
+      outerPositioningStyle.marginHorizontal = marginHorizontal;
+    if (marginVertical !== undefined)
+      outerPositioningStyle.marginVertical = marginVertical;
+    if (marginTop !== undefined) outerPositioningStyle.marginTop = marginTop;
+    if (marginBottom !== undefined)
+      outerPositioningStyle.marginBottom = marginBottom;
+    if (marginLeft !== undefined) outerPositioningStyle.marginLeft = marginLeft;
+    if (marginRight !== undefined)
+      outerPositioningStyle.marginRight = marginRight;
+    if (marginStart !== undefined)
+      outerPositioningStyle.marginStart = marginStart;
+    if (marginEnd !== undefined) outerPositioningStyle.marginEnd = marginEnd;
+    if (flex !== undefined) outerPositioningStyle.flex = flex;
+    if (flexGrow !== undefined) outerPositioningStyle.flexGrow = flexGrow;
+    if (flexShrink !== undefined) outerPositioningStyle.flexShrink = flexShrink;
+    if (flexBasis !== undefined) outerPositioningStyle.flexBasis = flexBasis;
+    if (alignSelf !== undefined) outerPositioningStyle.alignSelf = alignSelf;
+    if (position !== undefined) outerPositioningStyle.position = position;
+    if (top !== undefined) outerPositioningStyle.top = top;
+    if (bottom !== undefined) outerPositioningStyle.bottom = bottom;
+    if (left !== undefined) outerPositioningStyle.left = left;
+    if (right !== undefined) outerPositioningStyle.right = right;
+    if (start !== undefined) outerPositioningStyle.start = start;
+    if (end !== undefined) outerPositioningStyle.end = end;
+    if (zIndex !== undefined) outerPositioningStyle.zIndex = zIndex;
+    if (width !== undefined) outerPositioningStyle.width = width;
+    if (height !== undefined) outerPositioningStyle.height = height;
+    if (minWidth !== undefined) outerPositioningStyle.minWidth = minWidth;
+    if (minHeight !== undefined) outerPositioningStyle.minHeight = minHeight;
+    if (maxWidth !== undefined) outerPositioningStyle.maxWidth = maxWidth;
+    if (maxHeight !== undefined) outerPositioningStyle.maxHeight = maxHeight;
+    if (transform !== undefined) outerPositioningStyle.transform = transform;
+    if (opacity !== undefined) outerPositioningStyle.opacity = opacity;
+
+    return (
+      <View
+        style={[
+          styles.elevatedOuter,
+          variantStyle,
+          outerPositioningStyle,
+          innerStyle.borderRadius !== undefined
+            ? { borderRadius: innerStyle.borderRadius }
+            : null,
+        ]}
+        {...props}
+      >
+        <View
+          style={[
+            styles.elevatedInner,
+            paddingValue !== undefined ? { padding: paddingValue } : null,
+            innerStyle,
+          ]}
+        >
+          {children}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View
       style={[
@@ -49,6 +147,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderCurve: "continuous",
     overflow: "hidden",
+  },
+  elevatedOuter: {
+    borderRadius: radius.lg,
+    borderCurve: "continuous",
+    overflow: "visible",
+  },
+  elevatedInner: {
+    borderRadius: radius.lg,
+    borderCurve: "continuous",
+    overflow: "hidden",
+    flexGrow: 1,
+    width: "100%",
   },
 });
 

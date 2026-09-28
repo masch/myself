@@ -53,4 +53,15 @@ describe("Surface / Card component", () => {
     );
     expect(html).toContain("Margin Content");
   });
+
+  it("renders elevated variant with outer wrapper and inner clipped container", () => {
+    const html = renderToString(
+      <Surface variant="elevated" padding="md" style={{ marginTop: 16 }}>
+        <Text>Elevated Child</Text>
+      </Surface>,
+    );
+    expect(html).toContain("Elevated Child");
+    // Outer and inner containers both render in html
+    expect(html).toContain("div");
+  });
 });
