@@ -325,7 +325,7 @@ export default function ReflectionsScreen() {
   ]);
 
   return (
-    <ScreenContainer edges={["top"]}>
+    <ScreenContainer.Tab>
       <Stack.Screen
         options={{
           title: "Reflexiones",
@@ -988,7 +988,7 @@ export default function ReflectionsScreen() {
         }}
         isSubmitting={isSubmitting}
       />
-    </ScreenContainer>
+    </ScreenContainer.Tab>
   );
 }
 

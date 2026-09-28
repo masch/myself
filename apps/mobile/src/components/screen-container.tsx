@@ -11,6 +11,7 @@ import { useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
 import { colors } from "@/theme";
 
 const DEFAULT_EDGES: Edge[] = ["top", "bottom"];
+const DEFAULT_TAB_EDGES: Edge[] = ["top"];
 const DEFAULT_TOP_OFFSET = 8;
 const DEFAULT_BOTTOM_OFFSET = 16;
 const DEFAULT_HORIZONTAL_PADDING = 16;
@@ -26,6 +27,7 @@ export interface ScreenContainerBaseProps {
 }
 
 export type ScreenContainerProps = ScreenContainerBaseProps;
+export type TabScreenContainerProps = ScreenContainerBaseProps;
 
 export interface ScrollScreenContainerProps extends ScreenContainerBaseProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
@@ -148,6 +150,20 @@ export function ScreenContainer({
 }
 
 ScreenContainer.Scroll = ScrollScreenContainer;
+
+/**
+ * Specialized container for screens hosted inside tab navigators (e.g. NativeTabs).
+ * Defaults edges to ["top"], preventing redundant bottom safe-area insets because
+ * the native bottom tab bar already consumes device navigation/home indicator insets.
+ */
+export function TabScreenContainer({
+  edges = DEFAULT_TAB_EDGES,
+  ...props
+}: TabScreenContainerProps) {
+  return <ScreenContainer edges={edges} {...props} />;
+}
+
+ScreenContainer.Tab = TabScreenContainer;
 
 const styles = StyleSheet.create({
   container: {

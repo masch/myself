@@ -145,7 +145,7 @@ export default function SettingsScreen() {
   // -------------------------------------------------------------------------
   if (Platform.OS !== "android") {
     return (
-      <ScreenContainer>
+      <ScreenContainer.Tab>
         <Host style={{ flex: 1 }}>
           <FieldGroup>
             {/* Active Profile Section */}
@@ -432,7 +432,7 @@ export default function SettingsScreen() {
             </Column>
           </BottomSheet>
         </Host>
-      </ScreenContainer>
+      </ScreenContainer.Tab>
     );
   }
 

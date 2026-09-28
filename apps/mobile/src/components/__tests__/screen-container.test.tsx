@@ -4,11 +4,13 @@ import { renderToString } from "react-dom/server";
 import type {
   ScreenContainer as ScreenContainerComponent,
   ScrollScreenContainer as ScrollScreenContainerComponent,
+  TabScreenContainer as TabScreenContainerComponent,
   useScreenPadding as useScreenPaddingHook,
 } from "../screen-container";
 
 let ScreenContainer: typeof ScreenContainerComponent;
 let ScrollScreenContainer: typeof ScrollScreenContainerComponent;
+let TabScreenContainer: typeof TabScreenContainerComponent;
 let useScreenPadding: typeof useScreenPaddingHook;
 
 beforeAll(async () => {
@@ -19,6 +21,7 @@ beforeAll(async () => {
   const mod = await import("../screen-container");
   ScreenContainer = mod.ScreenContainer;
   ScrollScreenContainer = mod.ScrollScreenContainer;
+  TabScreenContainer = mod.TabScreenContainer;
   useScreenPadding = mod.useScreenPadding;
 });
 
@@ -84,5 +87,25 @@ describe("ScreenContainer component & useScreenPadding hook", () => {
     );
 
     expect(html).toContain("Named Scroll Content");
+  });
+
+  it("renders via ScreenContainer.Tab compound component with top-only default edges", () => {
+    const html = renderToString(
+      <ScreenContainer.Tab testID="compound-tab">
+        <span>Compound Tab Content</span>
+      </ScreenContainer.Tab>,
+    );
+
+    expect(html).toContain("Compound Tab Content");
+  });
+
+  it("renders via TabScreenContainer named export", () => {
+    const html = renderToString(
+      <TabScreenContainer testID="named-tab">
+        <span>Named Tab Content</span>
+      </TabScreenContainer>,
+    );
+
+    expect(html).toContain("Named Tab Content");
   });
 });
