@@ -9,7 +9,7 @@ import {
   type SwitchProps,
 } from "react-native";
 
-import { colors, spacing, radius } from "@/theme";
+import { colors, spacing, radius, shadows } from "@/theme";
 import { ThemedText } from "./themed-text";
 import { Card } from "./surface";
 
@@ -46,6 +46,7 @@ export interface NativeListItemProps {
   supportingText?: string;
   leading?: ReactNode;
   trailing?: ReactNode;
+  layout?: "horizontal" | "vertical";
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -56,33 +57,49 @@ export function NativeListItem({
   supportingText,
   leading,
   trailing,
+  layout = "horizontal",
   onPress,
   style,
   testID,
 }: NativeListItemProps) {
+  const isVertical = layout === "vertical";
   const content = (
-    <View style={[styles.itemContainer, style]} testID={testID}>
-      {leading ? <View style={styles.leadingContainer}>{leading}</View> : null}
-      <View style={styles.labelContainer}>
-        {typeof children === "string" ? (
-          <ThemedText variant="body" style={styles.itemTitle}>
-            {children}
-          </ThemedText>
-        ) : (
-          children
-        )}
-        {supportingText ? (
-          <ThemedText
-            variant="caption1"
-            color={colors.secondaryLabel}
-            style={styles.supportingText}
-          >
-            {supportingText}
-          </ThemedText>
+    <View
+      style={[
+        styles.itemContainer,
+        isVertical && styles.itemContainerVertical,
+        style,
+      ]}
+      testID={testID}
+    >
+      <View style={isVertical ? styles.topRow : styles.rowContent}>
+        {leading ? (
+          <View style={styles.leadingContainer}>{leading}</View>
+        ) : null}
+        <View style={styles.labelContainer}>
+          {typeof children === "string" ? (
+            <ThemedText variant="body" style={styles.itemTitle}>
+              {children}
+            </ThemedText>
+          ) : (
+            children
+          )}
+          {supportingText ? (
+            <ThemedText
+              variant="caption1"
+              color={colors.secondaryLabel}
+              style={styles.supportingText}
+            >
+              {supportingText}
+            </ThemedText>
+          ) : null}
+        </View>
+        {!isVertical && trailing ? (
+          <View style={styles.trailingContainer}>{trailing}</View>
         ) : null}
       </View>
-      {trailing ? (
-        <View style={styles.trailingContainer}>{trailing}</View>
+      {isVertical && trailing ? (
+        <View style={styles.bottomContainer}>{trailing}</View>
       ) : null}
     </View>
   );
@@ -186,8 +203,11 @@ export function NativePicker<T extends string>({
           >
             <ThemedText
               variant="caption1"
-              color={isSelected ? colors.white : colors.secondaryLabel}
-              style={{ fontWeight: isSelected ? "700" : "500" }}
+              color={isSelected ? colors.white : colors.label}
+              style={[
+                styles.pickerText,
+                isSelected && styles.pickerTextSelected,
+              ]}
             >
               {option.label}
             </ThemedText>
@@ -227,6 +247,26 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 4,
     minHeight: 48,
   },
+  itemContainerVertical: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: spacing.sm + 2,
+    paddingVertical: spacing.md,
+  },
+  rowContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+  },
+  bottomContainer: {
+    width: "100%",
+    marginTop: spacing.xs,
+  },
   itemPressed: {
     opacity: 0.7,
   },
@@ -252,17 +292,32 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     flexDirection: "row",
-    backgroundColor: colors.systemGray15,
+    backgroundColor: "rgba(118, 118, 128, 0.24)",
     borderRadius: radius.md,
-    padding: 2,
+    padding: 3,
+    alignItems: "center",
+    width: "100%",
   },
   pickerOption: {
     flex: 1,
-    paddingVertical: spacing.xs + 2,
+    paddingVertical: spacing.xs + 3,
+    paddingHorizontal: spacing.sm,
     alignItems: "center",
-    borderRadius: radius.sm,
+    justifyContent: "center",
+    borderRadius: radius.sm + 1,
+    minHeight: 28,
   },
   pickerOptionSelected: {
     backgroundColor: colors.systemBlue,
+    boxShadow: shadows.card,
+  },
+  pickerText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  pickerTextSelected: {
+    fontWeight: "600",
   },
 });

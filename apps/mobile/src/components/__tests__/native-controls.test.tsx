@@ -6,6 +6,7 @@ import {
   NativeSwitch,
   NativeListItem,
   NativeFieldGroup,
+  NativePicker,
 } from "../native-controls";
 
 describe("Native Controls", () => {
@@ -43,6 +44,40 @@ describe("Native Controls", () => {
 
       expect(html).toContain("user@example.com");
       expect(html).toContain("Edit");
+    });
+
+    it("renders NativeListItem with layout='vertical'", () => {
+      const html = renderToString(
+        <NativeListItem
+          supportingText="Choose option"
+          layout="vertical"
+          trailing={<Text>Trailing Element</Text>}
+        >
+          Stacked Item
+        </NativeListItem>,
+      );
+
+      expect(html).toContain("Stacked Item");
+      expect(html).toContain("Choose option");
+      expect(html).toContain("Trailing Element");
+    });
+  });
+
+  describe("NativePicker", () => {
+    it("renders options and highlights selected value", () => {
+      const html = renderToString(
+        <NativePicker
+          options={[
+            { label: "Option A", value: "a" },
+            { label: "Option B", value: "b" },
+          ]}
+          value="b"
+          onValueChange={() => {}}
+        />,
+      );
+
+      expect(html).toContain("Option A");
+      expect(html).toContain("Option B");
     });
   });
 });

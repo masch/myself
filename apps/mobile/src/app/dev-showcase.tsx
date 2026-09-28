@@ -418,6 +418,7 @@ export default function DevShowcaseScreen() {
                   />
                 }
                 supportingText="Native platform picker"
+                layout="vertical"
                 trailing={
                   <NativePicker
                     options={[
