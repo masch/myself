@@ -2,34 +2,39 @@
 
 ## Objective
 
-Fix bottom overlap on Android native where the system 3-button navigation bar (48dp) overlaps action buttons inside bottom sheet modals by adding `useSafeAreaInsets` bottom padding and `navigationBarTranslucent` to `AppBottomSheetModal`.
+Fix bottom overlap on Android native where the system 3-button navigation bar (48dp) overlaps action buttons inside bottom sheet modals, while dynamically omitting the bottom safe area inset when the software keyboard is active so that no redundant empty gap appears above the keyboard.
 
 ## Problem & Why
 
-In Android edge-to-edge mode, `AppBottomSheetModal` had a hardcoded `paddingBottom: spacing.md` (16dp) without accounting for `insets.bottom` (48dp on 3-button navigation, 16-24dp on gesture navigation, and 34dp on iOS home indicator). Furthermore, `<Modal>` lacked `navigationBarTranslucent`, causing action buttons ("Cancelar", "Guardar", etc.) to render directly under the system navigation buttons.
+1. In Android edge-to-edge mode, `AppBottomSheetModal` renders inside a separate native Android `Dialog` window outside the root `SafeAreaProvider`. In the parent Activity, content does not overlap the navigation bar so `useSafeAreaInsets().bottom` returned 0. Furthermore, `<Modal>` lacked `navigationBarTranslucent`, causing action buttons to render under the system navigation bar when closed.
+2. When the software keyboard (e.g. Gboard) is opened, `KeyboardAvoidingView` pushes the modal upwards above the keyboard. However, if the sheet unconditionally applies `SafeAreaView edges={["bottom"]}`, the 48dp navigation bar inset is added above the keyboard, creating an unsightly gap between the action buttons ("Cancelar" / "Guardar") and the keyboard.
 
 ## Scope & Constraints
 
-- Update `apps/mobile/src/components/bottom-sheet-modal.tsx` to use `useSafeAreaInsets()` and add `insets.bottom` to `styles.sheet`'s `paddingBottom`.
-- Add `navigationBarTranslucent` to `<Modal>`.
-- Update unit tests in `apps/mobile/src/components/__tests__/bottom-sheet-modal.test.tsx`.
+- Update `apps/mobile/src/components/bottom-sheet-modal.tsx`:
+  - Encapsulate `<SafeAreaProvider style={{ flex: 1 }}>` and `<Modal navigationBarTranslucent>`.
+  - Extract `<BottomSheetBody>` with `useIsKeyboardVisible` tracking software keyboard show/hide events.
+  - Apply `edges={isKeyboardVisible ? [] : ["bottom"]}` via `getBottomSheetSafeAreaEdges`.
+- Update unit tests in `apps/mobile/src/components/__tests__/bottom-sheet-modal.test.tsx` to verify `navigationBarTranslucent`, `BottomSheetBody`, and edge calculations.
 - Ensure 100% test pass rate across unit tests and Playwright E2E browser tests.
 
 ## Tasks
 
-- [x] TASK-1: Add `useSafeAreaInsets` and `navigationBarTranslucent` to `AppBottomSheetModal` in `bottom-sheet-modal.tsx`.
-- [x] TASK-2: Update `bottom-sheet-modal.test.tsx` to verify `navigationBarTranslucent` and dynamic bottom insets.
-- [x] TASK-3: Verify all quality gates (`bun run test`, `bun run check`, `make check-odd`, `make check-e2e-browser`).
+- [x] TASK-1: Add `SafeAreaProvider`, `navigationBarTranslucent`, and `BottomSheetBody` to `AppBottomSheetModal` in `bottom-sheet-modal.tsx`.
+- [x] TASK-2: Track software keyboard visibility to dynamically set `edges={isKeyboardVisible ? [] : ["bottom"]}`, eliminating redundant gap when keyboard is open.
+- [x] TASK-3: Update `bottom-sheet-modal.test.tsx` to verify `navigationBarTranslucent`, `BottomSheetBody`, and dynamic bottom insets.
+- [x] TASK-4: Verify all quality gates (`bun run test`, `bun run check`, `make check-odd`, `make check-e2e-browser`).
 
 ## Verification Evidence
 
-- `bun test src/components/__tests__/bottom-sheet-modal.test.tsx`: 5/5 unit tests passed.
-- `bun run test` (apps/mobile): 209 unit tests passed across 28 files (666 assertions).
+- `bun test src/components/__tests__/bottom-sheet-modal.test.tsx`: 8/8 unit tests passed (21 assertions).
+- `bun run test` (apps/mobile): 212 unit tests passed across 28 files (670 assertions).
+- `bun run check`: All 9/9 turbo tasks passed (typecheck, lint, test, format).
 - `make check-odd`: All ODD task documents completed and closed.
 - `make check-e2e-browser`: 5/5 Playwright E2E browser tests passed.
 
 - **Completion & Delivery**:
-  - Identified root cause: React Native `<Modal>` renders in a separate native Android `Dialog` window outside the root `SafeAreaProvider`. In the parent Activity (`reflections.tsx` inside `NativeTabs`), content does not overlap the navigation bar so `useSafeAreaInsets().bottom` returned 0.
-  - Implemented `<SafeAreaProvider>` inside `<Modal>` and used `<SafeAreaView edges={["bottom"]}>` for the sheet container in `apps/mobile/src/components/bottom-sheet-modal.tsx`. This reads native Dialog window insets synchronously on pre-draw, adding the exact navigation bar height (48dp on 3-button nav) to sheet padding in native Yoga layout.
-  - Updated unit test assertions in `bottom-sheet-modal.test.tsx` verifying the hierarchy (`Modal -> SafeAreaProvider -> KeyboardAvoidingView -> SafeAreaView[edges=["bottom"]]`).
+  - Encapsulated `<SafeAreaProvider>` inside `<Modal>` and used `<SafeAreaView edges={getBottomSheetSafeAreaEdges(isKeyboardVisible)}>` inside `<BottomSheetBody>` in `apps/mobile/src/components/bottom-sheet-modal.tsx`.
+  - Added `useIsKeyboardVisible()` hook listening to `keyboardDidShow`, `keyboardDidHide`, `keyboardWillShow`, and `keyboardWillHide` so the 48dp inset is applied only when the modal rests on the bottom navigation bar and dynamically stripped when floating above the software keyboard.
+  - Verified edge transitions and updated unit tests in `bottom-sheet-modal.test.tsx`.
   - Delivery committed to feature branch `feat/53-design-system` on PR [#58](https://github.com/masch/myself/pull/58).

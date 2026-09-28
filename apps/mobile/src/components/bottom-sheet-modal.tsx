@@ -1,4 +1,4 @@
-import React, { type ReactNode } from "react";
+import React, { type ReactNode, useEffect, useState } from "react";
 import {
   Modal,
   View,
@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Keyboard,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -21,6 +22,7 @@ export interface BottomSheetModalBaseProps {
   sheetStyle?: StyleProp<ViewStyle>;
   testID?: string;
   keyboardVerticalOffset?: number;
+  isKeyboardVisible?: boolean;
 }
 
 export interface BottomSheetModalProps extends BottomSheetModalBaseProps {
@@ -32,6 +34,90 @@ export interface BottomSheetModalScrollProps extends BottomSheetModalBaseProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
 }
 
+/**
+ * Returns the safe area edges for the bottom sheet modal.
+ * When keyboard is open, bottom insets must be omitted so action buttons
+ * sit cleanly above the software keyboard without redundant empty gap.
+ */
+export function getBottomSheetSafeAreaEdges(
+  isKeyboardVisible: boolean,
+): ["bottom"] | [] {
+  return isKeyboardVisible ? [] : ["bottom"];
+}
+
+/**
+ * Tracks software keyboard visibility. When the keyboard is active,
+ * it occupies the bottom of the display above the system navigation bar,
+ * so modals must omit bottom safe-area insets to avoid redundant gap.
+ */
+export function useIsKeyboardVisible(): boolean {
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(() => {
+    try {
+      return typeof Keyboard?.isVisible === "function"
+        ? Keyboard.isVisible()
+        : false;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (!Keyboard?.addListener) return;
+
+    const handleShow = () => setIsKeyboardVisible(true);
+    const handleHide = () => setIsKeyboardVisible(false);
+
+    const showSub1 = Keyboard.addListener("keyboardDidShow", handleShow);
+    const hideSub1 = Keyboard.addListener("keyboardDidHide", handleHide);
+    const showSub2 = Keyboard.addListener("keyboardWillShow", handleShow);
+    const hideSub2 = Keyboard.addListener("keyboardWillHide", handleHide);
+
+    return () => {
+      showSub1?.remove?.();
+      hideSub1?.remove?.();
+      showSub2?.remove?.();
+      hideSub2?.remove?.();
+    };
+  }, []);
+
+  return isKeyboardVisible;
+}
+
+export interface BottomSheetBodyProps {
+  maxWidth?: number;
+  sheetStyle?: StyleProp<ViewStyle>;
+  children: ReactNode;
+  isKeyboardVisible?: boolean;
+}
+
+export function BottomSheetBody({
+  maxWidth = 580,
+  sheetStyle,
+  children,
+  isKeyboardVisible: controlledKeyboardVisible,
+}: BottomSheetBodyProps) {
+  const detectedKeyboardVisible = useIsKeyboardVisible();
+  const isKeyboardVisible =
+    controlledKeyboardVisible ?? detectedKeyboardVisible;
+
+  return (
+    <SafeAreaView
+      edges={getBottomSheetSafeAreaEdges(isKeyboardVisible)}
+      style={[
+        styles.sheet,
+        {
+          maxWidth,
+          backgroundColor: colors.secondarySystemBackground,
+        },
+        sheetStyle,
+      ]}
+    >
+      <View style={styles.dragIndicator} />
+      {children}
+    </SafeAreaView>
+  );
+}
+
 function renderModalShell({
   visible,
   onClose,
@@ -40,6 +126,7 @@ function renderModalShell({
   testID,
   keyboardVerticalOffset = 0,
   innerContent,
+  isKeyboardVisible,
 }: BottomSheetModalBaseProps & {
   innerContent: ReactNode;
 }) {
@@ -69,20 +156,13 @@ function renderModalShell({
             accessibilityLabel="Cerrar modal"
           />
 
-          <SafeAreaView
-            edges={["bottom"]}
-            style={[
-              styles.sheet,
-              {
-                maxWidth,
-                backgroundColor: colors.secondarySystemBackground,
-              },
-              sheetStyle,
-            ]}
+          <BottomSheetBody
+            maxWidth={maxWidth}
+            sheetStyle={sheetStyle}
+            isKeyboardVisible={isKeyboardVisible}
           >
-            <View style={styles.dragIndicator} />
             {innerContent}
-          </SafeAreaView>
+          </BottomSheetBody>
         </KeyboardAvoidingView>
       </SafeAreaProvider>
     </Modal>
@@ -118,7 +198,23 @@ export function AppBottomSheetModalRoot({
   if (!props.visible) return null;
 
   if (scrollable) {
-    return AppBottomSheetModalScroll(props);
+    return renderModalShell({
+      ...props,
+      innerContent: (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            props.contentContainerStyle,
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {props.children}
+        </ScrollView>
+      ),
+    });
   }
 
   return renderModalShell({

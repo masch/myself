@@ -1,7 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import React from "react";
 import { Platform } from "react-native";
-import { AppBottomSheetModal } from "../bottom-sheet-modal";
+import { renderToString } from "react-dom/server";
+import {
+  AppBottomSheetModal,
+  BottomSheetBody,
+  getBottomSheetSafeAreaEdges,
+} from "../bottom-sheet-modal";
 
 describe("AppBottomSheetModal component", () => {
   it("returns null when visible is false", () => {
@@ -36,9 +41,9 @@ describe("AppBottomSheetModal component", () => {
       Platform.OS === "ios" ? "padding" : "height",
     );
 
-    const sheetView = keyboardAvoidingView.props.children[1];
-    expect(sheetView).toBeDefined();
-    expect(sheetView.props.edges).toEqual(["bottom"]);
+    const sheetBody = keyboardAvoidingView.props.children[1];
+    expect(sheetBody).toBeDefined();
+    expect(sheetBody.type).toBe(BottomSheetBody);
   });
 
   it("renders ScrollView with keyboardShouldPersistTaps handled when scrollable is true", () => {
@@ -52,8 +57,8 @@ describe("AppBottomSheetModal component", () => {
     expect(element).not.toBeNull();
     const provider = element?.props.children;
     const keyboardAvoidingView = provider.props.children;
-    const sheetView = keyboardAvoidingView.props.children[1];
-    const scrollView = sheetView.props.children[1];
+    const sheetBody = keyboardAvoidingView.props.children[1];
+    const scrollView = sheetBody.props.children;
 
     expect(scrollView.props.keyboardShouldPersistTaps).toBe("handled");
     expect(scrollView.props.automaticallyAdjustKeyboardInsets).toBeFalsy();
@@ -70,8 +75,8 @@ describe("AppBottomSheetModal component", () => {
     expect(element).not.toBeNull();
     const provider = element?.props.children;
     const keyboardAvoidingView = provider.props.children;
-    const sheetView = keyboardAvoidingView.props.children[1];
-    const nonScrollView = sheetView.props.children[1];
+    const sheetBody = keyboardAvoidingView.props.children[1];
+    const nonScrollView = sheetBody.props.children;
 
     expect(nonScrollView.props.children).toBeDefined();
   });
@@ -86,9 +91,28 @@ describe("AppBottomSheetModal component", () => {
     expect(element).not.toBeNull();
     const provider = element?.props.children;
     const keyboardAvoidingView = provider.props.children;
-    const sheetView = keyboardAvoidingView.props.children[1];
-    const scrollView = sheetView.props.children[1];
+    const sheetBody = keyboardAvoidingView.props.children[1];
+    const scrollView = sheetBody.props.children;
 
     expect(scrollView.props.keyboardShouldPersistTaps).toBe("handled");
+  });
+
+  describe("Keyboard visibility & safe area edge calculations", () => {
+    it("returns bottom edge when keyboard is closed", () => {
+      expect(getBottomSheetSafeAreaEdges(false)).toEqual(["bottom"]);
+    });
+
+    it("returns empty edges when keyboard is open to avoid redundant gap", () => {
+      expect(getBottomSheetSafeAreaEdges(true)).toEqual([]);
+    });
+
+    it("renders children cleanly within BottomSheetBody via renderToString", () => {
+      const html = renderToString(
+        <BottomSheetBody maxWidth={580}>
+          <span>Body Text</span>
+        </BottomSheetBody>,
+      );
+      expect(html).toContain("Body Text");
+    });
   });
 });
