@@ -325,7 +325,7 @@ export default function ReflectionsScreen() {
   ]);
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={["top"]}>
       <Stack.Screen
         options={{
           title: "Reflexiones",
@@ -424,28 +424,31 @@ export default function ReflectionsScreen() {
 
               {/* Missed questions within grace window */}
               {pendingMissedQuestions.length > 0 && (
-                <Card
-                  variant="outlined"
-                  padding="none"
-                  style={[
-                    styles.missedNotice,
-                    { backgroundColor: colors.warningSubdued },
-                  ]}
-                >
-                  <ThemedText
-                    variant="headline"
-                    color={colors.systemOrange}
-                    style={styles.missedTitle}
+                <View style={styles.missedSection}>
+                  <View
+                    style={[
+                      styles.missedNotice,
+                      {
+                        backgroundColor: colors.warningSubdued,
+                        borderColor: colors.systemOrange,
+                      },
+                    ]}
                   >
-                    ⏰ Pendientes de días anteriores
-                  </ThemedText>
-                  <ThemedText
-                    variant="caption1"
-                    color={colors.secondaryLabel}
-                    style={styles.missedSubtitle}
-                  >
-                    Podés completarlas dentro de la ventana de gracia.
-                  </ThemedText>
+                    <ThemedText
+                      variant="headline"
+                      color={colors.systemOrange}
+                      style={styles.missedTitle}
+                    >
+                      ⏰ Pendientes de días anteriores
+                    </ThemedText>
+                    <ThemedText
+                      variant="caption1"
+                      color={colors.secondaryLabel}
+                      style={styles.missedSubtitle}
+                    >
+                      Podés completarlas dentro de la ventana de gracia.
+                    </ThemedText>
+                  </View>
                   {pendingMissedQuestions.map(
                     ({ question, missedDate, reflection }) => (
                       <PromptCard
@@ -467,7 +470,7 @@ export default function ReflectionsScreen() {
                       />
                     ),
                   )}
-                </Card>
+                </View>
               )}
 
               {/* Pending Routine Questions */}
@@ -1026,7 +1029,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 40,
+    paddingBottom: 28,
   },
   sectionHeader: {
     marginTop: 16,
@@ -1055,10 +1058,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
+  missedSection: {
+    marginVertical: 4,
+  },
   missedNotice: {
-    padding: 14,
-    borderRadius: 16,
-    marginVertical: 10,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 6,
   },
   missedTitle: {
     fontSize: 14,
@@ -1067,7 +1074,6 @@ const styles = StyleSheet.create({
   },
   missedSubtitle: {
     fontSize: 12,
-    marginBottom: 8,
   },
   emptyCard: {
     padding: 20,

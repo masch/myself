@@ -1,16 +1,23 @@
-const { withDangerousMod, AndroidConfig } = require("@expo/config-plugins");
+const {
+  withDangerousMod,
+  withAndroidStyles,
+  AndroidConfig,
+} = require("@expo/config-plugins");
 const fs = require("fs");
 const path = require("path");
 
 /**
- * Expo Config Plugin to reduce Android Material 3 NavigationBar height from 80dp to 56dp,
- * reclaiming precious screen real-estate in native Android.
+ * Expo Config Plugin to:
+ * 1. Reduce Android Material 3 NavigationBar height from 80dp to 56dp (reclaiming screen real-estate).
+ * 2. Set android:navigationBarColor to @android:color/transparent and android:enforceNavigationBarContrast
+ *    to false so the 3-button and gesture navigation bars blend seamlessly edge-to-edge.
  */
 const withAndroidTabHeight = (config, options = {}) => {
   const height = options.height || "56dp";
   const indicatorHeight = options.indicatorHeight || "28dp";
 
-  return withDangerousMod(config, [
+  // 1. Reclaim navigation bar height in dimens.xml
+  config = withDangerousMod(config, [
     "android",
     async (config) => {
       let dimensPath;
@@ -83,6 +90,31 @@ const withAndroidTabHeight = (config, options = {}) => {
       return config;
     },
   ]);
+
+  // 2. Configure transparent system navigation bar without enforced scrim in styles.xml
+  config = withAndroidStyles(config, (styleConfig) => {
+    styleConfig.modResults = AndroidConfig.Styles.assignStylesValue(
+      styleConfig.modResults,
+      {
+        add: true,
+        parent: AndroidConfig.Styles.getAppThemeGroup(),
+        name: "android:navigationBarColor",
+        value: "@android:color/transparent",
+      },
+    );
+    styleConfig.modResults = AndroidConfig.Styles.assignStylesValue(
+      styleConfig.modResults,
+      {
+        add: true,
+        parent: AndroidConfig.Styles.getAppThemeGroup(),
+        name: "android:enforceNavigationBarContrast",
+        value: "false",
+      },
+    );
+    return styleConfig;
+  });
+
+  return config;
 };
 
 module.exports = withAndroidTabHeight;
