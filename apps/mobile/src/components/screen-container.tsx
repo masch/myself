@@ -121,6 +121,7 @@ export function ScrollScreenContainer({
   onScroll,
   scrollEventThrottle = 16,
 }: ScrollScreenContainerProps) {
+  const insets = useSafeAreaInsets();
   const containerPadding = useScreenPadding({ edges, topOffset, bottomOffset });
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollYRef = useRef(0);
@@ -130,9 +131,9 @@ export function ScrollScreenContainer({
   const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0);
 
   const scrollInputIntoView = (input: any) => {
-    if (!scrollViewRef.current) return;
+    if (!scrollViewRef.current || !input) return;
 
-    if (input?.measureLayout) {
+    if (typeof input.measureLayout === "function") {
       try {
         input.measureLayout(
           scrollViewRef.current,
@@ -143,7 +144,13 @@ export function ScrollScreenContainer({
             const viewHeight =
               scrollViewHeightRef.current || Dimensions.get("window").height;
             const kbHeight = keyboardHeightRef.current;
-            const visibleHeight = Math.max(0, viewHeight - kbHeight);
+            // On Android with 3-button navigation or system insets, React Native's
+            // keyboard event reports height above the navigation bar.
+            // We combine kbHeight + insets.bottom to accurately clear both the
+            // soft keyboard and the system navigation bar across all device types.
+            const bottomBlocked =
+              kbHeight + (Platform.OS === "android" ? insets.bottom : 0);
+            const visibleHeight = Math.max(0, viewHeight - bottomBlocked);
             const targetBottom =
               visibleHeight - DEFAULT_KEYBOARD_BOTTOM_SPACING;
 
@@ -199,7 +206,7 @@ export function ScrollScreenContainer({
       showSub.remove();
       hideSub.remove();
     };
-  }, []);
+  }, [insets.bottom]);
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollYRef.current = e.nativeEvent.contentOffset.y;
