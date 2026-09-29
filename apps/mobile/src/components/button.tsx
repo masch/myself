@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Pressable,
-  Text,
   StyleSheet,
   type StyleProp,
   type ViewStyle,
@@ -10,8 +9,9 @@ import {
   type ColorValue,
   View,
 } from "react-native";
-import { colors } from "@/theme";
+import { colors, spacing, radius, typography } from "@/theme";
 import { AppIcon } from "./app-icon";
+import { ThemedText } from "./themed-text";
 
 export type ButtonVariant =
   "primary" | "secondary" | "purple" | "green" | "destructive" | "gray";
@@ -114,23 +114,23 @@ export function AppButton({
     >
       <View style={styles.contentRow}>
         {icon && <AppIcon name={icon} size={20} color={iconColor as any} />}
-        <Text
-          style={[styles.titleText, { color: textColor as any }, titleStyle]}
+        <ThemedText
+          variant="headline"
+          color={textColor}
+          style={[styles.titleText, titleStyle]}
         >
           {title}
-        </Text>
+        </ThemedText>
       </View>
 
       {subtitle ? (
-        <Text
-          style={[
-            styles.subtitleText,
-            { color: subtextColor as any },
-            subtitleStyle,
-          ]}
+        <ThemedText
+          variant="caption1"
+          color={subtextColor}
+          style={[styles.subtitleText, subtitleStyle]}
         >
           {subtitle}
-        </Text>
+        </ThemedText>
       ) : null}
     </Pressable>
   );
@@ -138,31 +138,25 @@ export function AppButton({
 
 const styles = StyleSheet.create({
   baseButton: {
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md - 2, // 14px
+    paddingHorizontal: spacing.lg - 4, // 20px
     alignItems: "center",
     justifyContent: "center",
     borderCurve: "continuous",
+    minHeight: 44,
   },
   contentRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-  },
-  icon: {
-    width: 20,
-    height: 20,
+    gap: spacing.sm,
   },
   titleText: {
-    fontSize: 16,
-    fontWeight: "600",
     textAlign: "center",
   },
   subtitleText: {
-    fontSize: 12,
-    marginTop: 4,
+    marginTop: spacing.xs,
     textAlign: "center",
   },
 });

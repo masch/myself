@@ -28,7 +28,7 @@ Refactor domain feature components (`src/features/reflections/components/`), com
   - Implement `<ThemedTextInput>` in `apps/mobile/src/components/themed-text-input.tsx` enforcing token padding, continuous curvature radius, typography variant, and placeholder color tokens.
   - Export from `apps/mobile/src/components/index.ts`.
   - Add unit tests in `apps/mobile/src/components/__tests__/divider.test.tsx` and `themed-text-input.test.tsx`.
-- [ ] **TASK-2**: Common Button Primitives Alignment (`AppButton`, `ChipButton`, `IconButton`, `HeaderButton`, `StepperButton`):
+- [x] **TASK-2**: Common Button Primitives Alignment (`AppButton`, `ChipButton`, `IconButton`, `HeaderButton`, `StepperButton`):
   - Refactor `AppButton`, `ChipButton`, `IconButton`, `HeaderButton`, and `StepperButton` in `apps/mobile/src/components/` to use typography, radius, and spacing design tokens.
   - Replace internal raw `<Text>` with `<ThemedText>`.
   - Add/update unit tests for button primitives.
@@ -50,3 +50,6 @@ Refactor domain feature components (`src/features/reflections/components/`), com
   - Exported primitives via `apps/mobile/src/components/index.ts`.
   - Created unit tests in `apps/mobile/src/components/__tests__/divider.test.tsx` and `themed-text-input.test.tsx` (7 unit tests).
   - Observed TDD RED prior to implementation, then GREEN across unit test suite (220 tests passed) and clean quality gates (`make check-format`, `make check-static`, `make check-tests`, `make check-doctor`: 20/20 passed).
+- `TASK-2`: Refactored common button primitives (`AppButton`, `ChipButton`, `IconButton`, `HeaderButton`, and `StepperButton`) to systematically consume design system tokens (`radius`, `spacing`, `typography`, `colors`) and replaced 100% of internal raw `<Text>` with `<ThemedText>`.
+  - Added unit test suite in `apps/mobile/src/components/__tests__/buttons.test.tsx` (5 unit tests).
+  - Verified clean quality gates (`make check-format`, `make check-static`, `make check-tests`: 225 passed, `make check-doctor`: 20/20 passed).

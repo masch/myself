@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Pressable,
-  Text,
   StyleSheet,
   type StyleProp,
   type ViewStyle,
@@ -9,8 +8,9 @@ import {
   type PressableProps,
   type ColorValue,
 } from "react-native";
-import { colors } from "@/theme";
+import { colors, spacing, radius } from "@/theme";
 import { AppIcon } from "./app-icon";
+import { ThemedText } from "./themed-text";
 
 export type ChipVariant =
   "default" | "success" | "purple" | "blue" | "secondary" | "destructive";
@@ -103,9 +103,13 @@ export function ChipButton({
       {...props}
     >
       {icon && <AppIcon name={icon} size={14} color={palette.iconColor} />}
-      <Text style={[styles.text, { color: finalText as any }, textStyle]}>
+      <ThemedText
+        variant="caption1"
+        color={finalText}
+        style={[styles.text, textStyle]}
+      >
         {title}
-      </Text>
+      </ThemedText>
     </Pressable>
   );
 }
@@ -115,17 +119,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    gap: 6,
-  },
-  icon: {
-    width: 15,
-    height: 15,
+    paddingHorizontal: spacing.md - 4, // 12px
+    paddingVertical: spacing.xs + 2, // 6px
+    borderRadius: radius.lg - 2, // 14px
+    borderCurve: "continuous",
+    gap: spacing.xs + 2, // 6px
   },
   text: {
-    fontSize: 13,
     fontWeight: "600",
   },
 });
