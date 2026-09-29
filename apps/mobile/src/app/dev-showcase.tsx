@@ -5,6 +5,8 @@ import {
   ScreenContainer,
   Card,
   ThemedText,
+  Divider,
+  ThemedTextInput,
   Accordion,
   Collapsible,
   NativeFieldGroup,
@@ -436,6 +438,32 @@ export default function DevShowcaseScreen() {
               </NativeListItem>
             </NativeFieldGroup.Section>
           </NativeFieldGroup>
+        </View>
+
+        {/* 8. Atomic Primitives: Divider & ThemedTextInput */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">
+            8. Atomic Primitives: &lt;Divider&gt; &amp; &lt;ThemedTextInput&gt;
+          </ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            Canonical divider line and token-enforcing form input
+          </ThemedText>
+
+          <Card variant="subdued" padding="md">
+            <ThemedText variant="headline">Horizontal Divider</ThemedText>
+            <ThemedText variant="caption1" color={colors.secondaryLabel}>
+              hairlineWidth using colors.separator with token insets
+            </ThemedText>
+            <Divider inset="sm" style={{ marginVertical: spacing.sm }} />
+
+            <ThemedText variant="headline" style={{ marginTop: spacing.sm }}>
+              ThemedTextInput
+            </ThemedText>
+            <ThemedTextInput
+              placeholder="Canonical input with token padding & curvature..."
+              style={{ marginTop: spacing.xs }}
+            />
+          </Card>
         </View>
       </View>
     </ScreenContainer.Scroll>

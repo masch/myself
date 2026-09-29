@@ -15,5 +15,6 @@ describe("DevShowcaseScreen", () => {
     expect(html).toContain("5. Core Primitives: &lt;Card&gt;");
     expect(html).toContain("6. Accessible Primitives");
     expect(html).toContain("7. Platform-Native Controls");
+    expect(html).toContain("8. Atomic Primitives");
   });
 });
