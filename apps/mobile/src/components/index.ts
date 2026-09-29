@@ -11,5 +11,7 @@ export * from "./markdown-text";
 export * from "./screen-container";
 export * from "./surface";
 export * from "./themed-text";
+export * from "./divider";
+export * from "./themed-text-input";
 export * from "./primitives";
 export * from "./native-controls";
