@@ -1,21 +1,48 @@
-import React, { type ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   View,
   ScrollView,
   StyleSheet,
+  Keyboard,
+  TextInput,
+  Platform,
+  Dimensions,
   type StyleProp,
   type ViewStyle,
   type ScrollViewProps,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
+  type LayoutChangeEvent,
 } from "react-native";
 import { useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
-import { colors } from "@/theme";
+import { colors, spacing } from "@/theme";
 
 const DEFAULT_EDGES: Edge[] = ["top", "bottom"];
 const DEFAULT_TAB_EDGES: Edge[] = ["top"];
-const DEFAULT_TOP_OFFSET = 8;
-const DEFAULT_BOTTOM_OFFSET = 16;
-const DEFAULT_HORIZONTAL_PADDING = 16;
-const DEFAULT_GAP = 16;
+const DEFAULT_TOP_OFFSET = spacing.sm;
+const DEFAULT_BOTTOM_OFFSET = spacing.md;
+const DEFAULT_HORIZONTAL_PADDING = spacing.md;
+const DEFAULT_GAP = spacing.md;
+const DEFAULT_KEYBOARD_BOTTOM_SPACING = spacing.lg;
+const DEFAULT_KEYBOARD_TOP_SPACING = spacing.md;
+
+export interface ScrollContainerContextValue {
+  scrollToFocusedInput: (inputHandle: any) => void;
+}
+
+export const ScrollContainerContext =
+  createContext<ScrollContainerContextValue | null>(null);
+
+export function useScrollContainer() {
+  return useContext(ScrollContainerContext);
+}
 
 export interface ScreenContainerBaseProps {
   children: ReactNode;
@@ -37,6 +64,9 @@ export interface ScrollScreenContainerProps extends ScreenContainerBaseProps {
   contentInsetAdjustmentBehavior?: ScrollViewProps["contentInsetAdjustmentBehavior"];
   horizontalPadding?: number;
   gap?: number;
+  automaticallyAdjustKeyboardInsets?: boolean;
+  onScroll?: ScrollViewProps["onScroll"];
+  scrollEventThrottle?: ScrollViewProps["scrollEventThrottle"];
 }
 
 export interface ScreenPaddingStyle {
@@ -70,6 +100,8 @@ export function useScreenPadding({
 /**
  * Specialized scrollable container with standardized safe-area insets,
  * default horizontal padding (16dp), and vertical section gap (16dp).
+ * On Android, automatically adjusts bottom padding and scrolls the focused
+ * input into view when the soft keyboard appears.
  */
 export function ScrollScreenContainer({
   children,
@@ -85,34 +117,134 @@ export function ScrollScreenContainer({
   showsVerticalScrollIndicator,
   refreshControl,
   contentInsetAdjustmentBehavior = "never",
+  automaticallyAdjustKeyboardInsets = true,
+  onScroll,
+  scrollEventThrottle = 16,
 }: ScrollScreenContainerProps) {
   const containerPadding = useScreenPadding({ edges, topOffset, bottomOffset });
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+  const scrollViewHeightRef = useRef(0);
+  const keyboardHeightRef = useRef(0);
+  const activeInputRef = useRef<any>(null);
+  const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0);
+
+  const scrollInputIntoView = (input: any) => {
+    if (!scrollViewRef.current) return;
+
+    if (input?.measureLayout) {
+      try {
+        input.measureLayout(
+          scrollViewRef.current,
+          (_left: number, top: number, _width: number, height: number) => {
+            const inputHeight = height || 48;
+            const inputBottom = top + inputHeight;
+            const currentScrollY = scrollYRef.current;
+            const viewHeight =
+              scrollViewHeightRef.current || Dimensions.get("window").height;
+            const kbHeight = keyboardHeightRef.current;
+            const visibleHeight = Math.max(0, viewHeight - kbHeight);
+            const targetBottom =
+              visibleHeight - DEFAULT_KEYBOARD_BOTTOM_SPACING;
+
+            if (inputBottom - currentScrollY > targetBottom) {
+              const targetY = Math.max(0, inputBottom - targetBottom);
+              scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
+            } else if (top - currentScrollY < DEFAULT_KEYBOARD_TOP_SPACING) {
+              const targetY = Math.max(0, top - DEFAULT_KEYBOARD_TOP_SPACING);
+              scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
+            }
+          },
+          () => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          },
+        );
+        return;
+      } catch {
+        // Fall through to scrollToEnd
+      }
+    }
+
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+  };
+
+  const scrollToFocusedInput = (input: any) => {
+    activeInputRef.current = input;
+    if (keyboardHeightRef.current > 0) {
+      scrollInputIntoView(input);
+    }
+  };
+
+  useEffect(() => {
+    if (Platform.OS !== "android" || !Keyboard?.addListener) return;
+
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+      const kbHeight = e.endCoordinates.height;
+      keyboardHeightRef.current = kbHeight;
+      setAndroidKeyboardHeight(kbHeight);
+
+      const focused =
+        activeInputRef.current ?? TextInput.State?.currentlyFocusedInput?.();
+      setTimeout(() => {
+        scrollInputIntoView(focused);
+      }, 50);
+    });
+
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      keyboardHeightRef.current = 0;
+      setAndroidKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollYRef.current = e.nativeEvent.contentOffset.y;
+    onScroll?.(e);
+  };
+
+  const handleLayout = (e: LayoutChangeEvent) => {
+    scrollViewHeightRef.current = e.nativeEvent.layout.height;
+  };
 
   return (
-    <ScrollView
-      testID={testID}
-      style={[
-        styles.container,
-        { backgroundColor: colors.systemBackground },
-        style,
-      ]}
-      contentContainerStyle={[
-        containerPadding,
-        {
-          paddingLeft: (containerPadding.paddingLeft ?? 0) + horizontalPadding,
-          paddingRight:
-            (containerPadding.paddingRight ?? 0) + horizontalPadding,
-          gap,
-        },
-        contentContainerStyle,
-      ]}
-      keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-      showsVerticalScrollIndicator={showsVerticalScrollIndicator}
-      refreshControl={refreshControl}
-      contentInsetAdjustmentBehavior={contentInsetAdjustmentBehavior}
-    >
-      {children}
-    </ScrollView>
+    <ScrollContainerContext.Provider value={{ scrollToFocusedInput }}>
+      <ScrollView
+        ref={scrollViewRef}
+        testID={testID}
+        style={[
+          styles.container,
+          { backgroundColor: colors.systemBackground },
+          style,
+        ]}
+        contentContainerStyle={[
+          containerPadding,
+          {
+            paddingLeft:
+              (containerPadding.paddingLeft ?? 0) + horizontalPadding,
+            paddingRight:
+              (containerPadding.paddingRight ?? 0) + horizontalPadding,
+            paddingBottom:
+              (containerPadding.paddingBottom ?? 0) + androidKeyboardHeight,
+            gap,
+          },
+          contentContainerStyle,
+        ]}
+        keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+        showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+        refreshControl={refreshControl}
+        contentInsetAdjustmentBehavior={contentInsetAdjustmentBehavior}
+        automaticallyAdjustKeyboardInsets={automaticallyAdjustKeyboardInsets}
+        onScroll={handleScroll}
+        scrollEventThrottle={scrollEventThrottle}
+        onLayout={handleLayout}
+      >
+        {children}
+      </ScrollView>
+    </ScrollContainerContext.Provider>
   );
 }
 

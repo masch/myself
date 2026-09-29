@@ -1,10 +1,12 @@
-import React from "react";
+import React, { forwardRef, useImperativeHandle, useRef } from "react";
 import {
   TextInput,
   StyleSheet,
   type TextInputProps,
   type StyleProp,
   type TextStyle,
+  type NativeSyntheticEvent,
+  type TargetedEvent,
 } from "react-native";
 import {
   colors,
@@ -13,30 +15,50 @@ import {
   typography,
   type TypographyVariant,
 } from "@/theme";
+import { useScrollContainer } from "./screen-container";
 
 export interface ThemedTextInputProps extends TextInputProps {
   variant?: TypographyVariant;
   style?: StyleProp<TextStyle>;
 }
 
-export function ThemedTextInput({
-  variant = "body",
-  placeholderTextColor = colors.secondaryLabel,
-  style,
-  multiline,
-  ...props
-}: ThemedTextInputProps) {
-  const typeStyle = typography[variant] ?? typography.body;
+export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
+  function ThemedTextInput(
+    {
+      variant = "body",
+      placeholderTextColor = colors.secondaryLabel,
+      style,
+      multiline,
+      onFocus,
+      ...props
+    },
+    ref,
+  ) {
+    const typeStyle = typography[variant] ?? typography.body;
+    const internalRef = useRef<TextInput>(null);
+    const scrollContainer = useScrollContainer();
 
-  return (
-    <TextInput
-      placeholderTextColor={placeholderTextColor}
-      multiline={multiline}
-      style={[styles.input, typeStyle, multiline && styles.multiline, style]}
-      {...props}
-    />
-  );
-}
+    useImperativeHandle(ref, () => internalRef.current as TextInput);
+
+    const handleFocus = (e: NativeSyntheticEvent<TargetedEvent>) => {
+      onFocus?.(e as any);
+      if (scrollContainer && internalRef.current) {
+        scrollContainer.scrollToFocusedInput(internalRef.current);
+      }
+    };
+
+    return (
+      <TextInput
+        ref={internalRef}
+        placeholderTextColor={placeholderTextColor}
+        multiline={multiline}
+        onFocus={handleFocus}
+        style={[styles.input, typeStyle, multiline && styles.multiline, style]}
+        {...props}
+      />
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   input: {
