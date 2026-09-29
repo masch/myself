@@ -190,8 +190,8 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: make playwright-install-deps
 
-      - name: Run Playwright Browser E2E Tests
-        run: make check-e2e-browser
+      - name: Run Playwright Web E2E Tests
+        run: make check-e2e-web
 
   validate:
     name: CI Quality Gate

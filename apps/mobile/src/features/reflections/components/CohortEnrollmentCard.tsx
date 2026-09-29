@@ -99,7 +99,7 @@ export function CohortEnrollmentCard({
             ? "Inscripto ✓"
             : isSubmitting
               ? "Inscribiendo..."
-              : "Inscribirme al programa"
+              : "Sumarme a la convocatoria"
         }
         variant={isEnrolled ? "secondary" : "purple"}
         onPress={onEnroll}

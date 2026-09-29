@@ -79,7 +79,7 @@ export function CycleProgressBadge({
           color={colors.secondaryLabel}
           style={styles.statLabel}
         >
-          Respondidas: {answeredCount}
+          ✓ {answeredCount} respondidas
         </ThemedText>
         {skippedCount > 0 && (
           <ThemedText
@@ -87,7 +87,7 @@ export function CycleProgressBadge({
             color={colors.systemOrange}
             style={styles.statLabel}
           >
-            Salteadas: {skippedCount}
+            ↷ {skippedCount} salteadas
           </ThemedText>
         )}
       </View>

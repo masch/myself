@@ -78,12 +78,12 @@ check-tests: ## Run unit tests via Turborepo
 check-tests-coverage: ## Run tests with coverage
 	bun run test-coverage
 
-.PHONY: check-tests-e2e
-check-tests-e2e: ## Run end-to-end API tests
+.PHONY: check-e2e-api
+check-e2e-api: ## Run end-to-end API tests
 	cd $(API_DIR) && bun run test:e2e
 
-.PHONY: check-e2e-browser
-check-e2e-browser: ## Run Playwright browser E2E tests (Front ➔ API ➔ DB)
+.PHONY: check-e2e-web
+check-e2e-web: ## Run Playwright browser E2E tests (Front ➔ API ➔ DB)
 	rm -f $(API_DIR)/test-e2e.db*
 	cd $(API_DIR) && TURSO_DATABASE_URL="file:test-e2e.db" bun run db:migrate
 	bunx playwright test
