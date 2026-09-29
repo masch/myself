@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { type ThemeCohort, type ReflectionTheme } from "@myself/shared";
-import { colors } from "@/theme";
-import { AppButton } from "@/components";
+import { colors, spacing, radius } from "@/theme";
+import { AppButton, Card, ThemedText } from "@/components";
 
 interface CohortEnrollmentCardProps {
   cohort: ThemeCohort;
@@ -19,118 +19,132 @@ export function CohortEnrollmentCard({
   isSubmitting = false,
 }: CohortEnrollmentCardProps) {
   return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: colors.secondarySystemBackground },
-      ]}
-    >
+    <Card variant="subdued" padding="none" style={styles.card}>
       <View style={styles.topRow}>
         <View style={[styles.badge, { backgroundColor: colors.systemPurple }]}>
-          <Text style={[styles.badgeText, { color: colors.white }]}>
+          <ThemedText
+            variant="caption1"
+            color={colors.white}
+            style={styles.badgeText}
+          >
             Programa Temático
-          </Text>
+          </ThemedText>
         </View>
 
         {theme && (
           <View
             style={[styles.badge, { backgroundColor: colors.systemGray15 }]}
           >
-            <Text style={[styles.badgeText, { color: colors.secondaryLabel }]}>
+            <ThemedText
+              variant="caption1"
+              color={colors.secondaryLabel}
+              style={styles.badgeText}
+            >
               {theme.targetQuestionCount} días
-            </Text>
+            </ThemedText>
           </View>
         )}
       </View>
 
-      <Text style={[styles.title, { color: colors.label }]}>
+      <ThemedText variant="headline" color={colors.label} style={styles.title}>
         {theme?.title ?? cohort.name}
-      </Text>
+      </ThemedText>
 
       {theme?.description ? (
-        <Text style={[styles.description, { color: colors.secondaryLabel }]}>
+        <ThemedText
+          variant="callout"
+          color={colors.secondaryLabel}
+          style={styles.description}
+        >
           {theme.description}
-        </Text>
+        </ThemedText>
       ) : null}
 
       <View style={styles.detailsBox}>
-        <Text style={[styles.detailItem, { color: colors.secondaryLabel }]}>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.detailItem}
+        >
           📅 Convocatoria:{" "}
-          <Text style={{ color: colors.label }}>{cohort.name}</Text>
-        </Text>
-        <Text style={[styles.detailItem, { color: colors.secondaryLabel }]}>
+          <ThemedText variant="caption1" color={colors.label}>
+            {cohort.name}
+          </ThemedText>
+        </ThemedText>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.detailItem}
+        >
           🏁 Comienza:{" "}
-          <Text style={{ color: colors.label }}>{cohort.programStartDate}</Text>
-        </Text>
-        <Text style={[styles.detailItem, { color: colors.secondaryLabel }]}>
+          <ThemedText variant="caption1" color={colors.label}>
+            {cohort.programStartDate}
+          </ThemedText>
+        </ThemedText>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.detailItem}
+        >
           ⏳ Ventana de gracia:{" "}
-          <Text style={{ color: colors.label }}>
+          <ThemedText variant="caption1" color={colors.label}>
             {theme?.catchUpWindowDays ?? 2} días
-          </Text>
-        </Text>
+          </ThemedText>
+        </ThemedText>
       </View>
 
-      <View style={styles.actionRow}>
-        <AppButton
-          title={
-            isSubmitting
+      <AppButton
+        title={
+          isEnrolled
+            ? "Inscripto ✓"
+            : isSubmitting
               ? "Inscribiendo..."
-              : isEnrolled
-                ? "Inscripto ✓"
-                : "Sumarme a la convocatoria"
-          }
-          variant={isEnrolled ? "secondary" : "primary"}
-          onPress={onEnroll}
-          disabled={isEnrolled || isSubmitting}
-        />
-      </View>
-    </View>
+              : "Inscribirme al programa"
+        }
+        variant={isEnrolled ? "secondary" : "purple"}
+        onPress={onEnroll}
+        disabled={isEnrolled || isSubmitting}
+      />
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    padding: 18,
-    borderRadius: 20,
-    marginVertical: 10,
+    padding: spacing.md,
+    borderRadius: radius.lg + 2, // 18px
     borderWidth: 1,
     borderColor: colors.systemGray15,
+    marginVertical: spacing.sm,
   },
   topRow: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 10,
+    gap: spacing.sm,
+    marginBottom: spacing.sm + 2,
   },
   badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
   },
   badgeText: {
-    fontSize: 11,
     fontWeight: "600",
   },
   title: {
-    fontSize: 18,
     fontWeight: "700",
-    marginBottom: 6,
+    marginBottom: spacing.xs + 2,
   },
   description: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 14,
+    marginBottom: spacing.md,
   },
   detailsBox: {
-    gap: 4,
-    marginBottom: 16,
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.systemGray15,
+    backgroundColor: colors.systemBackground,
+    padding: spacing.sm + 2,
+    borderRadius: radius.md - 2,
+    gap: spacing.xs + 2,
+    marginBottom: spacing.md,
   },
   detailItem: {
-    fontSize: 13,
-  },
-  actionRow: {
-    marginTop: 4,
+    lineHeight: 18,
   },
 });

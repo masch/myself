@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { type ReflectionQuestion, type UserReflection } from "@myself/shared";
-import { colors } from "@/theme";
-import { AppButton, AppMarkdownText } from "@/components";
+import { colors, spacing, radius } from "@/theme";
+import { AppButton, AppMarkdownText, Card, ThemedText } from "@/components";
 
 interface PromptCardProps {
   question: ReflectionQuestion;
@@ -44,18 +44,21 @@ export function PromptCard({
       ? `prompt-card-missed-${question.id}`
       : `prompt-card-${question.id}`);
 
+  const borderColor = isAnswered
+    ? colors.systemGreen
+    : isSkipped
+      ? colors.systemOrange
+      : colors.systemGray15;
+
   return (
-    <View
+    <Card
       testID={cardTestId}
+      variant="subdued"
+      padding="none"
       style={[
         styles.card,
         {
-          backgroundColor: colors.secondarySystemBackground,
-          borderColor: isAnswered
-            ? colors.systemGreen
-            : isSkipped
-              ? colors.systemOrange
-              : colors.systemGray15,
+          borderColor,
           opacity: isLocked ? 0.72 : 1,
         },
       ]}
@@ -73,9 +76,13 @@ export function PromptCard({
               },
             ]}
           >
-            <Text style={[styles.typePillText, { color: colors.white }]}>
+            <ThemedText
+              variant="caption2"
+              color={colors.white}
+              style={styles.typePillText}
+            >
               {isScale ? "Escala 1-10" : "Texto libre"}
-            </Text>
+            </ThemedText>
           </View>
 
           {question.preferredTimeOfDay && (
@@ -89,18 +96,13 @@ export function PromptCard({
                 },
               ]}
             >
-              <Text
-                style={[
-                  styles.timePillText,
-                  {
-                    color: isLocked
-                      ? colors.systemOrange
-                      : colors.secondaryLabel,
-                  },
-                ]}
+              <ThemedText
+                variant="caption2"
+                color={isLocked ? colors.systemOrange : colors.secondaryLabel}
+                style={styles.timePillText}
               >
                 {isLocked ? "🔒" : "🕒"} {question.preferredTimeOfDay}
-              </Text>
+              </ThemedText>
             </View>
           )}
 
@@ -111,11 +113,13 @@ export function PromptCard({
                 { backgroundColor: colors.systemGray15 },
               ]}
             >
-              <Text
-                style={[styles.timePillText, { color: colors.secondaryLabel }]}
+              <ThemedText
+                variant="caption2"
+                color={colors.secondaryLabel}
+                style={styles.timePillText}
               >
                 {dateLabel}
-              </Text>
+              </ThemedText>
             </View>
           )}
         </View>
@@ -133,9 +137,13 @@ export function PromptCard({
                   : "Anclar acceso rápido"
               }
             >
-              <Text style={styles.iconText}>
+              <ThemedText
+                variant="headline"
+                color={colors.systemOrange}
+                style={styles.iconText}
+              >
                 {isPinnedShortcut ? "★" : "☆"}
-              </Text>
+              </ThemedText>
             </Pressable>
           )}
 
@@ -157,18 +165,13 @@ export function PromptCard({
                   : "Suscribir a rutina"
               }
             >
-              <Text
-                style={[
-                  styles.optOutBtnText,
-                  {
-                    color: isRoutineEnabled
-                      ? colors.secondaryLabel
-                      : colors.white,
-                  },
-                ]}
+              <ThemedText
+                variant="caption2"
+                color={isRoutineEnabled ? colors.secondaryLabel : colors.white}
+                style={styles.optOutBtnText}
               >
                 {isRoutineEnabled ? "Bajar" : "Reactivar"}
-              </Text>
+              </ThemedText>
             </Pressable>
           )}
         </View>
@@ -188,17 +191,25 @@ export function PromptCard({
           ]}
         >
           {!hideStatusBadge && (
-            <Text style={[styles.resultBadge, { color: colors.systemGreen }]}>
+            <ThemedText
+              variant="caption1"
+              color={colors.systemGreen}
+              style={styles.resultBadge}
+            >
               ✓ Respondida
-            </Text>
+            </ThemedText>
           )}
           {isScale ? (
-            <Text style={[styles.resultContent, { color: colors.label }]}>
+            <ThemedText
+              variant="caption1"
+              color={colors.label}
+              style={styles.resultContent}
+            >
               Puntaje:{" "}
-              <Text style={{ fontWeight: "700" }}>
+              <ThemedText variant="caption1" style={{ fontWeight: "700" }}>
                 {reflection?.numericValue}/10
-              </Text>
-            </Text>
+              </ThemedText>
+            </ThemedText>
           ) : (
             <AppMarkdownText
               style={[styles.resultContent, { color: colors.secondaryLabel }]}
@@ -217,15 +228,21 @@ export function PromptCard({
             { backgroundColor: colors.systemBackground },
           ]}
         >
-          <Text style={[styles.resultBadge, { color: colors.systemOrange }]}>
+          <ThemedText
+            variant="caption1"
+            color={colors.systemOrange}
+            style={styles.resultBadge}
+          >
             ↷ Salteada
-          </Text>
-          <Text
-            style={[styles.resultContent, { color: colors.secondaryLabel }]}
+          </ThemedText>
+          <ThemedText
+            variant="caption1"
+            color={colors.secondaryLabel}
+            style={styles.resultContent}
             numberOfLines={2}
           >
             {`Motivo: "${reflection?.skipReason}"`}
-          </Text>
+          </ThemedText>
         </View>
       )}
 
@@ -268,89 +285,83 @@ export function PromptCard({
           </>
         )}
       </View>
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
-    borderRadius: 18,
+    padding: spacing.md,
+    borderRadius: radius.lg + 2, // 18px
     borderWidth: 1,
-    marginVertical: 8,
+    marginVertical: spacing.sm,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: spacing.sm + 2,
   },
   pillGroup: {
     flexDirection: "row",
-    gap: 6,
+    gap: spacing.xs + 2,
     flexWrap: "wrap",
   },
   typePill: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: radius.sm,
   },
   typePillText: {
-    fontSize: 11,
     fontWeight: "600",
   },
   timePill: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: radius.sm,
   },
   timePillText: {
-    fontSize: 11,
     fontWeight: "500",
   },
   topActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: spacing.sm,
   },
   iconBtn: {
-    padding: 4,
+    padding: spacing.xs,
   },
   iconText: {
     fontSize: 20,
-    color: colors.systemOrange,
   },
   optOutBtn: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: radius.sm,
   },
   optOutBtnText: {
-    fontSize: 11,
     fontWeight: "600",
   },
   promptText: {
     fontSize: 16,
     fontWeight: "600",
     lineHeight: 22,
-    marginBottom: 12,
+    marginBottom: spacing.md - 4,
   },
   resultBox: {
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 12,
+    padding: spacing.sm + 2,
+    borderRadius: radius.md - 2,
+    marginBottom: spacing.md - 4,
   },
   resultBadge: {
-    fontSize: 12,
     fontWeight: "700",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   resultContent: {
-    fontSize: 13,
     fontStyle: "italic",
   },
   cardActions: {
     flexDirection: "row",
-    gap: 10,
+    gap: spacing.sm + 2,
   },
 });

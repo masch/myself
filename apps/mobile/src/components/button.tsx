@@ -9,7 +9,7 @@ import {
   type ColorValue,
   View,
 } from "react-native";
-import { colors, spacing, radius, typography } from "@/theme";
+import { colors, spacing, radius } from "@/theme";
 import { AppIcon } from "./app-icon";
 import { ThemedText } from "./themed-text";
 

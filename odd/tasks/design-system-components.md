@@ -32,7 +32,7 @@ Refactor domain feature components (`src/features/reflections/components/`), com
   - Refactor `AppButton`, `ChipButton`, `IconButton`, `HeaderButton`, and `StepperButton` in `apps/mobile/src/components/` to use typography, radius, and spacing design tokens.
   - Replace internal raw `<Text>` with `<ThemedText>`.
   - Add/update unit tests for button primitives.
-- [ ] **TASK-3**: Feature Components Migration (`src/features/reflections/components/`):
+- [x] **TASK-3**: Feature Components Migration (`src/features/reflections/components/`):
   - Refactor `PromptCard.tsx` to use `<ThemedText>`, `<Card>`, and design tokens.
   - Refactor `CohortEnrollmentCard.tsx` to use `<ThemedText>`, `<Card>`, and design tokens.
   - Refactor `CycleProgressBadge.tsx` to use `<ThemedText>` and design tokens.
@@ -53,3 +53,7 @@ Refactor domain feature components (`src/features/reflections/components/`), com
 - `TASK-2`: Refactored common button primitives (`AppButton`, `ChipButton`, `IconButton`, `HeaderButton`, and `StepperButton`) to systematically consume design system tokens (`radius`, `spacing`, `typography`, `colors`) and replaced 100% of internal raw `<Text>` with `<ThemedText>`.
   - Added unit test suite in `apps/mobile/src/components/__tests__/buttons.test.tsx` (5 unit tests).
   - Verified clean quality gates (`make check-format`, `make check-static`, `make check-tests`: 225 passed, `make check-doctor`: 20/20 passed).
+- `TASK-3`: Refactored all domain feature components (`PromptCard`, `CohortEnrollmentCard`, `CycleProgressBadge`, `ScaleSelector1To10`, `ReflectionModal`, and `SkipReasonSheet`) to consume canonical primitives (`<ThemedText>`, `<Card>`, `<ThemedTextInput>`) and design tokens (`@/theme`).
+  - Completely eliminated raw `<Text>` in `src/features/` (0 remaining occurrences).
+  - Added unit test suite in `apps/mobile/src/features/reflections/components/__tests__/feature-components.test.tsx` (5 unit tests).
+  - Verified clean quality gates (`make check-format`, `make check-static`, `make check-tests`: 230 passed, `make check-doctor`: 20/20 passed).
