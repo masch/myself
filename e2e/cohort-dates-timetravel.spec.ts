@@ -203,7 +203,7 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
     await expect(page.getByText(/Pregunta de hoy/i)).toHaveCount(0);
 
     // All 7 completed steps should be listed in the archive section
-    await expect(page.getByText("Pasos completados (7):")).toBeVisible({
+    await expect(page.getByText("Pasos completados (7)")).toBeVisible({
       timeout: 5000,
     });
 

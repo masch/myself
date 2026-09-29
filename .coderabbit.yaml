@@ -77,7 +77,7 @@ reviews:
         4. Platform Divergence & Strategy Pattern:
            - When implementing platform-dependent behavior (e.g. background audio, notifications, sensors), mandate the Strategy pattern with distinct platform strategies (e.g. `ios-strategy.ts`, `android-strategy.ts`, `web-strategy.ts` orchestrated by `index.ts` / `index.web.ts`).
         5. Theme & Styling:
-           - Hardcoded color literals (e.g. hex codes) inside components are prohibited. All colors must be imported from `src/theme/colors.ts`.
+           - Hardcoded style literals (e.g. hex codes, arbitrary spacing numbers) inside components are prohibited. All design tokens (colors, spacing, radius, shadows, typography) must be imported from `@/theme` (`src/theme/index.ts`). Deep imports (e.g. `@/theme/colors`, `@/theme/tokens/*`) are strictly prohibited.
         6. Testing & Quality:
            - All new hooks, domain services, or complex parsing utilities must include unit tests in adjacent `__tests__/` directories, runnable via `bun test`.
 

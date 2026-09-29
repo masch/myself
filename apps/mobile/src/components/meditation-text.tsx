@@ -6,7 +6,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import {
   AppMarkdownText,
   parseInlineSpans,

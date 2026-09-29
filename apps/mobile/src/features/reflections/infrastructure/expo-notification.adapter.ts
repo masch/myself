@@ -1,5 +1,6 @@
-import * as Notifications from "expo-notifications";
+import type * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { getNotifications } from "@/services/notifications/notifications-runtime";
 import type { NotificationServicePort } from "../domain/ports/notification.service.port";
 
 export const REFLECTIONS_NOTIFICATION_CHANNEL_ID =
@@ -13,17 +14,19 @@ export class ExpoNotificationAdapter implements NotificationServicePort {
     if (this.channelInitialized || Platform.OS !== "android") {
       return;
     }
+    const notifications = getNotifications();
+    if (!notifications) return;
 
     try {
-      await Notifications.setNotificationChannelAsync(
+      await notifications.setNotificationChannelAsync(
         REFLECTIONS_NOTIFICATION_CHANNEL_ID,
         {
           name: "Reflexiones Diarias",
-          importance: Notifications.AndroidImportance.HIGH,
+          importance: notifications.AndroidImportance.HIGH,
           enableLights: true,
           enableVibrate: true,
           lockscreenVisibility:
-            Notifications.AndroidNotificationVisibility.PUBLIC,
+            notifications.AndroidNotificationVisibility.PUBLIC,
         },
       );
       this.channelInitialized = true;
@@ -36,13 +39,16 @@ export class ExpoNotificationAdapter implements NotificationServicePort {
   }
 
   async requestPermissions(): Promise<boolean> {
+    const notifications = getNotifications();
+    if (!notifications) return false;
+
     try {
       const { status: existingStatus } =
-        await Notifications.getPermissionsAsync();
+        await notifications.getPermissionsAsync();
       if (existingStatus === "granted") {
         return true;
       }
-      const { status } = await Notifications.requestPermissionsAsync();
+      const { status } = await notifications.requestPermissionsAsync();
       return status === "granted";
     } catch (err) {
       console.warn("Failed to request notification permissions:", err);
@@ -55,6 +61,9 @@ export class ExpoNotificationAdapter implements NotificationServicePort {
     timeOfDay: string,
     promptPreview: string,
   ): Promise<string | null> {
+    const notifications = getNotifications();
+    if (!notifications) return null;
+
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) {
       return null;
@@ -75,7 +84,7 @@ export class ExpoNotificationAdapter implements NotificationServicePort {
       await this.cancelReminderForQuestion(questionId);
 
       const trigger: Notifications.DailyTriggerInput = {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        type: notifications.SchedulableTriggerInputTypes.DAILY,
         hour,
         minute,
         channelId:
@@ -84,11 +93,11 @@ export class ExpoNotificationAdapter implements NotificationServicePort {
             : undefined,
       };
 
-      const notificationId = await Notifications.scheduleNotificationAsync({
+      const notificationId = await notifications.scheduleNotificationAsync({
         content: {
           title: "Momento de Reflexión",
           body: promptPreview,
-          priority: Notifications.AndroidNotificationPriority.HIGH,
+          priority: notifications.AndroidNotificationPriority.HIGH,
           data: {
             type: REFLECTIONS_NOTIFICATION_TYPE,
             questionId,
@@ -111,21 +120,27 @@ export class ExpoNotificationAdapter implements NotificationServicePort {
   }
 
   async cancelReminder(notificationId: string): Promise<void> {
+    const notifications = getNotifications();
+    if (!notifications) return;
+
     try {
-      await Notifications.cancelScheduledNotificationAsync(notificationId);
+      await notifications.cancelScheduledNotificationAsync(notificationId);
     } catch (err) {
       console.warn(`Failed to cancel notification ${notificationId}:`, err);
     }
   }
 
   async cancelReminderForQuestion(questionId: string): Promise<void> {
+    const notifications = getNotifications();
+    if (!notifications) return;
+
     try {
-      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      const scheduled = await notifications.getAllScheduledNotificationsAsync();
       const matching = scheduled.filter(
         (req) => req.content.data?.questionId === questionId,
       );
       for (const req of matching) {
-        await Notifications.cancelScheduledNotificationAsync(req.identifier);
+        await notifications.cancelScheduledNotificationAsync(req.identifier);
       }
     } catch (err) {
       console.warn(

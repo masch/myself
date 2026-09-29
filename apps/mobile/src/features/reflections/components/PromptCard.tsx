@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { type ReflectionQuestion, type UserReflection } from "@myself/shared";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { AppButton, AppMarkdownText } from "@/components";
 
 interface PromptCardProps {

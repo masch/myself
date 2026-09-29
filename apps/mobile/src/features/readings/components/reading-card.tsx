@@ -1,7 +1,14 @@
 import React from "react";
-import { View, StyleSheet, Text } from "react-native";
-import { IconButton, ChipButton, MeditationText, AppIcon } from "@/components";
-import { colors } from "@/theme/colors";
+import { View, StyleSheet } from "react-native";
+import {
+  IconButton,
+  ChipButton,
+  MeditationText,
+  AppIcon,
+  Card,
+  ThemedText,
+} from "@/components";
+import { colors, spacing } from "@/theme";
 import { type MeditationReadingWithAuthor } from "@myself/shared";
 
 export interface ReadingCardProps {
@@ -39,12 +46,10 @@ export function ReadingCard({
   const isCompleted = reading.times_read > 0;
 
   return (
-    <View
-      style={[
-        styles.card,
-        isCompleted && styles.cardCompleted,
-        { backgroundColor: colors.secondarySystemBackground },
-      ]}
+    <Card
+      variant="subdued"
+      padding="md"
+      style={[styles.card, isCompleted && styles.cardCompleted]}
     >
       {/* Card Header: Author info & Action buttons */}
       <View style={styles.cardHeader}>
@@ -57,15 +62,11 @@ export function ReadingCard({
             color={isCompleted ? colors.systemGreen : colors.systemPurple}
           />
           <View>
-            <Text style={[styles.authorNameText, { color: colors.label }]}>
-              {reading.author_name}
-            </Text>
+            <ThemedText variant="headline">{reading.author_name}</ThemedText>
             {reading.author_bio ? (
-              <Text
-                style={[styles.authorBioText, { color: colors.secondaryLabel }]}
-              >
+              <ThemedText variant="caption1" color={colors.secondaryLabel}>
                 {reading.author_bio}
-              </Text>
+              </ThemedText>
             ) : null}
           </View>
         </View>
@@ -91,18 +92,13 @@ export function ReadingCard({
       {/* Quote Content */}
       <View style={styles.quoteWrapper}>
         {Boolean(reading.title) && (
-          <Text
-            style={[
-              styles.readingCardTitle,
-              {
-                color: isCompleted
-                  ? colors.secondaryLabel
-                  : colors.systemPurple,
-              },
-            ]}
+          <ThemedText
+            variant="callout"
+            style={styles.readingCardTitle}
+            color={isCompleted ? colors.secondaryLabel : colors.systemPurple}
           >
             {reading.title}
-          </Text>
+          </ThemedText>
         )}
         <MeditationText
           content={reading.content}
@@ -116,19 +112,19 @@ export function ReadingCard({
       {/* Card Footer: Timestamps & Read Actions */}
       <View style={styles.cardFooter}>
         <View style={styles.timestampContainer}>
-          <Text
-            style={[styles.timestampText, { color: colors.secondaryLabel }]}
-          >
+          <ThemedText variant="caption2" color={colors.secondaryLabel}>
             Added: {formatDate(reading.created_at)}
-          </Text>
+          </ThemedText>
           {isCompleted && (
-            <Text
-              style={[styles.timestampTextRead, { color: colors.systemGreen }]}
+            <ThemedText
+              variant="caption2"
+              color={colors.systemGreen}
+              style={styles.timestampTextRead}
             >
               Read {reading.times_read}{" "}
               {reading.times_read === 1 ? "time" : "times"} • Last:{" "}
               {formatDate(reading.last_read_at)}
-            </Text>
+            </ThemedText>
           )}
         </View>
 
@@ -158,16 +154,13 @@ export function ReadingCard({
           />
         )}
       </View>
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
-    borderRadius: 16,
-    gap: 12,
-    borderCurve: "continuous",
+    gap: spacing.sm + 4,
   },
   cardCompleted: {
     opacity: 0.9,
@@ -183,18 +176,6 @@ const styles = StyleSheet.create({
     gap: 10,
     flex: 1,
   },
-  authorBadgeIcon: {
-    width: 32,
-    height: 32,
-  },
-  authorNameText: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  authorBioText: {
-    fontSize: 12,
-    marginTop: 1,
-  },
   cardActionsRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -205,7 +186,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   readingCardTitle: {
-    fontSize: 16,
     fontWeight: "700",
     letterSpacing: 0.3,
   },
@@ -226,11 +206,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  timestampText: {
-    fontSize: 11,
-  },
   timestampTextRead: {
-    fontSize: 11,
     fontWeight: "600",
   },
 });

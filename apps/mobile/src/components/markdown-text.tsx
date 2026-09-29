@@ -7,7 +7,7 @@ import {
   type StyleProp,
   type TextStyle,
 } from "react-native";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 
 export interface InlineSpan {
   text: string;

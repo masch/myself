@@ -1,9 +1,15 @@
-import { ChipButton, HeaderButton, MeditationText } from "@/components";
+import {
+  ChipButton,
+  HeaderButton,
+  MeditationText,
+  ThemedText,
+  Card,
+} from "@/components";
 import { useReadingForm } from "@/hooks/use-reading-form";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 
 export default function ReadingModalScreen() {
   const params = useLocalSearchParams<{
@@ -70,9 +76,13 @@ export default function ReadingModalScreen() {
       {/* Author Selection Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+          <ThemedText
+            variant="caption1"
+            color={colors.secondaryLabel}
+            style={styles.sectionTitle}
+          >
             AUTHOR / PHILOSOPHER
-          </Text>
+          </ThemedText>
           <ChipButton
             title={isAddingNewAuthor ? "Choose existing" : "+ New author"}
             variant="purple"
@@ -100,12 +110,7 @@ export default function ReadingModalScreen() {
             })}
           </ScrollView>
         ) : (
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: colors.secondarySystemBackground },
-            ]}
-          >
+          <Card variant="subdued" padding="none" style={styles.card}>
             <View style={styles.inputRow}>
               <Image
                 source="sf:person.fill"
@@ -136,15 +141,19 @@ export default function ReadingModalScreen() {
                 style={[styles.input, { color: colors.label }]}
               />
             </View>
-          </View>
+          </Card>
         )}
       </View>
 
       {/* Language Selector Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.sectionTitle}
+        >
           LANGUAGE / IDIOMA
-        </Text>
+        </ThemedText>
         <View style={styles.localeRow}>
           <ChipButton
             title="🇪🇸 Castellano (Requerido)"
@@ -161,17 +170,16 @@ export default function ReadingModalScreen() {
 
       {/* Title Input Card */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.sectionTitle}
+        >
           {activeTabLocale === "es"
             ? "TITLE (CASTELLANO - REQUERIDO)"
             : "TITLE (ENGLISH - OPTIONAL)"}
-        </Text>
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.secondarySystemBackground },
-          ]}
-        >
+        </ThemedText>
+        <Card variant="subdued" padding="none" style={styles.card}>
           <View style={styles.inputRow}>
             <Image
               source="sf:text.quote"
@@ -189,17 +197,21 @@ export default function ReadingModalScreen() {
               style={[styles.input, { color: colors.label }]}
             />
           </View>
-        </View>
+        </Card>
       </View>
 
       {/* Reading Passage Input Card */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+          <ThemedText
+            variant="caption1"
+            color={colors.secondaryLabel}
+            style={styles.sectionTitle}
+          >
             {activeTabLocale === "es"
               ? "PASSAGE / POETRY (CASTELLANO)"
               : "PASSAGE / POETRY (ENGLISH)"}
-          </Text>
+          </ThemedText>
           <ChipButton
             title={isPreviewMode ? "Edit Markdown" : "Live Preview"}
             icon={isPreviewMode ? "sf:pencil" : "sf:eye.fill"}
@@ -208,12 +220,7 @@ export default function ReadingModalScreen() {
           />
         </View>
 
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.secondarySystemBackground },
-          ]}
-        >
+        <Card variant="subdued" padding="none" style={styles.card}>
           {isPreviewMode ? (
             <View style={styles.previewWrapper}>
               {currentTranslation.content.trim() ? (
@@ -225,21 +232,24 @@ export default function ReadingModalScreen() {
                   accentColor={colors.systemPurple}
                 />
               ) : (
-                <Text
-                  style={[
-                    styles.emptyPreviewText,
-                    { color: colors.secondaryLabel },
-                  ]}
+                <ThemedText
+                  variant="callout"
+                  color={colors.secondaryLabel}
+                  style={styles.emptyPreviewText}
                 >
                   Write some verses above to preview formatting.
-                </Text>
+                </ThemedText>
               )}
             </View>
           ) : (
             <View style={styles.quoteInputWrapper}>
-              <Text style={[styles.quoteSign, { color: colors.systemPurple }]}>
+              <ThemedText
+                variant="title1"
+                color={colors.systemPurple}
+                style={styles.quoteSign}
+              >
                 “
-              </Text>
+              </ThemedText>
               <TextInput
                 placeholder={
                   activeTabLocale === "es"
@@ -259,12 +269,16 @@ export default function ReadingModalScreen() {
               />
             </View>
           )}
-        </View>
+        </Card>
 
-        <Text style={[styles.formatHelpText, { color: colors.secondaryLabel }]}>
+        <ThemedText
+          variant="caption2"
+          color={colors.secondaryLabel}
+          style={styles.formatHelpText}
+        >
           ✨ Supports Markdown: *italic*, **bold**, &gt; reflection stanza, and
           verse indentation.
-        </Text>
+        </ThemedText>
       </View>
     </ScrollView>
   );

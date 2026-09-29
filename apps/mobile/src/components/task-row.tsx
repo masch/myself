@@ -10,7 +10,7 @@ import {
 import { Image } from "expo-image";
 import { type TaskItem } from "@/infrastructure/persistence/database";
 import { IconButton } from "./icon-button";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 
 export interface TaskRowProps {
   task: TaskItem;

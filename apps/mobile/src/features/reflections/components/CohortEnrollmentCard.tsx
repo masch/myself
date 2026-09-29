@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 import { type ThemeCohort, type ReflectionTheme } from "@myself/shared";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { AppButton } from "@/components";
 
 interface CohortEnrollmentCardProps {

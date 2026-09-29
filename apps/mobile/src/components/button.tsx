@@ -10,7 +10,7 @@ import {
   type ColorValue,
   View,
 } from "react-native";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 import { AppIcon } from "./app-icon";
 
 export type ButtonVariant =

@@ -6,15 +6,15 @@ import {
   DarkTheme,
   DefaultTheme,
 } from "expo-router/react-navigation";
-import { useColorScheme, View, Text, StyleSheet } from "react-native";
+import { useColorScheme, View, StyleSheet } from "react-native";
 import { SQLiteProvider } from "expo-sqlite";
 import { Image } from "expo-image";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/infrastructure/query/query-client";
 import { initDatabase } from "@/infrastructure/persistence/database";
 import { AuthProvider } from "@/context/auth-context";
-import { AppButton } from "@/components";
-import { colors } from "@/theme/colors";
+import { AppButton, ThemedText } from "@/components";
+import { colors } from "@/theme";
 
 /**
  * Global Error Boundary for Expo Router.
@@ -32,12 +32,16 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
         source="sf:exclamationmark.triangle.fill"
         style={styles.errorIcon}
       />
-      <Text style={[styles.errorTitle, { color: colors.label }]}>
+      <ThemedText variant="headline" style={styles.errorTitle}>
         Something went wrong
-      </Text>
-      <Text style={[styles.errorMessage, { color: colors.secondaryLabel }]}>
+      </ThemedText>
+      <ThemedText
+        variant="body"
+        color={colors.secondaryLabel}
+        style={styles.errorMessage}
+      >
         {error.message}
-      </Text>
+      </ThemedText>
       <AppButton title="Try Again" variant="primary" onPress={retry} />
     </View>
   );
@@ -67,6 +71,12 @@ function AppNavigation() {
             options={{
               presentation: "modal",
               headerTitle: "Meditation Reading",
+            }}
+          />
+          <Stack.Screen
+            name="dev-showcase"
+            options={{
+              headerTitle: "Design System",
             }}
           />
         </Stack>

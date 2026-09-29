@@ -44,15 +44,15 @@ Docs: https://docs.expo.dev/eas/index.md
 
 1. **Compound Components over Boolean Flags**:
    - Never use boolean flags (e.g. `scrollable={true|false}`) to toggle fundamentally different underlying trees (e.g. `View` vs `ScrollView`).
-   - Prefer explicit compound components (e.g. `<ScreenContainer>` for fixed layouts, `<ScreenContainer.Scroll>` for scrollable layouts).
+   - Prefer explicit compound components (e.g. `<ScreenContainer>` for stack layouts, `<ScreenContainer.Tab>` for fixed tab screens, `<ScreenContainer.Scroll>` for scrollable layouts).
 
 2. **Interface Segregation (ISP)**:
    - Do not pollute root component interfaces with specialized props (e.g. `contentContainerStyle` or `refreshControl` belong exclusively to scroll components).
 
 3. **Design Tokens over Magic Numbers**:
-   - Centralize layout metrics (`DEFAULT_EDGES`, `topOffset`, `bottomOffset`) as sane component defaults.
+   - Centralize layout metrics (`DEFAULT_EDGES`, `DEFAULT_TAB_EDGES`, `topOffset`, `bottomOffset`) as sane component defaults.
    - Do not pass arbitrary, ad-hoc offset numbers from individual screens unless strictly justified by floating overlays.
 
 4. **Single Source of Truth for Insets (DRY)**:
-   - All tab and stack screens must use `<ScreenContainer>` or `<ScreenContainer.Scroll>`.
+   - All tab and stack screens must use `<ScreenContainer>`, `<ScreenContainer.Tab>`, or `<ScreenContainer.Scroll>`.
    - Never duplicate safe-area inset math across siblings; extract shared geometry to dedicated hooks (e.g. `useScreenPadding`).

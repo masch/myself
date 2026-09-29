@@ -1,11 +1,17 @@
 import { useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
-import { View, StyleSheet, Text, Alert } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useTasks } from "@/hooks/use-tasks";
 import { type TaskItem } from "@/infrastructure/persistence/database";
-import { AppButton, TaskRow, ScreenContainer } from "@/components";
-import { colors } from "@/theme/colors";
+import {
+  AppButton,
+  TaskRow,
+  ScreenContainer,
+  Card,
+  ThemedText,
+} from "@/components";
+import { colors, spacing } from "@/theme";
 import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
 
 export default function HomeScreen() {
@@ -53,46 +59,47 @@ export default function HomeScreen() {
   return (
     <ScreenContainer.Scroll>
       {/* Summary Card */}
-      <View
-        style={[
-          styles.heroCard,
-          { backgroundColor: colors.secondarySystemBackground },
-        ]}
-      >
+      <Card variant="subdued" padding="lg" style={styles.heroCard}>
         <View style={styles.userHeaderRow}>
           <Image
             source="sf:person.crop.circle.fill"
             style={styles.userAvatarIcon}
           />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.greetingText, { color: colors.label }]}>
+            <ThemedText variant="title2">
               {currentUser ? currentUser.name : "Mindful User"}
-            </Text>
-            <Text
-              style={[styles.emailSubtext, { color: colors.secondaryLabel }]}
-            >
+            </ThemedText>
+            <ThemedText variant="caption1" color={colors.secondaryLabel}>
               {currentUser ? currentUser.email : "Local-First Storage Active"}
-            </Text>
+            </ThemedText>
           </View>
         </View>
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.systemBlue }]}>
+            <ThemedText
+              variant="title1"
+              color={colors.systemBlue}
+              style={styles.statNumber}
+            >
               {pendingTasks.length}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.secondaryLabel }]}>
+            </ThemedText>
+            <ThemedText variant="caption2" color={colors.secondaryLabel}>
               Pending
-            </Text>
+            </ThemedText>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.systemGreen }]}>
+            <ThemedText
+              variant="title1"
+              color={colors.systemGreen}
+              style={styles.statNumber}
+            >
               {completedTasks.length}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.secondaryLabel }]}>
+            </ThemedText>
+            <ThemedText variant="caption2" color={colors.secondaryLabel}>
               Completed
-            </Text>
+            </ThemedText>
           </View>
         </View>
 
@@ -102,23 +109,20 @@ export default function HomeScreen() {
           variant="primary"
           onPress={() => router.push("/modal")}
         />
-      </View>
+      </Card>
 
       {/* Tasks Section */}
       <View style={styles.tasksSection}>
         {pendingTasks.length > 0 && (
           <View style={styles.groupContainer}>
-            <Text
-              style={[styles.sectionTitle, { color: colors.secondaryLabel }]}
+            <ThemedText
+              variant="caption1"
+              color={colors.secondaryLabel}
+              style={styles.sectionTitle}
             >
               TO DO
-            </Text>
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: colors.secondarySystemBackground },
-              ]}
-            >
+            </ThemedText>
+            <Card variant="subdued" padding="none">
               {pendingTasks.map((task, index) => (
                 <TaskRow
                   key={task.id}
@@ -128,23 +132,20 @@ export default function HomeScreen() {
                   onDelete={() => handleDelete(task)}
                 />
               ))}
-            </View>
+            </Card>
           </View>
         )}
 
         {completedTasks.length > 0 && (
           <View style={styles.groupContainer}>
-            <Text
-              style={[styles.sectionTitle, { color: colors.secondaryLabel }]}
+            <ThemedText
+              variant="caption1"
+              color={colors.secondaryLabel}
+              style={styles.sectionTitle}
             >
               COMPLETED
-            </Text>
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: colors.secondarySystemBackground },
-              ]}
-            >
+            </ThemedText>
+            <Card variant="subdued" padding="none">
               {completedTasks.map((task, index) => (
                 <TaskRow
                   key={task.id}
@@ -154,26 +155,24 @@ export default function HomeScreen() {
                   onDelete={() => handleDelete(task)}
                 />
               ))}
-            </View>
+            </Card>
           </View>
         )}
 
         {tasks.length === 0 && !isLoading && (
-          <View
-            style={[
-              styles.card,
-              styles.emptyCard,
-              { backgroundColor: colors.secondarySystemBackground },
-            ]}
-          >
+          <Card variant="subdued" padding="xl" style={styles.emptyCard}>
             <Image
               source="sf:tray"
               style={[styles.iconGray, { tintColor: colors.secondaryLabel }]}
             />
-            <Text style={[styles.emptyText, { color: colors.secondaryLabel }]}>
+            <ThemedText
+              variant="callout"
+              color={colors.secondaryLabel}
+              style={styles.emptyText}
+            >
               No tasks found. Tap &apos;New Task&apos; to create one.
-            </Text>
-          </View>
+            </ThemedText>
+          </Card>
         )}
       </View>
     </ScreenContainer.Scroll>
@@ -181,31 +180,18 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   heroCard: {
-    padding: 20,
-    borderRadius: 16,
-    gap: 16,
-    borderCurve: "continuous",
+    gap: spacing.md,
   },
   userHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: spacing.sm + 4,
   },
   userAvatarIcon: {
     width: 44,
     height: 44,
     tintColor: "#007AFF",
-  },
-  greetingText: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  emailSubtext: {
-    fontSize: 13,
   },
   statsRow: {
     flexDirection: "row",
@@ -216,12 +202,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statNumber: {
-    fontSize: 28,
     fontWeight: "700",
-  },
-  statLabel: {
-    fontSize: 12,
-    marginTop: 2,
   },
   statDivider: {
     width: 1,
@@ -229,34 +210,25 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(142, 142, 147, 0.3)",
   },
   tasksSection: {
-    gap: 20,
+    gap: spacing.lg - 4,
   },
   groupContainer: {
-    gap: 8,
+    gap: spacing.sm,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: "600",
     letterSpacing: 0.6,
-    paddingHorizontal: 4,
-  },
-  card: {
-    borderRadius: 16,
-    overflow: "hidden",
-    borderCurve: "continuous",
+    paddingHorizontal: spacing.xs,
   },
   emptyCard: {
-    padding: 32,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: spacing.sm,
   },
   iconGray: {
     width: 36,
     height: 36,
   },
   emptyText: {
-    fontSize: 14,
     textAlign: "center",
   },
 });

@@ -9,3 +9,7 @@ export * from "./app-icon";
 export * from "./bottom-sheet-modal";
 export * from "./markdown-text";
 export * from "./screen-container";
+export * from "./surface";
+export * from "./themed-text";
+export * from "./primitives";
+export * from "./native-controls";

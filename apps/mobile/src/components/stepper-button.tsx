@@ -7,7 +7,7 @@ import {
   type ViewStyle,
   type PressableProps,
 } from "react-native";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 
 export interface StepperButtonProps extends Omit<PressableProps, "style"> {
   direction: "up" | "down";

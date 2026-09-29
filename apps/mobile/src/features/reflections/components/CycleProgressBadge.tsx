@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 import { type CycleStatus } from "@myself/shared";
-import { colors } from "@/theme/colors";
+import { colors } from "@/theme";
 
 interface CycleProgressBadgeProps {
   currentStep: number;

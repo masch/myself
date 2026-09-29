@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   Pressable,
@@ -15,8 +14,15 @@ import {
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { colors } from "@/theme/colors";
-import { ScreenContainer } from "@/components";
+import { colors } from "@/theme";
+import {
+  ScreenContainer,
+  Accordion,
+  Collapsible,
+  ThemedText,
+  Card,
+} from "@/components";
+
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
 import { useThemeCohort } from "@/features/reflections/hooks/use-theme-cohort";
 import { type ActiveCohortProgressDetail } from "@/features/reflections/domain/ports/reflection.repository.port";
@@ -319,7 +325,7 @@ export default function ReflectionsScreen() {
   ]);
 
   return (
-    <ScreenContainer>
+    <ScreenContainer.Tab>
       <Stack.Screen
         options={{
           title: "Reflexiones",
@@ -345,7 +351,8 @@ export default function ReflectionsScreen() {
             ],
           ]}
         >
-          <Text
+          <ThemedText
+            variant="callout"
             style={[
               styles.tabText,
               {
@@ -356,7 +363,7 @@ export default function ReflectionsScreen() {
             ]}
           >
             Cola Diaria
-          </Text>
+          </ThemedText>
         </Pressable>
 
         <Pressable
@@ -369,7 +376,8 @@ export default function ReflectionsScreen() {
             ],
           ]}
         >
-          <Text
+          <ThemedText
+            variant="callout"
             style={[
               styles.tabText,
               {
@@ -382,7 +390,7 @@ export default function ReflectionsScreen() {
             ]}
           >
             Programas
-          </Text>
+          </ThemedText>
         </Pressable>
       </View>
 
@@ -402,40 +410,45 @@ export default function ReflectionsScreen() {
               {/* MACRO-BLOCK 1: POR RESPONDER                        */}
               {/* ---------------------------------------------------- */}
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.label }]}>
+                <ThemedText variant="headline" style={styles.sectionTitle}>
                   Por Responder
-                </Text>
-                <Text
-                  style={[
-                    styles.sectionSubtitle,
-                    { color: colors.secondaryLabel },
-                  ]}
+                </ThemedText>
+                <ThemedText
+                  variant="caption1"
+                  color={colors.secondaryLabel}
+                  style={styles.sectionSubtitle}
                 >
                   Tus reflexiones prioritarias de hoy.
-                </Text>
+                </ThemedText>
               </View>
 
               {/* Missed questions within grace window */}
               {pendingMissedQuestions.length > 0 && (
-                <View
-                  style={[
-                    styles.missedNotice,
-                    { backgroundColor: colors.warningSubdued },
-                  ]}
-                >
-                  <Text
-                    style={[styles.missedTitle, { color: colors.systemOrange }]}
-                  >
-                    ⏰ Pendientes de días anteriores
-                  </Text>
-                  <Text
+                <View style={styles.missedSection}>
+                  <View
                     style={[
-                      styles.missedSubtitle,
-                      { color: colors.secondaryLabel },
+                      styles.missedNotice,
+                      {
+                        backgroundColor: colors.warningSubdued,
+                        borderColor: colors.systemOrange,
+                      },
                     ]}
                   >
-                    Podés completarlas dentro de la ventana de gracia.
-                  </Text>
+                    <ThemedText
+                      variant="headline"
+                      color={colors.systemOrange}
+                      style={styles.missedTitle}
+                    >
+                      ⏰ Pendientes de días anteriores
+                    </ThemedText>
+                    <ThemedText
+                      variant="caption1"
+                      color={colors.secondaryLabel}
+                      style={styles.missedSubtitle}
+                    >
+                      Podés completarlas dentro de la ventana de gracia.
+                    </ThemedText>
+                  </View>
                   {pendingMissedQuestions.map(
                     ({ question, missedDate, reflection }) => (
                       <PromptCard
@@ -463,14 +476,13 @@ export default function ReflectionsScreen() {
               {/* Pending Routine Questions */}
               {pendingRoutineQuestions.length > 0 && (
                 <View style={[styles.subsectionHeader, { marginTop: 12 }]}>
-                  <Text
-                    style={[
-                      styles.subsectionTitle,
-                      { color: colors.secondaryLabel },
-                    ]}
+                  <ThemedText
+                    variant="caption1"
+                    color={colors.secondaryLabel}
+                    style={styles.subsectionTitle}
                   >
                     Rutina del Día
-                  </Text>
+                  </ThemedText>
                 </View>
               )}
               {pendingRoutineQuestions.map((q) => {
@@ -494,51 +506,49 @@ export default function ReflectionsScreen() {
               {/* Empty state when no pending questions */}
               {pendingMissedQuestions.length === 0 &&
                 pendingRoutineQuestions.length === 0 && (
-                  <View
+                  <Card
+                    variant="subdued"
+                    padding="none"
                     style={[
                       styles.emptyCard,
                       {
-                        backgroundColor: colors.secondarySystemBackground,
                         marginVertical: 6,
                       },
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.emptyText,
-                        { color: colors.secondaryLabel },
-                      ]}
+                    <ThemedText
+                      variant="callout"
+                      color={colors.secondaryLabel}
+                      style={styles.emptyText}
                     >
                       {upcomingRoutineQuestions.length > 0
                         ? "No tenés reflexiones pendientes por ahora. Las próximas se habilitan más tarde."
                         : answeredQuestionsToday.length > 0
                           ? "¡Completaste todas tus reflexiones de hoy! 🎉"
                           : "No tenés preguntas activas en tu rutina diaria."}
-                    </Text>
-                  </View>
+                    </ThemedText>
+                  </Card>
                 )}
 
               {/* Upcoming routine questions (time-locked) */}
               {upcomingRoutineQuestions.length > 0 && (
                 <View style={styles.upcomingSection}>
                   <View style={styles.subsectionHeader}>
-                    <Text
-                      style={[
-                        styles.subsectionTitle,
-                        { color: colors.secondaryLabel },
-                      ]}
+                    <ThemedText
+                      variant="caption1"
+                      color={colors.secondaryLabel}
+                      style={styles.subsectionTitle}
                     >
                       ⏳ Más tarde hoy
-                    </Text>
-                    <Text
-                      style={[
-                        styles.subsectionSubtitle,
-                        { color: colors.secondaryLabel },
-                      ]}
+                    </ThemedText>
+                    <ThemedText
+                      variant="caption1"
+                      color={colors.secondaryLabel}
+                      style={styles.subsectionSubtitle}
                     >
                       Se habilitan en su horario preferido para responder al
                       cerrar la jornada.
-                    </Text>
+                    </ThemedText>
                   </View>
                   {upcomingRoutineQuestions.map((q) => {
                     const pref = prefMap.get(q.id);
@@ -565,19 +575,16 @@ export default function ReflectionsScreen() {
               {pendingPinned.length > 0 && (
                 <>
                   <View style={styles.sectionHeader}>
-                    <Text
-                      style={[styles.sectionTitle, { color: colors.label }]}
-                    >
+                    <ThemedText variant="headline" style={styles.sectionTitle}>
                       ★ Accesos Rápidos
-                    </Text>
-                    <Text
-                      style={[
-                        styles.sectionSubtitle,
-                        { color: colors.secondaryLabel },
-                      ]}
+                    </ThemedText>
+                    <ThemedText
+                      variant="caption1"
+                      color={colors.secondaryLabel}
+                      style={styles.sectionSubtitle}
                     >
                       Preguntas ancladas para responder cuando lo necesites.
-                    </Text>
+                    </ThemedText>
                   </View>
                   {pendingPinned.map((q) => (
                     <PromptCard
@@ -597,19 +604,16 @@ export default function ReflectionsScreen() {
               {pendingAdHoc.length > 0 && (
                 <>
                   <View style={styles.sectionHeader}>
-                    <Text
-                      style={[styles.sectionTitle, { color: colors.label }]}
-                    >
+                    <ThemedText variant="headline" style={styles.sectionTitle}>
                       Bajo Demanda
-                    </Text>
-                    <Text
-                      style={[
-                        styles.sectionSubtitle,
-                        { color: colors.secondaryLabel },
-                      ]}
+                    </ThemedText>
+                    <ThemedText
+                      variant="caption1"
+                      color={colors.secondaryLabel}
+                      style={styles.sectionSubtitle}
                     >
                       Explorá y anclá preguntas para momentos específicos.
-                    </Text>
+                    </ThemedText>
                   </View>
                   {pendingAdHoc.map((q) => {
                     const pref = prefMap.get(q.id);
@@ -633,23 +637,27 @@ export default function ReflectionsScreen() {
               {/* MACRO-BLOCK 2: RESPONDIDAS HOY                      */}
               {/* ---------------------------------------------------- */}
               {answeredQuestionsToday.length > 0 && (
-                <View style={styles.answeredMacroBlock}>
+                <Collapsible
+                  open={showAnswered}
+                  onOpenChange={setShowAnswered}
+                  style={styles.answeredMacroBlock}
+                >
                   <View style={styles.macroBlockHeader}>
                     <View style={{ flex: 1 }}>
-                      <Text
-                        style={[styles.sectionTitle, { color: colors.label }]}
+                      <ThemedText
+                        variant="headline"
+                        style={styles.sectionTitle}
                       >
                         Respondidas Hoy ({answeredQuestionsToday.length})
-                      </Text>
-                      <Text
-                        style={[
-                          styles.sectionSubtitle,
-                          { color: colors.secondaryLabel },
-                        ]}
+                      </ThemedText>
+                      <ThemedText
+                        variant="caption1"
+                        color={colors.secondaryLabel}
+                        style={styles.sectionSubtitle}
                       >
                         Tus reflexiones guardadas. Podés editarlas cuando
                         quieras.
-                      </Text>
+                      </ThemedText>
                     </View>
                     <Switch
                       testID="toggle-show-answered"
@@ -664,81 +672,72 @@ export default function ReflectionsScreen() {
                     />
                   </View>
 
-                  {showAnswered && (
-                    <View style={{ marginTop: 6 }}>
-                      {answeredQuestionsToday.map(
-                        ({ question, reflection, dateLabel }) => (
-                          <PromptCard
-                            key={`answered-${question.id}-${reflection.id}`}
-                            question={question}
-                            reflection={reflection}
-                            dateLabel={dateLabel}
-                            hideStatusBadge={true}
-                            onAnswer={() =>
-                              handleOpenAnswer(
-                                question,
-                                null,
-                                reflection.forDate,
-                                reflection,
-                              )
-                            }
-                          />
-                        ),
-                      )}
-                    </View>
-                  )}
-                </View>
+                  <Collapsible.Content style={{ marginTop: 6 }}>
+                    {answeredQuestionsToday.map(
+                      ({ question, reflection, dateLabel }) => (
+                        <PromptCard
+                          key={`answered-${question.id}-${reflection.id}`}
+                          question={question}
+                          reflection={reflection}
+                          dateLabel={dateLabel}
+                          hideStatusBadge={true}
+                          onAnswer={() =>
+                            handleOpenAnswer(
+                              question,
+                              null,
+                              reflection.forDate,
+                              reflection,
+                            )
+                          }
+                        />
+                      ),
+                    )}
+                  </Collapsible.Content>
+                </Collapsible>
               )}
             </>
           ) : (
             <>
               {/* Active Cohorts Progress */}
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.label }]}>
+                <ThemedText variant="headline" style={styles.sectionTitle}>
                   Tus Programas en Curso
-                </Text>
-                <Text
-                  style={[
-                    styles.sectionSubtitle,
-                    { color: colors.secondaryLabel },
-                  ]}
+                </ThemedText>
+                <ThemedText
+                  variant="caption1"
+                  color={colors.secondaryLabel}
+                  style={styles.sectionSubtitle}
                 >
                   Ciclos progresivos estructurados día a día.
-                </Text>
+                </ThemedText>
               </View>
 
               {activeCohorts.length === 0 ? (
-                <View
-                  style={[
-                    styles.emptyCard,
-                    { backgroundColor: colors.secondarySystemBackground },
-                  ]}
-                >
-                  <Text
-                    style={[styles.emptyText, { color: colors.secondaryLabel }]}
+                <Card variant="subdued" padding="none" style={styles.emptyCard}>
+                  <ThemedText
+                    variant="callout"
+                    color={colors.secondaryLabel}
+                    style={styles.emptyText}
                   >
                     No estás inscripto en ningún programa actualmente. Sumate a
                     uno abajo.
-                  </Text>
-                </View>
+                  </ThemedText>
+                </Card>
               ) : (
                 activeCohorts.map((active) => (
-                  <View
+                  <Card
                     key={active.id}
-                    style={[
-                      styles.cohortBox,
-                      { backgroundColor: colors.secondarySystemBackground },
-                    ]}
+                    variant="subdued"
+                    padding="none"
+                    style={styles.cohortBox}
                   >
                     <View style={styles.cohortHeaderRow}>
-                      <Text
-                        style={[
-                          styles.cohortTitle,
-                          { color: colors.label, flex: 1 },
-                        ]}
+                      <ThemedText
+                        variant="headline"
+                        style={[styles.cohortTitle, { flex: 1 }]}
                       >
                         {active.theme.title}
-                      </Text>
+                      </ThemedText>
                       {active.status === "in_progress" && (
                         <Pressable
                           accessibilityRole="button"
@@ -752,7 +751,12 @@ export default function ReflectionsScreen() {
                             { opacity: isSubmitting ? 0.5 : 1 },
                           ]}
                         >
-                          <Text style={styles.leaveCohortBtnText}>Bajarme</Text>
+                          <ThemedText
+                            variant="caption1"
+                            style={styles.leaveCohortBtnText}
+                          >
+                            Bajarme
+                          </ThemedText>
                         </Pressable>
                       )}
                     </View>
@@ -776,20 +780,19 @@ export default function ReflectionsScreen() {
                           gap: 6,
                         }}
                       >
-                        <Text
+                        <ThemedText
+                          variant="callout"
                           style={{
-                            fontSize: 15,
                             fontWeight: "600",
-                            color: colors.label,
                           }}
                         >
                           📅 El programa comienza el{" "}
                           {formatDateDDMM(active.cohort.programStartDate)}
-                        </Text>
-                        <Text
+                        </ThemedText>
+                        <ThemedText
+                          variant="caption1"
+                          color={colors.secondaryLabel}
                           style={{
-                            fontSize: 13,
-                            color: colors.secondaryLabel,
                             textAlign: "center",
                             lineHeight: 18,
                           }}
@@ -799,21 +802,20 @@ export default function ReflectionsScreen() {
                           {formatDateDDMM(active.cohort.programStartDate)}. La
                           primera reflexión se desbloqueará automáticamente ese
                           día.
-                        </Text>
+                        </ThemedText>
                       </View>
                     ) : (
                       <>
                         {active.currentQuestion &&
                           active.status !== "completed" && (
                             <View style={{ marginTop: 10 }}>
-                              <Text
-                                style={[
-                                  styles.subHeader,
-                                  { color: colors.secondaryLabel },
-                                ]}
+                              <ThemedText
+                                variant="caption1"
+                                color={colors.secondaryLabel}
+                                style={styles.subHeader}
                               >
                                 Pregunta de hoy (Paso {active.currentStep}):
-                              </Text>
+                              </ThemedText>
                               <PromptCard
                                 question={active.currentQuestion}
                                 onAnswer={() =>
@@ -862,55 +864,77 @@ export default function ReflectionsScreen() {
                             return null;
 
                           return (
-                            <View style={{ marginTop: 14 }}>
-                              <Text
-                                style={[
-                                  styles.subHeader,
-                                  { color: colors.secondaryLabel },
-                                ]}
+                            <Accordion
+                              type="single"
+                              collapsible
+                              defaultValue={`cohort-completed-${active.id}`}
+                              style={{ marginTop: 14 }}
+                            >
+                              <Accordion.Item
+                                value={`cohort-completed-${active.id}`}
+                                style={{ borderBottomWidth: 0 }}
                               >
-                                Pasos completados ({completedSteps.length}):
-                              </Text>
-                              {completedSteps.map(
-                                ({ question, reflection }) => (
-                                  <PromptCard
-                                    key={`cohort-step-${active.id}-${question.id}`}
-                                    question={question}
-                                    reflection={reflection}
-                                    dateLabel={`Paso ${question.orderIndex} • ${formatDateDDMM(reflection.forDate)}`}
-                                    onAnswer={() =>
-                                      handleOpenAnswer(
-                                        question,
-                                        active,
-                                        reflection.forDate,
-                                        reflection,
+                                <Accordion.Header>
+                                  <Accordion.Trigger
+                                    style={{
+                                      paddingVertical: 6,
+                                      minHeight: 36,
+                                    }}
+                                  >
+                                    <ThemedText
+                                      variant="callout"
+                                      color={colors.secondaryLabel}
+                                      style={{ fontWeight: "600" }}
+                                    >
+                                      Pasos completados ({completedSteps.length}
                                       )
-                                    }
-                                  />
-                                ),
-                              )}
-                            </View>
+                                    </ThemedText>
+                                  </Accordion.Trigger>
+                                </Accordion.Header>
+                                <Accordion.Content
+                                  style={{ gap: 8, paddingBottom: 4 }}
+                                >
+                                  {completedSteps.map(
+                                    ({ question, reflection }) => (
+                                      <PromptCard
+                                        key={`cohort-step-${active.id}-${question.id}`}
+                                        question={question}
+                                        reflection={reflection}
+                                        dateLabel={`Paso ${question.orderIndex} • ${formatDateDDMM(reflection.forDate)}`}
+                                        onAnswer={() =>
+                                          handleOpenAnswer(
+                                            question,
+                                            active,
+                                            reflection.forDate,
+                                            reflection,
+                                          )
+                                        }
+                                      />
+                                    ),
+                                  )}
+                                </Accordion.Content>
+                              </Accordion.Item>
+                            </Accordion>
                           );
                         })()}
                       </>
                     )}
-                  </View>
+                  </Card>
                 ))
               )}
 
               {/* Open Cohorts Catalog */}
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.label }]}>
+                <ThemedText variant="headline" style={styles.sectionTitle}>
                   Convocatorias Disponibles
-                </Text>
-                <Text
-                  style={[
-                    styles.sectionSubtitle,
-                    { color: colors.secondaryLabel },
-                  ]}
+                </ThemedText>
+                <ThemedText
+                  variant="caption1"
+                  color={colors.secondaryLabel}
+                  style={styles.sectionSubtitle}
                 >
                   Inscribite a nuevos ciclos temáticos.
-                </Text>
+                </ThemedText>
               </View>
 
               {openCohorts.map((cohort) => {
@@ -964,7 +988,7 @@ export default function ReflectionsScreen() {
         }}
         isSubmitting={isSubmitting}
       />
-    </ScreenContainer>
+    </ScreenContainer.Tab>
   );
 }
 
@@ -1005,7 +1029,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 40,
+    paddingBottom: 28,
   },
   sectionHeader: {
     marginTop: 16,
@@ -1034,10 +1058,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
+  missedSection: {
+    marginVertical: 4,
+  },
   missedNotice: {
-    padding: 14,
-    borderRadius: 16,
-    marginVertical: 10,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 6,
   },
   missedTitle: {
     fontSize: 14,
@@ -1046,7 +1074,6 @@ const styles = StyleSheet.create({
   },
   missedSubtitle: {
     fontSize: 12,
-    marginBottom: 8,
   },
   emptyCard: {
     padding: 20,

@@ -1,13 +1,19 @@
 import { useCallback } from "react";
 import { Stack, router, useFocusEffect } from "expo-router";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { useReadings } from "@/hooks/use-readings";
 import { type MeditationReadingWithAuthor } from "@/infrastructure/persistence/database";
-import { AppButton, IconButton, ScreenContainer } from "@/components";
+import {
+  AppButton,
+  IconButton,
+  ScreenContainer,
+  Card,
+  ThemedText,
+} from "@/components";
 import { ReadingCard } from "@/features/readings/components/reading-card";
 import { confirmDelete } from "@/features/readings/confirm-delete";
-import { colors } from "@/theme/colors";
+import { colors, spacing } from "@/theme";
 import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
 
 export default function ReadingsScreen() {
@@ -78,59 +84,59 @@ export default function ReadingsScreen() {
       />
 
       {/* Hero Stats Card */}
-      <View
-        style={[
-          styles.heroCard,
-          { backgroundColor: colors.secondarySystemBackground },
-        ]}
-      >
+      <Card variant="subdued" padding="lg" style={styles.heroCard}>
         <View style={styles.heroHeaderRow}>
           <Image
             source="sf:sparkles"
             style={[styles.heroIcon, { tintColor: colors.systemPurple }]}
           />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.heroTitleText, { color: colors.label }]}>
-              Pre-Meditation Passages
-            </Text>
-            <Text
-              style={[
-                styles.heroSubtitleText,
-                { color: colors.secondaryLabel },
-              ]}
-            >
+            <ThemedText variant="title2">Pre-Meditation Passages</ThemedText>
+            <ThemedText variant="caption1" color={colors.secondaryLabel}>
               {readings.length} philosophical texts • {totalSessionsCount} reads
               recorded
-            </Text>
+            </ThemedText>
           </View>
         </View>
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.systemBlue }]}>
+            <ThemedText
+              variant="title2"
+              color={colors.systemBlue}
+              style={styles.statNumber}
+            >
               {unreadReadings.length}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.secondaryLabel }]}>
+            </ThemedText>
+            <ThemedText variant="caption2" color={colors.secondaryLabel}>
               Unread
-            </Text>
+            </ThemedText>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.systemGreen }]}>
+            <ThemedText
+              variant="title2"
+              color={colors.systemGreen}
+              style={styles.statNumber}
+            >
               {readReadings.length}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.secondaryLabel }]}>
+            </ThemedText>
+            <ThemedText variant="caption2" color={colors.secondaryLabel}>
               Read (1+ times)
-            </Text>
+            </ThemedText>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.systemPurple }]}>
+            <ThemedText
+              variant="title2"
+              color={colors.systemPurple}
+              style={styles.statNumber}
+            >
               {totalSessionsCount}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.secondaryLabel }]}>
+            </ThemedText>
+            <ThemedText variant="caption2" color={colors.secondaryLabel}>
               Total Logs
-            </Text>
+            </ThemedText>
           </View>
         </View>
 
@@ -140,14 +146,18 @@ export default function ReadingsScreen() {
           variant="purple"
           onPress={() => router.push("/reading-modal")}
         />
-      </View>
+      </Card>
 
       {/* Unread Readings Section */}
       {unreadReadings.length > 0 && (
         <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+          <ThemedText
+            variant="caption1"
+            color={colors.secondaryLabel}
+            style={styles.sectionTitle}
+          >
             NEW REFLECTIONS ({unreadReadings.length})
-          </Text>
+          </ThemedText>
           {unreadReadings.map((reading) => (
             <ReadingCard
               key={reading.id}
@@ -163,9 +173,13 @@ export default function ReadingsScreen() {
       {/* Read Readings Section */}
       {readReadings.length > 0 && (
         <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionTitle, { color: colors.secondaryLabel }]}>
+          <ThemedText
+            variant="caption1"
+            color={colors.secondaryLabel}
+            style={styles.sectionTitle}
+          >
             READ & REFLECTED ({readReadings.length})
-          </Text>
+          </ThemedText>
           {readReadings.map((reading) => (
             <ReadingCard
               key={reading.id}
@@ -181,79 +195,58 @@ export default function ReadingsScreen() {
 
       {/* Empty State */}
       {readings.length === 0 && !isLoading && (
-        <View
-          style={[
-            styles.emptyCard,
-            { backgroundColor: colors.secondarySystemBackground },
-          ]}
-        >
+        <Card variant="subdued" padding="xl" style={styles.emptyCard}>
           <Image
             source="sf:book.closed.fill"
             style={[styles.emptyIcon, { tintColor: colors.systemPurple }]}
           />
-          <Text style={[styles.emptyTitle, { color: colors.label }]}>
+          <ThemedText variant="title2" style={styles.emptyTitle}>
             No Readings Added Yet
-          </Text>
-          <Text
-            style={[styles.emptySubtitle, { color: colors.secondaryLabel }]}
+          </ThemedText>
+          <ThemedText
+            variant="callout"
+            color={colors.secondaryLabel}
+            style={styles.emptySubtitle}
           >
             Add inspiring passages and philosophical quotes to read right before
             meditating.
-          </Text>
+          </ThemedText>
           <AppButton
             title="Create First Reading"
             variant="purple"
             onPress={() => router.push("/reading-modal")}
           />
-        </View>
+        </Card>
       )}
     </ScreenContainer.Scroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   heroCard: {
-    padding: 20,
-    borderRadius: 16,
-    gap: 14,
-    borderCurve: "continuous",
+    gap: spacing.md - 2,
   },
   heroHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingBottom: 4,
+    gap: spacing.sm + 4,
+    paddingBottom: spacing.xs,
   },
   heroIcon: {
     width: 36,
     height: 36,
   },
-  heroTitleText: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  heroSubtitleText: {
-    fontSize: 13,
-  },
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    paddingTop: 4,
+    paddingTop: spacing.xs,
   },
   statItem: {
     alignItems: "center",
   },
   statNumber: {
-    fontSize: 22,
     fontWeight: "700",
-  },
-  statLabel: {
-    fontSize: 12,
-    marginTop: 2,
   },
   statDivider: {
     width: 1,
@@ -261,32 +254,25 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(142, 142, 147, 0.3)",
   },
   sectionContainer: {
-    gap: 12,
+    gap: spacing.sm + 4,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: "700",
     letterSpacing: 0.8,
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing.xs,
   },
   emptyCard: {
-    padding: 32,
-    borderRadius: 16,
     alignItems: "center",
-    gap: 12,
-    marginTop: 20,
+    gap: spacing.sm + 4,
+    marginTop: spacing.lg - 4,
   },
   emptyIcon: {
     width: 48,
     height: 48,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
     textAlign: "center",
   },
   emptySubtitle: {
-    fontSize: 14,
     textAlign: "center",
     lineHeight: 20,
   },
