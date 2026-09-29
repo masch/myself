@@ -57,6 +57,7 @@
     "dev": "expo start -c",
     "start": "expo start -c",
     "android": "expo run:android",
+    "android:expo": "expo start -c --android",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",

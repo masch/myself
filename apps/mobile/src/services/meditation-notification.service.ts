@@ -1,20 +1,23 @@
-import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { getNotifications } from "./notifications/notifications-runtime";
 
 export const MEDITATION_NOTIFICATION_CHANNEL_ID = "meditation_notifications_v1";
 export const MEDITATION_NOTIFICATION_TYPE = "meditation_session_complete";
 
 // Configure global notification presentation
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false, // Audio is managed directly by expo-audio
-    shouldSetBadge: false,
-    priority: Notifications.AndroidNotificationPriority.HIGH,
-  }),
-});
+const initialNotifications = getNotifications();
+if (initialNotifications) {
+  initialNotifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false, // Audio is managed directly by expo-audio
+      shouldSetBadge: false,
+      priority: initialNotifications.AndroidNotificationPriority.HIGH,
+    }),
+  });
+}
 
 export const MeditationNotificationService = {
   /**
@@ -22,17 +25,19 @@ export const MeditationNotificationService = {
    */
   async setupNotificationChannel(): Promise<void> {
     if (Platform.OS !== "android") return;
+    const notifications = getNotifications();
+    if (!notifications) return;
 
     try {
-      await Notifications.setNotificationChannelAsync(
+      await notifications.setNotificationChannelAsync(
         MEDITATION_NOTIFICATION_CHANNEL_ID,
         {
           name: "Notificaciones de Meditación",
-          importance: Notifications.AndroidImportance.HIGH,
+          importance: notifications.AndroidImportance.HIGH,
           enableLights: true,
           enableVibrate: true,
           lockscreenVisibility:
-            Notifications.AndroidNotificationVisibility.PUBLIC,
+            notifications.AndroidNotificationVisibility.PUBLIC,
         },
       );
     } catch (err) {
@@ -48,10 +53,13 @@ export const MeditationNotificationService = {
     title = "Momento 3: Cierre e Integración",
     body = "Se cumplió la hora programada de la meditación.",
   ): Promise<string | null> {
+    const notifications = getNotifications();
+    if (!notifications) return null;
+
     try {
-      const { status: permStatus } = await Notifications.getPermissionsAsync();
+      const { status: permStatus } = await notifications.getPermissionsAsync();
       if (permStatus !== "granted") {
-        const requested = await Notifications.requestPermissionsAsync();
+        const requested = await notifications.requestPermissionsAsync();
         if (requested.status !== "granted") {
           return null;
         }
@@ -65,11 +73,11 @@ export const MeditationNotificationService = {
       await this.cancelAllNotifications();
       await this.setupNotificationChannel();
 
-      const id = await Notifications.scheduleNotificationAsync({
+      const id = await notifications.scheduleNotificationAsync({
         content: {
           title,
           body,
-          priority: Notifications.AndroidNotificationPriority.HIGH,
+          priority: notifications.AndroidNotificationPriority.HIGH,
           data: { type: MEDITATION_NOTIFICATION_TYPE },
           ...(Platform.OS === "android"
             ? {
@@ -79,7 +87,7 @@ export const MeditationNotificationService = {
             : {}),
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          type: notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
           seconds: diffSeconds,
           repeats: false,
           ...(Platform.OS === "android"
@@ -99,8 +107,11 @@ export const MeditationNotificationService = {
    * Cancels all scheduled meditation notifications.
    */
   async cancelAllNotifications(): Promise<void> {
+    const notifications = getNotifications();
+    if (!notifications) return;
+
     try {
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      await notifications.cancelAllScheduledNotificationsAsync();
     } catch (err) {
       console.warn("Failed to cancel scheduled notifications:", err);
     }
@@ -111,8 +122,11 @@ export const MeditationNotificationService = {
    */
   async cancelNotification(scheduledId: string | null): Promise<void> {
     if (!scheduledId) return;
+    const notifications = getNotifications();
+    if (!notifications) return;
+
     try {
-      await Notifications.cancelScheduledNotificationAsync(scheduledId);
+      await notifications.cancelScheduledNotificationAsync(scheduledId);
     } catch (err) {
       console.warn("Failed to cancel scheduled notification:", err);
     }
@@ -122,7 +136,10 @@ export const MeditationNotificationService = {
    * Subscribes to notification arrivals and interactions.
    */
   subscribeNotificationEvents(onTriggered: () => void): () => void {
-    const subReceived = Notifications.addNotificationReceivedListener(
+    const notifications = getNotifications();
+    if (!notifications) return () => {};
+
+    const subReceived = notifications.addNotificationReceivedListener(
       (notification) => {
         if (
           notification.request.content.data?.type ===
@@ -133,7 +150,7 @@ export const MeditationNotificationService = {
       },
     );
 
-    const subResponse = Notifications.addNotificationResponseReceivedListener(
+    const subResponse = notifications.addNotificationResponseReceivedListener(
       (response) => {
         if (
           response.notification.request.content.data?.type ===

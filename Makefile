@@ -190,8 +190,18 @@ mobile-ios-mcp: ## Start Expo iOS simulator with MCP server enabled
 	cd $(MOBILE_DIR) && EXPO_UNSTABLE_MCP_SERVER=1 bun run ios
 
 .PHONY: mobile-android
-mobile-android: ## Start Expo Android emulator
+mobile-android: ## Start Expo Android emulator (native build)
 	cd $(MOBILE_DIR) && bun run android
+
+.PHONY: mobile-android-sync-time
+mobile-android-sync-time: ## Synchronize Android emulator clock with host system
+	adb root >/dev/null 2>&1 || true
+	adb wait-for-device
+	adb shell date -u "@$$(date -u +%s)"
+
+.PHONY: mobile-android-expo
+mobile-android-expo: ## Start Expo dev server and open in Android emulator (Expo Go)
+	cd $(MOBILE_DIR) && bun run android:expo
 
 .PHONY: mobile-android-mcp
 mobile-android-mcp: ## Start Expo Android emulator with MCP server enabled

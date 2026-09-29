@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Pressable,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Keyboard,
   Dimensions,
@@ -122,7 +121,7 @@ export function BottomSheetModalContent({
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior="padding"
       keyboardVerticalOffset={keyboardVerticalOffset}
       style={styles.backdrop}
       onLayout={(e) => {
