@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { router, Stack } from "expo-router";
 import { View, StyleSheet, Alert, ScrollView } from "react-native";
-import { Image } from "expo-image";
 import { useTasks } from "@/hooks/use-tasks";
 import {
+  AppIcon,
   HeaderButton,
   ChipButton,
+  ScreenContainer,
   ThemedText,
   Card,
   FormRow,
@@ -41,11 +42,7 @@ export default function ModalScreen() {
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.systemBackground }]}
-      contentContainerStyle={styles.contentContainer}
-      contentInsetAdjustmentBehavior="automatic"
-    >
+    <ScreenContainer.Scroll contentContainerStyle={styles.contentContainer}>
       <Stack.Screen
         options={{
           title: "New Task",
@@ -103,9 +100,10 @@ export default function ModalScreen() {
         <Card variant="subdued" padding="none" style={styles.card}>
           <FormRow>
             <FormRow.Leading>
-              <Image
-                source="sf:text.badge.plus"
-                style={[styles.inputIcon, { tintColor: colors.systemBlue }]}
+              <AppIcon
+                name="sf:text.badge.plus"
+                size={22}
+                color={colors.systemBlue}
               />
             </FormRow.Leading>
             <FormRow.Input
@@ -120,9 +118,10 @@ export default function ModalScreen() {
 
           <FormRow>
             <FormRow.Leading>
-              <Image
-                source="sf:note.text"
-                style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
+              <AppIcon
+                name="sf:note.text"
+                size={22}
+                color={colors.systemPurple}
               />
             </FormRow.Leading>
             <FormRow.Input
@@ -136,14 +135,11 @@ export default function ModalScreen() {
           </FormRow>
         </Card>
       </View>
-    </ScrollView>
+    </ScreenContainer.Scroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   contentContainer: {
     padding: 16,
     gap: 20,
@@ -167,10 +163,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 16,
     borderCurve: "continuous",
-  },
-  inputIcon: {
-    width: 22,
-    height: 22,
   },
   descInput: {
     minHeight: 60,

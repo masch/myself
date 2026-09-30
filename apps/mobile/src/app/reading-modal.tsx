@@ -1,7 +1,9 @@
 import {
+  AppIcon,
   ChipButton,
   HeaderButton,
   MeditationText,
+  ScreenContainer,
   ThemedText,
   Card,
   FormRow,
@@ -9,7 +11,6 @@ import {
 } from "@/components";
 import { useReadingForm } from "@/hooks/use-reading-form";
 import { colors } from "@/theme";
-import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
 
@@ -47,11 +48,7 @@ export default function ReadingModalScreen() {
   });
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.systemBackground }]}
-      contentContainerStyle={styles.contentContainer}
-      contentInsetAdjustmentBehavior="automatic"
-    >
+    <ScreenContainer.Scroll contentContainerStyle={styles.contentContainer}>
       <Stack.Screen
         options={{
           title: isEditing ? "Edit Reading" : "New Reading",
@@ -115,9 +112,10 @@ export default function ReadingModalScreen() {
           <Card variant="subdued" padding="none" style={styles.card}>
             <FormRow>
               <FormRow.Leading>
-                <Image
-                  source="sf:person.fill"
-                  style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
+                <AppIcon
+                  name="sf:person.fill"
+                  size={22}
+                  color={colors.systemPurple}
                 />
               </FormRow.Leading>
               <FormRow.Input
@@ -132,12 +130,10 @@ export default function ReadingModalScreen() {
 
             <FormRow>
               <FormRow.Leading>
-                <Image
-                  source="sf:info.circle"
-                  style={[
-                    styles.inputIcon,
-                    { tintColor: colors.secondaryLabel },
-                  ]}
+                <AppIcon
+                  name="sf:info.circle"
+                  size={22}
+                  color={colors.secondaryLabel}
                 />
               </FormRow.Leading>
               <FormRow.Input
@@ -187,9 +183,10 @@ export default function ReadingModalScreen() {
         <Card variant="subdued" padding="none" style={styles.card}>
           <FormRow>
             <FormRow.Leading>
-              <Image
-                source="sf:text.quote"
-                style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
+              <AppIcon
+                name="sf:text.quote"
+                size={22}
+                color={colors.systemPurple}
               />
             </FormRow.Leading>
             <FormRow.Input
@@ -282,14 +279,11 @@ export default function ReadingModalScreen() {
           verse indentation.
         </ThemedText>
       </View>
-    </ScrollView>
+    </ScreenContainer.Scroll>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   contentContainer: {
     padding: 16,
     gap: 20,
@@ -323,10 +317,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 16,
     borderCurve: "continuous",
-  },
-  inputIcon: {
-    width: 22,
-    height: 22,
   },
   quoteInputWrapper: {
     paddingVertical: 8,

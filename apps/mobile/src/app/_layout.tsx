@@ -6,15 +6,14 @@ import {
   DarkTheme,
   DefaultTheme,
 } from "expo-router/react-navigation";
-import { useColorScheme, View, StyleSheet } from "react-native";
+import { useColorScheme } from "react-native";
 import { SQLiteProvider } from "expo-sqlite";
-import { Image } from "expo-image";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/infrastructure/query/query-client";
 import { initDatabase } from "@/infrastructure/persistence/database";
 import { AuthProvider } from "@/context/auth-context";
-import { AppButton, ThemedText } from "@/components";
-import { colors } from "@/theme";
+import { AppButton, EmptyState } from "@/components";
+import { colors, spacing } from "@/theme";
 
 /**
  * Global Error Boundary for Expo Router.
@@ -22,28 +21,20 @@ import { colors } from "@/theme";
  */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return (
-    <View
-      style={[
-        styles.errorContainer,
-        { backgroundColor: colors.systemBackground },
-      ]}
-    >
-      <Image
-        source="sf:exclamationmark.triangle.fill"
-        style={styles.errorIcon}
-      />
-      <ThemedText variant="headline" style={styles.errorTitle}>
-        Something went wrong
-      </ThemedText>
-      <ThemedText
-        variant="body"
-        color={colors.secondaryLabel}
-        style={styles.errorMessage}
-      >
-        {error.message}
-      </ThemedText>
-      <AppButton title="Try Again" variant="primary" onPress={retry} />
-    </View>
+    <EmptyState
+      icon="sf:exclamationmark.triangle.fill"
+      iconColor={colors.systemOrange}
+      iconSize={48}
+      title="Something went wrong"
+      description={error.message}
+      action={<AppButton title="Try Again" variant="primary" onPress={retry} />}
+      style={{
+        flex: 1,
+        backgroundColor: colors.systemBackground,
+        padding: spacing.xl,
+        justifyContent: "center",
+      }}
+    />
   );
 }
 
@@ -98,40 +89,3 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  errorContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-    gap: 12,
-  },
-  errorIcon: {
-    width: 48,
-    height: 48,
-    tintColor: "#FF9500",
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  errorMessage: {
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  retryButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginTop: 8,
-  },
-  retryText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-});
