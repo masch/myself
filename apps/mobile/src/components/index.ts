@@ -16,5 +16,6 @@ export * from "./themed-text-input";
 export * from "./form-row";
 export * from "./segmented-control";
 export * from "./empty-state";
+export * from "./spinner";
 export * from "./primitives";
 export * from "./native-controls";

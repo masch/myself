@@ -10,6 +10,7 @@ import {
   FormRow,
   SegmentedControl,
   EmptyState,
+  Spinner,
   Accordion,
   Collapsible,
   NativeFieldGroup,
@@ -547,6 +548,21 @@ export default function DevShowcaseScreen() {
             description="You have cleared all pending items for today."
           />
         </View>
+
+        {/* 12. Spinner */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">12. Spinner</ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            Harmonic activity indicator with size variants, colors, and compound
+            labels
+          </ThemedText>
+
+          <Card variant="outlined" padding="md" style={styles.spinnerRow}>
+            <Spinner size="sm" />
+            <Spinner size="md" color={colors.systemPurple} />
+            <Spinner size="lg" label="Loading..." />
+          </Card>
+        </View>
       </View>
     </ScreenContainer.Scroll>
   );
@@ -657,5 +673,10 @@ const styles = StyleSheet.create({
   itemIcon: {
     width: 24,
     height: 24,
+  },
+  spinnerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
   },
 });

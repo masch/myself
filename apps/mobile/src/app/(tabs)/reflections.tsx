@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { View, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
 import {
   type EntityId,
@@ -18,6 +18,7 @@ import {
   EmptyState,
   NativeSwitch,
   SegmentedControl,
+  Spinner,
 } from "@/components";
 
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
@@ -343,9 +344,7 @@ export default function ReflectionsScreen() {
       />
 
       {isLoading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.systemBlue} />
-        </View>
+        <Spinner.Centered size="lg" />
       ) : (
         <ScrollView
           style={styles.contentScroll}
@@ -914,11 +913,6 @@ const styles = StyleSheet.create({
   tabBar: {
     marginHorizontal: 16,
     marginVertical: 10,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
   contentScroll: {
     flex: 1,
