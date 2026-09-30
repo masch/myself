@@ -11,7 +11,13 @@ import {
   type NativeSyntheticEvent,
   type TargetedEvent,
 } from "react-native";
-import { colors, spacing, typography, type TypographyVariant } from "@/theme";
+import {
+  colors,
+  layout,
+  spacing,
+  typography,
+  type TypographyVariant,
+} from "@/theme";
 import { useScrollContainer } from "./screen-container";
 
 export interface FormRowProps extends ViewProps {
@@ -91,12 +97,18 @@ export const FormRowInput = forwardRef<TextInput, FormRowInputProps>(
       }
     };
 
+    const finalAccessibilityLabel =
+      props.accessibilityLabel ??
+      (typeof props.placeholder === "string" ? props.placeholder : undefined);
+
     return (
       <TextInput
         ref={internalRef}
         placeholderTextColor={placeholderTextColor}
         multiline={multiline}
         onFocus={handleFocus}
+        accessibilityLabel={finalAccessibilityLabel}
+        aria-label={finalAccessibilityLabel}
         style={[
           styles.input,
           typeStyle,
@@ -118,8 +130,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 44,
-    paddingVertical: spacing.xs + 2,
+    minHeight: layout.rowHeight,
+    paddingVertical: layout.rowPaddingVertical,
     gap: spacing.md,
   },
   leading: {

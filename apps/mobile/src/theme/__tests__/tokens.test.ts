@@ -88,6 +88,11 @@ describe("Design System Tokens", () => {
       expect(layout.cardGap).toBe(16);
       expect(layout.screenTopOffset).toBe(8);
       expect(layout.screenBottomOffset).toBe(16);
+      expect(layout.minInteractiveTarget).toBe(44);
+      expect(layout.rowHeight).toBe(44);
+      expect(layout.rowPaddingVertical).toBe(6);
+      expect(layout.iconSize.md).toBe(20);
+      expect(layout.iconSize.row).toBe(22);
     });
   });
 });

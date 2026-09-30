@@ -11,7 +11,7 @@ import { IconButton } from "./icon-button";
 import { ThemedText } from "./themed-text";
 import { Divider } from "./divider";
 import { AppIcon } from "./app-icon";
-import { colors, spacing } from "@/theme";
+import { colors, layout, spacing } from "@/theme";
 
 export interface TaskRowProps {
   task: TaskItem;
@@ -47,7 +47,7 @@ export function TaskRow({
       >
         <AppIcon
           name={isDone ? "sf:checkmark.circle.fill" : "sf:circle"}
-          size={22}
+          size={layout.iconSize.row}
           color={isDone ? colors.systemGreen : colors.systemBlue}
         />
 
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: spacing.md - 4,
+    paddingVertical: spacing.compact,
     paddingHorizontal: spacing.md,
     gap: spacing.md,
   },

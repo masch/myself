@@ -10,7 +10,7 @@ import {
   Divider,
 } from "@/components";
 import { useReadingForm } from "@/hooks/use-reading-form";
-import { colors } from "@/theme";
+import { colors, layout } from "@/theme";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
 
@@ -114,11 +114,12 @@ export default function ReadingModalScreen() {
               <FormRow.Leading>
                 <AppIcon
                   name="sf:person.fill"
-                  size={22}
+                  size={layout.iconSize.row}
                   color={colors.systemPurple}
                 />
               </FormRow.Leading>
               <FormRow.Input
+                accessibilityLabel="Author name"
                 placeholder="Author name (e.g. Marcus Aurelius)"
                 value={newAuthorName}
                 onChangeText={setNewAuthorName}
@@ -132,11 +133,12 @@ export default function ReadingModalScreen() {
               <FormRow.Leading>
                 <AppIcon
                   name="sf:info.circle"
-                  size={22}
+                  size={layout.iconSize.row}
                   color={colors.secondaryLabel}
                 />
               </FormRow.Leading>
               <FormRow.Input
+                accessibilityLabel="Author bio"
                 placeholder="Short bio / era (optional)"
                 value={newAuthorBio}
                 onChangeText={setNewAuthorBio}
@@ -185,11 +187,16 @@ export default function ReadingModalScreen() {
             <FormRow.Leading>
               <AppIcon
                 name="sf:text.quote"
-                size={22}
+                size={layout.iconSize.row}
                 color={colors.systemPurple}
               />
             </FormRow.Leading>
             <FormRow.Input
+              accessibilityLabel={
+                activeTabLocale === "es"
+                  ? "Title in Spanish"
+                  : "Title in English"
+              }
               placeholder={
                 activeTabLocale === "es"
                   ? "Ej: Poder sobre la Mente, Anam Cara..."
@@ -255,6 +262,11 @@ export default function ReadingModalScreen() {
                 </ThemedText>
               </FormRow.Leading>
               <FormRow.Input
+                accessibilityLabel={
+                  activeTabLocale === "es"
+                    ? "Passage in Spanish"
+                    : "Passage in English"
+                }
                 placeholder={
                   activeTabLocale === "es"
                     ? "Escribe el texto o poema para leer y reflexionar..."

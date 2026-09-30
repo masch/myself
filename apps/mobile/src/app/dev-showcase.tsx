@@ -19,7 +19,7 @@ import {
   NativeSwitch,
   NativePicker,
 } from "@/components";
-import { colors, spacing, typography, radius } from "@/theme";
+import { colors, layout, spacing, typography, radius } from "@/theme";
 
 const COLOR_SWATCHES: {
   category: string;
@@ -486,13 +486,16 @@ export default function DevShowcaseScreen() {
                 <Image
                   source="sf:magnifyingglass"
                   style={{
-                    width: 20,
-                    height: 20,
+                    width: layout.iconSize.md,
+                    height: layout.iconSize.md,
                     tintColor: colors.systemBlue,
                   }}
                 />
               </FormRow.Leading>
-              <FormRow.Input placeholder="Search query..." />
+              <FormRow.Input
+                accessibilityLabel="Search query"
+                placeholder="Search query..."
+              />
             </FormRow>
 
             <Divider inset="md" />
@@ -502,13 +505,16 @@ export default function DevShowcaseScreen() {
                 <Image
                   source="sf:tag.fill"
                   style={{
-                    width: 20,
-                    height: 20,
+                    width: layout.iconSize.md,
+                    height: layout.iconSize.md,
                     tintColor: colors.systemPurple,
                   }}
                 />
               </FormRow.Leading>
-              <FormRow.Input placeholder="Category tag" />
+              <FormRow.Input
+                accessibilityLabel="Category tag"
+                placeholder="Category tag"
+              />
               <FormRow.Trailing>
                 <ThemedText variant="caption1" color={colors.secondaryLabel}>
                   Optional

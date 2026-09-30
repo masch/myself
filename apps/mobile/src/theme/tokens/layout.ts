@@ -14,6 +14,16 @@ export const layout = {
   screenBottomOffset: spacing.md, // 16
   cardGap: spacing.md, // 16
   cardPadding: spacing.compact, // 12
+  minInteractiveTarget: 44,
+  rowHeight: 44,
+  rowPaddingVertical: 6,
+  iconSize: {
+    sm: 16,
+    md: 20,
+    row: 22,
+    lg: 24,
+    xl: 32,
+  },
 } as const;
 
 export type Layout = typeof layout;

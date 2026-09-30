@@ -12,7 +12,7 @@ import {
   FormRow,
   Divider,
 } from "@/components";
-import { colors } from "@/theme";
+import { colors, layout } from "@/theme";
 
 const CATEGORIES = ["Work", "Personal", "Shopping", "Design", "Urgent"];
 
@@ -102,11 +102,12 @@ export default function ModalScreen() {
             <FormRow.Leading>
               <AppIcon
                 name="sf:text.badge.plus"
-                size={22}
+                size={layout.iconSize.row}
                 color={colors.systemBlue}
               />
             </FormRow.Leading>
             <FormRow.Input
+              accessibilityLabel="Task title"
               placeholder="Task title"
               value={title}
               onChangeText={setTitle}
@@ -120,11 +121,12 @@ export default function ModalScreen() {
             <FormRow.Leading>
               <AppIcon
                 name="sf:note.text"
-                size={22}
+                size={layout.iconSize.row}
                 color={colors.systemPurple}
               />
             </FormRow.Leading>
             <FormRow.Input
+              accessibilityLabel="Task description"
               placeholder="Description or notes (optional)"
               value={description}
               onChangeText={setDescription}

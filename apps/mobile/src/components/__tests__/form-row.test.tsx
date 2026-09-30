@@ -76,4 +76,23 @@ describe("FormRow compound component", () => {
     expect(html).toContain('data-testid="full-trailing"');
     expect(html).toContain("Buy coffee");
   });
+
+  it("supports fallback and explicit accessibilityLabel on FormRow.Input", () => {
+    const htmlWithFallback = renderToString(
+      <FormRow>
+        <FormRow.Input placeholder="Search query" />
+      </FormRow>,
+    );
+    expect(htmlWithFallback).toContain('aria-label="Search query"');
+
+    const htmlWithExplicit = renderToString(
+      <FormRow>
+        <FormRow.Input
+          placeholder="Escribe aquí..."
+          accessibilityLabel="Título en Castellano"
+        />
+      </FormRow>,
+    );
+    expect(htmlWithExplicit).toContain('aria-label="Título en Castellano"');
+  });
 });
