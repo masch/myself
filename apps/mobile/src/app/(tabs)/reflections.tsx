@@ -5,7 +5,6 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Switch,
 } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
 import {
@@ -22,6 +21,7 @@ import {
   ThemedText,
   Card,
   ChipButton,
+  NativeSwitch,
 } from "@/components";
 
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
@@ -660,15 +660,10 @@ export default function ReflectionsScreen() {
                         quieras.
                       </ThemedText>
                     </View>
-                    <Switch
+                    <NativeSwitch
                       testID="toggle-show-answered"
                       value={showAnswered}
                       onValueChange={setShowAnswered}
-                      trackColor={{
-                        false: colors.systemGray15,
-                        true: colors.systemGreen,
-                      }}
-                      accessibilityRole="switch"
                       accessibilityLabel="Mostrar respondidas"
                     />
                   </View>

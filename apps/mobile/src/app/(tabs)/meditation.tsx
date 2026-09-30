@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, Switch, Alert } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useKeepAwake } from "expo-keep-awake";
 import {
@@ -20,6 +20,7 @@ import {
   Collapsible,
   ThemedText,
   Card,
+  NativeSwitch,
 } from "@/components";
 
 import { colors } from "@/theme";
@@ -525,13 +526,9 @@ export default function MeditationScreen() {
                   Suena 1 gong al llegar a la hora objetivo
                 </ThemedText>
               </View>
-              <Switch
+              <NativeSwitch
                 value={alarmEnabled}
                 onValueChange={setAlarmEnabled}
-                trackColor={{
-                  false: "rgba(142, 142, 147, 0.3)",
-                  true: colors.systemGreen as any,
-                }}
               />
             </View>
 
