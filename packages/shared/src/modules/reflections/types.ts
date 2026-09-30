@@ -62,7 +62,7 @@ export const themeCohortSchema = z.object({
   programStartDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD"),
-  enrollmentGraceDays: z.number().int().nonnegative().default(0),
+  enrollmentGraceDays: z.number().int().nonnegative(),
   status: z.enum(COHORT_STATUSES).default("upcoming"),
   createdAt: z.string(),
 });

@@ -8,7 +8,7 @@ Enforce enrollment window restrictions for thematic cohorts in both backend (SQL
 
 - Monorepo packages: `packages/shared`, `apps/mobile`.
 - Back-end / Shared:
-  - Add `enrollmentGraceDays` (integer, default 0, non-negative) to `theme_cohorts` schema, Zod schema (`themeCohortSchema`), migration, and seed data.
+  - Add `enrollmentGraceDays` (integer, required, non-negative, strictly no default value) to `theme_cohorts` schema, Zod schema (`themeCohortSchema`), initial migration `0001_reflections_initial.sql`, and seed data.
   - Domain helper `isCohortEnrollmentOpen(cohort, currentDateStr)` to compute whether today <= min(enrollmentEndDate, programStartDate + enrollmentGraceDays) and today >= enrollmentStartDate.
   - Enforce in `SqliteReflectionRepository`:
     - `getOpenCohorts()` returns only cohorts where enrollment is currently open or returns all with calculated eligibility.
@@ -27,19 +27,19 @@ Enforce enrollment window restrictions for thematic cohorts in both backend (SQL
 
 ## Tasks
 
-- [x] **TASK-1**: Schema & Seed: Add `enrollmentGraceDays` to `@myself/shared` (Drizzle schema, Zod validation, migrations, and seed).
+- [x] **TASK-1**: Schema & Seed: Add `enrollmentGraceDays` to `@myself/shared` (Drizzle schema, Zod validation, initial migration, and seed; strictly required without defaults).
 - [x] **TASK-2**: Domain & Repository: Implement `isCohortEnrollmentOpen` and enforce enrollment restrictions in `SqliteReflectionRepository` (`enrollInCohort` and `getOpenCohorts`).
 - [x] **TASK-3**: Mobile UI: Update `CohortEnrollmentCard` and `reflections.tsx` to reflect enrollment availability, grace days info, and disabled states.
 - [x] **TASK-4**: Verification & Quality Gates: Unit, integration, and E2E tests, typecheck, lint, and commit evidence.
 
 ## Evidence & Verification
 
-- `TASK-1`: Added `enrollmentGraceDays` (integer, default 0, non-negative) to:
+- `TASK-1`: Added `enrollmentGraceDays` (integer, required without defaults, non-negative) to:
   - Zod schema `themeCohortSchema` in [`packages/shared/src/modules/reflections/types.ts`](file:///var/home/masch/dev/js/myself/packages/shared/src/modules/reflections/types.ts).
   - Drizzle SQLite table `themeCohorts` in [`packages/shared/src/modules/reflections/schema.ts`](file:///var/home/masch/dev/js/myself/packages/shared/src/modules/reflections/schema.ts).
-  - SQLite migration `0002_cohort_enrollment_grace_days.sql` and journal in [`packages/shared/src/migrations/`](file:///var/home/masch/dev/js/myself/packages/shared/src/migrations/).
+  - Initial SQLite migration `0001_reflections_initial.sql` directly into `theme_cohorts` table definition, removing `0002_cohort_enrollment_grace_days.sql` and keeping journal clean.
   - Seed model and sync upsert in [`packages/shared/src/modules/reflections/seed.ts`](file:///var/home/masch/dev/js/myself/packages/shared/src/modules/reflections/seed.ts) and [`apps/mobile/src/infrastructure/persistence/seed.ts`](file:///var/home/masch/dev/js/myself/apps/mobile/src/infrastructure/persistence/seed.ts).
-  - TDD cycle: Observed RED on schema validation tests, then GREEN with 40 passing tests in `@myself/shared`.
+  - TDD cycle: Observed RED on schema validation tests, then GREEN with 41 passing tests in `@myself/shared`.
 - `TASK-2`: Domain helper and repository validation:
   - Added `addDaysToDate`, `getCohortEnrollmentDeadline`, and `isCohortEnrollmentOpen` in [`apps/mobile/src/features/reflections/domain/time-lock.ts`](file:///var/home/masch/dev/js/myself/apps/mobile/src/features/reflections/domain/time-lock.ts).
   - Added unit test suite in [`apps/mobile/src/features/reflections/__tests__/time-lock.test.ts`](file:///var/home/masch/dev/js/myself/apps/mobile/src/features/reflections/__tests__/time-lock.test.ts) covering pre-start, start date, grace period, and post-grace expiration.

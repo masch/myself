@@ -50,11 +50,26 @@ describe("Reflections Module - Zod Validation Schemas", () => {
       enrollmentStartDate: "2026-09-20",
       enrollmentEndDate: "2026-09-30",
       programStartDate: "2026-10-01",
+      enrollmentGraceDays: 0,
       status: "open_for_enrollment",
       createdAt: "2026-09-12T00:00:00.000Z",
     });
     expect(cohort.status).toBe("open_for_enrollment");
     expect(cohort.enrollmentGraceDays).toBe(0);
+  });
+
+  it("should reject ThemeCohort when enrollmentGraceDays is omitted", () => {
+    expect(() =>
+      themeCohortSchema.parse({
+        id: cohortId,
+        themeId,
+        name: "Missing Grace Days Cohort",
+        enrollmentStartDate: "2026-09-20",
+        enrollmentEndDate: "2026-09-30",
+        programStartDate: "2026-10-01",
+        createdAt: "2026-09-12T00:00:00.000Z",
+      }),
+    ).toThrow();
   });
 
   it("should validate ThemeCohort with custom enrollmentGraceDays", () => {

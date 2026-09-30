@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS `theme_cohorts` (
 	`enrollment_start_date` text NOT NULL,
 	`enrollment_end_date` text NOT NULL,
 	`program_start_date` text NOT NULL,
+	`enrollment_grace_days` integer NOT NULL,
 	`status` text DEFAULT 'upcoming' NOT NULL,
 	`created_at` text NOT NULL,
 	FOREIGN KEY (`theme_id`) REFERENCES `reflection_themes`(`id`) ON UPDATE no action ON DELETE cascade

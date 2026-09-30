@@ -15,13 +15,6 @@
       "when": 1789182000000,
       "tag": "0001_reflections_initial",
       "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1789500000000,
-      "tag": "0002_cohort_enrollment_grace_days",
-      "breakpoints": true
     }
   ]
 }
