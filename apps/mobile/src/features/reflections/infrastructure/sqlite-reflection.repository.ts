@@ -44,7 +44,7 @@ interface RawCohort {
   enrollment_start_date: string;
   enrollment_end_date: string;
   program_start_date: string;
-  enrollment_grace_days?: number;
+  enrollment_grace_days: number;
   status: "upcoming" | "open_for_enrollment" | "active" | "closed";
   created_at: string;
 }
@@ -143,7 +143,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       enrollmentStartDate: r.enrollment_start_date,
       enrollmentEndDate: r.enrollment_end_date,
       programStartDate: r.program_start_date,
-      enrollmentGraceDays: r.enrollment_grace_days ?? 0,
+      enrollmentGraceDays: r.enrollment_grace_days,
       status: r.status,
       createdAt: r.created_at,
     }));
@@ -162,7 +162,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       enrollmentStartDate: r.enrollment_start_date,
       enrollmentEndDate: r.enrollment_end_date,
       programStartDate: r.program_start_date,
-      enrollmentGraceDays: r.enrollment_grace_days ?? 0,
+      enrollmentGraceDays: r.enrollment_grace_days,
       status: r.status,
       createdAt: r.created_at,
     };
@@ -378,7 +378,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
             enrollmentStartDate: cohortRow.enrollment_start_date,
             enrollmentEndDate: cohortRow.enrollment_end_date,
             programStartDate: cohortRow.program_start_date,
-            enrollmentGraceDays: cohortRow.enrollment_grace_days ?? 0,
+            enrollmentGraceDays: cohortRow.enrollment_grace_days,
             status: cohortRow.status,
             createdAt: cohortRow.created_at,
           },
