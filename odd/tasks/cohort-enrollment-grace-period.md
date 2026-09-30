@@ -56,3 +56,5 @@ Enforce enrollment window restrictions for thematic cohorts in both backend (SQL
   - Typecheck: `turbo run typecheck` passed (0 errors across 3 packages).
   - Lint: `turbo run lint` passed (0 warnings/errors).
   - Formatting: `bun run check:format` passed cleanly.
+
+- **Completion & Delivery**: Created Issue [#63](https://github.com/masch/myself/issues/63) and opened Pull Request [#64](https://github.com/masch/myself/pull/64) on branch `feat/cohort-enrollment-grace-period`.
