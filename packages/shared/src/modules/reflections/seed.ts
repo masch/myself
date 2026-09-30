@@ -25,7 +25,7 @@ export interface SeedThemeCohort {
   enrollmentStartDate: string;
   enrollmentEndDate: string;
   programStartDate: string;
-  enrollmentGraceDays?: number;
+  enrollmentGraceDays: number;
   status: CohortStatus;
 }
 

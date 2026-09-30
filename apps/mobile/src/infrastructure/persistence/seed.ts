@@ -197,7 +197,7 @@ export async function seedDatabase(db: SQLiteDatabase) {
         cohort.enrollmentStartDate,
         cohort.enrollmentEndDate,
         cohort.programStartDate,
-        cohort.enrollmentGraceDays ?? 0,
+        cohort.enrollmentGraceDays,
         cohort.status,
       ],
     );
