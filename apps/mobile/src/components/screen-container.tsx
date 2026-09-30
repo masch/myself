@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useRef,
   useState,
+  useCallback,
 } from "react";
 import {
   View,
@@ -130,50 +131,53 @@ export function ScrollScreenContainer({
   const activeInputRef = useRef<any>(null);
   const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0);
 
-  const scrollInputIntoView = (input: any) => {
-    if (!scrollViewRef.current || !input) return;
+  const scrollInputIntoView = useCallback(
+    (input: any) => {
+      if (!scrollViewRef.current || !input) return;
 
-    if (typeof input.measureLayout === "function") {
-      try {
-        input.measureLayout(
-          scrollViewRef.current,
-          (_left: number, top: number, _width: number, height: number) => {
-            const inputHeight = height || 48;
-            const inputBottom = top + inputHeight;
-            const currentScrollY = scrollYRef.current;
-            const viewHeight =
-              scrollViewHeightRef.current || Dimensions.get("window").height;
-            const kbHeight = keyboardHeightRef.current;
-            // On Android with 3-button navigation or system insets, React Native's
-            // keyboard event reports height above the navigation bar.
-            // We combine kbHeight + insets.bottom to accurately clear both the
-            // soft keyboard and the system navigation bar across all device types.
-            const bottomBlocked =
-              kbHeight + (Platform.OS === "android" ? insets.bottom : 0);
-            const visibleHeight = Math.max(0, viewHeight - bottomBlocked);
-            const targetBottom =
-              visibleHeight - DEFAULT_KEYBOARD_BOTTOM_SPACING;
+      if (typeof input.measureLayout === "function") {
+        try {
+          input.measureLayout(
+            scrollViewRef.current,
+            (_left: number, top: number, _width: number, height: number) => {
+              const inputHeight = height || 48;
+              const inputBottom = top + inputHeight;
+              const currentScrollY = scrollYRef.current;
+              const viewHeight =
+                scrollViewHeightRef.current || Dimensions.get("window").height;
+              const kbHeight = keyboardHeightRef.current;
+              // On Android with 3-button navigation or system insets, React Native's
+              // keyboard event reports height above the navigation bar.
+              // We combine kbHeight + insets.bottom to accurately clear both the
+              // soft keyboard and the system navigation bar across all device types.
+              const bottomBlocked =
+                kbHeight + (Platform.OS === "android" ? insets.bottom : 0);
+              const visibleHeight = Math.max(0, viewHeight - bottomBlocked);
+              const targetBottom =
+                visibleHeight - DEFAULT_KEYBOARD_BOTTOM_SPACING;
 
-            if (inputBottom - currentScrollY > targetBottom) {
-              const targetY = Math.max(0, inputBottom - targetBottom);
-              scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
-            } else if (top - currentScrollY < DEFAULT_KEYBOARD_TOP_SPACING) {
-              const targetY = Math.max(0, top - DEFAULT_KEYBOARD_TOP_SPACING);
-              scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
-            }
-          },
-          () => {
-            scrollViewRef.current?.scrollToEnd({ animated: true });
-          },
-        );
-        return;
-      } catch {
-        // Fall through to scrollToEnd
+              if (inputBottom - currentScrollY > targetBottom) {
+                const targetY = Math.max(0, inputBottom - targetBottom);
+                scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
+              } else if (top - currentScrollY < DEFAULT_KEYBOARD_TOP_SPACING) {
+                const targetY = Math.max(0, top - DEFAULT_KEYBOARD_TOP_SPACING);
+                scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
+              }
+            },
+            () => {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            },
+          );
+          return;
+        } catch {
+          // Fall through to scrollToEnd
+        }
       }
-    }
 
-    scrollViewRef.current?.scrollToEnd({ animated: true });
-  };
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    },
+    [insets.bottom],
+  );
 
   const scrollToFocusedInput = (input: any) => {
     activeInputRef.current = input;
@@ -190,9 +194,9 @@ export function ScrollScreenContainer({
       keyboardHeightRef.current = kbHeight;
       setAndroidKeyboardHeight(kbHeight);
 
-      const focused =
-        activeInputRef.current ?? TextInput.State?.currentlyFocusedInput?.();
       setTimeout(() => {
+        const focused =
+          TextInput.State?.currentlyFocusedInput?.() ?? activeInputRef.current;
         scrollInputIntoView(focused);
       }, 50);
     });
@@ -206,7 +210,7 @@ export function ScrollScreenContainer({
       showSub.remove();
       hideSub.remove();
     };
-  }, [insets.bottom]);
+  }, [scrollInputIntoView]);
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollYRef.current = e.nativeEvent.contentOffset.y;
