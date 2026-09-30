@@ -61,6 +61,29 @@ describe("Native Controls", () => {
       expect(html).toContain("Choose option");
       expect(html).toContain("Trailing Element");
     });
+
+    it("automatically switches to vertical layout when trailing is a NativePicker", () => {
+      const html = renderToString(
+        <NativeListItem
+          trailing={
+            <NativePicker
+              options={[
+                { label: "English", value: "en" },
+                { label: "Español", value: "es" },
+              ]}
+              value="en"
+              onValueChange={() => {}}
+            />
+          }
+        >
+          Language
+        </NativeListItem>,
+      );
+
+      expect(html).toContain("Language");
+      expect(html).toContain("English");
+      expect(html).toContain("Español");
+    });
   });
 
   describe("NativePicker", () => {
