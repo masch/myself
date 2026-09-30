@@ -56,3 +56,11 @@ Docs: https://docs.expo.dev/eas/index.md
 4. **Single Source of Truth for Insets (DRY)**:
    - All tab and stack screens must use `<ScreenContainer>`, `<ScreenContainer.Tab>`, or `<ScreenContainer.Scroll>`.
    - Never duplicate safe-area inset math across siblings; extract shared geometry to dedicated hooks (e.g. `useScreenPadding`).
+
+5. **Accessibility (A11y)**:
+   - Textless controls (`IconButton`, `NativeSwitch`) MUST require `accessibilityLabel: string` in TS props.
+   - Form inputs (`ThemedTextInput`, `FormRow.Input`) MUST receive persistent `accessibilityLabel` at screen level (placeholders disappear on input).
+   - Toggles/checkable rows MUST declare `accessibilityRole` and `accessibilityState={{ checked }}`.
+
+6. **ScreenContainer Insets**:
+   - NEVER override `paddingBottom` in `<ScreenContainer.Scroll contentContainerStyle>` (erases dynamic keyboard/safe-area math).
