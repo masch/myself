@@ -21,6 +21,7 @@ import {
   Collapsible,
   ThemedText,
   Card,
+  ChipButton,
 } from "@/components";
 
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
@@ -739,25 +740,15 @@ export default function ReflectionsScreen() {
                         {active.theme.title}
                       </ThemedText>
                       {active.status === "in_progress" && (
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel="Bajarme del programa"
+                        <ChipButton
+                          title="Bajarme"
+                          variant="destructive"
                           disabled={isSubmitting}
+                          accessibilityLabel="Bajarme del programa"
                           onPress={() =>
                             void handleLeaveCohort(active.cohortId)
                           }
-                          style={[
-                            styles.leaveCohortBtn,
-                            { opacity: isSubmitting ? 0.5 : 1 },
-                          ]}
-                        >
-                          <ThemedText
-                            variant="caption1"
-                            style={styles.leaveCohortBtnText}
-                          >
-                            Bajarme
-                          </ThemedText>
-                        </Pressable>
+                        />
                       )}
                     </View>
 
@@ -1100,17 +1091,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 8,
     gap: 8,
-  },
-  leaveCohortBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 10,
-    backgroundColor: colors.systemGray15,
-  },
-  leaveCohortBtnText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.systemRed,
   },
   subHeader: {
     fontSize: 13,
