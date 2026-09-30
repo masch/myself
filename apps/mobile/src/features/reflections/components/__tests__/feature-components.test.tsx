@@ -35,6 +35,7 @@ const mockCohort: ThemeCohort = {
   enrollmentStartDate: "2026-09-20",
   enrollmentEndDate: "2026-09-30",
   programStartDate: "2026-10-01",
+  enrollmentGraceDays: 2,
   status: "open_for_enrollment",
   createdAt: "2026-09-01",
 };
@@ -59,16 +60,32 @@ describe("Reflections Feature Components", () => {
     expect(html).toContain("Responder");
   });
 
-  it("renders CohortEnrollmentCard with details", () => {
+  it("renders CohortEnrollmentCard with details and grace period info", () => {
     const html = renderToString(
       <CohortEnrollmentCard
         cohort={mockCohort}
         theme={mockTheme}
         onEnroll={() => {}}
+        currentDateStr="2026-09-25"
       />,
     );
     expect(html).toContain("Mindful Morning");
     expect(html).toContain("Morning Reflection Cohort");
+    expect(html).toContain("Plazo de gracia para sumarte:");
+    expect(html).toContain("Sumarme a la convocatoria");
+  });
+
+  it("renders CohortEnrollmentCard in closed state when past enrollment deadline", () => {
+    const html = renderToString(
+      <CohortEnrollmentCard
+        cohort={mockCohort}
+        theme={mockTheme}
+        onEnroll={() => {}}
+        currentDateStr="2026-10-10"
+      />,
+    );
+    expect(html).toContain("Inscripción cerrada");
+    expect(html).not.toContain("Sumarme a la convocatoria");
   });
 
   it("renders CycleProgressBadge", () => {

@@ -104,3 +104,60 @@ export function formatRelativeMissedDate(
     ? `Hace ${diffDays} días · Vence hoy`
     : `Hace ${diffDays} días`;
 }
+
+/**
+ * Adds a specified number of calendar days to an ISO date string "YYYY-MM-DD" and returns "YYYY-MM-DD".
+ */
+export function addDaysToDate(isoDate: string, days: number): string {
+  const parts = isoDate.split("-").map(Number);
+  const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+  date.setUTCDate(date.getUTCDate() + days);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Calculates the final date until which enrollment is permitted for a cohort.
+ * This is the minimum between enrollmentEndDate and (programStartDate + enrollmentGraceDays).
+ */
+export function getCohortEnrollmentDeadline(cohort: {
+  enrollmentEndDate: string;
+  programStartDate: string;
+  enrollmentGraceDays?: number;
+}): string {
+  const graceDays = cohort.enrollmentGraceDays ?? 0;
+  const programGraceCutoff = addDaysToDate(cohort.programStartDate, graceDays);
+  return cohort.enrollmentEndDate < programGraceCutoff
+    ? cohort.enrollmentEndDate
+    : programGraceCutoff;
+}
+
+/**
+ * Determines whether enrollment for a theme cohort is currently open.
+ *
+ * Rules:
+ * - Must have status === "open_for_enrollment".
+ * - currentDateStr must be >= cohort.enrollmentStartDate.
+ * - currentDateStr must be <= getCohortEnrollmentDeadline(cohort).
+ */
+export function isCohortEnrollmentOpen(
+  cohort: {
+    status: string;
+    enrollmentStartDate: string;
+    enrollmentEndDate: string;
+    programStartDate: string;
+    enrollmentGraceDays?: number;
+  },
+  currentDateStr: string = getLocalDateString(),
+): boolean {
+  if (cohort.status !== "open_for_enrollment") {
+    return false;
+  }
+  if (currentDateStr < cohort.enrollmentStartDate) {
+    return false;
+  }
+  const deadline = getCohortEnrollmentDeadline(cohort);
+  return currentDateStr <= deadline;
+}

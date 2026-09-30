@@ -11,6 +11,9 @@ import {
   isCohortStarted,
   formatDateDDMM,
   formatRelativeMissedDate,
+  addDaysToDate,
+  getCohortEnrollmentDeadline,
+  isCohortEnrollmentOpen,
 } from "../domain/time-lock";
 
 describe("time-lock utility", () => {
@@ -158,6 +161,61 @@ describe("time-lock utility", () => {
       expect(formatRelativeMissedDate("2026-09-13", "2026-09-13", 2)).toBe(
         "Hoy",
       );
+    });
+  });
+
+  describe("cohort enrollment window and grace period", () => {
+    const testCohort = {
+      id: "c1" as EntityId,
+      themeId: "t1" as EntityId,
+      name: "Spring Cohort",
+      enrollmentStartDate: "2026-09-01",
+      enrollmentEndDate: "2026-09-30",
+      programStartDate: "2026-09-15",
+      enrollmentGraceDays: 2,
+      status: "open_for_enrollment" as const,
+      createdAt: "2026-08-25T00:00:00Z",
+    };
+
+    it("adds days to date correctly", () => {
+      expect(addDaysToDate("2026-09-15", 2)).toBe("2026-09-17");
+      expect(addDaysToDate("2026-09-30", 1)).toBe("2026-10-01");
+    });
+
+    it("calculates enrollment deadline considering programStartDate + enrollmentGraceDays", () => {
+      // programStartDate (2026-09-15) + 2 days = 2026-09-17, which is < enrollmentEndDate (2026-09-30)
+      expect(getCohortEnrollmentDeadline(testCohort)).toBe("2026-09-17");
+
+      // when enrollmentEndDate is earlier than programStartDate + graceDays
+      const shortCohort = {
+        ...testCohort,
+        enrollmentEndDate: "2026-09-16",
+      };
+      expect(getCohortEnrollmentDeadline(shortCohort)).toBe("2026-09-16");
+    });
+
+    it("permits enrollment before programStartDate", () => {
+      expect(isCohortEnrollmentOpen(testCohort, "2026-09-10")).toBe(true);
+      expect(isCohortEnrollmentOpen(testCohort, "2026-09-15")).toBe(true);
+    });
+
+    it("permits enrollment during grace period after programStartDate", () => {
+      expect(isCohortEnrollmentOpen(testCohort, "2026-09-16")).toBe(true);
+      expect(isCohortEnrollmentOpen(testCohort, "2026-09-17")).toBe(true);
+    });
+
+    it("rejects enrollment after grace period has expired", () => {
+      expect(isCohortEnrollmentOpen(testCohort, "2026-09-18")).toBe(false);
+      expect(isCohortEnrollmentOpen(testCohort, "2026-09-25")).toBe(false);
+    });
+
+    it("rejects enrollment before enrollmentStartDate", () => {
+      expect(isCohortEnrollmentOpen(testCohort, "2026-08-31")).toBe(false);
+    });
+
+    it("rejects enrollment when cohort status is not open_for_enrollment", () => {
+      const closedCohort = { ...testCohort, status: "closed" as const };
+      expect(isCohortEnrollmentOpen(closedCohort, "2026-09-10")).toBe(false);
     });
   });
 });

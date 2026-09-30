@@ -44,6 +44,7 @@ export interface ReflectionRepositoryPort {
     userId: EntityId,
     themeId: EntityId,
     cohortId: EntityId,
+    options?: { forDate?: string },
   ): Promise<UserThemeProgress>;
   getUserActiveCohortProgress(
     userId: EntityId,

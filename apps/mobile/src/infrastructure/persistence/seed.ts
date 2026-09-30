@@ -180,14 +180,15 @@ export async function seedDatabase(db: SQLiteDatabase) {
   // 5. Always Sync / Upsert Theme Cohorts
   for (const cohort of SEED_THEME_COHORTS) {
     await db.runAsync(
-      `INSERT INTO theme_cohorts (id, theme_id, name, enrollment_start_date, enrollment_end_date, program_start_date, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `INSERT INTO theme_cohorts (id, theme_id, name, enrollment_start_date, enrollment_end_date, program_start_date, enrollment_grace_days, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
        ON CONFLICT(id) DO UPDATE SET
          theme_id = excluded.theme_id,
          name = excluded.name,
          enrollment_start_date = excluded.enrollment_start_date,
          enrollment_end_date = excluded.enrollment_end_date,
          program_start_date = excluded.program_start_date,
+         enrollment_grace_days = excluded.enrollment_grace_days,
          status = excluded.status`,
       [
         cohort.id,
@@ -196,6 +197,7 @@ export async function seedDatabase(db: SQLiteDatabase) {
         cohort.enrollmentStartDate,
         cohort.enrollmentEndDate,
         cohort.programStartDate,
+        cohort.enrollmentGraceDays ?? 0,
         cohort.status,
       ],
     );

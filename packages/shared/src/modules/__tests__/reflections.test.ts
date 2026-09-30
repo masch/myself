@@ -54,6 +54,37 @@ describe("Reflections Module - Zod Validation Schemas", () => {
       createdAt: "2026-09-12T00:00:00.000Z",
     });
     expect(cohort.status).toBe("open_for_enrollment");
+    expect(cohort.enrollmentGraceDays).toBe(0);
+  });
+
+  it("should validate ThemeCohort with custom enrollmentGraceDays", () => {
+    const cohort = themeCohortSchema.parse({
+      id: cohortId,
+      themeId,
+      name: "Late Enrollment Cohort",
+      enrollmentStartDate: "2026-09-20",
+      enrollmentEndDate: "2026-09-30",
+      programStartDate: "2026-10-01",
+      enrollmentGraceDays: 3,
+      status: "open_for_enrollment",
+      createdAt: "2026-09-12T00:00:00.000Z",
+    });
+    expect(cohort.enrollmentGraceDays).toBe(3);
+  });
+
+  it("should reject ThemeCohort with negative enrollmentGraceDays", () => {
+    expect(() =>
+      themeCohortSchema.parse({
+        id: cohortId,
+        themeId,
+        name: "Negative Grace Cohort",
+        enrollmentStartDate: "2026-09-20",
+        enrollmentEndDate: "2026-09-30",
+        programStartDate: "2026-10-01",
+        enrollmentGraceDays: -1,
+        createdAt: "2026-09-12T00:00:00.000Z",
+      }),
+    ).toThrow();
   });
 
   it("should reject ThemeCohort with invalid date formats", () => {

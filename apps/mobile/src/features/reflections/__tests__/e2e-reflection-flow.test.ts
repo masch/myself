@@ -61,6 +61,11 @@ describe("E2E Vertical Integration: All 10 Seeded Reflections Registration Flow"
       "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
       [userId, "Filósofo Práctico", "filosofo@example.com"],
     );
+
+    // Keep seeded cohort open during test execution
+    await db.runAsync(
+      "UPDATE theme_cohorts SET enrollment_start_date = '2026-01-01', enrollment_end_date = '2099-12-31', program_start_date = '2099-01-01', enrollment_grace_days = 2",
+    );
   });
 
   it("registers every single one of the 10 loaded reflections across thematic cohorts, daily routines, and ad-hoc shortcuts", async () => {

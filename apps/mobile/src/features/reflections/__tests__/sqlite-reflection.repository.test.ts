@@ -65,6 +65,11 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
       [testUserId, "Test User", "test@example.com"],
     );
+
+    // Keep seeded cohort open during test execution
+    await db.runAsync(
+      "UPDATE theme_cohorts SET enrollment_start_date = '2026-01-01', enrollment_end_date = '2099-12-31', program_start_date = '2099-01-01', enrollment_grace_days = 2",
+    );
   });
 
   describe("Catalog Queries & Seeds", () => {
@@ -166,6 +171,44 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       );
       expect(reEnrolled.status).toBe("in_progress");
       expect(reEnrolled.cycleRunNumber).toBe(2);
+    });
+
+    it("rejects enrollment when cohort enrollment window has closed", async () => {
+      const cohorts = await repo.getOpenCohorts();
+      const cohort = cohorts[0];
+
+      // Set cohort to a past start date with expired grace period
+      await db.runAsync(
+        "UPDATE theme_cohorts SET program_start_date = '2026-09-15', enrollment_grace_days = 2, enrollment_end_date = '2026-12-31' WHERE id = ?",
+        [cohort.id],
+      );
+
+      expect(
+        repo.enrollInCohort(testUserId, cohort.themeId, cohort.id, {
+          forDate: "2026-09-20",
+        }),
+      ).rejects.toThrow(/Enrollment for cohort ".*" is closed/);
+    });
+
+    it("permits enrollment during configurable grace period after program start", async () => {
+      const cohorts = await repo.getOpenCohorts();
+      const cohort = cohorts[0];
+
+      // Set cohort to program_start_date 2026-09-15 with 3 grace days
+      await db.runAsync(
+        "UPDATE theme_cohorts SET program_start_date = '2026-09-15', enrollment_grace_days = 3, enrollment_end_date = '2026-12-31' WHERE id = ?",
+        [cohort.id],
+      );
+
+      // Enrolling 2 days after start (within 3-day grace window) succeeds
+      const progress = await repo.enrollInCohort(
+        testUserId,
+        cohort.themeId,
+        cohort.id,
+        { forDate: "2026-09-17" },
+      );
+      expect(progress.status).toBe("in_progress");
+      expect(progress.cohortId).toBe(cohort.id);
     });
   });
 

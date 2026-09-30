@@ -16,6 +16,7 @@ import type {
   ActiveCohortProgressDetail,
   ReflectionRepositoryPort,
 } from "../domain/ports/reflection.repository.port";
+import { isCohortEnrollmentOpen } from "../domain/time-lock";
 
 interface RawCategory {
   id: EntityId;
@@ -43,6 +44,7 @@ interface RawCohort {
   enrollment_start_date: string;
   enrollment_end_date: string;
   program_start_date: string;
+  enrollment_grace_days?: number;
   status: "upcoming" | "open_for_enrollment" | "active" | "closed";
   created_at: string;
 }
@@ -132,7 +134,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
 
   async getOpenCohorts(): Promise<ThemeCohort[]> {
     const rows = await this.db.getAllAsync<RawCohort>(
-      "SELECT id, theme_id, name, enrollment_start_date, enrollment_end_date, program_start_date, status, created_at FROM theme_cohorts WHERE status = 'open_for_enrollment' ORDER BY program_start_date ASC",
+      "SELECT id, theme_id, name, enrollment_start_date, enrollment_end_date, program_start_date, enrollment_grace_days, status, created_at FROM theme_cohorts WHERE status = 'open_for_enrollment' ORDER BY program_start_date ASC",
     );
     return rows.map((r) => ({
       id: r.id,
@@ -141,6 +143,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       enrollmentStartDate: r.enrollment_start_date,
       enrollmentEndDate: r.enrollment_end_date,
       programStartDate: r.program_start_date,
+      enrollmentGraceDays: r.enrollment_grace_days ?? 0,
       status: r.status,
       createdAt: r.created_at,
     }));
@@ -148,7 +151,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
 
   async getCohortById(cohortId: EntityId): Promise<ThemeCohort | null> {
     const r = await this.db.getFirstAsync<RawCohort>(
-      "SELECT id, theme_id, name, enrollment_start_date, enrollment_end_date, program_start_date, status, created_at FROM theme_cohorts WHERE id = ?",
+      "SELECT id, theme_id, name, enrollment_start_date, enrollment_end_date, program_start_date, enrollment_grace_days, status, created_at FROM theme_cohorts WHERE id = ?",
       [cohortId],
     );
     if (!r) return null;
@@ -159,6 +162,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       enrollmentStartDate: r.enrollment_start_date,
       enrollmentEndDate: r.enrollment_end_date,
       programStartDate: r.program_start_date,
+      enrollmentGraceDays: r.enrollment_grace_days ?? 0,
       status: r.status,
       createdAt: r.created_at,
     };
@@ -262,6 +266,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
     userId: EntityId,
     themeId: EntityId,
     cohortId: EntityId,
+    options?: { forDate?: string },
   ): Promise<UserThemeProgress> {
     const existing = await this.db.getFirstAsync<RawProgress>(
       "SELECT * FROM user_theme_progress WHERE user_id = ? AND cohort_id = ? AND status = 'in_progress'",
@@ -281,6 +286,14 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
         startedAt: existing.started_at,
         completedAt: existing.completed_at,
       };
+    }
+
+    const cohort = await this.getCohortById(cohortId);
+    if (!cohort) {
+      throw new Error(`Cohort ${cohortId} not found`);
+    }
+    if (!isCohortEnrollmentOpen(cohort, options?.forDate)) {
+      throw new Error(`Enrollment for cohort "${cohort.name}" is closed.`);
     }
 
     const nextRunRow = await this.db.getFirstAsync<{ max_run: number | null }>(
@@ -327,7 +340,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
         [p.theme_id],
       );
       const cohortRow = await this.db.getFirstAsync<RawCohort>(
-        "SELECT id, theme_id, name, enrollment_start_date, enrollment_end_date, program_start_date, status, created_at FROM theme_cohorts WHERE id = ?",
+        "SELECT id, theme_id, name, enrollment_start_date, enrollment_end_date, program_start_date, enrollment_grace_days, status, created_at FROM theme_cohorts WHERE id = ?",
         [p.cohort_id],
       );
       const questionRow = await this.db.getFirstAsync<RawQuestion>(
@@ -365,6 +378,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
             enrollmentStartDate: cohortRow.enrollment_start_date,
             enrollmentEndDate: cohortRow.enrollment_end_date,
             programStartDate: cohortRow.program_start_date,
+            enrollmentGraceDays: cohortRow.enrollment_grace_days ?? 0,
             status: cohortRow.status,
             createdAt: cohortRow.created_at,
           },

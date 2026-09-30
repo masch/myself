@@ -25,6 +25,7 @@ export interface SeedThemeCohort {
   enrollmentStartDate: string;
   enrollmentEndDate: string;
   programStartDate: string;
+  enrollmentGraceDays?: number;
   status: CohortStatus;
 }
 
@@ -76,6 +77,7 @@ export const SEED_THEME_COHORTS: SeedThemeCohort[] = [
     enrollmentStartDate: "2026-09-01",
     enrollmentEndDate: "2026-12-31",
     programStartDate: "2026-09-15",
+    enrollmentGraceDays: 2,
     status: "open_for_enrollment",
   },
 ];

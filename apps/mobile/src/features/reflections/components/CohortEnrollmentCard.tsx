@@ -2,6 +2,11 @@ import { View, StyleSheet } from "react-native";
 import { type ThemeCohort, type ReflectionTheme } from "@myself/shared";
 import { colors, layout, spacing, radius } from "@/theme";
 import { AppButton, Badge, Card, ThemedText } from "@/components";
+import {
+  isCohortEnrollmentOpen,
+  getCohortEnrollmentDeadline,
+  formatDateDDMM,
+} from "../domain/time-lock";
 
 interface CohortEnrollmentCardProps {
   cohort: ThemeCohort;
@@ -9,6 +14,7 @@ interface CohortEnrollmentCardProps {
   isEnrolled?: boolean;
   onEnroll: () => void;
   isSubmitting?: boolean;
+  currentDateStr?: string;
 }
 
 export function CohortEnrollmentCard({
@@ -17,7 +23,11 @@ export function CohortEnrollmentCard({
   isEnrolled = false,
   onEnroll,
   isSubmitting = false,
+  currentDateStr,
 }: CohortEnrollmentCardProps) {
+  const isOpen = isCohortEnrollmentOpen(cohort, currentDateStr);
+  const deadline = getCohortEnrollmentDeadline(cohort);
+
   return (
     <Card variant="subdued" padding="none" style={styles.card}>
       <View style={styles.topRow}>
@@ -28,6 +38,10 @@ export function CohortEnrollmentCard({
             variant="neutral"
             label={`${theme.targetQuestionCount} días`}
           />
+        )}
+
+        {!isOpen && !isEnrolled && (
+          <Badge variant="neutral" label="Inscripción cerrada" />
         )}
       </View>
 
@@ -66,14 +80,27 @@ export function CohortEnrollmentCard({
             {cohort.programStartDate}
           </ThemedText>
         </ThemedText>
+        {cohort.enrollmentGraceDays > 0 ? (
+          <ThemedText
+            variant="caption1"
+            color={colors.secondaryLabel}
+            style={styles.detailItem}
+          >
+            ⏳ Plazo de gracia para sumarte:{" "}
+            <ThemedText variant="caption1" color={colors.label}>
+              {cohort.enrollmentGraceDays}{" "}
+              {cohort.enrollmentGraceDays === 1 ? "día" : "días"}
+            </ThemedText>
+          </ThemedText>
+        ) : null}
         <ThemedText
           variant="caption1"
           color={colors.secondaryLabel}
           style={styles.detailItem}
         >
-          ⏳ Ventana de gracia:{" "}
+          ⏰ Límite de inscripción:{" "}
           <ThemedText variant="caption1" color={colors.label}>
-            {theme?.catchUpWindowDays ?? 2} días
+            {formatDateDDMM(deadline)}
           </ThemedText>
         </ThemedText>
       </View>
@@ -82,13 +109,15 @@ export function CohortEnrollmentCard({
         title={
           isEnrolled
             ? "Inscripto ✓"
-            : isSubmitting
-              ? "Inscribiendo..."
-              : "Sumarme a la convocatoria"
+            : !isOpen
+              ? "Inscripción cerrada"
+              : isSubmitting
+                ? "Inscribiendo..."
+                : "Sumarme a la convocatoria"
         }
-        variant={isEnrolled ? "secondary" : "purple"}
+        variant={isEnrolled ? "secondary" : !isOpen ? "secondary" : "purple"}
         onPress={onEnroll}
-        disabled={isEnrolled || isSubmitting}
+        disabled={isEnrolled || isSubmitting || !isOpen}
       />
     </Card>
   );
