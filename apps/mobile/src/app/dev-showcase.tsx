@@ -8,6 +8,7 @@ import {
   Divider,
   ThemedTextInput,
   FormRow,
+  SegmentedControl,
   Accordion,
   Collapsible,
   NativeFieldGroup,
@@ -512,6 +513,24 @@ export default function DevShowcaseScreen() {
               </FormRow.Trailing>
             </FormRow>
           </Card>
+        </View>
+
+        {/* 10. SegmentedControl */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">10. SegmentedControl</ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            iOS-style segmented tab control with badges and accessible tablist
+          </ThemedText>
+
+          <SegmentedControl
+            values={[
+              { value: "daily", label: "Daily Queue", badge: 4 },
+              { value: "cohorts", label: "Programs" },
+              { value: "history", label: "History" },
+            ]}
+            selectedValue="daily"
+            onValueChange={() => {}}
+          />
         </View>
       </View>
     </ScreenContainer.Scroll>

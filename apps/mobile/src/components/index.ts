@@ -14,5 +14,6 @@ export * from "./themed-text";
 export * from "./divider";
 export * from "./themed-text-input";
 export * from "./form-row";
+export * from "./segmented-control";
 export * from "./primitives";
 export * from "./native-controls";

@@ -1,11 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-} from "react-native";
+import { View, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
 import {
   type EntityId,
@@ -22,6 +16,7 @@ import {
   Card,
   ChipButton,
   NativeSwitch,
+  SegmentedControl,
 } from "@/components";
 
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
@@ -336,64 +331,15 @@ export default function ReflectionsScreen() {
       />
 
       {/* Segmented Tab Switcher */}
-      <View
-        style={[
-          styles.tabBar,
-          { backgroundColor: colors.secondarySystemBackground },
+      <SegmentedControl
+        values={[
+          { value: "daily", label: "Cola Diaria" },
+          { value: "cohorts", label: "Programas" },
         ]}
-      >
-        <Pressable
-          onPress={() => setCurrentTab("daily")}
-          style={[
-            styles.tabItem,
-            currentTab === "daily" && [
-              styles.tabItemActive,
-              { backgroundColor: colors.systemBlue },
-            ],
-          ]}
-        >
-          <ThemedText
-            variant="callout"
-            style={[
-              styles.tabText,
-              {
-                color:
-                  currentTab === "daily" ? colors.white : colors.secondaryLabel,
-                fontWeight: currentTab === "daily" ? "700" : "500",
-              },
-            ]}
-          >
-            Cola Diaria
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setCurrentTab("cohorts")}
-          style={[
-            styles.tabItem,
-            currentTab === "cohorts" && [
-              styles.tabItemActive,
-              { backgroundColor: colors.systemBlue },
-            ],
-          ]}
-        >
-          <ThemedText
-            variant="callout"
-            style={[
-              styles.tabText,
-              {
-                color:
-                  currentTab === "cohorts"
-                    ? colors.white
-                    : colors.secondaryLabel,
-                fontWeight: currentTab === "cohorts" ? "700" : "500",
-              },
-            ]}
-          >
-            Programas
-          </ThemedText>
-        </Pressable>
-      </View>
+        selectedValue={currentTab}
+        onValueChange={(val) => setCurrentTab(val as "daily" | "cohorts")}
+        style={styles.tabBar}
+      />
 
       {isLoading ? (
         <View style={styles.centerContainer}>
@@ -983,27 +929,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabBar: {
-    flexDirection: "row",
     marginHorizontal: 16,
     marginVertical: 10,
-    borderRadius: 14,
-    padding: 4,
-  },
-  tabItem: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-    borderRadius: 10,
-  },
-  tabItemActive: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tabText: {
-    fontSize: 14,
   },
   centerContainer: {
     flex: 1,
