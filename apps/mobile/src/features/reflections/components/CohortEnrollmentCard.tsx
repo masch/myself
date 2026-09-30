@@ -14,7 +14,7 @@ interface CohortEnrollmentCardProps {
   isEnrolled?: boolean;
   onEnroll: () => void;
   isSubmitting?: boolean;
-  currentDateStr?: string;
+  currentDateStr: string;
 }
 
 export function CohortEnrollmentCard({

@@ -33,6 +33,7 @@ import {
 } from "@/features/reflections/components";
 import {
   getCurrentTimeHHMM,
+  getLocalDateString,
   isReflectionLocked,
   isCohortStarted,
   formatDateDDMM,
@@ -76,11 +77,15 @@ export default function ReflectionsScreen() {
   const [currentTimeStr, setCurrentTimeStr] = useState(() =>
     getCurrentTimeHHMM(),
   );
+  const [currentDateStr, setCurrentDateStr] = useState(() =>
+    getLocalDateString(),
+  );
   const [showAnswered, setShowAnswered] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       setCurrentTimeStr(getCurrentTimeHHMM());
+      setCurrentDateStr(getLocalDateString());
       void refreshDaily();
       void refreshCohorts();
     }, [refreshDaily, refreshCohorts]),
@@ -89,6 +94,7 @@ export default function ReflectionsScreen() {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTimeStr(getCurrentTimeHHMM());
+      setCurrentDateStr(getLocalDateString());
     }, 30000);
     return () => clearInterval(timer);
   }, []);
@@ -865,6 +871,7 @@ export default function ReflectionsScreen() {
                     isEnrolled={isAlreadyEnrolled}
                     onEnroll={() => void handleEnroll(cohort)}
                     isSubmitting={isSubmitting}
+                    currentDateStr={currentDateStr}
                   />
                 );
               })}
