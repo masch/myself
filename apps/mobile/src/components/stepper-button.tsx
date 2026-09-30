@@ -1,13 +1,13 @@
 import React from "react";
 import {
   Pressable,
-  Text,
   StyleSheet,
   type StyleProp,
   type ViewStyle,
   type PressableProps,
 } from "react-native";
-import { colors } from "@/theme";
+import { colors, radius, spacing } from "@/theme";
+import { ThemedText } from "./themed-text";
 
 export interface StepperButtonProps extends Omit<PressableProps, "style"> {
   direction: "up" | "down";
@@ -24,7 +24,7 @@ export function StepperButton({
 }: StepperButtonProps) {
   return (
     <Pressable
-      hitSlop={6}
+      hitSlop={spacing.xs + 2}
       style={({ pressed }) => [
         styles.base,
         {
@@ -38,9 +38,9 @@ export function StepperButton({
       disabled={disabled}
       {...props}
     >
-      <Text style={[styles.arrow, { color: colors.label as any }]}>
+      <ThemedText variant="caption1" color={colors.label} style={styles.arrow}>
         {direction === "up" ? "▲" : "▼"}
-      </Text>
+      </ThemedText>
     </Pressable>
   );
 }
@@ -49,13 +49,12 @@ const styles = StyleSheet.create({
   base: {
     width: 36,
     height: 28,
-    borderRadius: 6,
+    borderRadius: radius.sm - 2, // 6px
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     justifyContent: "center",
   },
   arrow: {
-    fontSize: 14,
     fontWeight: "600",
   },
 });

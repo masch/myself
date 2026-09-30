@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Pressable,
-  Text,
   StyleSheet,
   type StyleProp,
   type ViewStyle,
@@ -9,7 +8,8 @@ import {
   type PressableProps,
   type ColorValue,
 } from "react-native";
-import { colors } from "@/theme";
+import { colors, spacing } from "@/theme";
+import { ThemedText } from "./themed-text";
 
 export type HeaderButtonVariant = "primary" | "cancel" | "destructive";
 
@@ -56,30 +56,31 @@ export function HeaderButton({
       disabled={disabled}
       {...props}
     >
-      <Text
+      <ThemedText
+        variant="callout"
+        color={finalColor}
         style={[
           styles.text,
           {
-            color: finalColor as any,
             fontWeight: isPrimary ? "600" : "400",
           },
           textStyle,
         ]}
       >
         {title}
-      </Text>
+      </ThemedText>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     justifyContent: "center",
     alignItems: "center",
   },
   text: {
-    fontSize: 16,
+    textAlign: "center",
   },
 });

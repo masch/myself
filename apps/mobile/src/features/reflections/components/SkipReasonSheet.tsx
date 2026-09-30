@@ -1,7 +1,12 @@
 import { useState } from "react";
-import { View, Text, TextInput, StyleSheet, Pressable } from "react-native";
-import { colors } from "@/theme";
-import { AppButton, AppBottomSheetModal } from "@/components";
+import { View, StyleSheet, Pressable } from "react-native";
+import { colors, spacing, radius } from "@/theme";
+import {
+  AppButton,
+  AppBottomSheetModal,
+  ThemedText,
+  ThemedTextInput,
+} from "@/components";
 
 interface SkipReasonSheetProps {
   visible: boolean;
@@ -48,21 +53,31 @@ export function SkipReasonSheet({
   return (
     <AppBottomSheetModal visible={visible} onClose={handleClose} maxWidth={580}>
       <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.label }]}>
+        <ThemedText
+          variant="headline"
+          color={colors.label}
+          style={styles.title}
+        >
           Saltear pregunta
-        </Text>
+        </ThemedText>
 
-        <Text
-          style={[styles.promptPreview, { color: colors.secondaryLabel }]}
+        <ThemedText
+          variant="callout"
+          color={colors.secondaryLabel}
+          style={styles.promptPreview}
           numberOfLines={2}
         >
           {`"${promptText}"`}
-        </Text>
+        </ThemedText>
 
-        <Text style={[styles.infoNote, { color: colors.secondaryLabel }]}>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.infoNote}
+        >
           Saltear te permite avanzar y registrar tu motivo. Podés responderla
           más adelante dentro de la ventana de gracia.
-        </Text>
+        </ThemedText>
 
         {/* Quick suggestions */}
         <View style={styles.chipsRow}>
@@ -79,32 +94,21 @@ export function SkipReasonSheet({
                 },
               ]}
             >
-              <Text
-                style={[
-                  styles.chipText,
-                  {
-                    color: reason === preset ? colors.white : colors.label,
-                  },
-                ]}
+              <ThemedText
+                variant="caption1"
+                color={reason === preset ? colors.white : colors.label}
+                style={styles.chipText}
               >
                 {preset}
-              </Text>
+              </ThemedText>
             </Pressable>
           ))}
         </View>
 
         {/* Reason Input */}
-        <TextInput
-          style={[
-            styles.input,
-            {
-              color: colors.label,
-              backgroundColor: colors.systemBackground,
-              borderColor: colors.systemGray15,
-            },
-          ]}
+        <ThemedTextInput
+          style={styles.input}
           placeholder="Escribí el motivo del salteo..."
-          placeholderTextColor={colors.secondaryLabel}
           value={reason}
           onChangeText={setReason}
           multiline
@@ -139,47 +143,37 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   title: {
-    fontSize: 18,
     fontWeight: "700",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   promptPreview: {
-    fontSize: 14,
     fontStyle: "italic",
-    marginBottom: 10,
+    marginBottom: spacing.sm + 2,
   },
   infoNote: {
-    fontSize: 13,
     lineHeight: 18,
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   chipsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 14,
+    gap: spacing.sm,
+    marginBottom: spacing.md - 2,
   },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 16,
+    paddingHorizontal: spacing.md - 4,
+    paddingVertical: spacing.xs + 3,
+    borderRadius: radius.lg,
   },
   chipText: {
-    fontSize: 12,
     fontWeight: "500",
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 15,
-    minHeight: 80,
-    textAlignVertical: "top",
-    marginBottom: 20,
+    marginBottom: spacing.lg - 4,
     width: "100%",
   },
   actionsRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: spacing.md - 4,
   },
 });

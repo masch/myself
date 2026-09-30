@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { View, Text, TextInput, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { type ReflectionQuestion } from "@myself/shared";
-import { colors } from "@/theme";
-import { AppButton, AppBottomSheetModal, AppMarkdownText } from "@/components";
+import { colors, spacing, radius } from "@/theme";
+import {
+  AppButton,
+  AppBottomSheetModal,
+  AppMarkdownText,
+  ThemedText,
+  ThemedTextInput,
+} from "@/components";
 import { ScaleSelector1To10 } from "./ScaleSelector1To10";
 
 interface ReflectionModalProps {
@@ -15,7 +21,7 @@ interface ReflectionModalProps {
   isSubmitting?: boolean;
 }
 
-function ReflectionModalContent({
+export function ReflectionModalContent({
   question,
   initialContent = "",
   initialNumericValue = null,
@@ -52,9 +58,13 @@ function ReflectionModalContent({
     <View style={styles.content}>
       <View style={styles.badgeRow}>
         <View style={[styles.badge, { backgroundColor: colors.systemGray15 }]}>
-          <Text style={[styles.badgeText, { color: colors.secondaryLabel }]}>
+          <ThemedText
+            variant="caption1"
+            color={colors.secondaryLabel}
+            style={styles.badgeText}
+          >
             {isText ? "Reflexión Libre" : "Puntaje 1 al 10"}
-          </Text>
+          </ThemedText>
         </View>
       </View>
 
@@ -64,27 +74,22 @@ function ReflectionModalContent({
 
       {isText ? (
         <View style={styles.inputContainer}>
-          <TextInput
+          <ThemedTextInput
             autoFocus
-            style={[
-              styles.textInput,
-              {
-                color: colors.label,
-                backgroundColor: colors.systemBackground,
-                borderColor: colors.systemGray15,
-              },
-            ]}
+            style={styles.textInput}
             placeholder="Escribí tu respuesta con honestidad..."
-            placeholderTextColor={colors.secondaryLabel}
             value={content}
             onChangeText={setContent}
             multiline
             numberOfLines={5}
-            textAlignVertical="top"
           />
-          <Text style={[styles.charCount, { color: colors.secondaryLabel }]}>
+          <ThemedText
+            variant="caption2"
+            color={colors.secondaryLabel}
+            style={styles.charCount}
+          >
             {content.length} caracteres
-          </Text>
+          </ThemedText>
         </View>
       ) : (
         <ScaleSelector1To10
@@ -148,43 +153,37 @@ const styles = StyleSheet.create({
   },
   badgeRow: {
     flexDirection: "row",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
   },
   badgeText: {
-    fontSize: 12,
     fontWeight: "600",
   },
   promptText: {
     fontSize: 18,
     fontWeight: "700",
     lineHeight: 24,
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: spacing.md + 4,
     width: "100%",
   },
   textInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
     minHeight: 120,
     width: "100%",
   },
   charCount: {
-    fontSize: 11,
     textAlign: "right",
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   actionsRow: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 10,
+    gap: spacing.sm + 4,
+    marginTop: spacing.sm + 2,
   },
 });

@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet, Pressable } from "react-native";
-import { colors } from "@/theme";
+import { View, StyleSheet, Pressable } from "react-native";
+import { colors, spacing, radius } from "@/theme";
+import { ThemedText } from "@/components";
 
 interface ScaleSelectorProps {
   value: number | null;
@@ -41,29 +42,38 @@ export function ScaleSelector1To10({
               accessibilityState={{ selected: isSelected }}
               accessibilityLabel={`Puntaje ${num} de 10`}
             >
-              <Text
+              <ThemedText
+                variant="headline"
+                color={isSelected ? colors.white : colors.label}
                 style={[
                   styles.itemText,
                   {
-                    color: isSelected ? colors.white : colors.label,
                     fontWeight: isSelected ? "700" : "500",
                   },
                 ]}
               >
                 {num}
-              </Text>
+              </ThemedText>
             </Pressable>
           );
         })}
       </View>
 
       <View style={styles.labelsRow}>
-        <Text style={[styles.guideLabel, { color: colors.secondaryLabel }]}>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.guideLabel}
+        >
           1: Mínimo
-        </Text>
-        <Text style={[styles.guideLabel, { color: colors.secondaryLabel }]}>
+        </ThemedText>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.guideLabel}
+        >
           10: Pleno
-        </Text>
+        </ThemedText>
       </View>
     </View>
   );
@@ -71,32 +81,33 @@ export function ScaleSelector1To10({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 12,
+    marginVertical: spacing.md - 4,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 8,
+    gap: spacing.sm,
   },
   item: {
     width: "18%",
     aspectRatio: 1,
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1.5,
+    borderCurve: "continuous",
     alignItems: "center",
     justifyContent: "center",
   },
   itemText: {
-    fontSize: 18,
+    textAlign: "center",
   },
   labelsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 8,
-    paddingHorizontal: 4,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
   guideLabel: {
-    fontSize: 12,
+    fontWeight: "500",
   },
 });

@@ -5,6 +5,8 @@ import {
   ScreenContainer,
   Card,
   ThemedText,
+  Divider,
+  ThemedTextInput,
   Accordion,
   Collapsible,
   NativeFieldGroup,
@@ -16,27 +18,27 @@ import { colors, spacing, typography, radius } from "@/theme";
 
 const COLOR_SWATCHES: {
   category: string;
-  items: { name: string; value: ColorValue; textColor?: ColorValue }[];
+  items: { name: string; color: ColorValue; textColor?: ColorValue }[];
 }[] = [
   {
     category: "Primary & System Accents",
     items: [
-      { name: "systemBlue", value: colors.systemBlue },
-      { name: "systemPurple", value: colors.systemPurple },
-      { name: "systemGreen", value: colors.systemGreen },
-      { name: "systemRed", value: colors.systemRed },
-      { name: "systemOrange", value: colors.systemOrange },
-      { name: "systemGray", value: colors.systemGray },
+      { name: "systemBlue", color: colors.systemBlue },
+      { name: "systemPurple", color: colors.systemPurple },
+      { name: "systemGreen", color: colors.systemGreen },
+      { name: "systemRed", color: colors.systemRed },
+      { name: "systemOrange", color: colors.systemOrange },
+      { name: "systemGray", color: colors.systemGray },
     ],
   },
   {
     category: "Subdued Tint Accents",
     items: [
-      { name: "systemBlueSubdued", value: colors.systemBlueSubdued },
-      { name: "systemPurpleSubdued", value: colors.systemPurpleSubdued },
-      { name: "warningSubdued", value: colors.warningSubdued },
-      { name: "destructiveSubdued", value: colors.destructiveSubdued },
-      { name: "systemGray15", value: colors.systemGray15 },
+      { name: "systemBlueSubdued", color: colors.systemBlueSubdued },
+      { name: "systemPurpleSubdued", color: colors.systemPurpleSubdued },
+      { name: "warningSubdued", color: colors.warningSubdued },
+      { name: "destructiveSubdued", color: colors.destructiveSubdued },
+      { name: "systemGray15", color: colors.systemGray15 },
     ],
   },
   {
@@ -44,22 +46,22 @@ const COLOR_SWATCHES: {
     items: [
       {
         name: "systemBackground",
-        value: colors.systemBackground,
+        color: colors.systemBackground,
         textColor: colors.label,
       },
       {
         name: "secondaryBackground",
-        value: colors.secondarySystemBackground,
+        color: colors.secondarySystemBackground,
         textColor: colors.label,
       },
       {
         name: "separator",
-        value: colors.separator,
+        color: colors.separator,
         textColor: colors.label,
       },
       {
         name: "shadow",
-        value: colors.shadow,
+        color: colors.shadow,
         textColor: colors.white,
       },
     ],
@@ -134,7 +136,7 @@ export default function DevShowcaseScreen() {
                       style={[
                         styles.swatchColor,
                         {
-                          backgroundColor: swatch.value,
+                          backgroundColor: swatch.color,
                           borderColor: colors.separator,
                         },
                       ]}
@@ -146,8 +148,8 @@ export default function DevShowcaseScreen() {
                       variant="caption2"
                       color={colors.secondaryLabel}
                     >
-                      {typeof swatch.value === "string"
-                        ? swatch.value
+                      {typeof swatch.color === "string"
+                        ? swatch.color
                         : "Dynamic"}
                     </ThemedText>
                   </View>
@@ -436,6 +438,32 @@ export default function DevShowcaseScreen() {
               </NativeListItem>
             </NativeFieldGroup.Section>
           </NativeFieldGroup>
+        </View>
+
+        {/* 8. Atomic Primitives: Divider & ThemedTextInput */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">
+            8. Atomic Primitives: &lt;Divider&gt; &amp; &lt;ThemedTextInput&gt;
+          </ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            Canonical divider line and token-enforcing form input
+          </ThemedText>
+
+          <Card variant="subdued" padding="md">
+            <ThemedText variant="headline">Horizontal Divider</ThemedText>
+            <ThemedText variant="caption1" color={colors.secondaryLabel}>
+              hairlineWidth using colors.separator with token insets
+            </ThemedText>
+            <Divider inset="sm" style={{ marginVertical: spacing.sm }} />
+
+            <ThemedText variant="headline" style={{ marginTop: spacing.sm }}>
+              ThemedTextInput
+            </ThemedText>
+            <ThemedTextInput
+              placeholder="Canonical input with token padding & curvature..."
+              style={{ marginTop: spacing.xs }}
+            />
+          </Card>
         </View>
       </View>
     </ScreenContainer.Scroll>

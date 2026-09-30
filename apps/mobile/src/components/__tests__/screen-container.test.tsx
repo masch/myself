@@ -6,12 +6,15 @@ import type {
   ScrollScreenContainer as ScrollScreenContainerComponent,
   TabScreenContainer as TabScreenContainerComponent,
   useScreenPadding as useScreenPaddingHook,
+  useScrollContainer as useScrollContainerHook,
+  ScrollContainerContextValue,
 } from "../screen-container";
 
 let ScreenContainer: typeof ScreenContainerComponent;
 let ScrollScreenContainer: typeof ScrollScreenContainerComponent;
 let TabScreenContainer: typeof TabScreenContainerComponent;
 let useScreenPadding: typeof useScreenPaddingHook;
+let useScrollContainer: typeof useScrollContainerHook;
 
 beforeAll(async () => {
   mock.module("react-native-safe-area-context", () => ({
@@ -23,6 +26,7 @@ beforeAll(async () => {
   ScrollScreenContainer = mod.ScrollScreenContainer;
   TabScreenContainer = mod.TabScreenContainer;
   useScreenPadding = mod.useScreenPadding;
+  useScrollContainer = mod.useScrollContainer;
 });
 
 describe("ScreenContainer component & useScreenPadding hook", () => {
@@ -107,5 +111,56 @@ describe("ScreenContainer component & useScreenPadding hook", () => {
     );
 
     expect(html).toContain("Named Tab Content");
+  });
+
+  it("provides scroll container context via useScrollContainer hook", () => {
+    let capturedContext: ScrollContainerContextValue | null = null;
+    function TestConsumer() {
+      capturedContext = useScrollContainer();
+      return <span>Child Content</span>;
+    }
+
+    renderToString(<TestConsumer />);
+    expect(capturedContext).toBeNull();
+
+    renderToString(
+      <ScrollScreenContainer>
+        <TestConsumer />
+      </ScrollScreenContainer>,
+    );
+    const scrollContext = capturedContext as ScrollContainerContextValue | null;
+    expect(scrollContext).not.toBeNull();
+    expect(typeof scrollContext?.scrollToFocusedInput).toBe("function");
+  });
+
+  it("handles scrollToFocusedInput safely with various input references", () => {
+    let capturedContext: ScrollContainerContextValue | null = null;
+    function TestConsumer() {
+      capturedContext = useScrollContainer();
+      return <span>Child Content</span>;
+    }
+
+    renderToString(
+      <ScrollScreenContainer>
+        <TestConsumer />
+      </ScrollScreenContainer>,
+    );
+
+    const scrollContext = capturedContext as ScrollContainerContextValue | null;
+    const mockMeasure = mock((_target: any, callback: any) => {
+      callback(0, 100, 200, 48);
+    });
+
+    // Should not throw with valid measureLayout
+    expect(() => {
+      scrollContext?.scrollToFocusedInput({ measureLayout: mockMeasure });
+    }).not.toThrow();
+
+    // Should not throw with null, undefined or empty input
+    expect(() => {
+      scrollContext?.scrollToFocusedInput(null);
+      scrollContext?.scrollToFocusedInput(undefined);
+      scrollContext?.scrollToFocusedInput({});
+    }).not.toThrow();
   });
 });

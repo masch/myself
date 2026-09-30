@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { type CycleStatus } from "@myself/shared";
-import { colors } from "@/theme";
+import { colors, spacing, radius } from "@/theme";
+import { Card, ThemedText } from "@/components";
 
 interface CycleProgressBadgeProps {
   currentStep: number;
@@ -25,18 +26,17 @@ export function CycleProgressBadge({
   const isCompleted = status === "completed";
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: colors.secondarySystemBackground },
-      ]}
-    >
+    <Card variant="subdued" padding="none" style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={[styles.stepText, { color: colors.label }]}>
+        <ThemedText
+          variant="headline"
+          color={colors.label}
+          style={styles.stepText}
+        >
           {isCompleted
             ? "¡Ciclo Completado!"
             : `Paso ${currentStep} de ${totalSteps}`}
-        </Text>
+        </ThemedText>
         <View
           style={[
             styles.statusPill,
@@ -47,9 +47,13 @@ export function CycleProgressBadge({
             },
           ]}
         >
-          <Text style={[styles.statusPillText, { color: colors.white }]}>
+          <ThemedText
+            variant="caption1"
+            color={colors.white}
+            style={styles.statusPillText}
+          >
             {isCompleted ? "Completado" : `${percent}%`}
-          </Text>
+          </ThemedText>
         </View>
       </View>
 
@@ -68,61 +72,69 @@ export function CycleProgressBadge({
         />
       </View>
 
-      <View style={styles.statsRow}>
-        <Text style={[styles.statLabel, { color: colors.secondaryLabel }]}>
+      {/* Counter subtext */}
+      <View style={styles.footerRow}>
+        <ThemedText
+          variant="caption1"
+          color={colors.secondaryLabel}
+          style={styles.statLabel}
+        >
           ✓ {answeredCount} respondidas
-        </Text>
+        </ThemedText>
         {skippedCount > 0 && (
-          <Text style={[styles.statLabel, { color: colors.systemOrange }]}>
+          <ThemedText
+            variant="caption1"
+            color={colors.systemOrange}
+            style={styles.statLabel}
+          >
             ↷ {skippedCount} salteadas
-          </Text>
+          </ThemedText>
         )}
       </View>
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 14,
-    borderRadius: 16,
-    marginVertical: 8,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.systemGray15,
+    marginVertical: spacing.sm,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: spacing.sm + 2,
   },
   stepText: {
-    fontSize: 16,
     fontWeight: "700",
   },
   statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs - 1,
+    borderRadius: radius.full,
   },
   statusPillText: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   track: {
-    height: 6,
-    borderRadius: 3,
+    height: spacing.sm,
+    borderRadius: 4,
     overflow: "hidden",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   fill: {
     height: "100%",
-    borderRadius: 3,
+    borderRadius: 4,
   },
-  statsRow: {
+  footerRow: {
     flexDirection: "row",
-    gap: 14,
+    gap: spacing.md,
   },
   statLabel: {
-    fontSize: 12,
     fontWeight: "500",
   },
 });
