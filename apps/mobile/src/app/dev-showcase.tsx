@@ -18,27 +18,27 @@ import { colors, spacing, typography, radius } from "@/theme";
 
 const COLOR_SWATCHES: {
   category: string;
-  items: { name: string; value: ColorValue; textColor?: ColorValue }[];
+  items: { name: string; color: ColorValue; textColor?: ColorValue }[];
 }[] = [
   {
     category: "Primary & System Accents",
     items: [
-      { name: "systemBlue", value: colors.systemBlue },
-      { name: "systemPurple", value: colors.systemPurple },
-      { name: "systemGreen", value: colors.systemGreen },
-      { name: "systemRed", value: colors.systemRed },
-      { name: "systemOrange", value: colors.systemOrange },
-      { name: "systemGray", value: colors.systemGray },
+      { name: "systemBlue", color: colors.systemBlue },
+      { name: "systemPurple", color: colors.systemPurple },
+      { name: "systemGreen", color: colors.systemGreen },
+      { name: "systemRed", color: colors.systemRed },
+      { name: "systemOrange", color: colors.systemOrange },
+      { name: "systemGray", color: colors.systemGray },
     ],
   },
   {
     category: "Subdued Tint Accents",
     items: [
-      { name: "systemBlueSubdued", value: colors.systemBlueSubdued },
-      { name: "systemPurpleSubdued", value: colors.systemPurpleSubdued },
-      { name: "warningSubdued", value: colors.warningSubdued },
-      { name: "destructiveSubdued", value: colors.destructiveSubdued },
-      { name: "systemGray15", value: colors.systemGray15 },
+      { name: "systemBlueSubdued", color: colors.systemBlueSubdued },
+      { name: "systemPurpleSubdued", color: colors.systemPurpleSubdued },
+      { name: "warningSubdued", color: colors.warningSubdued },
+      { name: "destructiveSubdued", color: colors.destructiveSubdued },
+      { name: "systemGray15", color: colors.systemGray15 },
     ],
   },
   {
@@ -46,22 +46,22 @@ const COLOR_SWATCHES: {
     items: [
       {
         name: "systemBackground",
-        value: colors.systemBackground,
+        color: colors.systemBackground,
         textColor: colors.label,
       },
       {
         name: "secondaryBackground",
-        value: colors.secondarySystemBackground,
+        color: colors.secondarySystemBackground,
         textColor: colors.label,
       },
       {
         name: "separator",
-        value: colors.separator,
+        color: colors.separator,
         textColor: colors.label,
       },
       {
         name: "shadow",
-        value: colors.shadow,
+        color: colors.shadow,
         textColor: colors.white,
       },
     ],
@@ -136,7 +136,7 @@ export default function DevShowcaseScreen() {
                       style={[
                         styles.swatchColor,
                         {
-                          backgroundColor: swatch.value,
+                          backgroundColor: swatch.color,
                           borderColor: colors.separator,
                         },
                       ]}
@@ -148,8 +148,8 @@ export default function DevShowcaseScreen() {
                       variant="caption2"
                       color={colors.secondaryLabel}
                     >
-                      {typeof swatch.value === "string"
-                        ? swatch.value
+                      {typeof swatch.color === "string"
+                        ? swatch.color
                         : "Dynamic"}
                     </ThemedText>
                   </View>
