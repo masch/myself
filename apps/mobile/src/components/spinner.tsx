@@ -57,6 +57,7 @@ export function Spinner({
   color = colors.systemBlue,
   label,
   style,
+  animating = true,
   ...props
 }: SpinnerProps) {
   const indicatorSize =
@@ -65,6 +66,7 @@ export function Spinner({
   return (
     <View style={[styles.inlineContainer, style]}>
       <ActivityIndicator
+        animating={animating}
         size={indicatorSize}
         color={color as string}
         accessibilityRole="progressbar"
