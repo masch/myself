@@ -1,7 +1,14 @@
-import { View, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { type ReflectionQuestion, type UserReflection } from "@myself/shared";
 import { colors, spacing, radius } from "@/theme";
-import { AppButton, AppMarkdownText, Card, ThemedText } from "@/components";
+import {
+  AppButton,
+  AppMarkdownText,
+  Card,
+  ChipButton,
+  IconButton,
+  ThemedText,
+} from "@/components";
 
 interface PromptCardProps {
   question: ReflectionQuestion;
@@ -127,52 +134,30 @@ export function PromptCard({
         {/* Action icons (pin shortcut or opt-out) */}
         <View style={styles.topActions}>
           {onToggleShortcut && (
-            <Pressable
-              onPress={() => onToggleShortcut(!isPinnedShortcut)}
-              style={styles.iconBtn}
-              accessibilityRole="button"
+            <IconButton
+              icon={isPinnedShortcut ? "sf:star.fill" : "sf:star"}
+              color={colors.systemOrange}
+              size="small"
               accessibilityLabel={
                 isPinnedShortcut
                   ? "Desanclar acceso rápido"
                   : "Anclar acceso rápido"
               }
-            >
-              <ThemedText
-                variant="headline"
-                color={colors.systemOrange}
-                style={styles.iconText}
-              >
-                {isPinnedShortcut ? "★" : "☆"}
-              </ThemedText>
-            </Pressable>
+              onPress={() => onToggleShortcut(!isPinnedShortcut)}
+            />
           )}
 
           {isRoutine && onToggleOptOut && (
-            <Pressable
-              onPress={() => onToggleOptOut(!isRoutineEnabled)}
-              style={[
-                styles.optOutBtn,
-                {
-                  backgroundColor: isRoutineEnabled
-                    ? colors.systemGray15
-                    : colors.systemRed,
-                },
-              ]}
-              accessibilityRole="button"
+            <ChipButton
+              title={isRoutineEnabled ? "Bajar" : "Reactivar"}
+              variant={isRoutineEnabled ? "secondary" : "destructive"}
               accessibilityLabel={
                 isRoutineEnabled
                   ? "Desuscribir de rutina"
                   : "Suscribir a rutina"
               }
-            >
-              <ThemedText
-                variant="caption2"
-                color={isRoutineEnabled ? colors.secondaryLabel : colors.white}
-                style={styles.optOutBtnText}
-              >
-                {isRoutineEnabled ? "Bajar" : "Reactivar"}
-              </ThemedText>
-            </Pressable>
+              onPress={() => onToggleOptOut(!isRoutineEnabled)}
+            />
           )}
         </View>
       </View>
@@ -327,20 +312,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-  },
-  iconBtn: {
-    padding: spacing.xs,
-  },
-  iconText: {
-    fontSize: 20,
-  },
-  optOutBtn: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-  },
-  optOutBtnText: {
-    fontWeight: "600",
   },
   promptText: {
     fontSize: 16,

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
-import { colors, spacing, radius } from "@/theme";
+import { View, StyleSheet } from "react-native";
+import { colors, spacing } from "@/theme";
 import {
   AppButton,
   AppBottomSheetModal,
+  ChipButton,
   ThemedText,
   ThemedTextInput,
 } from "@/components";
@@ -82,26 +83,12 @@ export function SkipReasonSheet({
         {/* Quick suggestions */}
         <View style={styles.chipsRow}>
           {QUICK_REASONS.map((preset) => (
-            <Pressable
+            <ChipButton
               key={preset}
-              accessibilityRole="button"
+              title={preset}
+              variant={reason === preset ? "blue" : "secondary"}
               onPress={() => handleSelectQuickReason(preset)}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor:
-                    reason === preset ? colors.systemBlue : colors.systemGray15,
-                },
-              ]}
-            >
-              <ThemedText
-                variant="caption1"
-                color={reason === preset ? colors.white : colors.label}
-                style={styles.chipText}
-              >
-                {preset}
-              </ThemedText>
-            </Pressable>
+            />
           ))}
         </View>
 
@@ -159,14 +146,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: spacing.sm,
     marginBottom: spacing.md - 2,
-  },
-  chip: {
-    paddingHorizontal: spacing.md - 4,
-    paddingVertical: spacing.xs + 3,
-    borderRadius: radius.lg,
-  },
-  chipText: {
-    fontWeight: "500",
   },
   input: {
     marginBottom: spacing.lg - 4,
