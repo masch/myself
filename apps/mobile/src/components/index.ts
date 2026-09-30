@@ -13,5 +13,6 @@ export * from "./surface";
 export * from "./themed-text";
 export * from "./divider";
 export * from "./themed-text-input";
+export * from "./form-row";
 export * from "./primitives";
 export * from "./native-controls";

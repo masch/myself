@@ -4,12 +4,14 @@ import {
   MeditationText,
   ThemedText,
   Card,
+  FormRow,
+  Divider,
 } from "@/components";
 import { useReadingForm } from "@/hooks/use-reading-form";
 import { colors } from "@/theme";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 
 export default function ReadingModalScreen() {
   const params = useLocalSearchParams<{
@@ -111,36 +113,39 @@ export default function ReadingModalScreen() {
           </ScrollView>
         ) : (
           <Card variant="subdued" padding="none" style={styles.card}>
-            <View style={styles.inputRow}>
-              <Image
-                source="sf:person.fill"
-                style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
-              />
-              <TextInput
+            <FormRow>
+              <FormRow.Leading>
+                <Image
+                  source="sf:person.fill"
+                  style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
+                />
+              </FormRow.Leading>
+              <FormRow.Input
                 placeholder="Author name (e.g. Marcus Aurelius)"
-                placeholderTextColor={colors.secondaryLabel}
                 value={newAuthorName}
                 onChangeText={setNewAuthorName}
-                style={[styles.input, { color: colors.label }]}
                 autoFocus
               />
-            </View>
+            </FormRow>
 
-            <View style={styles.divider} />
+            <Divider style={styles.divider} />
 
-            <View style={styles.inputRow}>
-              <Image
-                source="sf:info.circle"
-                style={[styles.inputIcon, { tintColor: colors.secondaryLabel }]}
-              />
-              <TextInput
+            <FormRow>
+              <FormRow.Leading>
+                <Image
+                  source="sf:info.circle"
+                  style={[
+                    styles.inputIcon,
+                    { tintColor: colors.secondaryLabel },
+                  ]}
+                />
+              </FormRow.Leading>
+              <FormRow.Input
                 placeholder="Short bio / era (optional)"
-                placeholderTextColor={colors.secondaryLabel}
                 value={newAuthorBio}
                 onChangeText={setNewAuthorBio}
-                style={[styles.input, { color: colors.label }]}
               />
-            </View>
+            </FormRow>
           </Card>
         )}
       </View>
@@ -180,23 +185,23 @@ export default function ReadingModalScreen() {
             : "TITLE (ENGLISH - OPTIONAL)"}
         </ThemedText>
         <Card variant="subdued" padding="none" style={styles.card}>
-          <View style={styles.inputRow}>
-            <Image
-              source="sf:text.quote"
-              style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
-            />
-            <TextInput
+          <FormRow>
+            <FormRow.Leading>
+              <Image
+                source="sf:text.quote"
+                style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
+              />
+            </FormRow.Leading>
+            <FormRow.Input
               placeholder={
                 activeTabLocale === "es"
                   ? "Ej: Poder sobre la Mente, Anam Cara..."
                   : "E.g., Power over the Mind, The Bridge of Breathing..."
               }
-              placeholderTextColor={colors.secondaryLabel}
               value={currentTranslation.title}
               onChangeText={(text) => updateTranslationField("title", text)}
-              style={[styles.input, { color: colors.label }]}
             />
-          </View>
+          </FormRow>
         </Card>
       </View>
 
@@ -242,32 +247,29 @@ export default function ReadingModalScreen() {
               )}
             </View>
           ) : (
-            <View style={styles.quoteInputWrapper}>
-              <ThemedText
-                variant="title1"
-                color={colors.systemPurple}
-                style={styles.quoteSign}
-              >
-                “
-              </ThemedText>
-              <TextInput
+            <FormRow style={styles.quoteInputWrapper}>
+              <FormRow.Leading>
+                <ThemedText
+                  variant="title1"
+                  color={colors.systemPurple}
+                  style={styles.quoteSign}
+                >
+                  “
+                </ThemedText>
+              </FormRow.Leading>
+              <FormRow.Input
                 placeholder={
                   activeTabLocale === "es"
                     ? "Escribe el texto o poema para leer y reflexionar..."
                     : "Write the passage or quote in English (optional)..."
                 }
-                placeholderTextColor={colors.secondaryLabel}
                 value={currentTranslation.content}
                 onChangeText={(text) => updateTranslationField("content", text)}
-                style={[
-                  styles.input,
-                  styles.contentInput,
-                  { color: colors.label },
-                ]}
+                style={styles.contentInput}
                 multiline
                 numberOfLines={6}
               />
-            </View>
+            </FormRow>
           )}
         </Card>
 
@@ -322,20 +324,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderCurve: "continuous",
   },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    gap: 12,
-  },
   inputIcon: {
     width: 22,
     height: 22,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: 4,
   },
   quoteInputWrapper: {
     paddingVertical: 8,
@@ -351,8 +342,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(142, 142, 147, 0.2)",
     marginLeft: 34,
   },
   previewWrapper: {

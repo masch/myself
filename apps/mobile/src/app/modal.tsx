@@ -1,9 +1,16 @@
 import { useState } from "react";
 import { router, Stack } from "expo-router";
-import { View, StyleSheet, TextInput, Alert, ScrollView } from "react-native";
+import { View, StyleSheet, Alert, ScrollView } from "react-native";
 import { Image } from "expo-image";
 import { useTasks } from "@/hooks/use-tasks";
-import { HeaderButton, ChipButton, ThemedText, Card } from "@/components";
+import {
+  HeaderButton,
+  ChipButton,
+  ThemedText,
+  Card,
+  FormRow,
+  Divider,
+} from "@/components";
 import { colors } from "@/theme";
 
 const CATEGORIES = ["Work", "Personal", "Shopping", "Design", "Urgent"];
@@ -94,38 +101,39 @@ export default function ModalScreen() {
           TASK DETAILS
         </ThemedText>
         <Card variant="subdued" padding="none" style={styles.card}>
-          <View style={styles.inputRow}>
-            <Image
-              source="sf:text.badge.plus"
-              style={[styles.inputIcon, { tintColor: colors.systemBlue }]}
-            />
-            <TextInput
+          <FormRow>
+            <FormRow.Leading>
+              <Image
+                source="sf:text.badge.plus"
+                style={[styles.inputIcon, { tintColor: colors.systemBlue }]}
+              />
+            </FormRow.Leading>
+            <FormRow.Input
               placeholder="Task title"
-              placeholderTextColor={colors.secondaryLabel}
               value={title}
               onChangeText={setTitle}
-              style={[styles.input, { color: colors.label }]}
               autoFocus
             />
-          </View>
+          </FormRow>
 
-          <View style={styles.divider} />
+          <Divider style={styles.divider} />
 
-          <View style={styles.inputRow}>
-            <Image
-              source="sf:note.text"
-              style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
-            />
-            <TextInput
+          <FormRow>
+            <FormRow.Leading>
+              <Image
+                source="sf:note.text"
+                style={[styles.inputIcon, { tintColor: colors.systemPurple }]}
+              />
+            </FormRow.Leading>
+            <FormRow.Input
               placeholder="Description or notes (optional)"
-              placeholderTextColor={colors.secondaryLabel}
               value={description}
               onChangeText={setDescription}
-              style={[styles.input, styles.descInput, { color: colors.label }]}
               multiline
               numberOfLines={3}
+              style={styles.descInput}
             />
-          </View>
+          </FormRow>
         </Card>
       </View>
     </ScrollView>
@@ -160,28 +168,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderCurve: "continuous",
   },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    gap: 12,
-  },
   inputIcon: {
     width: 22,
     height: 22,
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: 4,
-  },
   descInput: {
     minHeight: 60,
-    textAlignVertical: "top",
   },
   divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(142, 142, 147, 0.2)",
     marginLeft: 34,
   },
 });

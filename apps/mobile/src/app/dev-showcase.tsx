@@ -7,6 +7,7 @@ import {
   ThemedText,
   Divider,
   ThemedTextInput,
+  FormRow,
   Accordion,
   Collapsible,
   NativeFieldGroup,
@@ -463,6 +464,53 @@ export default function DevShowcaseScreen() {
               placeholder="Canonical input with token padding & curvature..."
               style={{ marginTop: spacing.xs }}
             />
+          </Card>
+        </View>
+
+        {/* 9. FormRow Compound Component */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">
+            9. FormRow Compound Component
+          </ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            Grouped card form row with slots for Leading, Input, and Trailing
+          </ThemedText>
+
+          <Card variant="subdued" padding="none">
+            <FormRow style={{ paddingHorizontal: spacing.md }}>
+              <FormRow.Leading>
+                <Image
+                  source="sf:magnifyingglass"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    tintColor: colors.systemBlue,
+                  }}
+                />
+              </FormRow.Leading>
+              <FormRow.Input placeholder="Search query..." />
+            </FormRow>
+
+            <Divider inset="md" />
+
+            <FormRow style={{ paddingHorizontal: spacing.md }}>
+              <FormRow.Leading>
+                <Image
+                  source="sf:tag.fill"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    tintColor: colors.systemPurple,
+                  }}
+                />
+              </FormRow.Leading>
+              <FormRow.Input placeholder="Category tag" />
+              <FormRow.Trailing>
+                <ThemedText variant="caption1" color={colors.secondaryLabel}>
+                  Optional
+                </ThemedText>
+              </FormRow.Trailing>
+            </FormRow>
           </Card>
         </View>
       </View>
