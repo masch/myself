@@ -195,8 +195,9 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 32,
-    backgroundColor: "rgba(142, 142, 147, 0.3)",
+    backgroundColor: colors.separator,
   },
+
   tasksSection: {
     gap: spacing.lg - 4,
   },

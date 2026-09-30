@@ -26,7 +26,7 @@ import {
   NativeSwitch,
 } from "@/components";
 
-import { colors, spacing } from "@/theme";
+import { colors, shadows, spacing } from "@/theme";
 
 function formatTime(totalSeconds: number): string {
   const mins = Math.floor(totalSeconds / 60);
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderCurve: "continuous",
-    boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)",
+    boxShadow: shadows.card,
     elevation: 3,
   },
   timerText: {
@@ -782,7 +782,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(142, 142, 147, 0.2)",
+    borderTopColor: colors.separator,
     gap: 8,
   },
   readCountBadge: {
@@ -854,9 +854,10 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(142, 142, 147, 0.2)",
+    backgroundColor: colors.separator,
     marginLeft: 52,
   },
+
   timePickerContainer: {
     flexDirection: "row",
     alignItems: "center",

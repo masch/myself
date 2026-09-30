@@ -48,7 +48,7 @@ export function ReadingCard({
   return (
     <Card
       variant="subdued"
-      padding="md"
+      padding="compact"
       style={[styles.card, isCompleted && styles.cardCompleted]}
     >
       {/* Card Header: Author info & Action buttons */}
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(142, 142, 147, 0.25)",
+    borderTopColor: colors.separator,
   },
   cardFooterActions: {
     flexDirection: "row",

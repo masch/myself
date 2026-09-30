@@ -238,8 +238,9 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: "rgba(142, 142, 147, 0.3)",
+    backgroundColor: colors.separator,
   },
+
   sectionContainer: {
     gap: spacing.sm + 4,
   },
