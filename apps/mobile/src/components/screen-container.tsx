@@ -23,14 +23,14 @@ import {
   type LayoutChangeEvent,
 } from "react-native";
 import { useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
-import { colors, spacing } from "@/theme";
+import { colors, layout, spacing } from "@/theme";
 
 const DEFAULT_EDGES: Edge[] = ["top", "bottom"];
 const DEFAULT_TAB_EDGES: Edge[] = ["top"];
-const DEFAULT_TOP_OFFSET = spacing.sm;
-const DEFAULT_BOTTOM_OFFSET = spacing.md;
-const DEFAULT_HORIZONTAL_PADDING = spacing.md;
-const DEFAULT_GAP = spacing.md;
+const DEFAULT_TOP_OFFSET = layout.screenTopOffset;
+const DEFAULT_BOTTOM_OFFSET = layout.screenBottomOffset;
+export const DEFAULT_HORIZONTAL_PADDING = layout.screenHorizontalPadding;
+const DEFAULT_GAP = layout.cardGap;
 const DEFAULT_KEYBOARD_BOTTOM_SPACING = spacing.lg;
 const DEFAULT_KEYBOARD_TOP_SPACING = spacing.md;
 

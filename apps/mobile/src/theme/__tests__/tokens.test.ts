@@ -1,11 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { colors, radius, shadows, spacing, typography } from "../index";
+import { colors, layout, radius, shadows, spacing, typography } from "../index";
 
 describe("Design System Tokens", () => {
   describe("spacing tokens", () => {
     it("should provide expected 4-point scale steps", () => {
       expect(spacing.xs).toBe(4);
       expect(spacing.sm).toBe(8);
+      expect(spacing.compact).toBe(12);
       expect(spacing.md).toBe(16);
       expect(spacing.lg).toBe(24);
       expect(spacing.xl).toBe(32);
@@ -77,6 +78,21 @@ describe("Design System Tokens", () => {
       expect(colors).toBeDefined();
       expect(colors.systemBackground).toBeDefined();
       expect(colors.label).toBeDefined();
+    });
+  });
+
+  describe("layout tokens", () => {
+    it("should provide standardized screen and card layout metrics", () => {
+      expect(layout.screenHorizontalPadding).toBe(12);
+      expect(layout.cardPadding).toBe(12);
+      expect(layout.cardGap).toBe(16);
+      expect(layout.screenTopOffset).toBe(8);
+      expect(layout.screenBottomOffset).toBe(16);
+      expect(layout.minInteractiveTarget).toBe(44);
+      expect(layout.rowHeight).toBe(44);
+      expect(layout.rowPaddingVertical).toBe(6);
+      expect(layout.iconSize.md).toBe(20);
+      expect(layout.iconSize.row).toBe(22);
     });
   });
 });

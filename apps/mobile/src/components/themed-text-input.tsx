@@ -47,12 +47,17 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
       }
     };
 
+    const finalAccessibilityLabel =
+      props.accessibilityLabel ??
+      (typeof props.placeholder === "string" ? props.placeholder : undefined);
+
     return (
       <TextInput
         ref={internalRef}
         placeholderTextColor={placeholderTextColor}
         multiline={multiline}
         onFocus={handleFocus}
+        accessibilityLabel={finalAccessibilityLabel}
         style={[styles.input, typeStyle, multiline && styles.multiline, style]}
         {...props}
       />

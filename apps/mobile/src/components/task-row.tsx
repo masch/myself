@@ -2,15 +2,16 @@ import React from "react";
 import {
   Pressable,
   View,
-  Text,
   StyleSheet,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { Image } from "expo-image";
 import { type TaskItem } from "@/infrastructure/persistence/database";
 import { IconButton } from "./icon-button";
-import { colors } from "@/theme";
+import { ThemedText } from "./themed-text";
+import { Divider } from "./divider";
+import { AppIcon } from "./app-icon";
+import { colors, layout, spacing } from "@/theme";
 
 export interface TaskRowProps {
   task: TaskItem;
@@ -31,8 +32,12 @@ export function TaskRow({
 
   return (
     <View>
-      {showDivider && <View style={styles.divider} />}
+      {showDivider && <Divider style={styles.divider} />}
       <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: isDone }}
+        aria-checked={isDone}
+        accessibilityLabel={`${task.title}, ${task.category}${task.description ? `, ${task.description}` : ""}`}
         style={({ pressed }) => [
           styles.row,
           { opacity: pressed ? 0.7 : 1 },
@@ -40,41 +45,30 @@ export function TaskRow({
         ]}
         onPress={onToggle}
       >
-        <Image
-          source={isDone ? "sf:checkmark.circle.fill" : "sf:circle"}
-          style={[
-            styles.checkIcon,
-            {
-              tintColor: (isDone
-                ? colors.systemGreen
-                : colors.systemBlue) as any,
-            },
-          ]}
+        <AppIcon
+          name={isDone ? "sf:checkmark.circle.fill" : "sf:circle"}
+          size={layout.iconSize.row}
+          color={isDone ? colors.systemGreen : colors.systemBlue}
         />
 
         <View style={styles.content}>
-          <Text
-            style={[
-              styles.title,
-              {
-                color: (isDone ? colors.secondaryLabel : colors.label) as any,
-                textDecorationLine: isDone ? "line-through" : "none",
-              },
-            ]}
+          <ThemedText
+            variant="body"
+            color={isDone ? colors.secondaryLabel : colors.label}
+            style={isDone ? styles.strikethrough : undefined}
           >
             {task.title}
-          </Text>
+          </ThemedText>
 
-          <Text
-            style={[styles.subtitle, { color: colors.secondaryLabel as any }]}
-          >
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
             {task.category}
             {task.description ? ` • ${task.description}` : ""}
-          </Text>
+          </ThemedText>
         </View>
 
         <IconButton
           icon="sf:trash"
+          accessibilityLabel={`Eliminar tarea ${task.title}`}
           color={colors.systemRed}
           size="medium"
           onPress={onDelete}
@@ -88,28 +82,18 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingVertical: spacing.compact,
+    paddingHorizontal: spacing.md,
+    gap: spacing.md,
   },
   divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(142, 142, 147, 0.2)",
     marginLeft: 48,
-  },
-  checkIcon: {
-    width: 22,
-    height: 22,
   },
   content: {
     flex: 1,
     gap: 2,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  subtitle: {
-    fontSize: 13,
+  strikethrough: {
+    textDecorationLine: "line-through",
   },
 });

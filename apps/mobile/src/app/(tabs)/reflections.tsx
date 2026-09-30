@@ -1,12 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  Switch,
-} from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
 import {
   type EntityId,
@@ -14,13 +7,18 @@ import {
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { colors } from "@/theme";
+import { colors, layout } from "@/theme";
 import {
   ScreenContainer,
   Accordion,
   Collapsible,
   ThemedText,
   Card,
+  ChipButton,
+  EmptyState,
+  NativeSwitch,
+  SegmentedControl,
+  Spinner,
 } from "@/components";
 
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
@@ -335,69 +333,18 @@ export default function ReflectionsScreen() {
       />
 
       {/* Segmented Tab Switcher */}
-      <View
-        style={[
-          styles.tabBar,
-          { backgroundColor: colors.secondarySystemBackground },
+      <SegmentedControl
+        values={[
+          { value: "daily", label: "Cola Diaria" },
+          { value: "cohorts", label: "Programas" },
         ]}
-      >
-        <Pressable
-          onPress={() => setCurrentTab("daily")}
-          style={[
-            styles.tabItem,
-            currentTab === "daily" && [
-              styles.tabItemActive,
-              { backgroundColor: colors.systemBlue },
-            ],
-          ]}
-        >
-          <ThemedText
-            variant="callout"
-            style={[
-              styles.tabText,
-              {
-                color:
-                  currentTab === "daily" ? colors.white : colors.secondaryLabel,
-                fontWeight: currentTab === "daily" ? "700" : "500",
-              },
-            ]}
-          >
-            Cola Diaria
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setCurrentTab("cohorts")}
-          style={[
-            styles.tabItem,
-            currentTab === "cohorts" && [
-              styles.tabItemActive,
-              { backgroundColor: colors.systemBlue },
-            ],
-          ]}
-        >
-          <ThemedText
-            variant="callout"
-            style={[
-              styles.tabText,
-              {
-                color:
-                  currentTab === "cohorts"
-                    ? colors.white
-                    : colors.secondaryLabel,
-                fontWeight: currentTab === "cohorts" ? "700" : "500",
-              },
-            ]}
-          >
-            Programas
-          </ThemedText>
-        </Pressable>
-      </View>
+        selectedValue={currentTab}
+        onValueChange={(val) => setCurrentTab(val as "daily" | "cohorts")}
+        style={styles.tabBar}
+      />
 
       {isLoading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.systemBlue} />
-        </View>
+        <Spinner.Centered size="lg" />
       ) : (
         <ScrollView
           style={styles.contentScroll}
@@ -506,28 +453,16 @@ export default function ReflectionsScreen() {
               {/* Empty state when no pending questions */}
               {pendingMissedQuestions.length === 0 &&
                 pendingRoutineQuestions.length === 0 && (
-                  <Card
-                    variant="subdued"
-                    padding="none"
-                    style={[
-                      styles.emptyCard,
-                      {
-                        marginVertical: 6,
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      variant="callout"
-                      color={colors.secondaryLabel}
-                      style={styles.emptyText}
-                    >
-                      {upcomingRoutineQuestions.length > 0
+                  <EmptyState.Card
+                    style={{ marginVertical: 6 }}
+                    description={
+                      upcomingRoutineQuestions.length > 0
                         ? "No tenés reflexiones pendientes por ahora. Las próximas se habilitan más tarde."
                         : answeredQuestionsToday.length > 0
                           ? "¡Completaste todas tus reflexiones de hoy! 🎉"
-                          : "No tenés preguntas activas en tu rutina diaria."}
-                    </ThemedText>
-                  </Card>
+                          : "No tenés preguntas activas en tu rutina diaria."
+                    }
+                  />
                 )}
 
               {/* Upcoming routine questions (time-locked) */}
@@ -659,15 +594,10 @@ export default function ReflectionsScreen() {
                         quieras.
                       </ThemedText>
                     </View>
-                    <Switch
+                    <NativeSwitch
                       testID="toggle-show-answered"
                       value={showAnswered}
                       onValueChange={setShowAnswered}
-                      trackColor={{
-                        false: colors.systemGray15,
-                        true: colors.systemGreen,
-                      }}
-                      accessibilityRole="switch"
                       accessibilityLabel="Mostrar respondidas"
                     />
                   </View>
@@ -713,16 +643,10 @@ export default function ReflectionsScreen() {
               </View>
 
               {activeCohorts.length === 0 ? (
-                <Card variant="subdued" padding="none" style={styles.emptyCard}>
-                  <ThemedText
-                    variant="callout"
-                    color={colors.secondaryLabel}
-                    style={styles.emptyText}
-                  >
-                    No estás inscripto en ningún programa actualmente. Sumate a
-                    uno abajo.
-                  </ThemedText>
-                </Card>
+                <EmptyState.Card
+                  style={{ marginVertical: 8 }}
+                  description="No estás inscripto en ningún programa actualmente. Sumate a uno abajo."
+                />
               ) : (
                 activeCohorts.map((active) => (
                   <Card
@@ -739,25 +663,15 @@ export default function ReflectionsScreen() {
                         {active.theme.title}
                       </ThemedText>
                       {active.status === "in_progress" && (
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel="Bajarme del programa"
+                        <ChipButton
+                          title="Bajarme"
+                          variant="destructive"
                           disabled={isSubmitting}
+                          accessibilityLabel="Bajarme del programa"
                           onPress={() =>
                             void handleLeaveCohort(active.cohortId)
                           }
-                          style={[
-                            styles.leaveCohortBtn,
-                            { opacity: isSubmitting ? 0.5 : 1 },
-                          ]}
-                        >
-                          <ThemedText
-                            variant="caption1"
-                            style={styles.leaveCohortBtnText}
-                          >
-                            Bajarme
-                          </ThemedText>
-                        </Pressable>
+                        />
                       )}
                     </View>
 
@@ -997,38 +911,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabBar: {
-    flexDirection: "row",
-    marginHorizontal: 16,
+    marginHorizontal: layout.screenHorizontalPadding,
     marginVertical: 10,
-    borderRadius: 14,
-    padding: 4,
-  },
-  tabItem: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-    borderRadius: 10,
-  },
-  tabItemActive: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tabText: {
-    fontSize: 14,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
   contentScroll: {
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: layout.screenHorizontalPadding,
     paddingBottom: 28,
   },
   sectionHeader: {
@@ -1062,7 +952,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   missedNotice: {
-    padding: 12,
+    padding: layout.cardPadding,
     borderRadius: 14,
     borderWidth: 1,
     marginBottom: 6,
@@ -1075,18 +965,8 @@ const styles = StyleSheet.create({
   missedSubtitle: {
     fontSize: 12,
   },
-  emptyCard: {
-    padding: 20,
-    borderRadius: 16,
-    alignItems: "center",
-    marginVertical: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    textAlign: "center",
-  },
   cohortBox: {
-    padding: 16,
+    padding: layout.cardPadding,
     borderRadius: 20,
     marginVertical: 10,
   },
@@ -1100,17 +980,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 8,
     gap: 8,
-  },
-  leaveCohortBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 10,
-    backgroundColor: colors.systemGray15,
-  },
-  leaveCohortBtnText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.systemRed,
   },
   subHeader: {
     fontSize: 13,

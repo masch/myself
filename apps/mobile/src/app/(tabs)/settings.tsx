@@ -9,6 +9,7 @@ import {
   NativeSwitch,
   NativePicker,
   ThemedText,
+  ThemedTextInput,
 } from "@/components";
 
 import { useAuth } from "@/context/auth-context";
@@ -19,14 +20,7 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useState } from "react";
-import {
-  Alert,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
+import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
 
 // Only import @expo/ui on platforms that fully support it without Compose SlotView crashes
 import {
@@ -379,33 +373,19 @@ export default function SettingsScreen() {
             <Column>
               <ExpoText>Create User Profile</ExpoText>
               <View style={styles.sheetInputWrapper}>
-                <TextInput
+                <ThemedTextInput
+                  accessibilityLabel="Full name"
                   placeholder="Full Name (e.g. Maria Perez)"
-                  placeholderTextColor={colors.secondaryLabel}
                   value={newUserName}
                   onChangeText={setNewUserName}
-                  style={[
-                    styles.sheetInput,
-                    {
-                      color: colors.label,
-                      borderColor: "rgba(142, 142, 147, 0.3)",
-                    },
-                  ]}
                 />
-                <TextInput
+                <ThemedTextInput
+                  accessibilityLabel="Email address"
                   placeholder="Email (e.g. maria@example.com)"
-                  placeholderTextColor={colors.secondaryLabel}
                   value={newUserEmail}
                   onChangeText={setNewUserEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  style={[
-                    styles.sheetInput,
-                    {
-                      color: colors.label,
-                      borderColor: "rgba(142, 142, 147, 0.3)",
-                    },
-                  ]}
                 />
               </View>
               <ExpoButton onPress={handleCreateUser}>
@@ -706,40 +686,25 @@ export default function SettingsScreen() {
             icon="sf:xmark"
             color={colors.secondaryLabel}
             size="small"
+            accessibilityLabel="Close"
             onPress={() => setIsNewUserSheetOpen(false)}
           />
         </View>
 
         <View style={styles.modalBody}>
-          <TextInput
+          <ThemedTextInput
+            accessibilityLabel="Full name"
             placeholder="Full Name (e.g. Maria Perez)"
-            placeholderTextColor={colors.secondaryLabel}
             value={newUserName}
             onChangeText={setNewUserName}
-            style={[
-              styles.modalInput,
-              {
-                color: colors.label,
-                backgroundColor: colors.systemBackground,
-                borderColor: colors.systemGray15,
-              },
-            ]}
           />
-          <TextInput
+          <ThemedTextInput
+            accessibilityLabel="Email address"
             placeholder="Email (e.g. maria@example.com)"
-            placeholderTextColor={colors.secondaryLabel}
             value={newUserEmail}
             onChangeText={setNewUserEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            style={[
-              styles.modalInput,
-              {
-                color: colors.label,
-                backgroundColor: colors.systemBackground,
-                borderColor: colors.systemGray15,
-              },
-            ]}
           />
         </View>
 
@@ -807,13 +772,6 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: 10,
     marginVertical: 12,
-  },
-  sheetInput: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
   },
   section: {
     gap: 8,
@@ -897,14 +855,6 @@ const styles = StyleSheet.create({
   modalBody: {
     gap: 12,
     marginTop: 8,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    width: "100%",
   },
   aboutModalCard: {
     alignItems: "center",

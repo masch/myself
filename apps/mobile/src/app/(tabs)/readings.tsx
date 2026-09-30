@@ -1,11 +1,12 @@
 import { useCallback } from "react";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { View, StyleSheet } from "react-native";
-import { Image } from "expo-image";
 import { useReadings } from "@/hooks/use-readings";
 import { type MeditationReadingWithAuthor } from "@/infrastructure/persistence/database";
 import {
   AppButton,
+  AppIcon,
+  EmptyState,
   IconButton,
   ScreenContainer,
   Card,
@@ -77,6 +78,7 @@ export default function ReadingsScreen() {
               icon="sf:plus"
               color={colors.systemBlue}
               size="large"
+              accessibilityLabel="Add new reading"
               onPress={() => router.push("/reading-modal")}
             />
           ),
@@ -86,10 +88,7 @@ export default function ReadingsScreen() {
       {/* Hero Stats Card */}
       <Card variant="subdued" padding="lg" style={styles.heroCard}>
         <View style={styles.heroHeaderRow}>
-          <Image
-            source="sf:sparkles"
-            style={[styles.heroIcon, { tintColor: colors.systemPurple }]}
-          />
+          <AppIcon name="sf:sparkles" size={36} color={colors.systemPurple} />
           <View style={{ flex: 1 }}>
             <ThemedText variant="title2">Pre-Meditation Passages</ThemedText>
             <ThemedText variant="caption1" color={colors.secondaryLabel}>
@@ -195,28 +194,21 @@ export default function ReadingsScreen() {
 
       {/* Empty State */}
       {readings.length === 0 && !isLoading && (
-        <Card variant="subdued" padding="xl" style={styles.emptyCard}>
-          <Image
-            source="sf:book.closed.fill"
-            style={[styles.emptyIcon, { tintColor: colors.systemPurple }]}
-          />
-          <ThemedText variant="title2" style={styles.emptyTitle}>
-            No Readings Added Yet
-          </ThemedText>
-          <ThemedText
-            variant="callout"
-            color={colors.secondaryLabel}
-            style={styles.emptySubtitle}
-          >
-            Add inspiring passages and philosophical quotes to read right before
-            meditating.
-          </ThemedText>
-          <AppButton
-            title="Create First Reading"
-            variant="purple"
-            onPress={() => router.push("/reading-modal")}
-          />
-        </Card>
+        <EmptyState.Card
+          icon="sf:book.closed.fill"
+          iconColor={colors.systemPurple}
+          iconSize={48}
+          title="No Readings Added Yet"
+          description="Add inspiring passages and philosophical quotes to read right before meditating."
+          style={{ marginTop: spacing.lg - 4 }}
+          action={
+            <AppButton
+              title="Create First Reading"
+              variant="purple"
+              onPress={() => router.push("/reading-modal")}
+            />
+          }
+        />
       )}
     </ScreenContainer.Scroll>
   );
@@ -231,10 +223,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm + 4,
     paddingBottom: spacing.xs,
-  },
-  heroIcon: {
-    width: 36,
-    height: 36,
   },
   statsRow: {
     flexDirection: "row",
@@ -251,29 +239,14 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: "rgba(142, 142, 147, 0.3)",
+    backgroundColor: colors.separator,
   },
+
   sectionContainer: {
     gap: spacing.sm + 4,
   },
   sectionTitle: {
     letterSpacing: 0.8,
     paddingHorizontal: spacing.xs,
-  },
-  emptyCard: {
-    alignItems: "center",
-    gap: spacing.sm + 4,
-    marginTop: spacing.lg - 4,
-  },
-  emptyIcon: {
-    width: 48,
-    height: 48,
-  },
-  emptyTitle: {
-    textAlign: "center",
-  },
-  emptySubtitle: {
-    textAlign: "center",
-    lineHeight: 20,
   },
 });

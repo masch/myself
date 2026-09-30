@@ -1,7 +1,7 @@
 import { View, StyleSheet } from "react-native";
 import { type CycleStatus } from "@myself/shared";
-import { colors, spacing, radius } from "@/theme";
-import { Card, ThemedText } from "@/components";
+import { colors, layout, spacing, radius } from "@/theme";
+import { Badge, Card, ThemedText } from "@/components";
 
 interface CycleProgressBadgeProps {
   currentStep: number;
@@ -37,24 +37,10 @@ export function CycleProgressBadge({
             ? "¡Ciclo Completado!"
             : `Paso ${currentStep} de ${totalSteps}`}
         </ThemedText>
-        <View
-          style={[
-            styles.statusPill,
-            {
-              backgroundColor: isCompleted
-                ? colors.systemGreen
-                : colors.systemBlue,
-            },
-          ]}
-        >
-          <ThemedText
-            variant="caption1"
-            color={colors.white}
-            style={styles.statusPillText}
-          >
-            {isCompleted ? "Completado" : `${percent}%`}
-          </ThemedText>
-        </View>
+        <Badge
+          variant={isCompleted ? "success" : "primary"}
+          label={isCompleted ? "Completado" : `${percent}%`}
+        />
       </View>
 
       {/* Progress track */}
@@ -97,12 +83,13 @@ export function CycleProgressBadge({
 
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.md,
+    padding: layout.cardPadding,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.systemGray15,
     marginVertical: spacing.sm,
   },
+
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -110,14 +97,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm + 2,
   },
   stepText: {
-    fontWeight: "700",
-  },
-  statusPill: {
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs - 1,
-    borderRadius: radius.full,
-  },
-  statusPillText: {
     fontWeight: "700",
   },
   track: {

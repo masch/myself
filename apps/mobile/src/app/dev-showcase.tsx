@@ -7,6 +7,11 @@ import {
   ThemedText,
   Divider,
   ThemedTextInput,
+  FormRow,
+  SegmentedControl,
+  EmptyState,
+  Spinner,
+  Badge,
   Accordion,
   Collapsible,
   NativeFieldGroup,
@@ -14,7 +19,7 @@ import {
   NativeSwitch,
   NativePicker,
 } from "@/components";
-import { colors, spacing, typography, radius } from "@/theme";
+import { colors, layout, spacing, typography, radius } from "@/theme";
 
 const COLOR_SWATCHES: {
   category: string;
@@ -465,6 +470,129 @@ export default function DevShowcaseScreen() {
             />
           </Card>
         </View>
+
+        {/* 9. FormRow Compound Component */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">
+            9. FormRow Compound Component
+          </ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            Grouped card form row with slots for Leading, Input, and Trailing
+          </ThemedText>
+
+          <Card variant="subdued" padding="none">
+            <FormRow style={{ paddingHorizontal: spacing.md }}>
+              <FormRow.Leading>
+                <Image
+                  source="sf:magnifyingglass"
+                  style={{
+                    width: layout.iconSize.md,
+                    height: layout.iconSize.md,
+                    tintColor: colors.systemBlue,
+                  }}
+                />
+              </FormRow.Leading>
+              <FormRow.Input
+                accessibilityLabel="Search query"
+                placeholder="Search query..."
+              />
+            </FormRow>
+
+            <Divider inset="md" />
+
+            <FormRow style={{ paddingHorizontal: spacing.md }}>
+              <FormRow.Leading>
+                <Image
+                  source="sf:tag.fill"
+                  style={{
+                    width: layout.iconSize.md,
+                    height: layout.iconSize.md,
+                    tintColor: colors.systemPurple,
+                  }}
+                />
+              </FormRow.Leading>
+              <FormRow.Input
+                accessibilityLabel="Category tag"
+                placeholder="Category tag"
+              />
+              <FormRow.Trailing>
+                <ThemedText variant="caption1" color={colors.secondaryLabel}>
+                  Optional
+                </ThemedText>
+              </FormRow.Trailing>
+            </FormRow>
+          </Card>
+        </View>
+
+        {/* 10. SegmentedControl */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">10. SegmentedControl</ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            iOS-style segmented tab control with badges and accessible tablist
+          </ThemedText>
+
+          <SegmentedControl
+            values={[
+              { value: "daily", label: "Daily Queue", badge: 4 },
+              { value: "cohorts", label: "Programs" },
+              { value: "history", label: "History" },
+            ]}
+            selectedValue="daily"
+            onValueChange={() => {}}
+          />
+        </View>
+
+        {/* 11. EmptyState */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">11. EmptyState</ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            Harmonic empty state placeholders with icons, titles, and actions
+          </ThemedText>
+
+          <EmptyState.Card
+            icon="sf:tray"
+            title="No Items Found"
+            description="You have cleared all pending items for today."
+          />
+        </View>
+
+        {/* 12. Spinner */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">12. Spinner</ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            Harmonic activity indicator with size variants, colors, and compound
+            labels
+          </ThemedText>
+
+          <Card variant="outlined" padding="md" style={styles.spinnerRow}>
+            <Spinner size="sm" />
+            <Spinner size="md" color={colors.systemPurple} />
+            <Spinner size="lg" label="Loading..." />
+          </Card>
+        </View>
+
+        {/* 13. Badge */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">13. Badge</ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            Status badges, pills, and category tags with semantic color variants
+          </ThemedText>
+
+          <Card variant="outlined" padding="md" style={styles.badgeShowcase}>
+            <View style={styles.badgeRow}>
+              <Badge variant="neutral" label="Neutral" />
+              <Badge variant="primary" label="Primary" />
+              <Badge variant="success" icon="sf:checkmark" label="Success" />
+              <Badge variant="warning" label="Warning" />
+            </View>
+            <View style={styles.badgeRow}>
+              <Badge variant="destructive" label="Destructive" />
+              <Badge variant="purple" icon="sf:sparkles" label="Purple" />
+              <Badge variant="outline" label="Outline" />
+              <Badge size="sm" variant="success" label="Small" />
+            </View>
+          </Card>
+        </View>
       </View>
     </ScreenContainer.Scroll>
   );
@@ -575,5 +703,19 @@ const styles = StyleSheet.create({
   itemIcon: {
     width: 24,
     height: 24,
+  },
+  spinnerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+  },
+  badgeShowcase: {
+    gap: spacing.sm,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    alignItems: "center",
   },
 });

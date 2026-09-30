@@ -9,11 +9,16 @@ import {
   type SwitchProps,
 } from "react-native";
 
-import { colors, spacing, radius, shadows } from "@/theme";
+import { colors, spacing } from "@/theme";
 import { ThemedText } from "./themed-text";
 import { Card } from "./surface";
+import { SegmentedControl } from "./segmented-control";
 
-export interface NativeSwitchProps extends Omit<SwitchProps, "style"> {
+export interface NativeSwitchProps extends Omit<
+  SwitchProps,
+  "style" | "accessibilityLabel"
+> {
+  accessibilityLabel: string;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -41,6 +46,29 @@ export function NativeSwitch({
   );
 }
 
+export interface NativePickerProps<T extends string> {
+  value: T;
+  onValueChange: (val: T) => void;
+  options: { label: string; value: T }[];
+  style?: StyleProp<ViewStyle>;
+}
+
+export function NativePicker<T extends string>({
+  value,
+  onValueChange,
+  options,
+  style,
+}: NativePickerProps<T>) {
+  return (
+    <SegmentedControl
+      values={options}
+      selectedValue={value}
+      onValueChange={onValueChange}
+      style={style}
+    />
+  );
+}
+
 export interface NativeListItemProps {
   children: ReactNode;
   supportingText?: string;
@@ -57,12 +85,21 @@ export function NativeListItem({
   supportingText,
   leading,
   trailing,
-  layout = "horizontal",
+  layout,
   onPress,
   style,
   testID,
 }: NativeListItemProps) {
-  const isVertical = layout === "vertical";
+  const isWideControl =
+    React.isValidElement(trailing) &&
+    (trailing.type === NativePicker ||
+      trailing.type === SegmentedControl ||
+      (trailing.props as any)?.options !== undefined ||
+      (trailing.props as any)?.values !== undefined);
+
+  const effectiveLayout = layout ?? (isWideControl ? "vertical" : "horizontal");
+  const isVertical = effectiveLayout === "vertical";
+
   const content = (
     <View
       style={[
@@ -173,51 +210,6 @@ export const NativeFieldGroup = Object.assign(NativeFieldGroupRoot, {
   Section: NativeFieldGroupSection,
 });
 
-export interface NativePickerProps<T extends string> {
-  value: T;
-  onValueChange: (val: T) => void;
-  options: { label: string; value: T }[];
-  style?: StyleProp<ViewStyle>;
-}
-
-export function NativePicker<T extends string>({
-  value,
-  onValueChange,
-  options,
-  style,
-}: NativePickerProps<T>) {
-  return (
-    <View style={[styles.pickerContainer, style]}>
-      {options.map((option) => {
-        const isSelected = option.value === value;
-        return (
-          <Pressable
-            key={option.value}
-            onPress={() => onValueChange(option.value)}
-            style={[
-              styles.pickerOption,
-              isSelected && styles.pickerOptionSelected,
-            ]}
-            accessibilityRole="button"
-            accessibilityState={{ selected: isSelected }}
-          >
-            <ThemedText
-              variant="caption1"
-              color={isSelected ? colors.white : colors.label}
-              style={[
-                styles.pickerText,
-                isSelected && styles.pickerTextSelected,
-              ]}
-            >
-              {option.label}
-            </ThemedText>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   groupRoot: {
     width: "100%",
@@ -289,35 +281,5 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     justifyContent: "center",
     alignItems: "flex-end",
-  },
-  pickerContainer: {
-    flexDirection: "row",
-    backgroundColor: "rgba(118, 118, 128, 0.24)",
-    borderRadius: radius.md,
-    padding: 3,
-    alignItems: "center",
-    width: "100%",
-  },
-  pickerOption: {
-    flex: 1,
-    paddingVertical: spacing.xs + 3,
-    paddingHorizontal: spacing.sm,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radius.sm + 1,
-    minHeight: 28,
-  },
-  pickerOptionSelected: {
-    backgroundColor: colors.systemBlue,
-    boxShadow: shadows.card,
-  },
-  pickerText: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: "500",
-    textAlign: "center",
-  },
-  pickerTextSelected: {
-    fontWeight: "600",
   },
 });

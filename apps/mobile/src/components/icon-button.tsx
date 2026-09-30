@@ -12,8 +12,12 @@ import { AppIcon } from "./app-icon";
 
 export type IconButtonSize = "small" | "medium" | "large";
 
-export interface IconButtonProps extends Omit<PressableProps, "style"> {
+export interface IconButtonProps extends Omit<
+  PressableProps,
+  "style" | "accessibilityLabel"
+> {
   icon: string;
+  accessibilityLabel: string;
   color?: ColorValue;
   size?: IconButtonSize;
   style?: StyleProp<ViewStyle>;
@@ -22,6 +26,7 @@ export interface IconButtonProps extends Omit<PressableProps, "style"> {
 
 export function IconButton({
   icon,
+  accessibilityLabel,
   color = colors.systemBlue,
   size = "medium",
   style,
@@ -33,11 +38,13 @@ export function IconButton({
 
   return (
     <Pressable
-      role="button"
-      aria-label={props.accessibilityLabel}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      aria-label={accessibilityLabel}
       hitSlop={hitSlop}
       style={({ pressed }) => [
         styles.base,
+
         {
           opacity: disabled ? 0.4 : pressed ? 0.6 : 1,
           transform: [{ scale: pressed ? 0.92 : 1 }],

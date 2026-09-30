@@ -1,7 +1,15 @@
-import { View, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { type ReflectionQuestion, type UserReflection } from "@myself/shared";
-import { colors, spacing, radius } from "@/theme";
-import { AppButton, AppMarkdownText, Card, ThemedText } from "@/components";
+import { colors, layout, spacing, radius } from "@/theme";
+import {
+  AppButton,
+  AppMarkdownText,
+  Badge,
+  Card,
+  ChipButton,
+  IconButton,
+  ThemedText,
+} from "@/components";
 
 interface PromptCardProps {
   question: ReflectionQuestion;
@@ -127,52 +135,30 @@ export function PromptCard({
         {/* Action icons (pin shortcut or opt-out) */}
         <View style={styles.topActions}>
           {onToggleShortcut && (
-            <Pressable
-              onPress={() => onToggleShortcut(!isPinnedShortcut)}
-              style={styles.iconBtn}
-              accessibilityRole="button"
+            <IconButton
+              icon={isPinnedShortcut ? "sf:star.fill" : "sf:star"}
+              color={colors.systemOrange}
+              size="small"
               accessibilityLabel={
                 isPinnedShortcut
                   ? "Desanclar acceso rápido"
                   : "Anclar acceso rápido"
               }
-            >
-              <ThemedText
-                variant="headline"
-                color={colors.systemOrange}
-                style={styles.iconText}
-              >
-                {isPinnedShortcut ? "★" : "☆"}
-              </ThemedText>
-            </Pressable>
+              onPress={() => onToggleShortcut(!isPinnedShortcut)}
+            />
           )}
 
           {isRoutine && onToggleOptOut && (
-            <Pressable
-              onPress={() => onToggleOptOut(!isRoutineEnabled)}
-              style={[
-                styles.optOutBtn,
-                {
-                  backgroundColor: isRoutineEnabled
-                    ? colors.systemGray15
-                    : colors.systemRed,
-                },
-              ]}
-              accessibilityRole="button"
+            <ChipButton
+              title={isRoutineEnabled ? "Bajar" : "Reactivar"}
+              variant={isRoutineEnabled ? "secondary" : "destructive"}
               accessibilityLabel={
                 isRoutineEnabled
                   ? "Desuscribir de rutina"
                   : "Suscribir a rutina"
               }
-            >
-              <ThemedText
-                variant="caption2"
-                color={isRoutineEnabled ? colors.secondaryLabel : colors.white}
-                style={styles.optOutBtnText}
-              >
-                {isRoutineEnabled ? "Bajar" : "Reactivar"}
-              </ThemedText>
-            </Pressable>
+              onPress={() => onToggleOptOut(!isRoutineEnabled)}
+            />
           )}
         </View>
       </View>
@@ -191,13 +177,12 @@ export function PromptCard({
           ]}
         >
           {!hideStatusBadge && (
-            <ThemedText
-              variant="caption1"
-              color={colors.systemGreen}
-              style={styles.resultBadge}
-            >
-              ✓ Respondida
-            </ThemedText>
+            <Badge
+              variant="success"
+              size="sm"
+              label="✓ Respondida"
+              style={{ marginBottom: spacing.xs }}
+            />
           )}
           {isScale ? (
             <ThemedText
@@ -228,13 +213,12 @@ export function PromptCard({
             { backgroundColor: colors.systemBackground },
           ]}
         >
-          <ThemedText
-            variant="caption1"
-            color={colors.systemOrange}
-            style={styles.resultBadge}
-          >
-            ↷ Salteada
-          </ThemedText>
+          <Badge
+            variant="warning"
+            size="sm"
+            label="↷ Salteada"
+            style={{ marginBottom: spacing.xs }}
+          />
           <ThemedText
             variant="caption1"
             color={colors.secondaryLabel}
@@ -291,11 +275,12 @@ export function PromptCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: spacing.md,
+    padding: layout.cardPadding,
     borderRadius: radius.lg + 2, // 18px
     borderWidth: 1,
     marginVertical: spacing.sm,
   },
+
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -328,20 +313,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
   },
-  iconBtn: {
-    padding: spacing.xs,
-  },
-  iconText: {
-    fontSize: 20,
-  },
-  optOutBtn: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-  },
-  optOutBtnText: {
-    fontWeight: "600",
-  },
   promptText: {
     fontSize: 16,
     fontWeight: "600",
@@ -352,10 +323,6 @@ const styles = StyleSheet.create({
     padding: spacing.sm + 2,
     borderRadius: radius.md - 2,
     marginBottom: spacing.md - 4,
-  },
-  resultBadge: {
-    fontWeight: "700",
-    marginBottom: spacing.xs,
   },
   resultContent: {
     fontStyle: "italic",

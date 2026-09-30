@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, Switch, Alert } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useKeepAwake } from "expo-keep-awake";
 import {
@@ -13,16 +13,20 @@ import { useMeditation } from "@/hooks/use-meditation";
 import { useReadings } from "@/hooks/use-readings";
 import {
   AppButton,
+  AppIcon,
+  Badge,
   ChipButton,
+  EmptyState,
   StepperButton,
   MeditationText,
   ScreenContainer,
   Collapsible,
   ThemedText,
   Card,
+  NativeSwitch,
 } from "@/components";
 
-import { colors } from "@/theme";
+import { colors, shadows, spacing } from "@/theme";
 
 function formatTime(totalSeconds: number): string {
   const mins = Math.floor(totalSeconds / 60);
@@ -157,16 +161,26 @@ export default function MeditationScreen() {
     <ScreenContainer.Scroll>
       {/* Main Timer Display Card */}
       <Card variant="elevated" padding="none" style={styles.timerCard}>
-        <ThemedText
-          variant="caption1"
-          color={colors.secondaryLabel}
-          style={styles.statusBadge}
-        >
-          {isIdle && "LISTO PARA COMENZAR"}
-          {isRunning && "EN MEDITACIÓN"}
-          {isPaused && "EN PAUSA"}
-          {isCompleted && "SESIÓN COMPLETADA"}
-        </ThemedText>
+        <Badge
+          variant={
+            isRunning
+              ? "primary"
+              : isCompleted
+                ? "success"
+                : isPaused
+                  ? "warning"
+                  : "neutral"
+          }
+          label={
+            isIdle
+              ? "LISTO PARA COMENZAR"
+              : isRunning
+                ? "EN MEDITACIÓN"
+                : isPaused
+                  ? "EN PAUSA"
+                  : "SESIÓN COMPLETADA"
+          }
+        />
 
         <ThemedText variant="largeTitle" style={styles.timerText}>
           {formatTime(elapsedSeconds)}
@@ -382,25 +396,14 @@ export default function MeditationScreen() {
               </View>
             </>
           ) : (
-            <View style={styles.emptyReadingBox}>
-              <Image
-                source="sf:book.closed"
-                style={[
-                  styles.emptyReadingIcon,
-                  { tintColor: colors.systemPurple },
-                ]}
-              />
-              <ThemedText variant="headline" style={styles.emptyReadingTitle}>
-                Sin textos en la biblioteca
-              </ThemedText>
-              <ThemedText
-                variant="callout"
-                color={colors.secondaryLabel}
-                style={styles.emptyReadingSubtitle}
-              >
-                Podés crear nuevas lecturas en la pestaña &apos;Lecturas&apos;.
-              </ThemedText>
-            </View>
+            <EmptyState
+              icon="sf:book.closed"
+              iconColor={colors.systemPurple}
+              iconSize={40}
+              title="Sin textos en la biblioteca"
+              description="Podés crear nuevas lecturas en la pestaña 'Lecturas'."
+              style={{ padding: spacing.lg }}
+            />
           )}
         </Card>
       )}
@@ -412,9 +415,10 @@ export default function MeditationScreen() {
           padding="none"
           style={styles.readRegisteredBadge}
         >
-          <Image
-            source="sf:checkmark.circle.fill"
-            style={[styles.checkIcon, { tintColor: colors.systemGreen }]}
+          <AppIcon
+            name="sf:checkmark.circle.fill"
+            size={20}
+            color={colors.systemGreen}
           />
           <ThemedText variant="callout" style={styles.readRegisteredText}>
             Lectura de{" "}
@@ -525,13 +529,10 @@ export default function MeditationScreen() {
                   Suena 1 gong al llegar a la hora objetivo
                 </ThemedText>
               </View>
-              <Switch
+              <NativeSwitch
                 value={alarmEnabled}
                 onValueChange={setAlarmEnabled}
-                trackColor={{
-                  false: "rgba(142, 142, 147, 0.3)",
-                  true: colors.systemGreen as any,
-                }}
+                accessibilityLabel="Alarma de Pared Programada"
               />
             </View>
 
@@ -677,14 +678,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderCurve: "continuous",
-    boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)",
+    boxShadow: shadows.card,
     elevation: 3,
-  },
-  statusBadge: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    marginBottom: 8,
   },
   timerText: {
     fontSize: 60,
@@ -788,7 +783,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(142, 142, 147, 0.2)",
+    borderTopColor: colors.separator,
     gap: 8,
   },
   readCountBadge: {
@@ -807,30 +802,9 @@ const styles = StyleSheet.create({
     gap: 10,
     borderCurve: "continuous",
   },
-  checkIcon: {
-    width: 20,
-    height: 20,
-  },
   readRegisteredText: {
     fontSize: 13,
     flex: 1,
-  },
-  emptyReadingBox: {
-    alignItems: "center",
-    paddingVertical: 14,
-    gap: 6,
-  },
-  emptyReadingIcon: {
-    width: 32,
-    height: 32,
-  },
-  emptyReadingTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  emptyReadingSubtitle: {
-    fontSize: 13,
-    textAlign: "center",
   },
   actionSection: {
     marginBottom: 20,
@@ -881,9 +855,10 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(142, 142, 147, 0.2)",
+    backgroundColor: colors.separator,
     marginLeft: 52,
   },
+
   timePickerContainer: {
     flexDirection: "row",
     alignItems: "center",

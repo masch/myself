@@ -97,9 +97,14 @@ export function AppButton({
 
   const finalBg = backgroundColor || containerBg;
 
+  const finalAccessibilityLabel =
+    props.accessibilityLabel ?? (subtitle ? `${title}, ${subtitle}` : title);
+
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={finalAccessibilityLabel}
+      aria-label={finalAccessibilityLabel}
       style={({ pressed }) => [
         styles.baseButton,
         {
