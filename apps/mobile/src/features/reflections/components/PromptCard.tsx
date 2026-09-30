@@ -1,6 +1,6 @@
 import { View, StyleSheet } from "react-native";
 import { type ReflectionQuestion, type UserReflection } from "@myself/shared";
-import { colors, spacing, radius } from "@/theme";
+import { colors, layout, spacing, radius } from "@/theme";
 import {
   AppButton,
   AppMarkdownText,
@@ -275,11 +275,12 @@ export function PromptCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: spacing.md,
+    padding: layout.cardPadding,
     borderRadius: radius.lg + 2, // 18px
     borderWidth: 1,
     marginVertical: spacing.sm,
   },
+
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",

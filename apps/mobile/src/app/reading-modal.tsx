@@ -10,7 +10,7 @@ import {
   Divider,
 } from "@/components";
 import { useReadingForm } from "@/hooks/use-reading-form";
-import { colors } from "@/theme";
+import { colors, spacing } from "@/theme";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
 
@@ -285,9 +285,10 @@ export default function ReadingModalScreen() {
 
 const styles = StyleSheet.create({
   contentContainer: {
-    padding: 16,
+    paddingBottom: spacing.lg,
     gap: 20,
   },
+
   section: {
     gap: 8,
   },

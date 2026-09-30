@@ -7,7 +7,7 @@ import {
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { colors } from "@/theme";
+import { colors, layout } from "@/theme";
 import {
   ScreenContainer,
   Accordion,
@@ -911,14 +911,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabBar: {
-    marginHorizontal: 16,
+    marginHorizontal: layout.screenHorizontalPadding,
     marginVertical: 10,
   },
   contentScroll: {
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: layout.screenHorizontalPadding,
     paddingBottom: 28,
   },
   sectionHeader: {
@@ -952,7 +952,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   missedNotice: {
-    padding: 12,
+    padding: layout.cardPadding,
     borderRadius: 14,
     borderWidth: 1,
     marginBottom: 6,
@@ -966,7 +966,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   cohortBox: {
-    padding: 16,
+    padding: layout.cardPadding,
     borderRadius: 20,
     marginVertical: 10,
   },

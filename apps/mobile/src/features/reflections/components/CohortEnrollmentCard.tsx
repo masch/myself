@@ -1,6 +1,6 @@
 import { View, StyleSheet } from "react-native";
 import { type ThemeCohort, type ReflectionTheme } from "@myself/shared";
-import { colors, spacing, radius } from "@/theme";
+import { colors, layout, spacing, radius } from "@/theme";
 import { AppButton, Badge, Card, ThemedText } from "@/components";
 
 interface CohortEnrollmentCardProps {
@@ -96,12 +96,13 @@ export function CohortEnrollmentCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: spacing.md,
+    padding: layout.cardPadding,
     borderRadius: radius.lg + 2, // 18px
     borderWidth: 1,
     borderColor: colors.systemGray15,
     marginVertical: spacing.sm,
   },
+
   topRow: {
     flexDirection: "row",
     gap: spacing.sm,

@@ -1,6 +1,6 @@
 import { View, StyleSheet } from "react-native";
 import { type CycleStatus } from "@myself/shared";
-import { colors, spacing, radius } from "@/theme";
+import { colors, layout, spacing, radius } from "@/theme";
 import { Badge, Card, ThemedText } from "@/components";
 
 interface CycleProgressBadgeProps {
@@ -83,12 +83,13 @@ export function CycleProgressBadge({
 
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.md,
+    padding: layout.cardPadding,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.systemGray15,
     marginVertical: spacing.sm,
   },
+
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
