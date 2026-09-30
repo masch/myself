@@ -9,6 +9,7 @@ import {
   ThemedTextInput,
   FormRow,
   SegmentedControl,
+  EmptyState,
   Accordion,
   Collapsible,
   NativeFieldGroup,
@@ -530,6 +531,20 @@ export default function DevShowcaseScreen() {
             ]}
             selectedValue="daily"
             onValueChange={() => {}}
+          />
+        </View>
+
+        {/* 11. EmptyState */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">11. EmptyState</ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            Harmonic empty state placeholders with icons, titles, and actions
+          </ThemedText>
+
+          <EmptyState.Card
+            icon="sf:tray"
+            title="No Items Found"
+            description="You have cleared all pending items for today."
           />
         </View>
       </View>

@@ -1,15 +1,16 @@
 import { useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { View, StyleSheet, Alert } from "react-native";
-import { Image } from "expo-image";
 import { useTasks } from "@/hooks/use-tasks";
 import { type TaskItem } from "@/infrastructure/persistence/database";
 import {
   AppButton,
+  AppIcon,
   TaskRow,
   ScreenContainer,
   Card,
   ThemedText,
+  EmptyState,
 } from "@/components";
 import { colors, spacing } from "@/theme";
 import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
@@ -61,9 +62,10 @@ export default function HomeScreen() {
       {/* Summary Card */}
       <Card variant="subdued" padding="lg" style={styles.heroCard}>
         <View style={styles.userHeaderRow}>
-          <Image
-            source="sf:person.crop.circle.fill"
-            style={styles.userAvatarIcon}
+          <AppIcon
+            name="sf:person.crop.circle.fill"
+            size={44}
+            color={colors.systemBlue}
           />
           <View style={{ flex: 1 }}>
             <ThemedText variant="title2">
@@ -160,19 +162,10 @@ export default function HomeScreen() {
         )}
 
         {tasks.length === 0 && !isLoading && (
-          <Card variant="subdued" padding="xl" style={styles.emptyCard}>
-            <Image
-              source="sf:tray"
-              style={[styles.iconGray, { tintColor: colors.secondaryLabel }]}
-            />
-            <ThemedText
-              variant="callout"
-              color={colors.secondaryLabel}
-              style={styles.emptyText}
-            >
-              No tasks found. Tap &apos;New Task&apos; to create one.
-            </ThemedText>
-          </Card>
+          <EmptyState.Card
+            icon="sf:tray"
+            description="No tasks found. Tap 'New Task' to create one."
+          />
         )}
       </View>
     </ScreenContainer.Scroll>
@@ -187,11 +180,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm + 4,
-  },
-  userAvatarIcon: {
-    width: 44,
-    height: 44,
-    tintColor: "#007AFF",
   },
   statsRow: {
     flexDirection: "row",
@@ -218,17 +206,5 @@ const styles = StyleSheet.create({
   sectionTitle: {
     letterSpacing: 0.6,
     paddingHorizontal: spacing.xs,
-  },
-  emptyCard: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-  },
-  iconGray: {
-    width: 36,
-    height: 36,
-  },
-  emptyText: {
-    textAlign: "center",
   },
 });

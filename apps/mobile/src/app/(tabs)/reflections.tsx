@@ -15,6 +15,7 @@ import {
   ThemedText,
   Card,
   ChipButton,
+  EmptyState,
   NativeSwitch,
   SegmentedControl,
 } from "@/components";
@@ -453,28 +454,16 @@ export default function ReflectionsScreen() {
               {/* Empty state when no pending questions */}
               {pendingMissedQuestions.length === 0 &&
                 pendingRoutineQuestions.length === 0 && (
-                  <Card
-                    variant="subdued"
-                    padding="none"
-                    style={[
-                      styles.emptyCard,
-                      {
-                        marginVertical: 6,
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      variant="callout"
-                      color={colors.secondaryLabel}
-                      style={styles.emptyText}
-                    >
-                      {upcomingRoutineQuestions.length > 0
+                  <EmptyState.Card
+                    style={{ marginVertical: 6 }}
+                    description={
+                      upcomingRoutineQuestions.length > 0
                         ? "No tenés reflexiones pendientes por ahora. Las próximas se habilitan más tarde."
                         : answeredQuestionsToday.length > 0
                           ? "¡Completaste todas tus reflexiones de hoy! 🎉"
-                          : "No tenés preguntas activas en tu rutina diaria."}
-                    </ThemedText>
-                  </Card>
+                          : "No tenés preguntas activas en tu rutina diaria."
+                    }
+                  />
                 )}
 
               {/* Upcoming routine questions (time-locked) */}
@@ -655,16 +644,10 @@ export default function ReflectionsScreen() {
               </View>
 
               {activeCohorts.length === 0 ? (
-                <Card variant="subdued" padding="none" style={styles.emptyCard}>
-                  <ThemedText
-                    variant="callout"
-                    color={colors.secondaryLabel}
-                    style={styles.emptyText}
-                  >
-                    No estás inscripto en ningún programa actualmente. Sumate a
-                    uno abajo.
-                  </ThemedText>
-                </Card>
+                <EmptyState.Card
+                  style={{ marginVertical: 8 }}
+                  description="No estás inscripto en ningún programa actualmente. Sumate a uno abajo."
+                />
               ) : (
                 activeCohorts.map((active) => (
                   <Card
@@ -987,16 +970,6 @@ const styles = StyleSheet.create({
   },
   missedSubtitle: {
     fontSize: 12,
-  },
-  emptyCard: {
-    padding: 20,
-    borderRadius: 16,
-    alignItems: "center",
-    marginVertical: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    textAlign: "center",
   },
   cohortBox: {
     padding: 16,
