@@ -11,6 +11,7 @@ import {
   SegmentedControl,
   EmptyState,
   Spinner,
+  Badge,
   Accordion,
   Collapsible,
   NativeFieldGroup,
@@ -563,6 +564,29 @@ export default function DevShowcaseScreen() {
             <Spinner size="lg" label="Loading..." />
           </Card>
         </View>
+
+        {/* 13. Badge */}
+        <View style={styles.section}>
+          <ThemedText variant="title2">13. Badge</ThemedText>
+          <ThemedText variant="caption1" color={colors.secondaryLabel}>
+            Status badges, pills, and category tags with semantic color variants
+          </ThemedText>
+
+          <Card variant="outlined" padding="md" style={styles.badgeShowcase}>
+            <View style={styles.badgeRow}>
+              <Badge variant="neutral" label="Neutral" />
+              <Badge variant="primary" label="Primary" />
+              <Badge variant="success" icon="sf:checkmark" label="Success" />
+              <Badge variant="warning" label="Warning" />
+            </View>
+            <View style={styles.badgeRow}>
+              <Badge variant="destructive" label="Destructive" />
+              <Badge variant="purple" icon="sf:sparkles" label="Purple" />
+              <Badge variant="outline" label="Outline" />
+              <Badge size="sm" variant="success" label="Small" />
+            </View>
+          </Card>
+        </View>
       </View>
     </ScreenContainer.Scroll>
   );
@@ -678,5 +702,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
+  },
+  badgeShowcase: {
+    gap: spacing.sm,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    alignItems: "center",
   },
 });

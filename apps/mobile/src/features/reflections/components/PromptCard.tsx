@@ -4,6 +4,7 @@ import { colors, spacing, radius } from "@/theme";
 import {
   AppButton,
   AppMarkdownText,
+  Badge,
   Card,
   ChipButton,
   IconButton,
@@ -176,13 +177,12 @@ export function PromptCard({
           ]}
         >
           {!hideStatusBadge && (
-            <ThemedText
-              variant="caption1"
-              color={colors.systemGreen}
-              style={styles.resultBadge}
-            >
-              ✓ Respondida
-            </ThemedText>
+            <Badge
+              variant="success"
+              size="sm"
+              label="✓ Respondida"
+              style={{ marginBottom: spacing.xs }}
+            />
           )}
           {isScale ? (
             <ThemedText
@@ -213,13 +213,12 @@ export function PromptCard({
             { backgroundColor: colors.systemBackground },
           ]}
         >
-          <ThemedText
-            variant="caption1"
-            color={colors.systemOrange}
-            style={styles.resultBadge}
-          >
-            ↷ Salteada
-          </ThemedText>
+          <Badge
+            variant="warning"
+            size="sm"
+            label="↷ Salteada"
+            style={{ marginBottom: spacing.xs }}
+          />
           <ThemedText
             variant="caption1"
             color={colors.secondaryLabel}
@@ -323,10 +322,6 @@ const styles = StyleSheet.create({
     padding: spacing.sm + 2,
     borderRadius: radius.md - 2,
     marginBottom: spacing.md - 4,
-  },
-  resultBadge: {
-    fontWeight: "700",
-    marginBottom: spacing.xs,
   },
   resultContent: {
     fontStyle: "italic",

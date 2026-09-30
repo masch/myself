@@ -17,5 +17,6 @@ export * from "./form-row";
 export * from "./segmented-control";
 export * from "./empty-state";
 export * from "./spinner";
+export * from "./badge";
 export * from "./primitives";
 export * from "./native-controls";

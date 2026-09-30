@@ -1,7 +1,7 @@
 import { View, StyleSheet } from "react-native";
 import { type ThemeCohort, type ReflectionTheme } from "@myself/shared";
 import { colors, spacing, radius } from "@/theme";
-import { AppButton, Card, ThemedText } from "@/components";
+import { AppButton, Badge, Card, ThemedText } from "@/components";
 
 interface CohortEnrollmentCardProps {
   cohort: ThemeCohort;
@@ -21,28 +21,13 @@ export function CohortEnrollmentCard({
   return (
     <Card variant="subdued" padding="none" style={styles.card}>
       <View style={styles.topRow}>
-        <View style={[styles.badge, { backgroundColor: colors.systemPurple }]}>
-          <ThemedText
-            variant="caption1"
-            color={colors.white}
-            style={styles.badgeText}
-          >
-            Programa Temático
-          </ThemedText>
-        </View>
+        <Badge variant="purple" label="Programa Temático" />
 
         {theme && (
-          <View
-            style={[styles.badge, { backgroundColor: colors.systemGray15 }]}
-          >
-            <ThemedText
-              variant="caption1"
-              color={colors.secondaryLabel}
-              style={styles.badgeText}
-            >
-              {theme.targetQuestionCount} días
-            </ThemedText>
-          </View>
+          <Badge
+            variant="neutral"
+            label={`${theme.targetQuestionCount} días`}
+          />
         )}
       </View>
 
@@ -121,14 +106,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.sm,
     marginBottom: spacing.sm + 2,
-  },
-  badge: {
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
-  },
-  badgeText: {
-    fontWeight: "600",
   },
   title: {
     fontWeight: "700",

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { type ReflectionQuestion } from "@myself/shared";
-import { colors, spacing, radius } from "@/theme";
+import { colors, spacing } from "@/theme";
 import {
   AppButton,
   AppBottomSheetModal,
   AppMarkdownText,
+  Badge,
   ThemedText,
   ThemedTextInput,
 } from "@/components";
@@ -57,15 +58,10 @@ export function ReflectionModalContent({
   return (
     <View style={styles.content}>
       <View style={styles.badgeRow}>
-        <View style={[styles.badge, { backgroundColor: colors.systemGray15 }]}>
-          <ThemedText
-            variant="caption1"
-            color={colors.secondaryLabel}
-            style={styles.badgeText}
-          >
-            {isText ? "Reflexión Libre" : "Puntaje 1 al 10"}
-          </ThemedText>
-        </View>
+        <Badge
+          variant="neutral"
+          label={isText ? "Reflexión Libre" : "Puntaje 1 al 10"}
+        />
       </View>
 
       <AppMarkdownText style={[styles.promptText, { color: colors.label }]}>
@@ -154,14 +150,6 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: "row",
     marginBottom: spacing.sm,
-  },
-  badge: {
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
-  },
-  badgeText: {
-    fontWeight: "600",
   },
   promptText: {
     fontSize: 18,
