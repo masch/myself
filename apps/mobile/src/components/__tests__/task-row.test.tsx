@@ -15,16 +15,22 @@ const mockTask: TaskItem = {
 };
 
 describe("TaskRow component", () => {
-  it("renders active task item with title and category", () => {
+  it("renders active task item with title, category, and unchecked checkbox accessibility", () => {
     const html = renderToString(
       <TaskRow task={mockTask} onToggle={() => {}} onDelete={() => {}} />,
     );
     expect(html).toContain("Read Marcus Aurelius");
     expect(html).toContain("Personal");
     expect(html).toContain("Meditations Book 4");
+    expect(html).toContain('role="checkbox"');
+    expect(html).toContain('aria-checked="false"');
+    expect(html).toContain(
+      'aria-label="Read Marcus Aurelius, Personal, Meditations Book 4"',
+    );
+    expect(html).toContain('aria-label="Eliminar tarea Read Marcus Aurelius"');
   });
 
-  it("renders completed task item with done status", () => {
+  it("renders completed task item with done status and checked checkbox accessibility", () => {
     const html = renderToString(
       <TaskRow
         task={{ ...mockTask, is_done: 1 }}
@@ -33,6 +39,11 @@ describe("TaskRow component", () => {
       />,
     );
     expect(html).toContain("Read Marcus Aurelius");
+    expect(html).toContain('role="checkbox"');
+    expect(html).toContain('aria-checked="true"');
+    expect(html).toContain(
+      'aria-label="Read Marcus Aurelius, Personal, Meditations Book 4"',
+    );
   });
 
   it("renders optional divider when showDivider is true", () => {

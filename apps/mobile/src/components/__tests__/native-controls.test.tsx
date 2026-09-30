@@ -21,6 +21,7 @@ describe("Native Controls", () => {
       );
 
       expect(html).toBeDefined();
+      expect(html).toContain('aria-label="Enable Notifications"');
     });
   });
 

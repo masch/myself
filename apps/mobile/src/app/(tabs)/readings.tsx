@@ -78,6 +78,7 @@ export default function ReadingsScreen() {
               icon="sf:plus"
               color={colors.systemBlue}
               size="large"
+              accessibilityLabel="Add new reading"
               onPress={() => router.push("/reading-modal")}
             />
           ),

@@ -374,11 +374,13 @@ export default function SettingsScreen() {
               <ExpoText>Create User Profile</ExpoText>
               <View style={styles.sheetInputWrapper}>
                 <ThemedTextInput
+                  accessibilityLabel="Full name"
                   placeholder="Full Name (e.g. Maria Perez)"
                   value={newUserName}
                   onChangeText={setNewUserName}
                 />
                 <ThemedTextInput
+                  accessibilityLabel="Email address"
                   placeholder="Email (e.g. maria@example.com)"
                   value={newUserEmail}
                   onChangeText={setNewUserEmail}
@@ -684,17 +686,20 @@ export default function SettingsScreen() {
             icon="sf:xmark"
             color={colors.secondaryLabel}
             size="small"
+            accessibilityLabel="Close"
             onPress={() => setIsNewUserSheetOpen(false)}
           />
         </View>
 
         <View style={styles.modalBody}>
           <ThemedTextInput
+            accessibilityLabel="Full name"
             placeholder="Full Name (e.g. Maria Perez)"
             value={newUserName}
             onChangeText={setNewUserName}
           />
           <ThemedTextInput
+            accessibilityLabel="Email address"
             placeholder="Email (e.g. maria@example.com)"
             value={newUserEmail}
             onChangeText={setNewUserEmail}

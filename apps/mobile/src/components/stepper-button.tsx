@@ -9,9 +9,13 @@ import {
 import { colors, radius, spacing } from "@/theme";
 import { ThemedText } from "./themed-text";
 
-export interface StepperButtonProps extends Omit<PressableProps, "style"> {
+export interface StepperButtonProps extends Omit<
+  PressableProps,
+  "style" | "accessibilityLabel"
+> {
   direction: "up" | "down";
   onPress: () => void;
+  accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -20,10 +24,18 @@ export function StepperButton({
   onPress,
   style,
   disabled,
+  accessibilityLabel,
   ...props
 }: StepperButtonProps) {
+  const defaultLabel =
+    direction === "up" ? "Incrementar valor" : "Decrementar valor";
+  const finalLabel = accessibilityLabel || defaultLabel;
+
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={finalLabel}
+      aria-label={finalLabel}
       hitSlop={spacing.xs + 2}
       style={({ pressed }) => [
         styles.base,

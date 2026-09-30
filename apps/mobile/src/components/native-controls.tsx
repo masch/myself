@@ -14,7 +14,11 @@ import { ThemedText } from "./themed-text";
 import { Card } from "./surface";
 import { SegmentedControl } from "./segmented-control";
 
-export interface NativeSwitchProps extends Omit<SwitchProps, "style"> {
+export interface NativeSwitchProps extends Omit<
+  SwitchProps,
+  "style" | "accessibilityLabel"
+> {
+  accessibilityLabel: string;
   style?: StyleProp<ViewStyle>;
 }
 

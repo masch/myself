@@ -532,6 +532,7 @@ export default function MeditationScreen() {
               <NativeSwitch
                 value={alarmEnabled}
                 onValueChange={setAlarmEnabled}
+                accessibilityLabel="Alarma de Pared Programada"
               />
             </View>
 

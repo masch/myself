@@ -25,6 +25,7 @@ export interface SpinnerProps extends Omit<
 }
 
 export interface CenteredSpinnerProps extends SpinnerProps {
+  children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -70,6 +71,7 @@ export function Spinner({
         size={indicatorSize}
         color={color as string}
         accessibilityRole="progressbar"
+        accessibilityLabel={props.accessibilityLabel || label || "Cargando..."}
         {...props}
       />
       {label && <SpinnerLabel>{label}</SpinnerLabel>}
@@ -81,12 +83,14 @@ export function CenteredSpinner({
   size = "lg",
   color,
   label,
+  children,
   style,
   ...props
 }: CenteredSpinnerProps) {
   return (
     <View style={[styles.centerContainer, style]}>
       <Spinner size={size} color={color} label={label} {...props} />
+      {children}
     </View>
   );
 }

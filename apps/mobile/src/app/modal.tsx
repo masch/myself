@@ -12,7 +12,7 @@ import {
   FormRow,
   Divider,
 } from "@/components";
-import { colors, spacing } from "@/theme";
+import { colors } from "@/theme";
 
 const CATEGORIES = ["Work", "Personal", "Shopping", "Design", "Urgent"];
 
@@ -141,7 +141,6 @@ export default function ModalScreen() {
 
 const styles = StyleSheet.create({
   contentContainer: {
-    paddingBottom: spacing.lg,
     gap: 20,
   },
 

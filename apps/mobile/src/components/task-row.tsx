@@ -34,6 +34,10 @@ export function TaskRow({
     <View>
       {showDivider && <Divider style={styles.divider} />}
       <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: isDone }}
+        aria-checked={isDone}
+        accessibilityLabel={`${task.title}, ${task.category}${task.description ? `, ${task.description}` : ""}`}
         style={({ pressed }) => [
           styles.row,
           { opacity: pressed ? 0.7 : 1 },
@@ -64,6 +68,7 @@ export function TaskRow({
 
         <IconButton
           icon="sf:trash"
+          accessibilityLabel={`Eliminar tarea ${task.title}`}
           color={colors.systemRed}
           size="medium"
           onPress={onDelete}
