@@ -83,9 +83,9 @@ export function formatRelativeMissedDate(
   todayStr: string = getLocalDateString(),
   catchUpWindowDays: number = 2,
 ): string {
-  const missedTime = new Date(`${missedDate}T00:00:00Z`).getTime();
-  const todayTime = new Date(`${todayStr}T00:00:00Z`).getTime();
-  const diffDays = Math.round((todayTime - missedTime) / (1000 * 60 * 60 * 24));
+  const diffDays = DateTime.from(todayStr).diffInDays(
+    DateTime.from(missedDate),
+  );
 
   if (diffDays <= 0) {
     return "Hoy";
@@ -201,7 +201,5 @@ export function getCohortStepUnlockDate(
   step: number,
 ): string {
   if (step <= 1) return programStartDate;
-  return DateTime.from(programStartDate)
-    .addDays(step - 1)
-    .toISODate();
+  return addDaysToDate(programStartDate, step - 1);
 }
