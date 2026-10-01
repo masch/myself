@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
 import {
   type EntityId,
@@ -212,9 +212,15 @@ export default function ReflectionsScreen() {
   const handleEnroll = async (cohort: ThemeCohort) => {
     try {
       setIsSubmitting(true);
-      await enroll(cohort.themeId, cohort.id);
+      await enroll(cohort.themeId, cohort.id, { forDate: currentDateStr });
     } catch (err) {
       console.error("Failed to enroll:", err);
+      Alert.alert(
+        "Inscripción no disponible",
+        err instanceof Error
+          ? err.message
+          : "No fue posible unirte a este programa en este momento.",
+      );
     } finally {
       setIsSubmitting(false);
     }

@@ -96,7 +96,11 @@ export function useThemeCohort() {
   }, [refresh]);
 
   const enroll = useCallback(
-    async (themeId: EntityId, cohortId: EntityId) => {
+    async (
+      themeId: EntityId,
+      cohortId: EntityId,
+      options?: { forDate?: string },
+    ) => {
       if (!currentUser) {
         throw new Error("No active user session");
       }
@@ -107,6 +111,7 @@ export function useThemeCohort() {
           currentUser.id as EntityId,
           themeId,
           cohortId,
+          options,
         );
         await refresh();
         return progress;

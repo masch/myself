@@ -200,15 +200,27 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
         [cohort.id],
       );
 
-      // Enrolling 2 days after start (within 3-day grace window) succeeds
+      // Enrolling on exact cutoff date (2026-09-15 + 3 days = 2026-09-18) succeeds
       const progress = await repo.enrollInCohort(
         testUserId,
         cohort.themeId,
         cohort.id,
-        { forDate: "2026-09-17" },
+        { forDate: "2026-09-18" },
       );
       expect(progress.status).toBe("in_progress");
       expect(progress.cohortId).toBe(cohort.id);
+
+      // Enrolling 1 day after cutoff date (2026-09-19) for another user rejects
+      const otherUserId = generateEntityId();
+      await db.runAsync(
+        "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+        [otherUserId, "Other User", "other@example.com"],
+      );
+      expect(
+        repo.enrollInCohort(otherUserId, cohort.themeId, cohort.id, {
+          forDate: "2026-09-19",
+        }),
+      ).rejects.toThrow(/Enrollment for cohort ".*" is closed/);
     });
   });
 

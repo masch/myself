@@ -36,23 +36,23 @@ Enforce enrollment window restrictions for thematic cohorts in both backend (SQL
 ## Evidence & Verification
 
 - `TASK-1`: Added `enrollmentGraceDays` (integer, required without defaults, non-negative) to:
-  - Zod schema `themeCohortSchema` in [`packages/shared/src/modules/reflections/types.ts`](file:///var/home/masch/dev/js/myself/packages/shared/src/modules/reflections/types.ts).
-  - Drizzle SQLite table `themeCohorts` in [`packages/shared/src/modules/reflections/schema.ts`](file:///var/home/masch/dev/js/myself/packages/shared/src/modules/reflections/schema.ts).
+  - Zod schema `themeCohortSchema` in [`packages/shared/src/modules/reflections/types.ts`](../../packages/shared/src/modules/reflections/types.ts).
+  - Drizzle SQLite table `themeCohorts` in [`packages/shared/src/modules/reflections/schema.ts`](../../packages/shared/src/modules/reflections/schema.ts).
   - Initial SQLite migration `0001_reflections_initial.sql` directly into `theme_cohorts` table definition, removing `0002_cohort_enrollment_grace_days.sql` and keeping journal clean.
-  - Seed model and sync upsert in [`packages/shared/src/modules/reflections/seed.ts`](file:///var/home/masch/dev/js/myself/packages/shared/src/modules/reflections/seed.ts) and [`apps/mobile/src/infrastructure/persistence/seed.ts`](file:///var/home/masch/dev/js/myself/apps/mobile/src/infrastructure/persistence/seed.ts).
+  - Seed model and sync upsert in [`packages/shared/src/modules/reflections/seed.ts`](../../packages/shared/src/modules/reflections/seed.ts) and [`apps/mobile/src/infrastructure/persistence/seed.ts`](../../apps/mobile/src/infrastructure/persistence/seed.ts).
   - TDD cycle: Observed RED on schema validation tests, then GREEN with 41 passing tests in `@myself/shared`.
 - `TASK-2`: Domain helper and repository validation:
-  - Added `addDaysToDate`, `getCohortEnrollmentDeadline`, and `isCohortEnrollmentOpen` in [`apps/mobile/src/features/reflections/domain/time-lock.ts`](file:///var/home/masch/dev/js/myself/apps/mobile/src/features/reflections/domain/time-lock.ts).
-  - Added unit test suite in [`apps/mobile/src/features/reflections/__tests__/time-lock.test.ts`](file:///var/home/masch/dev/js/myself/apps/mobile/src/features/reflections/__tests__/time-lock.test.ts) covering pre-start, start date, grace period, and post-grace expiration.
+  - Added `addDaysToDate`, `getCohortEnrollmentDeadline`, and `isCohortEnrollmentOpen` in [`apps/mobile/src/features/reflections/domain/time-lock.ts`](../../apps/mobile/src/features/reflections/domain/time-lock.ts).
+  - Added unit test suite in [`apps/mobile/src/features/reflections/__tests__/time-lock.test.ts`](../../apps/mobile/src/features/reflections/__tests__/time-lock.test.ts) covering pre-start, start date, grace period, and post-grace expiration.
   - Enforced enrollment window validation in `SqliteReflectionRepository.enrollInCohort` rejecting closed cohorts with `Enrollment for cohort "..." is closed`.
-  - Added repository unit tests verifying rejection and grace window enrollment in [`apps/mobile/src/features/reflections/__tests__/sqlite-reflection.repository.test.ts`](file:///var/home/masch/dev/js/myself/apps/mobile/src/features/reflections/__tests__/sqlite-reflection.repository.test.ts).
+  - Added repository unit tests verifying rejection and grace window enrollment in [`apps/mobile/src/features/reflections/__tests__/sqlite-reflection.repository.test.ts`](../../apps/mobile/src/features/reflections/__tests__/sqlite-reflection.repository.test.ts).
 - `TASK-3`: Mobile UI:
-  - Updated [`CohortEnrollmentCard`](file:///var/home/masch/dev/js/myself/apps/mobile/src/features/reflections/components/CohortEnrollmentCard.tsx) to evaluate `isCohortEnrollmentOpen(cohort, currentDateStr)`.
+  - Updated [`CohortEnrollmentCard`](../../apps/mobile/src/features/reflections/components/CohortEnrollmentCard.tsx) to evaluate `isCohortEnrollmentOpen(cohort, currentDateStr)`.
   - Displayed "Inscripción cerrada" badge and disabled button with variant `secondary` when enrollment has closed.
   - Displayed `⏳ Plazo de gracia para sumarte: X días` and enrollment deadline `⏰ Límite de inscripción: DD/MM`.
-  - Added component tests in [`apps/mobile/src/features/reflections/components/__tests__/feature-components.test.tsx`](file:///var/home/masch/dev/js/myself/apps/mobile/src/features/reflections/components/__tests__/feature-components.test.tsx).
+  - Added component tests in [`apps/mobile/src/features/reflections/components/__tests__/feature-components.test.tsx`](../../apps/mobile/src/features/reflections/components/__tests__/feature-components.test.tsx).
 - `TASK-4`: Verification & Quality Gates:
-  - Added E2E time travel test in [`e2e/cohort-dates-timetravel.spec.ts`](file:///var/home/masch/dev/js/myself/e2e/cohort-dates-timetravel.spec.ts) covering grace period enrollment and expiration.
+  - Added E2E time travel test in [`e2e/cohort-dates-timetravel.spec.ts`](../../e2e/cohort-dates-timetravel.spec.ts) covering grace period enrollment and expiration.
   - Unit tests: 45/45 tests passing in `@myself/shared`, 272/272 tests passing in `apps/mobile`.
   - Typecheck: `turbo run typecheck` passed (0 errors across 3 packages).
   - Lint: `turbo run lint` passed (0 warnings/errors).
