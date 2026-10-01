@@ -16,7 +16,11 @@ import type {
   ActiveCohortProgressDetail,
   ReflectionRepositoryPort,
 } from "../domain/ports/reflection.repository.port";
-import { isCohortEnrollmentOpen } from "../domain/time-lock";
+import {
+  getCohortStepUnlockDate,
+  isCohortEnrollmentOpen,
+  isCohortStepUnlocked,
+} from "../domain/time-lock";
 
 interface RawCategory {
   id: EntityId;
@@ -427,6 +431,38 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
     let reflectionId: EntityId;
 
     await this.db.withTransactionAsync(async () => {
+      // Guard cohort cadence lock if submitting for a cohort cycle run
+      if (validated.cycleRunId && validated.themeId) {
+        const cohortInfo = await this.db.getFirstAsync<{
+          program_start_date: string;
+          order_index: number;
+        }>(
+          `SELECT c.program_start_date, q.order_index 
+           FROM user_theme_progress p
+           JOIN theme_cohorts c ON c.id = p.cohort_id
+           JOIN reflection_questions q ON q.id = ?
+           WHERE p.id = ?`,
+          [validated.questionId, validated.cycleRunId],
+        );
+
+        if (cohortInfo) {
+          const unlocked = isCohortStepUnlocked(
+            cohortInfo.program_start_date,
+            cohortInfo.order_index,
+            validated.forDate,
+          );
+          if (!unlocked) {
+            const unlockDate = getCohortStepUnlockDate(
+              cohortInfo.program_start_date,
+              cohortInfo.order_index,
+            );
+            throw new Error(
+              `Step ${cohortInfo.order_index} is locked until ${unlockDate}.`,
+            );
+          }
+        }
+      }
+
       // 1. Check existing reflection for this cycle_run / question
       const existing = validated.cycleRunId
         ? await this.db.getFirstAsync<RawReflection>(

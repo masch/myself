@@ -68,7 +68,7 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
 
     // Keep seeded cohort open during test execution
     await db.runAsync(
-      "UPDATE theme_cohorts SET enrollment_start_date = '2026-01-01', enrollment_end_date = '2099-12-31', program_start_date = '2099-01-01', enrollment_grace_days = 2",
+      "UPDATE theme_cohorts SET enrollment_start_date = '2026-01-01', enrollment_end_date = '2099-12-31', program_start_date = '2026-09-01', enrollment_grace_days = 999",
     );
   });
 
@@ -424,6 +424,50 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       expect(completedProg?.completedAt).not.toBeNull();
       expect(completedProg?.answeredCount).toBe(7);
       expect(completedProg?.skippedCount).toBe(0);
+    });
+
+    it("rejects saving cohort reflection when step is locked ahead of cohort schedule", async () => {
+      const cohorts = await repo.getOpenCohorts();
+      const cohort = cohorts[0];
+
+      // Set cohort program start date to 2026-09-15
+      await db.runAsync(
+        "UPDATE theme_cohorts SET program_start_date = '2026-09-15', enrollment_grace_days = 30 WHERE id = ?",
+        [cohort.id],
+      );
+
+      const progress = await repo.enrollInCohort(
+        testUserId,
+        cohort.themeId,
+        cohort.id,
+      );
+      const questions = await repo.getQuestionsForTheme(cohort.themeId);
+
+      // On day 1 (2026-09-15), step 1 is allowed
+      await repo.saveReflection({
+        userId: testUserId,
+        questionId: questions[0].id,
+        themeId: cohort.themeId,
+        cycleRunId: progress.id,
+        status: "answered",
+        responseType: "text",
+        content: "Paso 1 completado en día 1",
+        forDate: "2026-09-15",
+      });
+
+      // Trying to answer step 2 on the same day (2026-09-15) must be rejected
+      expect(
+        repo.saveReflection({
+          userId: testUserId,
+          questionId: questions[1].id,
+          themeId: cohort.themeId,
+          cycleRunId: progress.id,
+          status: "answered",
+          responseType: "scale_1_10",
+          numericValue: 8,
+          forDate: "2026-09-15",
+        }),
+      ).rejects.toThrow(/Step 2 is locked until 2026-09-16/);
     });
   });
 

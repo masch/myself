@@ -130,6 +130,25 @@ export class DateTime {
   }
 
   /**
+   * Calculates the difference in full calendar days between this instance and another DateTime.
+   * Positive if this instance is later than other, negative if earlier.
+   */
+  diffInDays(other: DateTime): number {
+    const msPerDay = 86_400_000;
+    const d1 = Date.UTC(
+      this.date.getUTCFullYear(),
+      this.date.getUTCMonth(),
+      this.date.getUTCDate(),
+    );
+    const d2 = Date.UTC(
+      other.date.getUTCFullYear(),
+      other.date.getUTCMonth(),
+      other.date.getUTCDate(),
+    );
+    return Math.round((d1 - d2) / msPerDay);
+  }
+
+  /**
    * Returns the ISO date part formatted as "YYYY-MM-DD".
    */
   toISODate(): string {

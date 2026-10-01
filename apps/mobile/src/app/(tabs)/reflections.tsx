@@ -36,6 +36,8 @@ import {
   getLocalDateString,
   isReflectionLocked,
   isCohortStarted,
+  isCohortStepUnlocked,
+  getCohortStepUnlockDate,
   formatDateDDMM,
   formatRelativeMissedDate,
 } from "@/features/reflections/domain/time-lock";
@@ -727,7 +729,48 @@ export default function ReflectionsScreen() {
                     ) : (
                       <>
                         {active.currentQuestion &&
-                          active.status !== "completed" && (
+                          active.status !== "completed" &&
+                          (!isCohortStepUnlocked(
+                            active.cohort.programStartDate,
+                            active.currentStep,
+                          ) ? (
+                            <View
+                              style={{
+                                marginTop: 12,
+                                padding: 16,
+                                borderRadius: 12,
+                                backgroundColor: colors.systemGray15,
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <ThemedText
+                                variant="callout"
+                                style={{
+                                  fontWeight: "600",
+                                }}
+                              >
+                                ✨ Paso de hoy completado
+                              </ThemedText>
+                              <ThemedText
+                                variant="caption1"
+                                color={colors.secondaryLabel}
+                                style={{
+                                  textAlign: "center",
+                                  lineHeight: 18,
+                                }}
+                              >
+                                El Paso {active.currentStep} se desbloqueará el{" "}
+                                {formatDateDDMM(
+                                  getCohortStepUnlockDate(
+                                    active.cohort.programStartDate,
+                                    active.currentStep,
+                                  ),
+                                )}
+                                . ¡Excelente constancia con tu práctica diaria!
+                              </ThemedText>
+                            </View>
+                          ) : (
                             <View style={{ marginTop: 10 }}>
                               <ThemedText
                                 variant="caption1"
@@ -752,7 +795,7 @@ export default function ReflectionsScreen() {
                                 }
                               />
                             </View>
-                          )}
+                          ))}
 
                         {/* Completed steps in this cohort */}
                         {(() => {

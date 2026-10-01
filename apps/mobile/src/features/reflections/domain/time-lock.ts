@@ -156,3 +156,48 @@ export function isCohortEnrollmentOpen(
   const deadline = getCohortEnrollmentDeadline(cohort);
   return currentDateStr <= deadline;
 }
+
+/**
+ * Calculates the maximum cohort step unlocked as of currentDateStr.
+ * Day 1 (programStartDate): step 1 unlocked.
+ * Each following day unlocks 1 step: maxUnlockedStep = daysElapsed + 1.
+ * Before programStartDate: returns 0.
+ * If totalSteps is provided, clamps maxUnlockedStep to totalSteps.
+ */
+export function getMaxUnlockedStep(
+  programStartDate: string,
+  currentDateStr: string = getLocalDateString(),
+  totalSteps?: number,
+): number {
+  const startDt = DateTime.from(programStartDate);
+  const currentDt = DateTime.from(currentDateStr);
+  const diff = currentDt.diffInDays(startDt);
+  if (diff < 0) return 0;
+  const step = diff + 1;
+  return totalSteps !== undefined ? Math.min(step, totalSteps) : step;
+}
+
+/**
+ * Determines whether a specific cohort step is unlocked on currentDateStr.
+ * Allows catching up on past unlocked steps, but prevents advancing ahead of schedule.
+ */
+export function isCohortStepUnlocked(
+  programStartDate: string,
+  step: number,
+  currentDateStr: string = getLocalDateString(),
+): boolean {
+  return step <= getMaxUnlockedStep(programStartDate, currentDateStr);
+}
+
+/**
+ * Calculates the exact calendar date (YYYY-MM-DD) on which a cohort step unlocks.
+ */
+export function getCohortStepUnlockDate(
+  programStartDate: string,
+  step: number,
+): string {
+  if (step <= 1) return programStartDate;
+  return DateTime.from(programStartDate)
+    .addDays(step - 1)
+    .toISODate();
+}

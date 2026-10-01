@@ -64,7 +64,7 @@ describe("E2E Vertical Integration: All 10 Seeded Reflections Registration Flow"
 
     // Keep seeded cohort open during test execution
     await db.runAsync(
-      "UPDATE theme_cohorts SET enrollment_start_date = '2026-01-01', enrollment_end_date = '2099-12-31', program_start_date = '2099-01-01', enrollment_grace_days = 2",
+      "UPDATE theme_cohorts SET enrollment_start_date = '2026-01-01', enrollment_end_date = '2099-12-31', program_start_date = '2026-09-15', enrollment_grace_days = 30",
     );
   });
 
