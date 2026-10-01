@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 import {
   createReflectionInputSchema,
+  DateTime,
   generateEntityId,
   type CreateReflectionInput,
   type EntityId,
@@ -140,17 +141,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
     const rows = await this.db.getAllAsync<RawCohort>(
       "SELECT id, theme_id, name, enrollment_start_date, enrollment_end_date, program_start_date, enrollment_grace_days, status, created_at FROM theme_cohorts WHERE status = 'open_for_enrollment' ORDER BY program_start_date ASC",
     );
-    return rows.map((r) => ({
-      id: r.id,
-      themeId: r.theme_id,
-      name: r.name,
-      enrollmentStartDate: r.enrollment_start_date,
-      enrollmentEndDate: r.enrollment_end_date,
-      programStartDate: r.program_start_date,
-      enrollmentGraceDays: r.enrollment_grace_days,
-      status: r.status,
-      createdAt: r.created_at,
-    }));
+    return rows.map((r) => this.mapCohort(r));
   }
 
   async getCohortById(cohortId: EntityId): Promise<ThemeCohort | null> {
@@ -159,17 +150,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       [cohortId],
     );
     if (!r) return null;
-    return {
-      id: r.id,
-      themeId: r.theme_id,
-      name: r.name,
-      enrollmentStartDate: r.enrollment_start_date,
-      enrollmentEndDate: r.enrollment_end_date,
-      programStartDate: r.program_start_date,
-      enrollmentGraceDays: r.enrollment_grace_days,
-      status: r.status,
-      createdAt: r.created_at,
-    };
+    return this.mapCohort(r);
   }
 
   async getQuestionsForTheme(themeId: EntityId): Promise<ReflectionQuestion[]> {
@@ -296,7 +277,10 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
     if (!cohort) {
       throw new Error(`Cohort ${cohortId} not found`);
     }
-    if (!isCohortEnrollmentOpen(cohort, options?.forDate)) {
+    const forDate = options?.forDate
+      ? DateTime.from(options.forDate)
+      : undefined;
+    if (!isCohortEnrollmentOpen(cohort, forDate)) {
       throw new Error(`Enrollment for cohort "${cohort.name}" is closed.`);
     }
 
@@ -375,17 +359,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
             editWindowDays: themeRow.edit_window_days,
             createdAt: themeRow.created_at,
           },
-          cohort: {
-            id: cohortRow.id,
-            themeId: cohortRow.theme_id,
-            name: cohortRow.name,
-            enrollmentStartDate: cohortRow.enrollment_start_date,
-            enrollmentEndDate: cohortRow.enrollment_end_date,
-            programStartDate: cohortRow.program_start_date,
-            enrollmentGraceDays: cohortRow.enrollment_grace_days,
-            status: cohortRow.status,
-            createdAt: cohortRow.created_at,
-          },
+          cohort: this.mapCohort(cohortRow),
           currentQuestion: questionRow ? this.mapQuestion(questionRow) : null,
         });
       }
@@ -446,18 +420,22 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
         );
 
         if (cohortInfo) {
-          const unlocked = isCohortStepUnlocked(
+          const cohortProgramStart = DateTime.from(
             cohortInfo.program_start_date,
+          );
+          const reflectionForDate = DateTime.from(validated.forDate);
+          const unlocked = isCohortStepUnlocked(
+            cohortProgramStart,
             cohortInfo.order_index,
-            validated.forDate,
+            reflectionForDate,
           );
           if (!unlocked) {
             const unlockDate = getCohortStepUnlockDate(
-              cohortInfo.program_start_date,
+              cohortProgramStart,
               cohortInfo.order_index,
             );
             throw new Error(
-              `Step ${cohortInfo.order_index} is locked until ${unlockDate}.`,
+              `Step ${cohortInfo.order_index} is locked until ${unlockDate.toISODate()}.`,
             );
           }
         }
@@ -744,6 +722,20 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       responseType: r.response_type,
       isDefaultSuggested: Boolean(r.is_default_suggested),
       orderIndex: r.order_index,
+      createdAt: r.created_at,
+    };
+  }
+
+  private mapCohort(r: RawCohort): ThemeCohort {
+    return {
+      id: r.id,
+      themeId: r.theme_id,
+      name: r.name,
+      enrollmentStartDate: DateTime.from(r.enrollment_start_date),
+      enrollmentEndDate: DateTime.from(r.enrollment_end_date),
+      programStartDate: DateTime.from(r.program_start_date),
+      enrollmentGraceDays: r.enrollment_grace_days,
+      status: r.status,
       createdAt: r.created_at,
     };
   }

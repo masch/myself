@@ -53,16 +53,17 @@ export function isReflectionLocked(
  * Determines whether a theme cohort has reached or passed its program start date.
  */
 export function isCohortStarted(
-  programStartDate: string,
-  currentDateStr: string = getLocalDateString(),
+  programStartDate: DateTime,
+  currentDate: DateTime = DateTime.today(),
 ): boolean {
-  return currentDateStr >= programStartDate;
+  return currentDate.diffInDays(programStartDate) >= 0;
 }
 
 /**
- * Formats an ISO date string "YYYY-MM-DD" into "DD/MM".
+ * Formats an ISO date or DateTime into "DD/MM".
  */
-export function formatDateDDMM(isoDate: string): string {
+export function formatDateDDMM(date: DateTime | string): string {
+  const isoDate = date instanceof DateTime ? date.toISODate() : date;
   const parts = isoDate.split("-");
   if (parts.length < 3) return isoDate;
   const [, month, day] = parts;
@@ -120,15 +121,16 @@ export function addDaysToDate(isoDate: string, days: number): string {
 /**
  * Calculates the final date until which enrollment is permitted for a cohort.
  * This is the minimum between enrollmentEndDate and (programStartDate + enrollmentGraceDays).
+ * Returns a DateTime instance.
  */
 export function getCohortEnrollmentDeadline(cohort: {
-  enrollmentEndDate: string;
-  programStartDate: string;
+  enrollmentEndDate: DateTime;
+  programStartDate: DateTime;
   enrollmentGraceDays?: number;
-}): string {
+}): DateTime {
   const graceDays = cohort.enrollmentGraceDays ?? 0;
-  const programGraceCutoff = addDaysToDate(cohort.programStartDate, graceDays);
-  return cohort.enrollmentEndDate < programGraceCutoff
+  const programGraceCutoff = cohort.programStartDate.addDays(graceDays);
+  return cohort.enrollmentEndDate.diffInDays(programGraceCutoff) < 0
     ? cohort.enrollmentEndDate
     : programGraceCutoff;
 }
@@ -138,68 +140,67 @@ export function getCohortEnrollmentDeadline(cohort: {
  *
  * Rules:
  * - Must have status === "open_for_enrollment".
- * - currentDateStr must be >= cohort.enrollmentStartDate.
- * - currentDateStr must be <= getCohortEnrollmentDeadline(cohort).
+ * - currentDate must be >= cohort.enrollmentStartDate.
+ * - currentDate must be <= getCohortEnrollmentDeadline(cohort).
  */
 export function isCohortEnrollmentOpen(
   cohort: {
     status: string;
-    enrollmentStartDate: string;
-    enrollmentEndDate: string;
-    programStartDate: string;
+    enrollmentStartDate: DateTime;
+    enrollmentEndDate: DateTime;
+    programStartDate: DateTime;
     enrollmentGraceDays?: number;
   },
-  currentDateStr: string = getLocalDateString(),
+  currentDate: DateTime = DateTime.today(),
 ): boolean {
   if (cohort.status !== "open_for_enrollment") {
     return false;
   }
-  if (currentDateStr < cohort.enrollmentStartDate) {
+  if (currentDate.diffInDays(cohort.enrollmentStartDate) < 0) {
     return false;
   }
   const deadline = getCohortEnrollmentDeadline(cohort);
-  return currentDateStr <= deadline;
+  return currentDate.diffInDays(deadline) <= 0;
 }
 
 /**
- * Calculates the maximum cohort step unlocked as of currentDateStr.
+ * Calculates the maximum cohort step unlocked as of currentDate.
  * Day 1 (programStartDate): step 1 unlocked.
  * Each following day unlocks 1 step: maxUnlockedStep = daysElapsed + 1.
  * Before programStartDate: returns 0.
  * If totalSteps is provided, clamps maxUnlockedStep to totalSteps.
  */
 export function getMaxUnlockedStep(
-  programStartDate: string,
-  currentDateStr: string = getLocalDateString(),
+  programStartDate: DateTime,
+  currentDate: DateTime = DateTime.today(),
   totalSteps?: number,
 ): number {
-  const startDt = DateTime.from(programStartDate);
-  const currentDt = DateTime.from(currentDateStr);
-  const diff = currentDt.diffInDays(startDt);
+  const diff = currentDate.diffInDays(programStartDate);
   if (diff < 0) return 0;
   const step = diff + 1;
   return totalSteps !== undefined ? Math.min(step, totalSteps) : step;
 }
 
 /**
- * Determines whether a specific cohort step is unlocked on currentDateStr.
+ * Determines whether a specific cohort step is unlocked on currentDate.
  * Allows catching up on past unlocked steps, but prevents advancing ahead of schedule.
  */
 export function isCohortStepUnlocked(
-  programStartDate: string,
+  programStartDate: DateTime,
   step: number,
-  currentDateStr: string = getLocalDateString(),
+  currentDate: DateTime = DateTime.today(),
 ): boolean {
-  return step <= getMaxUnlockedStep(programStartDate, currentDateStr);
+  return step <= getMaxUnlockedStep(programStartDate, currentDate);
 }
 
 /**
- * Calculates the exact calendar date (YYYY-MM-DD) on which a cohort step unlocks.
+ * Calculates the exact calendar date on which a cohort step unlocks.
+ * Returns a DateTime instance.
  */
 export function getCohortStepUnlockDate(
-  programStartDate: string,
+  programStartDate: DateTime,
   step: number,
-): string {
+): DateTime {
   if (step <= 1) return programStartDate;
-  return addDaysToDate(programStartDate, step - 1);
+  return programStartDate.addDays(step - 1);
 }

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/auth-context";
 import {
+  DateTime,
   type EntityId,
   type ReflectionQuestion,
   type ReflectionTheme,
@@ -153,10 +154,11 @@ export function useThemeCohort() {
         throw new Error("No active user session");
       }
 
-      const effectiveDate = input.forDate ?? getLocalDateString();
+      const effectiveDateStr = input.forDate ?? getLocalDateString();
+      const effectiveDate = DateTime.from(effectiveDateStr);
       if (!isCohortStarted(progress.cohort.programStartDate, effectiveDate)) {
         throw new Error(
-          `Cannot submit reflection before program starts on ${progress.cohort.programStartDate}`,
+          `Cannot submit reflection before program starts on ${progress.cohort.programStartDate.toISODate()}`,
         );
       }
 
@@ -171,7 +173,7 @@ export function useThemeCohort() {
           responseType: question.responseType,
           content: input.content,
           numericValue: input.numericValue,
-          forDate: effectiveDate,
+          forDate: effectiveDateStr,
         });
 
         await refresh();
@@ -194,10 +196,11 @@ export function useThemeCohort() {
         throw new Error("No active user session");
       }
 
-      const effectiveDate = forDate ?? getLocalDateString();
+      const effectiveDateStr = forDate ?? getLocalDateString();
+      const effectiveDate = DateTime.from(effectiveDateStr);
       if (!isCohortStarted(progress.cohort.programStartDate, effectiveDate)) {
         throw new Error(
-          `Cannot skip question before program starts on ${progress.cohort.programStartDate}`,
+          `Cannot skip question before program starts on ${progress.cohort.programStartDate.toISODate()}`,
         );
       }
 
@@ -211,7 +214,7 @@ export function useThemeCohort() {
           status: "skipped",
           responseType: question.responseType,
           skipReason,
-          forDate: effectiveDate,
+          forDate: effectiveDateStr,
         });
 
         await refresh();

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import {
+  DateTime,
   type ReflectionQuestion,
   type UserReflection,
   type EntityId,
@@ -108,17 +109,27 @@ describe("time-lock utility", () => {
   });
 
   describe("isCohortStarted", () => {
+    const programStart = DateTime.from("2026-09-15");
+
     it("returns false when current date is before programStartDate", () => {
-      expect(isCohortStarted("2026-09-15", "2026-09-13")).toBe(false);
-      expect(isCohortStarted("2026-09-15", "2026-09-14")).toBe(false);
+      expect(isCohortStarted(programStart, DateTime.from("2026-09-13"))).toBe(
+        false,
+      );
+      expect(isCohortStarted(programStart, DateTime.from("2026-09-14"))).toBe(
+        false,
+      );
     });
 
     it("returns true when current date equals programStartDate", () => {
-      expect(isCohortStarted("2026-09-15", "2026-09-15")).toBe(true);
+      expect(isCohortStarted(programStart, DateTime.from("2026-09-15"))).toBe(
+        true,
+      );
     });
 
     it("returns true when current date is after programStartDate", () => {
-      expect(isCohortStarted("2026-09-15", "2026-09-16")).toBe(true);
+      expect(isCohortStarted(programStart, DateTime.from("2026-09-16"))).toBe(
+        true,
+      );
     });
   });
 
@@ -172,9 +183,9 @@ describe("time-lock utility", () => {
       id: "c1" as EntityId,
       themeId: "t1" as EntityId,
       name: "Spring Cohort",
-      enrollmentStartDate: "2026-09-01",
-      enrollmentEndDate: "2026-09-30",
-      programStartDate: "2026-09-15",
+      enrollmentStartDate: DateTime.from("2026-09-01"),
+      enrollmentEndDate: DateTime.from("2026-09-30"),
+      programStartDate: DateTime.from("2026-09-15"),
       enrollmentGraceDays: 2,
       status: "open_for_enrollment" as const,
       createdAt: "2026-08-25T00:00:00Z",
@@ -193,91 +204,131 @@ describe("time-lock utility", () => {
 
     it("calculates enrollment deadline considering programStartDate + enrollmentGraceDays", () => {
       // programStartDate (2026-09-15) + 2 days = 2026-09-17, which is < enrollmentEndDate (2026-09-30)
-      expect(getCohortEnrollmentDeadline(testCohort)).toBe("2026-09-17");
+      const deadline = getCohortEnrollmentDeadline(testCohort);
+      expect(deadline).toBeInstanceOf(DateTime);
+      expect(deadline.toISODate()).toBe("2026-09-17");
 
       // when enrollmentEndDate is earlier than programStartDate + graceDays
       const shortCohort = {
         ...testCohort,
-        enrollmentEndDate: "2026-09-16",
+        enrollmentEndDate: DateTime.from("2026-09-16"),
       };
-      expect(getCohortEnrollmentDeadline(shortCohort)).toBe("2026-09-16");
+      expect(getCohortEnrollmentDeadline(shortCohort).toISODate()).toBe(
+        "2026-09-16",
+      );
     });
 
     it("permits enrollment before programStartDate", () => {
-      expect(isCohortEnrollmentOpen(testCohort, "2026-09-10")).toBe(true);
-      expect(isCohortEnrollmentOpen(testCohort, "2026-09-15")).toBe(true);
+      expect(
+        isCohortEnrollmentOpen(testCohort, DateTime.from("2026-09-10")),
+      ).toBe(true);
+      expect(
+        isCohortEnrollmentOpen(testCohort, DateTime.from("2026-09-15")),
+      ).toBe(true);
     });
 
     it("permits enrollment during grace period after programStartDate", () => {
-      expect(isCohortEnrollmentOpen(testCohort, "2026-09-16")).toBe(true);
-      expect(isCohortEnrollmentOpen(testCohort, "2026-09-17")).toBe(true);
+      expect(
+        isCohortEnrollmentOpen(testCohort, DateTime.from("2026-09-16")),
+      ).toBe(true);
+      expect(
+        isCohortEnrollmentOpen(testCohort, DateTime.from("2026-09-17")),
+      ).toBe(true);
     });
 
     it("rejects enrollment after grace period has expired", () => {
-      expect(isCohortEnrollmentOpen(testCohort, "2026-09-18")).toBe(false);
-      expect(isCohortEnrollmentOpen(testCohort, "2026-09-25")).toBe(false);
+      expect(
+        isCohortEnrollmentOpen(testCohort, DateTime.from("2026-09-18")),
+      ).toBe(false);
+      expect(
+        isCohortEnrollmentOpen(testCohort, DateTime.from("2026-09-25")),
+      ).toBe(false);
     });
 
     it("rejects enrollment before enrollmentStartDate", () => {
-      expect(isCohortEnrollmentOpen(testCohort, "2026-08-31")).toBe(false);
+      expect(
+        isCohortEnrollmentOpen(testCohort, DateTime.from("2026-08-31")),
+      ).toBe(false);
     });
 
     it("rejects enrollment when cohort status is not open_for_enrollment", () => {
       const closedCohort = { ...testCohort, status: "closed" as const };
-      expect(isCohortEnrollmentOpen(closedCohort, "2026-09-10")).toBe(false);
+      expect(
+        isCohortEnrollmentOpen(closedCohort, DateTime.from("2026-09-10")),
+      ).toBe(false);
     });
   });
 
   describe("cohort progressive daily step cadence", () => {
-    const programStartDate = "2026-09-15";
+    const programStartDate = DateTime.from("2026-09-15");
 
     it("getMaxUnlockedStep returns 0 before program starts", () => {
-      expect(getMaxUnlockedStep(programStartDate, "2026-09-14")).toBe(0);
+      expect(
+        getMaxUnlockedStep(programStartDate, DateTime.from("2026-09-14")),
+      ).toBe(0);
     });
 
     it("getMaxUnlockedStep returns 1 on program start date", () => {
-      expect(getMaxUnlockedStep(programStartDate, "2026-09-15")).toBe(1);
+      expect(
+        getMaxUnlockedStep(programStartDate, DateTime.from("2026-09-15")),
+      ).toBe(1);
     });
 
     it("getMaxUnlockedStep returns elapsed days + 1 as days progress", () => {
-      expect(getMaxUnlockedStep(programStartDate, "2026-09-16")).toBe(2);
-      expect(getMaxUnlockedStep(programStartDate, "2026-09-17")).toBe(3);
-      expect(getMaxUnlockedStep(programStartDate, "2026-09-21")).toBe(7);
+      expect(
+        getMaxUnlockedStep(programStartDate, DateTime.from("2026-09-16")),
+      ).toBe(2);
+      expect(
+        getMaxUnlockedStep(programStartDate, DateTime.from("2026-09-17")),
+      ).toBe(3);
+      expect(
+        getMaxUnlockedStep(programStartDate, DateTime.from("2026-09-21")),
+      ).toBe(7);
     });
 
     it("getMaxUnlockedStep clamps to totalSteps when specified", () => {
-      expect(getMaxUnlockedStep(programStartDate, "2026-09-30", 7)).toBe(7);
+      expect(
+        getMaxUnlockedStep(programStartDate, DateTime.from("2026-09-30"), 7),
+      ).toBe(7);
     });
 
     it("isCohortStepUnlocked permits current or past steps and locks future steps", () => {
       // On day 1 (2026-09-15)
-      expect(isCohortStepUnlocked(programStartDate, 1, "2026-09-15")).toBe(
-        true,
-      );
-      expect(isCohortStepUnlocked(programStartDate, 2, "2026-09-15")).toBe(
-        false,
-      );
+      expect(
+        isCohortStepUnlocked(programStartDate, 1, DateTime.from("2026-09-15")),
+      ).toBe(true);
+      expect(
+        isCohortStepUnlocked(programStartDate, 2, DateTime.from("2026-09-15")),
+      ).toBe(false);
 
       // On day 3 (2026-09-17): steps 1, 2, and 3 are unlocked (catch up supported), step 4 is locked
-      expect(isCohortStepUnlocked(programStartDate, 1, "2026-09-17")).toBe(
-        true,
-      );
-      expect(isCohortStepUnlocked(programStartDate, 2, "2026-09-17")).toBe(
-        true,
-      );
-      expect(isCohortStepUnlocked(programStartDate, 3, "2026-09-17")).toBe(
-        true,
-      );
-      expect(isCohortStepUnlocked(programStartDate, 4, "2026-09-17")).toBe(
-        false,
-      );
+      expect(
+        isCohortStepUnlocked(programStartDate, 1, DateTime.from("2026-09-17")),
+      ).toBe(true);
+      expect(
+        isCohortStepUnlocked(programStartDate, 2, DateTime.from("2026-09-17")),
+      ).toBe(true);
+      expect(
+        isCohortStepUnlocked(programStartDate, 3, DateTime.from("2026-09-17")),
+      ).toBe(true);
+      expect(
+        isCohortStepUnlocked(programStartDate, 4, DateTime.from("2026-09-17")),
+      ).toBe(false);
     });
 
     it("getCohortStepUnlockDate calculates the exact date a step unlocks", () => {
-      expect(getCohortStepUnlockDate(programStartDate, 1)).toBe("2026-09-15");
-      expect(getCohortStepUnlockDate(programStartDate, 2)).toBe("2026-09-16");
-      expect(getCohortStepUnlockDate(programStartDate, 3)).toBe("2026-09-17");
-      expect(getCohortStepUnlockDate(programStartDate, 7)).toBe("2026-09-21");
+      const unlock1 = getCohortStepUnlockDate(programStartDate, 1);
+      expect(unlock1).toBeInstanceOf(DateTime);
+      expect(unlock1.toISODate()).toBe("2026-09-15");
+
+      const unlock2 = getCohortStepUnlockDate(programStartDate, 2);
+      expect(unlock2.toISODate()).toBe("2026-09-16");
+
+      const unlock3 = getCohortStepUnlockDate(programStartDate, 3);
+      expect(unlock3.toISODate()).toBe("2026-09-17");
+
+      const unlock7 = getCohortStepUnlockDate(programStartDate, 7);
+      expect(unlock7.toISODate()).toBe("2026-09-21");
     });
   });
 });

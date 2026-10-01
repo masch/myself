@@ -171,9 +171,24 @@ export class DateTime {
     }
     return this.date.getTime() === other.date.getTime();
   }
+
+  /**
+   * Returns the ISO date representation when converted to string or interpolated.
+   */
+  toString(): string {
+    return this.toISODate();
+  }
 }
 
 export const dateTimeSchema = z.custom<DateTime>(
   (val) => val instanceof DateTime,
   "Invalid DateTime instance",
 );
+
+export const isoDateToDateTimeSchema = z.union([
+  z.custom<DateTime>((val) => val instanceof DateTime),
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD")
+    .transform((val) => DateTime.from(val)),
+]);

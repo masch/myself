@@ -10,7 +10,7 @@ import {
   createSeedThemeCohorts,
   getTodayDateString,
 } from "../reflections";
-import { generateEntityId, type EntityId } from "../../primitives";
+import { generateEntityId, DateTime, type EntityId } from "../../primitives";
 
 describe("Reflections Module - Zod Validation Schemas", () => {
   const sampleId = generateEntityId();
@@ -58,6 +58,10 @@ describe("Reflections Module - Zod Validation Schemas", () => {
     });
     expect(cohort.status).toBe("open_for_enrollment");
     expect(cohort.enrollmentGraceDays).toBe(0);
+    expect(cohort.enrollmentStartDate).toBeInstanceOf(DateTime);
+    expect(cohort.enrollmentEndDate).toBeInstanceOf(DateTime);
+    expect(cohort.programStartDate).toBeInstanceOf(DateTime);
+    expect(cohort.programStartDate.toISODate()).toBe("2026-10-01");
   });
 
   it("should reject ThemeCohort when enrollmentGraceDays is omitted", () => {

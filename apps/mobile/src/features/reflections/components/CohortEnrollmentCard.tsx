@@ -1,5 +1,9 @@
 import { View, StyleSheet } from "react-native";
-import { type ThemeCohort, type ReflectionTheme } from "@myself/shared";
+import {
+  DateTime,
+  type ThemeCohort,
+  type ReflectionTheme,
+} from "@myself/shared";
 import { colors, layout, spacing, radius } from "@/theme";
 import { AppButton, Badge, Card, ThemedText } from "@/components";
 import {
@@ -25,7 +29,8 @@ export function CohortEnrollmentCard({
   isSubmitting = false,
   currentDateStr,
 }: CohortEnrollmentCardProps) {
-  const isOpen = isCohortEnrollmentOpen(cohort, currentDateStr);
+  const currentDt = currentDateStr ? DateTime.from(currentDateStr) : undefined;
+  const isOpen = isCohortEnrollmentOpen(cohort, currentDt);
   const deadline = getCohortEnrollmentDeadline(cohort);
 
   return (
@@ -77,7 +82,7 @@ export function CohortEnrollmentCard({
         >
           🏁 Comienza:{" "}
           <ThemedText variant="caption1" color={colors.label}>
-            {cohort.programStartDate}
+            {cohort.programStartDate.toISODate()}
           </ThemedText>
         </ThemedText>
         {cohort.enrollmentGraceDays > 0 ? (

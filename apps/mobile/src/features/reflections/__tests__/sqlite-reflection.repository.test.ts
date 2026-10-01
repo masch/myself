@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { Database } from "bun:sqlite";
 import {
+  DateTime,
   generateEntityId,
   SHARED_MIGRATIONS,
   type EntityId,
@@ -99,6 +100,9 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
 
       const openCohort = cohorts[0];
       expect(openCohort.status).toBe("open_for_enrollment");
+      expect(openCohort.enrollmentStartDate).toBeInstanceOf(DateTime);
+      expect(openCohort.enrollmentEndDate).toBeInstanceOf(DateTime);
+      expect(openCohort.programStartDate).toBeInstanceOf(DateTime);
 
       const questions = await repo.getQuestionsForTheme(openCohort.themeId);
       expect(questions.length).toBe(7);
