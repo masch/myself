@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+printf "  ✓ check-odd... "
+if make check-odd > /dev/null 2>&1; then
+  printf "ok\n"
+else
+  printf "FAILED\n\n"
+  make check-odd
+  printf "\n❌ Push aborted: all ODD task documents in odd/tasks/ must be completed and closed before pushing to remote.\n"
+  exit 1
+fi
+
+exit 0

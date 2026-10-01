@@ -40,4 +40,5 @@ Enforce progressive daily pacing for thematic cohorts so that users unlock at mo
 - `bun run typecheck`: 3 packages typechecked clean without errors.
 - `bun run check:lint`: ESLint and expo lint passed with 0 errors.
 - `bun run check:format`: Prettier format verified clean across the repository.
-- Work-unit commit: `d642e44` (`feat(reflections): enforce progressive daily step cadence for cohorts`).
+- Work-unit commit: `b23cf24` (`feat(reflections): enforce progressive daily step cadence for cohorts`).
+- **Completion & Delivery**: Delivered on Pull Request [#64](https://github.com/masch/myself/pull/64) on branch `feat/cohort-enrollment-grace-period`.
