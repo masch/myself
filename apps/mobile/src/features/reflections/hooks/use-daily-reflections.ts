@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/auth-context";
 import {
+  DateTime,
   type EntityId,
   type ReflectionQuestion,
   type UserQuestionPreference,
@@ -9,7 +10,6 @@ import {
 } from "@myself/shared";
 import { SqliteReflectionRepository } from "../infrastructure/sqlite-reflection.repository";
 import { ExpoNotificationAdapter } from "../infrastructure/expo-notification.adapter";
-import { getLocalDateString } from "../domain/time-lock";
 
 export function useDailyReflections() {
   const db = useSQLiteContext();
@@ -53,7 +53,7 @@ export function useDailyReflections() {
       return;
     }
 
-    const currentTodayStr = getLocalDateString();
+    const currentTodayStr = DateTime.today().toISODate();
 
     try {
       setIsLoading(true);
@@ -118,7 +118,7 @@ export function useDailyReflections() {
       input: {
         content?: string;
         numericValue?: number;
-        forDate?: string;
+        forDate?: DateTime | string;
       },
     ) => {
       if (!currentUser) {
@@ -127,7 +127,11 @@ export function useDailyReflections() {
 
       try {
         setIsSubmitting(true);
-        const effectiveDate = input.forDate ?? getLocalDateString();
+        const effectiveDate = input.forDate
+          ? typeof input.forDate === "string"
+            ? input.forDate
+            : input.forDate.toISODate()
+          : DateTime.today().toISODate();
         const reflection = await repository.saveReflection({
           userId: currentUser.id as EntityId,
           questionId: question.id,
@@ -153,7 +157,7 @@ export function useDailyReflections() {
     async (
       question: ReflectionQuestion,
       skipReason: string,
-      forDate?: string,
+      forDate?: DateTime | string,
     ) => {
       if (!currentUser) {
         throw new Error("No active user session");
@@ -161,7 +165,11 @@ export function useDailyReflections() {
 
       try {
         setIsSubmitting(true);
-        const effectiveDate = forDate ?? getLocalDateString();
+        const effectiveDate = forDate
+          ? typeof forDate === "string"
+            ? forDate
+            : forDate.toISODate()
+          : DateTime.today().toISODate();
         const reflection = await repository.saveReflection({
           userId: currentUser.id as EntityId,
           questionId: question.id,

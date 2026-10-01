@@ -14,13 +14,6 @@ export function getCurrentTimeHHMM(date: Date = new Date()): string {
 }
 
 /**
- * Formats a Date object into a local calendar date string "YYYY-MM-DD".
- */
-export function getLocalDateString(date: Date = new Date()): string {
-  return DateTime.today(date).toISODate();
-}
-
-/**
  * Determines whether a reflection question is locked because its preferred time of day
  * has not yet arrived for today.
  *
