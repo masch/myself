@@ -19,13 +19,15 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
     await programasTabBtn.click();
 
     // 4. Find open cohort starting on 2026-09-15 and enroll
-    const cohortCard = page.getByText("7 Días de Resiliencia Estoica").first();
-    await expect(cohortCard).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText(/Comienza: 2026-09-15/i)).toBeVisible({
-      timeout: 5000,
-    });
+    const openCohortCard = page.getByTestId("cohort-card-convocatoria-abierta");
+    await expect(openCohortCard).toBeVisible({ timeout: 5000 });
+    await expect(openCohortCard.getByText(/Comienza: 2026-09-15/i)).toBeVisible(
+      {
+        timeout: 5000,
+      },
+    );
 
-    const enrollBtn = page.getByRole("button", {
+    const enrollBtn = openCohortCard.getByRole("button", {
       name: /Sumarme a la convocatoria/i,
     });
     await expect(enrollBtn).toBeVisible({ timeout: 5000 });
@@ -71,7 +73,9 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
     await expect(leaveCohortBtn).toBeVisible({ timeout: 5000 });
     await leaveCohortBtn.click();
     await expect(
-      page.getByRole("button", { name: /Sumarme a la convocatoria/i }),
+      openCohortCard.getByRole("button", {
+        name: /Sumarme a la convocatoria/i,
+      }),
     ).toBeVisible({ timeout: 5000 });
   });
 
@@ -93,7 +97,8 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
     await page.getByText("Programas").first().click();
 
     // 4. Enroll in the cohort
-    const enrollBtn = page.getByRole("button", {
+    const openCohortCard = page.getByTestId("cohort-card-convocatoria-abierta");
+    const enrollBtn = openCohortCard.getByRole("button", {
       name: /Sumarme a la convocatoria/i,
     });
     await expect(enrollBtn).toBeVisible({ timeout: 5000 });
@@ -251,14 +256,16 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
     await page.goto("/reflections");
     await page.getByText("Programas").first().click();
 
+    const openCohortCard = page.getByTestId("cohort-card-convocatoria-abierta");
+
     // Cohort card should show open enrollment button and grace period info
-    const enrollBtn = page.getByRole("button", {
+    const enrollBtn = openCohortCard.getByRole("button", {
       name: /Sumarme a la convocatoria/i,
     });
     await expect(enrollBtn).toBeVisible({ timeout: 5000 });
     await expect(enrollBtn).toBeEnabled();
     await expect(
-      page.getByText(/Plazo de gracia para sumarte: 2 días/i),
+      openCohortCard.getByText(/Plazo de gracia para sumarte: 2 días/i),
     ).toBeVisible({
       timeout: 5000,
     });
@@ -267,13 +274,19 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
     await clock.travelAndReload("2026-09-18T12:00:00Z");
     await page.getByText("Programas").first().click();
 
+    const expiredCohortCard = page.getByTestId(
+      "cohort-card-convocatoria-abierta",
+    );
+
     // Button should now be disabled and show "Inscripción cerrada"
-    const closedBtn = page.getByRole("button", {
+    const closedBtn = expiredCohortCard.getByRole("button", {
       name: /Inscripción cerrada/i,
     });
     await expect(closedBtn).toBeVisible({ timeout: 5000 });
     await expect(closedBtn).toBeDisabled();
-    await expect(page.getByText(/Inscripción cerrada/i).first()).toBeVisible({
+    await expect(
+      expiredCohortCard.getByText(/Inscripción cerrada/i).first(),
+    ).toBeVisible({
       timeout: 5000,
     });
   });

@@ -67,7 +67,7 @@ describe("Reflections Feature Components", () => {
         cohort={mockCohort}
         theme={mockTheme}
         onEnroll={() => {}}
-        currentDateStr="2026-09-25"
+        currentDate={DateTime.from("2026-09-25")}
       />,
     );
     expect(html).toContain("Mindful Morning");
@@ -82,7 +82,7 @@ describe("Reflections Feature Components", () => {
         cohort={mockCohort}
         theme={mockTheme}
         onEnroll={() => {}}
-        currentDateStr="2026-10-10"
+        currentDate={DateTime.from("2026-10-10")}
       />,
     );
     expect(html).toContain("Inscripción cerrada");

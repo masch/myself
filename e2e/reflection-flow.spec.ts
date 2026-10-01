@@ -312,9 +312,11 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     const cohortTitle = page.getByText("7 Días de Resiliencia Estoica").first();
     await expect(cohortTitle).toBeVisible({ timeout: 5000 });
 
-    const enrollBtn = page.getByRole("button", {
-      name: /Sumarme a la convocatoria/i,
-    });
+    const enrollBtn = page
+      .getByRole("button", {
+        name: /Sumarme a la convocatoria/i,
+      })
+      .first();
     if (await enrollBtn.isVisible()) {
       await enrollBtn.click();
     }

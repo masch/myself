@@ -1,9 +1,5 @@
 import { View, StyleSheet } from "react-native";
-import {
-  DateTime,
-  type ThemeCohort,
-  type ReflectionTheme,
-} from "@myself/shared";
+import type { DateTime, ThemeCohort, ReflectionTheme } from "@myself/shared";
 import { colors, layout, spacing, radius } from "@/theme";
 import { AppButton, Badge, Card, ThemedText } from "@/components";
 import {
@@ -18,7 +14,8 @@ interface CohortEnrollmentCardProps {
   isEnrolled?: boolean;
   onEnroll: () => void;
   isSubmitting?: boolean;
-  currentDateStr: string;
+  currentDate?: DateTime;
+  testID?: string;
 }
 
 export function CohortEnrollmentCard({
@@ -27,14 +24,20 @@ export function CohortEnrollmentCard({
   isEnrolled = false,
   onEnroll,
   isSubmitting = false,
-  currentDateStr,
+  currentDate,
+  testID,
 }: CohortEnrollmentCardProps) {
-  const currentDt = currentDateStr ? DateTime.from(currentDateStr) : undefined;
-  const isOpen = isCohortEnrollmentOpen(cohort, currentDt);
+  const isOpen = isCohortEnrollmentOpen(cohort, currentDate);
   const deadline = getCohortEnrollmentDeadline(cohort);
+  const slug = cohort.name.toLowerCase().replace(/\s+/g, "-");
 
   return (
-    <Card variant="subdued" padding="none" style={styles.card}>
+    <Card
+      testID={testID ?? `cohort-card-${slug}`}
+      variant="subdued"
+      padding="none"
+      style={styles.card}
+    >
       <View style={styles.topRow}>
         <Badge variant="purple" label="Programa Temático" />
 
