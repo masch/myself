@@ -12,7 +12,6 @@ import {
   isCohortStarted,
   formatDateDDMM,
   formatRelativeMissedDate,
-  addDaysToDate,
   getCohortEnrollmentDeadline,
   isCohortEnrollmentOpen,
   getMaxUnlockedStep,
@@ -44,24 +43,31 @@ describe("time-lock utility", () => {
     expect(getCurrentTimeHHMM(fixedDate)).toBe("08:05");
   });
 
+  const atTime = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return DateTime.from(new Date(2026, 8, 13, h, m));
+  };
+
   it("locks question when current time is earlier than preferredTimeOfDay", () => {
-    const locked = isReflectionLocked(baseQuestion, null, "14:30");
+    const locked = isReflectionLocked(baseQuestion, null, atTime("14:30"));
     expect(locked).toBe(true);
   });
 
   it("unlocks question when current time has reached preferredTimeOfDay", () => {
-    const unlocked = isReflectionLocked(baseQuestion, null, "20:00");
+    const unlocked = isReflectionLocked(baseQuestion, null, atTime("20:00"));
     expect(unlocked).toBe(false);
   });
 
   it("unlocks question when current time is past preferredTimeOfDay", () => {
-    const unlocked = isReflectionLocked(baseQuestion, null, "21:15");
+    const unlocked = isReflectionLocked(baseQuestion, null, atTime("21:15"));
     expect(unlocked).toBe(false);
   });
 
   it("never locks a question without preferredTimeOfDay", () => {
     const questionWithoutTime = { ...baseQuestion, preferredTimeOfDay: null };
-    expect(isReflectionLocked(questionWithoutTime, null, "08:00")).toBe(false);
+    expect(isReflectionLocked(questionWithoutTime, null, atTime("08:00"))).toBe(
+      false,
+    );
   });
 
   it("never locks an already answered reflection", () => {
@@ -77,7 +83,9 @@ describe("time-lock utility", () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    expect(isReflectionLocked(baseQuestion, answeredRef, "10:00")).toBe(false);
+    expect(isReflectionLocked(baseQuestion, answeredRef, atTime("10:00"))).toBe(
+      false,
+    );
   });
 
   it("never locks an already skipped reflection", () => {
@@ -93,7 +101,9 @@ describe("time-lock utility", () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    expect(isReflectionLocked(baseQuestion, skippedRef, "10:00")).toBe(false);
+    expect(isReflectionLocked(baseQuestion, skippedRef, atTime("10:00"))).toBe(
+      false,
+    );
   });
 
   it("never locks a missed reflection from a past date within grace window", () => {
@@ -101,9 +111,8 @@ describe("time-lock utility", () => {
       isReflectionLocked(
         baseQuestion,
         null,
-        "10:00",
+        atTime("10:00"),
         DateTime.from("2026-09-12"),
-        DateTime.from("2026-09-13"),
       ),
     ).toBe(false);
   });
@@ -192,17 +201,6 @@ describe("time-lock utility", () => {
       status: "open_for_enrollment" as const,
       createdAt: "2026-08-25T00:00:00Z",
     };
-
-    it("adds days to date correctly", () => {
-      expect(addDaysToDate("2026-09-15", 2)).toBe("2026-09-17");
-      expect(addDaysToDate("2026-09-30", 1)).toBe("2026-10-01");
-      expect(() => addDaysToDate("invalid-date", 1)).toThrow(
-        /Invalid date representation/,
-      );
-      expect(() => addDaysToDate("2026-02-30", 1)).toThrow(
-        /Invalid date representation/,
-      );
-    });
 
     it("calculates enrollment deadline considering programStartDate + enrollmentGraceDays", () => {
       // programStartDate (2026-09-15) + 2 days = 2026-09-17, which is < enrollmentEndDate (2026-09-30)

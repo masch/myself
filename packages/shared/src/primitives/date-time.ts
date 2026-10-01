@@ -173,6 +173,22 @@ export class DateTime {
   }
 
   /**
+   * Returns a cloned Date instance representing the underlying moment in time.
+   */
+  toDate(): Date {
+    return new Date(this.date.getTime());
+  }
+
+  /**
+   * Returns the local wall-clock time formatted as "HH:mm".
+   */
+  toLocalTimeHHMM(): string {
+    const hours = String(this.date.getHours()).padStart(2, "0");
+    const minutes = String(this.date.getMinutes()).padStart(2, "0");
+    return `${hours}:${minutes}`;
+  }
+
+  /**
    * Returns the ISO date representation when converted to string or interpolated.
    */
   toString(): string {

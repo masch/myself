@@ -33,9 +33,8 @@ export function getLocalDateString(date: Date = new Date()): string {
 export function isReflectionLocked(
   question: ReflectionQuestion,
   reflection?: UserReflection | null,
-  currentTimeStr: string = getCurrentTimeHHMM(),
+  now: DateTime = DateTime.now(),
   forDate?: DateTime,
-  today: DateTime = DateTime.today(),
 ): boolean {
   if (reflection?.status === "answered" || reflection?.status === "skipped") {
     return false;
@@ -43,10 +42,11 @@ export function isReflectionLocked(
   if (!question.preferredTimeOfDay) {
     return false;
   }
+  const today = DateTime.from(now.toISODate());
   if (forDate && today.diffInDays(forDate) > 0) {
     return false;
   }
-  return currentTimeStr < question.preferredTimeOfDay;
+  return now.toLocalTimeHHMM() < question.preferredTimeOfDay;
 }
 
 /**
@@ -101,17 +101,6 @@ export function formatRelativeMissedDate(
   return isLastDay
     ? `Hace ${diffDays} días · Vence hoy`
     : `Hace ${diffDays} días`;
-}
-
-/**
- * Adds a specified number of calendar days to an ISO date string "YYYY-MM-DD" and returns "YYYY-MM-DD".
- */
-export function addDaysToDate(isoDate: string, days: number): string {
-  const dt = DateTime.from(isoDate);
-  if (dt.toISODate() !== isoDate && dt.toISOString() !== isoDate) {
-    throw new Error(`Invalid date representation: ${isoDate}`);
-  }
-  return dt.addDays(days).toISODate();
 }
 
 /**

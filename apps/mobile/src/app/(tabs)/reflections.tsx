@@ -33,8 +33,6 @@ import {
   SkipReasonSheet,
 } from "@/features/reflections/components";
 import {
-  getCurrentTimeHHMM,
-  getLocalDateString,
   isReflectionLocked,
   isCohortStarted,
   isCohortStepUnlocked,
@@ -77,18 +75,13 @@ export default function ReflectionsScreen() {
     skipCycleQuestion,
   } = useThemeCohort();
 
-  const [currentTimeStr, setCurrentTimeStr] = useState(() =>
-    getCurrentTimeHHMM(),
-  );
-  const [currentDateStr, setCurrentDateStr] = useState(() =>
-    getLocalDateString(),
-  );
+  const [currentDateTime, setCurrentDateTime] = useState(() => DateTime.now());
+  const currentDateStr = currentDateTime.toISODate();
   const [showAnswered, setShowAnswered] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
-      setCurrentTimeStr(getCurrentTimeHHMM());
-      setCurrentDateStr(getLocalDateString());
+      setCurrentDateTime(DateTime.now());
       void refreshDaily();
       void refreshCohorts();
     }, [refreshDaily, refreshCohorts]),
@@ -96,8 +89,7 @@ export default function ReflectionsScreen() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTimeStr(getCurrentTimeHHMM());
-      setCurrentDateStr(getLocalDateString());
+      setCurrentDateTime(DateTime.now());
     }, 30000);
     return () => clearInterval(timer);
   }, []);
@@ -249,7 +241,7 @@ export default function ReflectionsScreen() {
 
       for (const q of routineQuestions) {
         const ref = todayReflections[q.id];
-        if (isReflectionLocked(q, ref, currentTimeStr)) {
+        if (isReflectionLocked(q, ref, currentDateTime)) {
           upcoming.push(q);
         } else {
           available.push(q);
@@ -260,7 +252,7 @@ export default function ReflectionsScreen() {
         availableRoutineQuestions: available,
         upcomingRoutineQuestions: upcoming,
       };
-    }, [routineQuestions, todayReflections, currentTimeStr]);
+    }, [routineQuestions, todayReflections, currentDateTime]);
 
   const pendingMissedQuestions = useMemo(() => {
     return missedQuestions.filter(
