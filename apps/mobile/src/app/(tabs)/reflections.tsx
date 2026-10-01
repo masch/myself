@@ -76,6 +76,10 @@ export default function ReflectionsScreen() {
   } = useThemeCohort();
 
   const [currentDateTime, setCurrentDateTime] = useState(() => DateTime.now());
+  const currentLocalDate = useMemo(
+    () => DateTime.today(currentDateTime.toDate()),
+    [currentDateTime],
+  );
   const [showAnswered, setShowAnswered] = useState(true);
 
   useFocusEffect(
@@ -205,7 +209,7 @@ export default function ReflectionsScreen() {
     try {
       setIsSubmitting(true);
       await enroll(cohort.themeId, cohort.id, {
-        forDate: currentDateTime,
+        forDate: currentLocalDate,
       });
     } catch (err) {
       console.error("Failed to enroll:", err);
@@ -916,7 +920,7 @@ export default function ReflectionsScreen() {
                     isEnrolled={isAlreadyEnrolled}
                     onEnroll={() => void handleEnroll(cohort)}
                     isSubmitting={isSubmitting}
-                    currentDate={currentDateTime}
+                    currentDate={currentLocalDate}
                   />
                 );
               })}

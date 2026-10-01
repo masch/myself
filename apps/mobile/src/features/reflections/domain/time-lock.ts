@@ -35,7 +35,7 @@ export function isReflectionLocked(
   if (!question.preferredTimeOfDay) {
     return false;
   }
-  const today = DateTime.from(now.toISODate());
+  const today = DateTime.today(now.toDate());
   if (forDate && today.diffInDays(forDate) > 0) {
     return false;
   }

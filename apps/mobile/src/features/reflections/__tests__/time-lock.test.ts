@@ -111,6 +111,27 @@ describe("time-lock utility", () => {
     ).toBe(false);
   });
 
+  it("uses local calendar day for today check even when UTC represents next day", () => {
+    // 22:00 in UTC-3 on 2026-09-13 is 2026-09-14T01:00:00.000Z in UTC.
+    // In local calendar time, it is 2026-09-13 at 22:00.
+    // A question with preferredTimeOfDay: "23:00" forDate 2026-09-13 should still be locked.
+    const lateNightQuestion: ReflectionQuestion = {
+      ...baseQuestion,
+      preferredTimeOfDay: "23:00",
+    };
+    const localLateNight = DateTime.from(new Date(2026, 8, 13, 22, 0));
+    const todayLocalDate = DateTime.from("2026-09-13");
+
+    expect(
+      isReflectionLocked(
+        lateNightQuestion,
+        null,
+        localLateNight,
+        todayLocalDate,
+      ),
+    ).toBe(true);
+  });
+
   describe("isCohortStarted", () => {
     const programStart = DateTime.from("2026-09-15");
 
