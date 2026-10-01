@@ -34,8 +34,8 @@ export function isReflectionLocked(
   question: ReflectionQuestion,
   reflection?: UserReflection | null,
   currentTimeStr: string = getCurrentTimeHHMM(),
-  forDate?: string,
-  todayStr: string = getLocalDateString(),
+  forDate?: DateTime,
+  today: DateTime = DateTime.today(),
 ): boolean {
   if (reflection?.status === "answered" || reflection?.status === "skipped") {
     return false;
@@ -43,7 +43,7 @@ export function isReflectionLocked(
   if (!question.preferredTimeOfDay) {
     return false;
   }
-  if (forDate && forDate < todayStr) {
+  if (forDate && today.diffInDays(forDate) > 0) {
     return false;
   }
   return currentTimeStr < question.preferredTimeOfDay;
@@ -60,12 +60,10 @@ export function isCohortStarted(
 }
 
 /**
- * Formats an ISO date or DateTime into "DD/MM".
+ * Formats a DateTime into "DD/MM".
  */
-export function formatDateDDMM(date: DateTime | string): string {
-  const isoDate = date instanceof DateTime ? date.toISODate() : date;
-  const parts = isoDate.split("-");
-  if (parts.length < 3) return isoDate;
+export function formatDateDDMM(date: DateTime): string {
+  const parts = date.toISODate().split("-");
   const [, month, day] = parts;
   return `${day}/${month}`;
 }
@@ -80,13 +78,11 @@ export function formatDateDDMM(date: DateTime | string): string {
  * - N days ago (when N < catchUpWindowDays): `Hace ${N} días`
  */
 export function formatRelativeMissedDate(
-  missedDate: string,
-  todayStr: string = getLocalDateString(),
+  missedDate: DateTime,
+  today: DateTime = DateTime.today(),
   catchUpWindowDays: number = 2,
 ): string {
-  const diffDays = DateTime.from(todayStr).diffInDays(
-    DateTime.from(missedDate),
-  );
+  const diffDays = today.diffInDays(missedDate);
 
   if (diffDays <= 0) {
     return "Hoy";

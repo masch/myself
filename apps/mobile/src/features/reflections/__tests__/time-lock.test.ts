@@ -102,8 +102,8 @@ describe("time-lock utility", () => {
         baseQuestion,
         null,
         "10:00",
-        "2026-09-12",
-        "2026-09-13",
+        DateTime.from("2026-09-12"),
+        DateTime.from("2026-09-13"),
       ),
     ).toBe(false);
   });
@@ -134,47 +134,49 @@ describe("time-lock utility", () => {
   });
 
   describe("formatDateDDMM", () => {
-    it("formats ISO date string into DD/MM", () => {
-      expect(formatDateDDMM("2026-09-15")).toBe("15/09");
-      expect(formatDateDDMM("2026-12-01")).toBe("01/12");
+    it("formats DateTime into DD/MM", () => {
+      expect(formatDateDDMM(DateTime.from("2026-09-15"))).toBe("15/09");
+      expect(formatDateDDMM(DateTime.from("2026-12-01"))).toBe("01/12");
     });
   });
 
   describe("formatRelativeMissedDate", () => {
+    const today = DateTime.from("2026-09-13");
+
     it("formats 1 day ago as Ayer", () => {
-      expect(formatRelativeMissedDate("2026-09-12", "2026-09-13", 2)).toBe(
-        "Ayer",
-      );
+      expect(
+        formatRelativeMissedDate(DateTime.from("2026-09-12"), today, 2),
+      ).toBe("Ayer");
     });
 
     it("formats 2 days ago on 2-day catch up window as Anteayer · Vence hoy", () => {
-      expect(formatRelativeMissedDate("2026-09-11", "2026-09-13", 2)).toBe(
-        "Anteayer · Vence hoy",
-      );
+      expect(
+        formatRelativeMissedDate(DateTime.from("2026-09-11"), today, 2),
+      ).toBe("Anteayer · Vence hoy");
     });
 
     it("formats 2 days ago on 3-day catch up window as Anteayer", () => {
-      expect(formatRelativeMissedDate("2026-09-11", "2026-09-13", 3)).toBe(
-        "Anteayer",
-      );
+      expect(
+        formatRelativeMissedDate(DateTime.from("2026-09-11"), today, 3),
+      ).toBe("Anteayer");
     });
 
     it("formats 3 days ago on 3-day catch up window as Hace 3 días · Vence hoy", () => {
-      expect(formatRelativeMissedDate("2026-09-10", "2026-09-13", 3)).toBe(
-        "Hace 3 días · Vence hoy",
-      );
+      expect(
+        formatRelativeMissedDate(DateTime.from("2026-09-10"), today, 3),
+      ).toBe("Hace 3 días · Vence hoy");
     });
 
     it("formats 3 days ago on 5-day catch up window as Hace 3 días", () => {
-      expect(formatRelativeMissedDate("2026-09-10", "2026-09-13", 5)).toBe(
-        "Hace 3 días",
-      );
+      expect(
+        formatRelativeMissedDate(DateTime.from("2026-09-10"), today, 5),
+      ).toBe("Hace 3 días");
     });
 
     it("returns Hoy if date is today or future", () => {
-      expect(formatRelativeMissedDate("2026-09-13", "2026-09-13", 2)).toBe(
-        "Hoy",
-      );
+      expect(
+        formatRelativeMissedDate(DateTime.from("2026-09-13"), today, 2),
+      ).toBe("Hoy");
     });
   });
 

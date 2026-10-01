@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
 import {
+  DateTime,
   type EntityId,
   type ReflectionQuestion,
   type ThemeCohort,
@@ -298,7 +299,7 @@ export default function ReflectionsScreen() {
         list.push({
           question: item.question,
           reflection: item.reflection,
-          dateLabel: `De: ${formatRelativeMissedDate(item.missedDate)}`,
+          dateLabel: `De: ${formatRelativeMissedDate(DateTime.from(item.missedDate))}`,
         });
       }
     }
@@ -416,7 +417,9 @@ export default function ReflectionsScreen() {
                         key={`missed-${question.id}-${missedDate}`}
                         question={question}
                         reflection={reflection}
-                        dateLabel={formatRelativeMissedDate(missedDate)}
+                        dateLabel={formatRelativeMissedDate(
+                          DateTime.from(missedDate),
+                        )}
                         onAnswer={() =>
                           handleOpenAnswer(
                             question,
@@ -869,7 +872,7 @@ export default function ReflectionsScreen() {
                                         key={`cohort-step-${active.id}-${question.id}`}
                                         question={question}
                                         reflection={reflection}
-                                        dateLabel={`Paso ${question.orderIndex} • ${formatDateDDMM(reflection.forDate)}`}
+                                        dateLabel={`Paso ${question.orderIndex} • ${formatDateDDMM(DateTime.from(reflection.forDate))}`}
                                         onAnswer={() =>
                                           handleOpenAnswer(
                                             question,
