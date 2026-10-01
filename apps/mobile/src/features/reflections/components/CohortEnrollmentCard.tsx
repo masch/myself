@@ -115,7 +115,7 @@ export function CohortEnrollmentCard({
                 ? "Inscribiendo..."
                 : "Sumarme a la convocatoria"
         }
-        variant={isEnrolled ? "secondary" : !isOpen ? "secondary" : "purple"}
+        variant={isEnrolled || !isOpen ? "secondary" : "purple"}
         onPress={onEnroll}
         disabled={isEnrolled || isSubmitting || !isOpen}
       />

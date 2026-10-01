@@ -183,6 +183,12 @@ describe("time-lock utility", () => {
     it("adds days to date correctly", () => {
       expect(addDaysToDate("2026-09-15", 2)).toBe("2026-09-17");
       expect(addDaysToDate("2026-09-30", 1)).toBe("2026-10-01");
+      expect(() => addDaysToDate("invalid-date", 1)).toThrow(
+        /Invalid date representation/,
+      );
+      expect(() => addDaysToDate("2026-02-30", 1)).toThrow(
+        /Invalid date representation/,
+      );
     });
 
     it("calculates enrollment deadline considering programStartDate + enrollmentGraceDays", () => {

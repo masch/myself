@@ -110,7 +110,11 @@ export function formatRelativeMissedDate(
  * Adds a specified number of calendar days to an ISO date string "YYYY-MM-DD" and returns "YYYY-MM-DD".
  */
 export function addDaysToDate(isoDate: string, days: number): string {
-  return DateTime.from(isoDate).addDays(days).toISODate();
+  const dt = DateTime.from(isoDate);
+  if (dt.toISODate() !== isoDate && dt.toISOString() !== isoDate) {
+    throw new Error(`Invalid date representation: ${isoDate}`);
+  }
+  return dt.addDays(days).toISODate();
 }
 
 /**
