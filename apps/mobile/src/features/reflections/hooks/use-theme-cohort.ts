@@ -100,7 +100,7 @@ export function useThemeCohort() {
     async (
       themeId: EntityId,
       cohortId: EntityId,
-      options?: { forDate?: string },
+      options?: { forDate?: DateTime },
     ) => {
       if (!currentUser) {
         throw new Error("No active user session");

@@ -205,7 +205,7 @@ export default function ReflectionsScreen() {
     try {
       setIsSubmitting(true);
       await enroll(cohort.themeId, cohort.id, {
-        forDate: currentDateTime.toISODate(),
+        forDate: currentDateTime,
       });
     } catch (err) {
       console.error("Failed to enroll:", err);

@@ -1,5 +1,6 @@
 import type {
   CreateReflectionInput,
+  DateTime,
   EntityId,
   ReflectionCategory,
   ReflectionQuestion,
@@ -44,7 +45,7 @@ export interface ReflectionRepositoryPort {
     userId: EntityId,
     themeId: EntityId,
     cohortId: EntityId,
-    options?: { forDate?: string },
+    options?: { forDate?: DateTime },
   ): Promise<UserThemeProgress>;
   getUserActiveCohortProgress(
     userId: EntityId,

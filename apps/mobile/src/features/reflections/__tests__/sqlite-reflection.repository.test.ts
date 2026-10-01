@@ -189,7 +189,7 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
 
       expect(
         repo.enrollInCohort(testUserId, cohort.themeId, cohort.id, {
-          forDate: "2026-09-20",
+          forDate: DateTime.from("2026-09-20"),
         }),
       ).rejects.toThrow(/Enrollment for cohort ".*" is closed/);
     });
@@ -209,7 +209,7 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
         testUserId,
         cohort.themeId,
         cohort.id,
-        { forDate: "2026-09-18" },
+        { forDate: DateTime.from("2026-09-18") },
       );
       expect(progress.status).toBe("in_progress");
       expect(progress.cohortId).toBe(cohort.id);
@@ -222,7 +222,7 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       );
       expect(
         repo.enrollInCohort(otherUserId, cohort.themeId, cohort.id, {
-          forDate: "2026-09-19",
+          forDate: DateTime.from("2026-09-19"),
         }),
       ).rejects.toThrow(/Enrollment for cohort ".*" is closed/);
     });

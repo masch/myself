@@ -251,7 +251,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
     userId: EntityId,
     themeId: EntityId,
     cohortId: EntityId,
-    options?: { forDate?: string },
+    options?: { forDate?: DateTime },
   ): Promise<UserThemeProgress> {
     const existing = await this.db.getFirstAsync<RawProgress>(
       "SELECT * FROM user_theme_progress WHERE user_id = ? AND cohort_id = ? AND status = 'in_progress'",
@@ -277,10 +277,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
     if (!cohort) {
       throw new Error(`Cohort ${cohortId} not found`);
     }
-    const forDate = options?.forDate
-      ? DateTime.from(options.forDate)
-      : undefined;
-    if (!isCohortEnrollmentOpen(cohort, forDate)) {
+    if (!isCohortEnrollmentOpen(cohort, options?.forDate)) {
       throw new Error(`Enrollment for cohort "${cohort.name}" is closed.`);
     }
 
