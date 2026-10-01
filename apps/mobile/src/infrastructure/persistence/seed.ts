@@ -8,6 +8,7 @@ import {
   SEED_REFLECTION_THEMES,
   SEED_THEME_COHORTS,
   SEED_REFLECTION_QUESTIONS,
+  createSeedThemeCohorts,
   type ReadingTranslationInput,
   type AuthorDto,
   type SeedReading,
@@ -40,10 +41,17 @@ export type {
   SeedReflectionQuestion,
 };
 
+export interface SeedDatabaseOptions {
+  baseDateStr?: string;
+}
+
 /**
  * Seeds the database with users, tasks, authors, readings, and reading logs.
  */
-export async function seedDatabase(db: SQLiteDatabase) {
+export async function seedDatabase(
+  db: SQLiteDatabase,
+  options?: SeedDatabaseOptions,
+) {
   // 1. Always Sync / Upsert Authors
   for (const author of SEED_AUTHORS) {
     await db.runAsync(
@@ -177,19 +185,13 @@ export async function seedDatabase(db: SQLiteDatabase) {
     );
   }
 
-  // 5. Always Sync / Upsert Theme Cohorts
-  for (const cohort of SEED_THEME_COHORTS) {
+  // 5. Seed Theme Cohorts (dynamic start date on initial insert, preserved across daily app starts)
+  const cohorts = createSeedThemeCohorts(options?.baseDateStr);
+  for (const cohort of cohorts) {
     await db.runAsync(
       `INSERT INTO theme_cohorts (id, theme_id, name, enrollment_start_date, enrollment_end_date, program_start_date, enrollment_grace_days, status, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-       ON CONFLICT(id) DO UPDATE SET
-         theme_id = excluded.theme_id,
-         name = excluded.name,
-         enrollment_start_date = excluded.enrollment_start_date,
-         enrollment_end_date = excluded.enrollment_end_date,
-         program_start_date = excluded.program_start_date,
-         enrollment_grace_days = excluded.enrollment_grace_days,
-         status = excluded.status`,
+       ON CONFLICT(id) DO NOTHING`,
       [
         cohort.id,
         cohort.themeId,

@@ -31,6 +31,7 @@ Enforce enrollment window restrictions for thematic cohorts in both backend (SQL
 - [x] **TASK-2**: Domain & Repository: Implement `isCohortEnrollmentOpen` and enforce enrollment restrictions in `SqliteReflectionRepository` (`enrollInCohort` and `getOpenCohorts`).
 - [x] **TASK-3**: Mobile UI: Update `CohortEnrollmentCard` and `reflections.tsx` to reflect enrollment availability, grace days info, and disabled states.
 - [x] **TASK-4**: Verification & Quality Gates: Unit, integration, and E2E tests, typecheck, lint, and commit evidence.
+- [x] **TASK-5**: Dynamic Seed Cohort: Enhanced `DateTime` with `.today()`, `.addDays()`, `.toISODate()` and implemented dynamic seed cohort with `ON CONFLICT DO NOTHING`.
 
 ## Evidence & Verification
 
@@ -52,9 +53,15 @@ Enforce enrollment window restrictions for thematic cohorts in both backend (SQL
   - Added component tests in [`apps/mobile/src/features/reflections/components/__tests__/feature-components.test.tsx`](file:///var/home/masch/dev/js/myself/apps/mobile/src/features/reflections/components/__tests__/feature-components.test.tsx).
 - `TASK-4`: Verification & Quality Gates:
   - Added E2E time travel test in [`e2e/cohort-dates-timetravel.spec.ts`](file:///var/home/masch/dev/js/myself/e2e/cohort-dates-timetravel.spec.ts) covering grace period enrollment and expiration.
-  - Unit tests: 40/40 tests passing in `@myself/shared`, 51/51 tests passing in `apps/mobile/src/features/reflections/`.
+  - Unit tests: 45/45 tests passing in `@myself/shared`, 272/272 tests passing in `apps/mobile`.
   - Typecheck: `turbo run typecheck` passed (0 errors across 3 packages).
   - Lint: `turbo run lint` passed (0 warnings/errors).
   - Formatting: `bun run check:format` passed cleanly.
+- `TASK-5`: Dynamic Seed Cohort:
+  - Enriched `DateTime` Value Object with `DateTime.today()`, `addDays()`, and `toISODate()`.
+  - Retained historical closed cohort (`...0001` starting 2026-09-15) and added dynamic cohort (`...0002` starting today) in `createSeedThemeCohorts(baseDateStr?)` and `SEED_THEME_COHORTS`.
+  - Updated mobile persistence `seedDatabase(db)` to use `ON CONFLICT(id) DO NOTHING` for `theme_cohorts`, locking the date on first seed / database reset and keeping it immutable across daily app launches.
+  - Refactored `time-lock.ts` to use `DateTime` primitive.
+  - Added unit tests in `index.test.ts`, `reflections.test.ts`, and `database.test.ts`.
 
 - **Completion & Delivery**: Created Issue [#63](https://github.com/masch/myself/issues/63) and opened Pull Request [#64](https://github.com/masch/myself/pull/64) on branch `feat/cohort-enrollment-grace-period`.

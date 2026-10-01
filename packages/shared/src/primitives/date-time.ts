@@ -79,6 +79,16 @@ export class DateTime {
   }
 
   /**
+   * Creates a DateTime instance representing today at local calendar date (midnight UTC).
+   */
+  static today(now: Date = new Date()): DateTime {
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return DateTime.from(`${y}-${m}-${d}`);
+  }
+
+  /**
    * Creates a DateTime instance from an ISO string, Date, or existing DateTime.
    * Throws an error if the value represents an invalid date.
    */
@@ -108,6 +118,22 @@ export class DateTime {
     }
 
     throw new Error(`Invalid date representation: ${String(value)}`);
+  }
+
+  /**
+   * Returns a new DateTime instance offset by the specified number of days (can be negative).
+   */
+  addDays(days: number): DateTime {
+    const nextDate = new Date(this.date.getTime());
+    nextDate.setUTCDate(nextDate.getUTCDate() + days);
+    return new DateTime(nextDate);
+  }
+
+  /**
+   * Returns the ISO date part formatted as "YYYY-MM-DD".
+   */
+  toISODate(): string {
+    return this.date.toISOString().slice(0, 10);
   }
 
   /**

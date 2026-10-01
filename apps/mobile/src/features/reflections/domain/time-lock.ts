@@ -1,4 +1,8 @@
-import { type ReflectionQuestion, type UserReflection } from "@myself/shared";
+import {
+  DateTime,
+  type ReflectionQuestion,
+  type UserReflection,
+} from "@myself/shared";
 
 /**
  * Returns the current local time formatted as "HH:mm".
@@ -13,10 +17,7 @@ export function getCurrentTimeHHMM(date: Date = new Date()): string {
  * Formats a Date object into a local calendar date string "YYYY-MM-DD".
  */
 export function getLocalDateString(date: Date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return DateTime.today(date).toISODate();
 }
 
 /**
@@ -109,13 +110,7 @@ export function formatRelativeMissedDate(
  * Adds a specified number of calendar days to an ISO date string "YYYY-MM-DD" and returns "YYYY-MM-DD".
  */
 export function addDaysToDate(isoDate: string, days: number): string {
-  const parts = isoDate.split("-").map(Number);
-  const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
-  date.setUTCDate(date.getUTCDate() + days);
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return DateTime.from(isoDate).addDays(days).toISODate();
 }
 
 /**

@@ -7,8 +7,10 @@ import {
   themeCohortSchema,
   userQuestionPreferenceSchema,
   userThemeProgressSchema,
+  createSeedThemeCohorts,
+  getTodayDateString,
 } from "../reflections";
-import { generateEntityId } from "../../primitives";
+import { generateEntityId, type EntityId } from "../../primitives";
 
 describe("Reflections Module - Zod Validation Schemas", () => {
   const sampleId = generateEntityId();
@@ -262,5 +264,34 @@ describe("Reflections Module - Zod Validation Schemas", () => {
         forDate: "2026-09-12",
       }),
     ).toThrow();
+  });
+
+  describe("Dynamic Seed Theme Cohorts", () => {
+    it("generates cohort starting on provided base date", () => {
+      const cohorts = createSeedThemeCohorts("2026-09-30");
+      expect(cohorts.length).toBe(2);
+      // Historical cohort
+      expect(cohorts[0].id).toBe(
+        "a1000000-0000-4000-8000-000000000001" as EntityId,
+      );
+      expect(cohorts[0].programStartDate).toBe("2026-09-15");
+
+      // Dynamic cohort
+      expect(cohorts[1].id).toBe(
+        "a1000000-0000-4000-8000-000000000002" as EntityId,
+      );
+      expect(cohorts[1].programStartDate).toBe("2026-09-30");
+      expect(cohorts[1].enrollmentStartDate).toBe("2026-09-23");
+      expect(cohorts[1].enrollmentEndDate).toBe("2026-10-30");
+      expect(cohorts[1].enrollmentGraceDays).toBe(2);
+      expect(cohorts[1].status).toBe("open_for_enrollment");
+    });
+
+    it("generates dynamic cohort starting today when base date is omitted", () => {
+      const todayStr = getTodayDateString();
+      const cohorts = createSeedThemeCohorts();
+      expect(cohorts.length).toBe(2);
+      expect(cohorts[1].programStartDate).toBe(todayStr);
+    });
   });
 });

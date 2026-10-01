@@ -1,4 +1,4 @@
-import type { EntityId } from "../../primitives";
+import { DateTime, type EntityId } from "../../primitives";
 import type { CohortStatus, Periodicity, ResponseType } from "./types";
 
 export interface SeedReflectionCategory {
@@ -69,18 +69,39 @@ export const SEED_REFLECTION_THEMES: SeedReflectionTheme[] = [
   },
 ];
 
-export const SEED_THEME_COHORTS: SeedThemeCohort[] = [
-  {
-    id: "a1000000-0000-4000-8000-000000000001" as EntityId,
-    themeId: "e1000000-0000-4000-8000-000000000001" as EntityId,
-    name: "Convocatoria Abierta",
-    enrollmentStartDate: "2026-09-01",
-    enrollmentEndDate: "2026-12-31",
-    programStartDate: "2026-09-15",
-    enrollmentGraceDays: 2,
-    status: "open_for_enrollment",
-  },
-];
+export function getTodayDateString(now: Date = new Date()): string {
+  return DateTime.today(now).toISODate();
+}
+
+export function createSeedThemeCohorts(
+  baseDateStr: string = getTodayDateString(),
+): SeedThemeCohort[] {
+  const baseDt = DateTime.from(baseDateStr);
+  return [
+    {
+      id: "a1000000-0000-4000-8000-000000000001" as EntityId,
+      themeId: "e1000000-0000-4000-8000-000000000001" as EntityId,
+      name: "Convocatoria Abierta",
+      enrollmentStartDate: "2026-09-01",
+      enrollmentEndDate: "2026-12-31",
+      programStartDate: "2026-09-15",
+      enrollmentGraceDays: 2,
+      status: "open_for_enrollment",
+    },
+    {
+      id: "a1000000-0000-4000-8000-000000000002" as EntityId,
+      themeId: "e1000000-0000-4000-8000-000000000001" as EntityId,
+      name: "Convocatoria en Curso",
+      enrollmentStartDate: baseDt.addDays(-7).toISODate(),
+      enrollmentEndDate: baseDt.addDays(30).toISODate(),
+      programStartDate: baseDt.toISODate(),
+      enrollmentGraceDays: 2,
+      status: "open_for_enrollment",
+    },
+  ];
+}
+
+export const SEED_THEME_COHORTS: SeedThemeCohort[] = createSeedThemeCohorts();
 
 export const SEED_REFLECTION_QUESTIONS: SeedReflectionQuestion[] = [
   {

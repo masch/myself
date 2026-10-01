@@ -75,4 +75,28 @@ describe("Database Lifecycle & Reset", () => {
     );
     expect(migrations.length).toBeGreaterThan(0);
   });
+
+  it("seeds theme cohorts with dynamic start date and preserves it across re-initializations", async () => {
+    await initDatabase(db);
+
+    const cohorts = await db.getAllAsync<{
+      id: string;
+      program_start_date: string;
+      enrollment_start_date: string;
+      enrollment_end_date: string;
+    }>("SELECT * FROM theme_cohorts");
+
+    expect(cohorts.length).toBeGreaterThan(0);
+    const initialStartDate = cohorts[0].program_start_date;
+    expect(/^\d{4}-\d{2}-\d{2}$/.test(initialStartDate)).toBe(true);
+
+    // Simulate subsequent app launch (initDatabase re-run)
+    await initDatabase(db);
+
+    const recheckCohorts = await db.getAllAsync<{
+      id: string;
+      program_start_date: string;
+    }>("SELECT * FROM theme_cohorts");
+    expect(recheckCohorts[0].program_start_date).toBe(initialStartDate);
+  });
 });

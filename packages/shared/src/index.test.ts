@@ -336,5 +336,21 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       expect(dt1.equals(dt3)).toBe(false);
       expect(dt1.equals({} as any)).toBe(false);
     });
+
+    it("DateTime.today() returns instance at local calendar date", () => {
+      const today = DateTime.today();
+      expect(today instanceof DateTime).toBe(true);
+      expect(/^\d{4}-\d{2}-\d{2}$/.test(today.toISODate())).toBe(true);
+    });
+
+    it("DateTime.addDays() adds positive and negative days immutably", () => {
+      const dt = DateTime.from("2026-09-30");
+      const plus2 = dt.addDays(2);
+      expect(plus2.toISODate()).toBe("2026-10-02");
+      expect(dt.toISODate()).toBe("2026-09-30"); // immutability
+
+      const minus7 = dt.addDays(-7);
+      expect(minus7.toISODate()).toBe("2026-09-23");
+    });
   });
 });
