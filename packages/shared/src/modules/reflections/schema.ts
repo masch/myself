@@ -53,6 +53,7 @@ export const themeCohorts = sqliteTable("theme_cohorts", {
   enrollmentStartDate: text("enrollment_start_date").notNull(),
   enrollmentEndDate: text("enrollment_end_date").notNull(),
   programStartDate: text("program_start_date").notNull(),
+  enrollmentGraceDays: integer("enrollment_grace_days").notNull(),
   status: text("status", { enum: COHORT_STATUSES })
     .$type<CohortStatus>()
     .notNull()

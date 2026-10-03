@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { Database } from "bun:sqlite";
 import {
+  DateTime,
   generateEntityId,
   SHARED_MIGRATIONS,
   type EntityId,
@@ -65,6 +66,11 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
       [testUserId, "Test User", "test@example.com"],
     );
+
+    // Keep seeded cohort open during test execution
+    await db.runAsync(
+      "UPDATE theme_cohorts SET enrollment_start_date = '2026-01-01', enrollment_end_date = '2099-12-31', program_start_date = '2026-09-01', enrollment_grace_days = 999",
+    );
   });
 
   describe("Catalog Queries & Seeds", () => {
@@ -94,6 +100,9 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
 
       const openCohort = cohorts[0];
       expect(openCohort.status).toBe("open_for_enrollment");
+      expect(openCohort.enrollmentStartDate).toBeInstanceOf(DateTime);
+      expect(openCohort.enrollmentEndDate).toBeInstanceOf(DateTime);
+      expect(openCohort.programStartDate).toBeInstanceOf(DateTime);
 
       const questions = await repo.getQuestionsForTheme(openCohort.themeId);
       expect(questions.length).toBe(7);
@@ -166,6 +175,56 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       );
       expect(reEnrolled.status).toBe("in_progress");
       expect(reEnrolled.cycleRunNumber).toBe(2);
+    });
+
+    it("rejects enrollment when cohort enrollment window has closed", async () => {
+      const cohorts = await repo.getOpenCohorts();
+      const cohort = cohorts[0];
+
+      // Set cohort to a past start date with expired grace period
+      await db.runAsync(
+        "UPDATE theme_cohorts SET program_start_date = '2026-09-15', enrollment_grace_days = 2, enrollment_end_date = '2026-12-31' WHERE id = ?",
+        [cohort.id],
+      );
+
+      expect(
+        repo.enrollInCohort(testUserId, cohort.themeId, cohort.id, {
+          forDate: DateTime.from("2026-09-20"),
+        }),
+      ).rejects.toThrow(/Enrollment for cohort ".*" is closed/);
+    });
+
+    it("permits enrollment during configurable grace period after program start", async () => {
+      const cohorts = await repo.getOpenCohorts();
+      const cohort = cohorts[0];
+
+      // Set cohort to program_start_date 2026-09-15 with 3 grace days
+      await db.runAsync(
+        "UPDATE theme_cohorts SET program_start_date = '2026-09-15', enrollment_grace_days = 3, enrollment_end_date = '2026-12-31' WHERE id = ?",
+        [cohort.id],
+      );
+
+      // Enrolling on exact cutoff date (2026-09-15 + 3 days = 2026-09-18) succeeds
+      const progress = await repo.enrollInCohort(
+        testUserId,
+        cohort.themeId,
+        cohort.id,
+        { forDate: DateTime.from("2026-09-18") },
+      );
+      expect(progress.status).toBe("in_progress");
+      expect(progress.cohortId).toBe(cohort.id);
+
+      // Enrolling 1 day after cutoff date (2026-09-19) for another user rejects
+      const otherUserId = generateEntityId();
+      await db.runAsync(
+        "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+        [otherUserId, "Other User", "other@example.com"],
+      );
+      expect(
+        repo.enrollInCohort(otherUserId, cohort.themeId, cohort.id, {
+          forDate: DateTime.from("2026-09-19"),
+        }),
+      ).rejects.toThrow(/Enrollment for cohort ".*" is closed/);
     });
   });
 
@@ -381,6 +440,50 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       expect(completedProg?.completedAt).not.toBeNull();
       expect(completedProg?.answeredCount).toBe(7);
       expect(completedProg?.skippedCount).toBe(0);
+    });
+
+    it("rejects saving cohort reflection when step is locked ahead of cohort schedule", async () => {
+      const cohorts = await repo.getOpenCohorts();
+      const cohort = cohorts[0];
+
+      // Set cohort program start date to 2026-09-15
+      await db.runAsync(
+        "UPDATE theme_cohorts SET program_start_date = '2026-09-15', enrollment_grace_days = 30 WHERE id = ?",
+        [cohort.id],
+      );
+
+      const progress = await repo.enrollInCohort(
+        testUserId,
+        cohort.themeId,
+        cohort.id,
+      );
+      const questions = await repo.getQuestionsForTheme(cohort.themeId);
+
+      // On day 1 (2026-09-15), step 1 is allowed
+      await repo.saveReflection({
+        userId: testUserId,
+        questionId: questions[0].id,
+        themeId: cohort.themeId,
+        cycleRunId: progress.id,
+        status: "answered",
+        responseType: "text",
+        content: "Paso 1 completado en día 1",
+        forDate: "2026-09-15",
+      });
+
+      // Trying to answer step 2 on the same day (2026-09-15) must be rejected
+      expect(
+        repo.saveReflection({
+          userId: testUserId,
+          questionId: questions[1].id,
+          themeId: cohort.themeId,
+          cycleRunId: progress.id,
+          status: "answered",
+          responseType: "scale_1_10",
+          numericValue: 8,
+          forDate: "2026-09-15",
+        }),
+      ).rejects.toThrow(/Step 2 is locked until 2026-09-16/);
     });
   });
 

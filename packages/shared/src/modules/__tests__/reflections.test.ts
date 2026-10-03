@@ -7,8 +7,10 @@ import {
   themeCohortSchema,
   userQuestionPreferenceSchema,
   userThemeProgressSchema,
+  createSeedThemeCohorts,
+  getTodayDateString,
 } from "../reflections";
-import { generateEntityId } from "../../primitives";
+import { generateEntityId, DateTime, type EntityId } from "../../primitives";
 
 describe("Reflections Module - Zod Validation Schemas", () => {
   const sampleId = generateEntityId();
@@ -50,10 +52,60 @@ describe("Reflections Module - Zod Validation Schemas", () => {
       enrollmentStartDate: "2026-09-20",
       enrollmentEndDate: "2026-09-30",
       programStartDate: "2026-10-01",
+      enrollmentGraceDays: 0,
       status: "open_for_enrollment",
       createdAt: "2026-09-12T00:00:00.000Z",
     });
     expect(cohort.status).toBe("open_for_enrollment");
+    expect(cohort.enrollmentGraceDays).toBe(0);
+    expect(cohort.enrollmentStartDate).toBeInstanceOf(DateTime);
+    expect(cohort.enrollmentEndDate).toBeInstanceOf(DateTime);
+    expect(cohort.programStartDate).toBeInstanceOf(DateTime);
+    expect(cohort.programStartDate.toISODate()).toBe("2026-10-01");
+  });
+
+  it("should reject ThemeCohort when enrollmentGraceDays is omitted", () => {
+    expect(() =>
+      themeCohortSchema.parse({
+        id: cohortId,
+        themeId,
+        name: "Missing Grace Days Cohort",
+        enrollmentStartDate: "2026-09-20",
+        enrollmentEndDate: "2026-09-30",
+        programStartDate: "2026-10-01",
+        createdAt: "2026-09-12T00:00:00.000Z",
+      }),
+    ).toThrow();
+  });
+
+  it("should validate ThemeCohort with custom enrollmentGraceDays", () => {
+    const cohort = themeCohortSchema.parse({
+      id: cohortId,
+      themeId,
+      name: "Late Enrollment Cohort",
+      enrollmentStartDate: "2026-09-20",
+      enrollmentEndDate: "2026-09-30",
+      programStartDate: "2026-10-01",
+      enrollmentGraceDays: 3,
+      status: "open_for_enrollment",
+      createdAt: "2026-09-12T00:00:00.000Z",
+    });
+    expect(cohort.enrollmentGraceDays).toBe(3);
+  });
+
+  it("should reject ThemeCohort with negative enrollmentGraceDays", () => {
+    expect(() =>
+      themeCohortSchema.parse({
+        id: cohortId,
+        themeId,
+        name: "Negative Grace Cohort",
+        enrollmentStartDate: "2026-09-20",
+        enrollmentEndDate: "2026-09-30",
+        programStartDate: "2026-10-01",
+        enrollmentGraceDays: -1,
+        createdAt: "2026-09-12T00:00:00.000Z",
+      }),
+    ).toThrow();
   });
 
   it("should reject ThemeCohort with invalid date formats", () => {
@@ -216,5 +268,34 @@ describe("Reflections Module - Zod Validation Schemas", () => {
         forDate: "2026-09-12",
       }),
     ).toThrow();
+  });
+
+  describe("Dynamic Seed Theme Cohorts", () => {
+    it("generates cohort starting on provided base date", () => {
+      const cohorts = createSeedThemeCohorts("2026-09-30");
+      expect(cohorts.length).toBe(2);
+      // Historical cohort
+      expect(cohorts[0].id).toBe(
+        "a1000000-0000-4000-8000-000000000001" as EntityId,
+      );
+      expect(cohorts[0].programStartDate).toBe("2026-09-15");
+
+      // Dynamic cohort
+      expect(cohorts[1].id).toBe(
+        "a1000000-0000-4000-8000-000000000002" as EntityId,
+      );
+      expect(cohorts[1].programStartDate).toBe("2026-09-30");
+      expect(cohorts[1].enrollmentStartDate).toBe("2026-09-23");
+      expect(cohorts[1].enrollmentEndDate).toBe("2026-10-30");
+      expect(cohorts[1].enrollmentGraceDays).toBe(2);
+      expect(cohorts[1].status).toBe("open_for_enrollment");
+    });
+
+    it("generates dynamic cohort starting today when base date is omitted", () => {
+      const todayStr = getTodayDateString();
+      const cohorts = createSeedThemeCohorts();
+      expect(cohorts.length).toBe(2);
+      expect(cohorts[1].programStartDate).toBe(todayStr);
+    });
   });
 });

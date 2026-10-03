@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
 import {
+  DateTime,
   type EntityId,
   type ReflectionQuestion,
   type ThemeCohort,
@@ -32,9 +33,10 @@ import {
   SkipReasonSheet,
 } from "@/features/reflections/components";
 import {
-  getCurrentTimeHHMM,
   isReflectionLocked,
   isCohortStarted,
+  isCohortStepUnlocked,
+  getCohortStepUnlockDate,
   formatDateDDMM,
   formatRelativeMissedDate,
 } from "@/features/reflections/domain/time-lock";
@@ -73,14 +75,16 @@ export default function ReflectionsScreen() {
     skipCycleQuestion,
   } = useThemeCohort();
 
-  const [currentTimeStr, setCurrentTimeStr] = useState(() =>
-    getCurrentTimeHHMM(),
+  const [currentDateTime, setCurrentDateTime] = useState(() => DateTime.now());
+  const currentLocalDate = useMemo(
+    () => DateTime.today(currentDateTime.toDate()),
+    [currentDateTime],
   );
   const [showAnswered, setShowAnswered] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
-      setCurrentTimeStr(getCurrentTimeHHMM());
+      setCurrentDateTime(DateTime.now());
       void refreshDaily();
       void refreshCohorts();
     }, [refreshDaily, refreshCohorts]),
@@ -88,7 +92,7 @@ export default function ReflectionsScreen() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTimeStr(getCurrentTimeHHMM());
+      setCurrentDateTime(DateTime.now());
     }, 30000);
     return () => clearInterval(timer);
   }, []);
@@ -204,9 +208,17 @@ export default function ReflectionsScreen() {
   const handleEnroll = async (cohort: ThemeCohort) => {
     try {
       setIsSubmitting(true);
-      await enroll(cohort.themeId, cohort.id);
+      await enroll(cohort.themeId, cohort.id, {
+        forDate: currentLocalDate,
+      });
     } catch (err) {
       console.error("Failed to enroll:", err);
+      Alert.alert(
+        "Inscripción no disponible",
+        err instanceof Error
+          ? err.message
+          : "No fue posible unirte a este programa en este momento.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -234,7 +246,7 @@ export default function ReflectionsScreen() {
 
       for (const q of routineQuestions) {
         const ref = todayReflections[q.id];
-        if (isReflectionLocked(q, ref, currentTimeStr)) {
+        if (isReflectionLocked(q, ref, currentDateTime)) {
           upcoming.push(q);
         } else {
           available.push(q);
@@ -245,7 +257,7 @@ export default function ReflectionsScreen() {
         availableRoutineQuestions: available,
         upcomingRoutineQuestions: upcoming,
       };
-    }, [routineQuestions, todayReflections, currentTimeStr]);
+    }, [routineQuestions, todayReflections, currentDateTime]);
 
   const pendingMissedQuestions = useMemo(() => {
     return missedQuestions.filter(
@@ -284,7 +296,7 @@ export default function ReflectionsScreen() {
         list.push({
           question: item.question,
           reflection: item.reflection,
-          dateLabel: `De: ${formatRelativeMissedDate(item.missedDate)}`,
+          dateLabel: `De: ${formatRelativeMissedDate(DateTime.from(item.missedDate))}`,
         });
       }
     }
@@ -402,7 +414,9 @@ export default function ReflectionsScreen() {
                         key={`missed-${question.id}-${missedDate}`}
                         question={question}
                         reflection={reflection}
-                        dateLabel={formatRelativeMissedDate(missedDate)}
+                        dateLabel={formatRelativeMissedDate(
+                          DateTime.from(missedDate),
+                        )}
                         onAnswer={() =>
                           handleOpenAnswer(
                             question,
@@ -721,7 +735,48 @@ export default function ReflectionsScreen() {
                     ) : (
                       <>
                         {active.currentQuestion &&
-                          active.status !== "completed" && (
+                          active.status !== "completed" &&
+                          (!isCohortStepUnlocked(
+                            active.cohort.programStartDate,
+                            active.currentStep,
+                          ) ? (
+                            <View
+                              style={{
+                                marginTop: 12,
+                                padding: 16,
+                                borderRadius: 12,
+                                backgroundColor: colors.systemGray15,
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <ThemedText
+                                variant="callout"
+                                style={{
+                                  fontWeight: "600",
+                                }}
+                              >
+                                ✨ Paso de hoy completado
+                              </ThemedText>
+                              <ThemedText
+                                variant="caption1"
+                                color={colors.secondaryLabel}
+                                style={{
+                                  textAlign: "center",
+                                  lineHeight: 18,
+                                }}
+                              >
+                                El Paso {active.currentStep} se desbloqueará el{" "}
+                                {formatDateDDMM(
+                                  getCohortStepUnlockDate(
+                                    active.cohort.programStartDate,
+                                    active.currentStep,
+                                  ),
+                                )}
+                                . ¡Excelente constancia con tu práctica diaria!
+                              </ThemedText>
+                            </View>
+                          ) : (
                             <View style={{ marginTop: 10 }}>
                               <ThemedText
                                 variant="caption1"
@@ -746,7 +801,7 @@ export default function ReflectionsScreen() {
                                 }
                               />
                             </View>
-                          )}
+                          ))}
 
                         {/* Completed steps in this cohort */}
                         {(() => {
@@ -814,7 +869,7 @@ export default function ReflectionsScreen() {
                                         key={`cohort-step-${active.id}-${question.id}`}
                                         question={question}
                                         reflection={reflection}
-                                        dateLabel={`Paso ${question.orderIndex} • ${formatDateDDMM(reflection.forDate)}`}
+                                        dateLabel={`Paso ${question.orderIndex} • ${formatDateDDMM(DateTime.from(reflection.forDate))}`}
                                         onAnswer={() =>
                                           handleOpenAnswer(
                                             question,
@@ -865,6 +920,7 @@ export default function ReflectionsScreen() {
                     isEnrolled={isAlreadyEnrolled}
                     onEnroll={() => void handleEnroll(cohort)}
                     isSubmitting={isSubmitting}
+                    currentDate={currentLocalDate}
                   />
                 );
               })}

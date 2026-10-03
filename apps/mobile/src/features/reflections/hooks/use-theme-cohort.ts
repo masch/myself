@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/auth-context";
 import {
+  DateTime,
   type EntityId,
   type ReflectionQuestion,
   type ReflectionTheme,
@@ -10,7 +11,7 @@ import {
 } from "@myself/shared";
 import { type ActiveCohortProgressDetail } from "../domain/ports/reflection.repository.port";
 import { SqliteReflectionRepository } from "../infrastructure/sqlite-reflection.repository";
-import { isCohortStarted, getLocalDateString } from "../domain/time-lock";
+import { isCohortStarted } from "../domain/time-lock";
 
 export function useThemeCohort() {
   const db = useSQLiteContext();
@@ -96,7 +97,11 @@ export function useThemeCohort() {
   }, [refresh]);
 
   const enroll = useCallback(
-    async (themeId: EntityId, cohortId: EntityId) => {
+    async (
+      themeId: EntityId,
+      cohortId: EntityId,
+      options?: { forDate?: DateTime },
+    ) => {
       if (!currentUser) {
         throw new Error("No active user session");
       }
@@ -107,6 +112,7 @@ export function useThemeCohort() {
           currentUser.id as EntityId,
           themeId,
           cohortId,
+          options,
         );
         await refresh();
         return progress;
@@ -141,17 +147,21 @@ export function useThemeCohort() {
       input: {
         content?: string;
         numericValue?: number;
-        forDate?: string;
+        forDate?: DateTime | string;
       },
     ) => {
       if (!currentUser) {
         throw new Error("No active user session");
       }
 
-      const effectiveDate = input.forDate ?? getLocalDateString();
+      const effectiveDate = input.forDate
+        ? typeof input.forDate === "string"
+          ? DateTime.from(input.forDate)
+          : input.forDate
+        : DateTime.today();
       if (!isCohortStarted(progress.cohort.programStartDate, effectiveDate)) {
         throw new Error(
-          `Cannot submit reflection before program starts on ${progress.cohort.programStartDate}`,
+          `Cannot submit reflection before program starts on ${progress.cohort.programStartDate.toISODate()}`,
         );
       }
 
@@ -166,7 +176,7 @@ export function useThemeCohort() {
           responseType: question.responseType,
           content: input.content,
           numericValue: input.numericValue,
-          forDate: effectiveDate,
+          forDate: effectiveDate.toISODate(),
         });
 
         await refresh();
@@ -183,16 +193,20 @@ export function useThemeCohort() {
       progress: ActiveCohortProgressDetail,
       question: ReflectionQuestion,
       skipReason: string,
-      forDate?: string,
+      forDate?: DateTime | string,
     ) => {
       if (!currentUser) {
         throw new Error("No active user session");
       }
 
-      const effectiveDate = forDate ?? getLocalDateString();
+      const effectiveDate = forDate
+        ? typeof forDate === "string"
+          ? DateTime.from(forDate)
+          : forDate
+        : DateTime.today();
       if (!isCohortStarted(progress.cohort.programStartDate, effectiveDate)) {
         throw new Error(
-          `Cannot skip question before program starts on ${progress.cohort.programStartDate}`,
+          `Cannot skip question before program starts on ${progress.cohort.programStartDate.toISODate()}`,
         );
       }
 
@@ -206,7 +220,7 @@ export function useThemeCohort() {
           status: "skipped",
           responseType: question.responseType,
           skipReason,
-          forDate: effectiveDate,
+          forDate: effectiveDate.toISODate(),
         });
 
         await refresh();

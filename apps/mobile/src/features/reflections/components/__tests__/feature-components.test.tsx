@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import React from "react";
 import { renderToString } from "react-dom/server";
 import {
+  DateTime,
   type ReflectionQuestion,
   type ThemeCohort,
   type ReflectionTheme,
@@ -32,9 +33,10 @@ const mockCohort: ThemeCohort = {
   id: mockId("a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c54"),
   themeId: mockId("a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c53"),
   name: "Morning Reflection Cohort",
-  enrollmentStartDate: "2026-09-20",
-  enrollmentEndDate: "2026-09-30",
-  programStartDate: "2026-10-01",
+  enrollmentStartDate: DateTime.from("2026-09-20"),
+  enrollmentEndDate: DateTime.from("2026-09-30"),
+  programStartDate: DateTime.from("2026-10-01"),
+  enrollmentGraceDays: 2,
   status: "open_for_enrollment",
   createdAt: "2026-09-01",
 };
@@ -59,16 +61,32 @@ describe("Reflections Feature Components", () => {
     expect(html).toContain("Responder");
   });
 
-  it("renders CohortEnrollmentCard with details", () => {
+  it("renders CohortEnrollmentCard with details and grace period info", () => {
     const html = renderToString(
       <CohortEnrollmentCard
         cohort={mockCohort}
         theme={mockTheme}
         onEnroll={() => {}}
+        currentDate={DateTime.from("2026-09-25")}
       />,
     );
     expect(html).toContain("Mindful Morning");
     expect(html).toContain("Morning Reflection Cohort");
+    expect(html).toContain("Plazo de gracia para sumarte:");
+    expect(html).toContain("Sumarme a la convocatoria");
+  });
+
+  it("renders CohortEnrollmentCard in closed state when past enrollment deadline", () => {
+    const html = renderToString(
+      <CohortEnrollmentCard
+        cohort={mockCohort}
+        theme={mockTheme}
+        onEnroll={() => {}}
+        currentDate={DateTime.from("2026-10-10")}
+      />,
+    );
+    expect(html).toContain("Inscripción cerrada");
+    expect(html).not.toContain("Sumarme a la convocatoria");
   });
 
   it("renders CycleProgressBadge", () => {

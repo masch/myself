@@ -1,4 +1,8 @@
-import { type ReflectionQuestion, type UserReflection } from "@myself/shared";
+import {
+  DateTime,
+  type ReflectionQuestion,
+  type UserReflection,
+} from "@myself/shared";
 
 /**
  * Returns the current local time formatted as "HH:mm".
@@ -7,16 +11,6 @@ export function getCurrentTimeHHMM(date: Date = new Date()): string {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
-}
-
-/**
- * Formats a Date object into a local calendar date string "YYYY-MM-DD".
- */
-export function getLocalDateString(date: Date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -32,9 +26,8 @@ export function getLocalDateString(date: Date = new Date()): string {
 export function isReflectionLocked(
   question: ReflectionQuestion,
   reflection?: UserReflection | null,
-  currentTimeStr: string = getCurrentTimeHHMM(),
-  forDate?: string,
-  todayStr: string = getLocalDateString(),
+  now: DateTime = DateTime.now(),
+  forDate?: DateTime,
 ): boolean {
   if (reflection?.status === "answered" || reflection?.status === "skipped") {
     return false;
@@ -42,28 +35,28 @@ export function isReflectionLocked(
   if (!question.preferredTimeOfDay) {
     return false;
   }
-  if (forDate && forDate < todayStr) {
+  const today = DateTime.today(now.toDate());
+  if (forDate && today.diffInDays(forDate) > 0) {
     return false;
   }
-  return currentTimeStr < question.preferredTimeOfDay;
+  return now.toLocalTimeHHMM() < question.preferredTimeOfDay;
 }
 
 /**
  * Determines whether a theme cohort has reached or passed its program start date.
  */
 export function isCohortStarted(
-  programStartDate: string,
-  currentDateStr: string = getLocalDateString(),
+  programStartDate: DateTime,
+  currentDate: DateTime = DateTime.today(),
 ): boolean {
-  return currentDateStr >= programStartDate;
+  return currentDate.diffInDays(programStartDate) >= 0;
 }
 
 /**
- * Formats an ISO date string "YYYY-MM-DD" into "DD/MM".
+ * Formats a DateTime into "DD/MM".
  */
-export function formatDateDDMM(isoDate: string): string {
-  const parts = isoDate.split("-");
-  if (parts.length < 3) return isoDate;
+export function formatDateDDMM(date: DateTime): string {
+  const parts = date.toISODate().split("-");
   const [, month, day] = parts;
   return `${day}/${month}`;
 }
@@ -78,13 +71,11 @@ export function formatDateDDMM(isoDate: string): string {
  * - N days ago (when N < catchUpWindowDays): `Hace ${N} días`
  */
 export function formatRelativeMissedDate(
-  missedDate: string,
-  todayStr: string = getLocalDateString(),
+  missedDate: DateTime,
+  today: DateTime = DateTime.today(),
   catchUpWindowDays: number = 2,
 ): string {
-  const missedTime = new Date(`${missedDate}T00:00:00Z`).getTime();
-  const todayTime = new Date(`${todayStr}T00:00:00Z`).getTime();
-  const diffDays = Math.round((todayTime - missedTime) / (1000 * 60 * 60 * 24));
+  const diffDays = today.diffInDays(missedDate);
 
   if (diffDays <= 0) {
     return "Hoy";
@@ -103,4 +94,91 @@ export function formatRelativeMissedDate(
   return isLastDay
     ? `Hace ${diffDays} días · Vence hoy`
     : `Hace ${diffDays} días`;
+}
+
+/**
+ * Calculates the final date until which enrollment is permitted for a cohort.
+ * This is the minimum between enrollmentEndDate and (programStartDate + enrollmentGraceDays).
+ * Returns a DateTime instance.
+ */
+export function getCohortEnrollmentDeadline(cohort: {
+  enrollmentEndDate: DateTime;
+  programStartDate: DateTime;
+  enrollmentGraceDays?: number;
+}): DateTime {
+  const graceDays = cohort.enrollmentGraceDays ?? 0;
+  const programGraceCutoff = cohort.programStartDate.addDays(graceDays);
+  return cohort.enrollmentEndDate.diffInDays(programGraceCutoff) < 0
+    ? cohort.enrollmentEndDate
+    : programGraceCutoff;
+}
+
+/**
+ * Determines whether enrollment for a theme cohort is currently open.
+ *
+ * Rules:
+ * - Must have status === "open_for_enrollment".
+ * - currentDate must be >= cohort.enrollmentStartDate.
+ * - currentDate must be <= getCohortEnrollmentDeadline(cohort).
+ */
+export function isCohortEnrollmentOpen(
+  cohort: {
+    status: string;
+    enrollmentStartDate: DateTime;
+    enrollmentEndDate: DateTime;
+    programStartDate: DateTime;
+    enrollmentGraceDays?: number;
+  },
+  currentDate: DateTime = DateTime.today(),
+): boolean {
+  if (cohort.status !== "open_for_enrollment") {
+    return false;
+  }
+  if (currentDate.diffInDays(cohort.enrollmentStartDate) < 0) {
+    return false;
+  }
+  const deadline = getCohortEnrollmentDeadline(cohort);
+  return currentDate.diffInDays(deadline) <= 0;
+}
+
+/**
+ * Calculates the maximum cohort step unlocked as of currentDate.
+ * Day 1 (programStartDate): step 1 unlocked.
+ * Each following day unlocks 1 step: maxUnlockedStep = daysElapsed + 1.
+ * Before programStartDate: returns 0.
+ * If totalSteps is provided, clamps maxUnlockedStep to totalSteps.
+ */
+export function getMaxUnlockedStep(
+  programStartDate: DateTime,
+  currentDate: DateTime = DateTime.today(),
+  totalSteps?: number,
+): number {
+  const diff = currentDate.diffInDays(programStartDate);
+  if (diff < 0) return 0;
+  const step = diff + 1;
+  return totalSteps !== undefined ? Math.min(step, totalSteps) : step;
+}
+
+/**
+ * Determines whether a specific cohort step is unlocked on currentDate.
+ * Allows catching up on past unlocked steps, but prevents advancing ahead of schedule.
+ */
+export function isCohortStepUnlocked(
+  programStartDate: DateTime,
+  step: number,
+  currentDate: DateTime = DateTime.today(),
+): boolean {
+  return step <= getMaxUnlockedStep(programStartDate, currentDate);
+}
+
+/**
+ * Calculates the exact calendar date on which a cohort step unlocks.
+ * Returns a DateTime instance.
+ */
+export function getCohortStepUnlockDate(
+  programStartDate: DateTime,
+  step: number,
+): DateTime {
+  if (step <= 1) return programStartDate;
+  return programStartDate.addDays(step - 1);
 }

@@ -79,6 +79,16 @@ export class DateTime {
   }
 
   /**
+   * Creates a DateTime instance representing today at local calendar date (midnight UTC).
+   */
+  static today(now: Date = new Date()): DateTime {
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return DateTime.from(`${y}-${m}-${d}`);
+  }
+
+  /**
    * Creates a DateTime instance from an ISO string, Date, or existing DateTime.
    * Throws an error if the value represents an invalid date.
    */
@@ -111,6 +121,41 @@ export class DateTime {
   }
 
   /**
+   * Returns a new DateTime instance offset by the specified number of days (can be negative).
+   */
+  addDays(days: number): DateTime {
+    const nextDate = new Date(this.date.getTime());
+    nextDate.setUTCDate(nextDate.getUTCDate() + days);
+    return new DateTime(nextDate);
+  }
+
+  /**
+   * Calculates the difference in full calendar days between this instance and another DateTime.
+   * Positive if this instance is later than other, negative if earlier.
+   */
+  diffInDays(other: DateTime): number {
+    const msPerDay = 86_400_000;
+    const d1 = Date.UTC(
+      this.date.getUTCFullYear(),
+      this.date.getUTCMonth(),
+      this.date.getUTCDate(),
+    );
+    const d2 = Date.UTC(
+      other.date.getUTCFullYear(),
+      other.date.getUTCMonth(),
+      other.date.getUTCDate(),
+    );
+    return Math.round((d1 - d2) / msPerDay);
+  }
+
+  /**
+   * Returns the ISO date part formatted as "YYYY-MM-DD".
+   */
+  toISODate(): string {
+    return this.date.toISOString().slice(0, 10);
+  }
+
+  /**
    * Returns the timestamp formatted as an ISO 8601 string.
    */
   toISOString(): string {
@@ -126,9 +171,40 @@ export class DateTime {
     }
     return this.date.getTime() === other.date.getTime();
   }
+
+  /**
+   * Returns a cloned Date instance representing the underlying moment in time.
+   */
+  toDate(): Date {
+    return new Date(this.date.getTime());
+  }
+
+  /**
+   * Returns the local wall-clock time formatted as "HH:mm".
+   */
+  toLocalTimeHHMM(): string {
+    const hours = String(this.date.getHours()).padStart(2, "0");
+    const minutes = String(this.date.getMinutes()).padStart(2, "0");
+    return `${hours}:${minutes}`;
+  }
+
+  /**
+   * Returns the ISO date representation when converted to string or interpolated.
+   */
+  toString(): string {
+    return this.toISODate();
+  }
 }
 
 export const dateTimeSchema = z.custom<DateTime>(
   (val) => val instanceof DateTime,
   "Invalid DateTime instance",
 );
+
+export const isoDateToDateTimeSchema = z.union([
+  z.custom<DateTime>((val) => val instanceof DateTime),
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD")
+    .transform((val) => DateTime.from(val)),
+]);

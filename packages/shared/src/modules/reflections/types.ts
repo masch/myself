@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { entityIdSchema, type EntityId } from "../../primitives/entity-id";
+import { isoDateToDateTimeSchema } from "../../primitives/date-time";
 
 export const PERIODICITIES = ["daily", "weekly", "monthly", "ad_hoc"] as const;
 export type Periodicity = (typeof PERIODICITIES)[number];
@@ -53,15 +54,10 @@ export const themeCohortSchema = z.object({
   id: entityIdSchema,
   themeId: entityIdSchema,
   name: z.string().trim().min(1),
-  enrollmentStartDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD"),
-  enrollmentEndDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD"),
-  programStartDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD"),
+  enrollmentStartDate: isoDateToDateTimeSchema,
+  enrollmentEndDate: isoDateToDateTimeSchema,
+  programStartDate: isoDateToDateTimeSchema,
+  enrollmentGraceDays: z.number().int().nonnegative(),
   status: z.enum(COHORT_STATUSES).default("upcoming"),
   createdAt: z.string(),
 });
