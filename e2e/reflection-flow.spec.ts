@@ -4,6 +4,7 @@ import { TestClock } from "./helpers/clock";
 const SEEDED_IDS = {
   morning: "b2000000-0000-4000-8000-000000000001",
   evening: "b2000000-0000-4000-8000-000000000002",
+  gratitude: "b2000000-0000-4000-8000-000000000003",
   adhoc: "b3000000-0000-4000-8000-000000000001",
 };
 
@@ -12,6 +13,7 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     page,
     request,
   }) => {
+    test.setTimeout(60000);
     page.on("console", (msg) =>
       console.log(`[Browser Console ${msg.type()}]:`, msg.text()),
     );
@@ -24,7 +26,7 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     expect(health.ok()).toBe(true);
 
     // 1b. Mock browser clock to fixed daytime (12:00 PM) for deterministic testing
-    await TestClock.install(page);
+    const clock = await TestClock.install(page);
 
     // 2. Navigate directly to reflections screen
     await page.goto("/reflections");
@@ -152,6 +154,17 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     });
     await expect(lockedBtn).toBeVisible({ timeout: 5000 });
     await expect(lockedBtn).toBeDisabled();
+
+    // Verify Daily Gratitude item-list question is also locked at 12:00
+    const gratitudeCard = page.getByTestId(
+      `prompt-card-${SEEDED_IDS.gratitude}`,
+    );
+    await expect(gratitudeCard).toBeVisible({ timeout: 5000 });
+    const gratitudeLockedBtn = gratitudeCard.getByRole("button", {
+      name: /Disponible a las 20:30/i,
+    });
+    await expect(gratitudeLockedBtn).toBeVisible({ timeout: 5000 });
+    await expect(gratitudeLockedBtn).toBeDisabled();
 
     // 5b. Verify FIFO ordering of missed questions (oldest date first: Anteayer · Vence hoy before Ayer)
     const anteayerPills = page.getByText("Anteayer · Vence hoy");
@@ -299,6 +312,107 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     // Verify pinned state updates to unpin button
     await expect(
       page.getByRole("button", { name: /Desanclar acceso rápido/i }).first(),
+    ).toBeVisible({ timeout: 5000 });
+
+    // -------------------------------------------------------------------------
+    // 7b. Time-travel to evening (22:00 local time) & Answer Gratitude Dynamic Item-List
+    // -------------------------------------------------------------------------
+    await clock.travelAndReload(new Date(2026, 8, 13, 22, 0, 0));
+    await expect(page.getByText("Rutina del Día").first()).toBeVisible({
+      timeout: 10000,
+    });
+
+    const unlockedGratitudeCard = page.getByTestId(
+      `prompt-card-${SEEDED_IDS.gratitude}`,
+    );
+    await expect(unlockedGratitudeCard).toBeVisible({ timeout: 5000 });
+    const gratitudeAnswerBtn = unlockedGratitudeCard.getByRole("button", {
+      name: "Responder",
+    });
+    await expect(gratitudeAnswerBtn).toBeVisible({ timeout: 5000 });
+    await gratitudeAnswerBtn.click();
+
+    // Dialog opens with Item List UI
+    const itemListModal = page.getByRole("dialog");
+    await expect(itemListModal).toBeVisible({ timeout: 5000 });
+    await expect(itemListModal.getByText("Lista de Momentos")).toBeVisible({
+      timeout: 5000,
+    });
+    const saveItemListBtn = itemListModal.getByRole("button", {
+      name: "Guardar",
+    });
+    // Negative validation: cannot save with fewer than 3 items
+    await expect(saveItemListBtn).toBeDisabled();
+
+    // Fill initial 3 rows using accessible textbox labels
+    const input1 = itemListModal.getByRole("textbox", { name: "Ítem 1" });
+    const input2 = itemListModal.getByRole("textbox", { name: "Ítem 2" });
+    const input3 = itemListModal.getByRole("textbox", { name: "Ítem 3" });
+    await input1.fill("Familia y afectos");
+    await input2.fill("Un buen café");
+    await expect(saveItemListBtn).toBeDisabled();
+
+    await input3.fill("Avances en el código");
+    await expect(saveItemListBtn).toBeEnabled();
+
+    // Add 4th item via button
+    const addRowBtn = itemListModal.getByRole("button", {
+      name: "Agregar otro ítem a la lista",
+    });
+    await addRowBtn.click();
+    const input4 = itemListModal.getByRole("textbox", { name: "Ítem 4" });
+    await expect(input4).toBeVisible({ timeout: 5000 });
+    await input4.fill("Momento extra temporal");
+
+    // Delete 4th item and test undo
+    const deleteBtn4 = itemListModal.getByRole("button", {
+      name: "Eliminar ítem 4",
+    });
+    await deleteBtn4.click();
+    await expect(input4).toBeHidden({ timeout: 5000 });
+
+    // Test undo toast
+    const undoBtn = itemListModal.getByRole("button", { name: /Deshacer/i });
+    await expect(undoBtn).toBeVisible({ timeout: 5000 });
+    await undoBtn.click();
+    await expect(input4).toBeVisible({ timeout: 5000 });
+
+    // Delete it again
+    await deleteBtn4.click();
+    await expect(input4).toBeHidden({ timeout: 5000 });
+
+    // Submit valid 3 items
+    await saveItemListBtn.click();
+    await expect(itemListModal).toBeHidden({ timeout: 5000 });
+
+    // Functional Verification: card shows answered preview with "3 momentos anotados" and "Ver lista"
+    await expect(
+      unlockedGratitudeCard.getByText("3 momentos anotados"),
+    ).toBeVisible({ timeout: 5000 });
+    const viewListBtn = unlockedGratitudeCard.getByRole("button", {
+      name: /Ver lista/i,
+    });
+    await expect(viewListBtn).toBeVisible({ timeout: 5000 });
+    await viewListBtn.click();
+
+    // Expanded list renders items
+    await expect(
+      unlockedGratitudeCard.getByText("Familia y afectos"),
+    ).toBeVisible({ timeout: 5000 });
+    await expect(unlockedGratitudeCard.getByText("Un buen café")).toBeVisible({
+      timeout: 5000,
+    });
+    await expect(
+      unlockedGratitudeCard.getByText("Avances en el código"),
+    ).toBeVisible({ timeout: 5000 });
+
+    // Persistence reload check
+    await page.reload();
+    const reloadedGratitudeCard = page.getByTestId(
+      `prompt-card-${SEEDED_IDS.gratitude}`,
+    );
+    await expect(
+      reloadedGratitudeCard.getByText("3 momentos anotados"),
     ).toBeVisible({ timeout: 5000 });
 
     // -------------------------------------------------------------------------

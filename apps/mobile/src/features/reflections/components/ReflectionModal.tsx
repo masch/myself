@@ -10,6 +10,7 @@ import {
   ThemedText,
   ThemedTextInput,
 } from "@/components";
+import { ItemListInput } from "./ItemListInput";
 import { ScaleSelector1To10 } from "./ScaleSelector1To10";
 
 interface ReflectionModalProps {
@@ -17,7 +18,12 @@ interface ReflectionModalProps {
   question: ReflectionQuestion | null;
   initialContent?: string;
   initialNumericValue?: number;
-  onSave: (input: { content?: string; numericValue?: number }) => void;
+  initialItems?: string[];
+  onSave: (input: {
+    content?: string;
+    numericValue?: number;
+    items?: string[];
+  }) => void;
   onClose: () => void;
   isSubmitting?: boolean;
 }
@@ -26,6 +32,7 @@ export function ReflectionModalContent({
   question,
   initialContent = "",
   initialNumericValue = null,
+  initialItems,
   onSave,
   onClose,
   isSubmitting = false,
@@ -33,7 +40,12 @@ export function ReflectionModalContent({
   question: ReflectionQuestion;
   initialContent?: string;
   initialNumericValue?: number | null;
-  onSave: (input: { content?: string; numericValue?: number }) => void;
+  initialItems?: string[];
+  onSave: (input: {
+    content?: string;
+    numericValue?: number;
+    items?: string[];
+  }) => void;
   onClose: () => void;
   isSubmitting?: boolean;
 }) {
@@ -43,25 +55,48 @@ export function ReflectionModalContent({
   );
 
   const isText = question.responseType === "text";
+  const isScale = question.responseType === "scale_1_10";
+  const isItemList = question.responseType === "item_list";
+
+  const minItems = question.config?.minItems ?? 1;
+  const maxItems = question.config?.maxItems ?? "unlimited";
+
+  const [items, setItems] = useState<string[]>(() => {
+    if (initialItems && initialItems.length > 0) {
+      return initialItems;
+    }
+    return Array.from({ length: minItems }, () => "");
+  });
+
   const isValid = isText
     ? content.trim().length > 0
-    : numericValue !== null && numericValue >= 1 && numericValue <= 10;
+    : isScale
+      ? numericValue !== null && numericValue >= 1 && numericValue <= 10
+      : items.filter((it) => it.trim().length > 0).length >= minItems;
 
   const handleSave = () => {
     if (!isValid) return;
+    const cleanItems = items
+      .map((it) => it.trim())
+      .filter((it) => it.length > 0);
+
     onSave({
       content: isText ? content.trim() : undefined,
-      numericValue: !isText && numericValue !== null ? numericValue : undefined,
+      numericValue: isScale && numericValue !== null ? numericValue : undefined,
+      items: isItemList ? cleanItems : undefined,
     });
   };
+
+  const badgeLabel = isText
+    ? "Reflexión Libre"
+    : isScale
+      ? "Puntaje 1 al 10"
+      : "Lista de Momentos";
 
   return (
     <View style={styles.content}>
       <View style={styles.badgeRow}>
-        <Badge
-          variant="neutral"
-          label={isText ? "Reflexión Libre" : "Puntaje 1 al 10"}
-        />
+        <Badge variant="neutral" label={badgeLabel} />
       </View>
 
       <AppMarkdownText style={[styles.promptText, { color: colors.label }]}>
@@ -87,11 +122,20 @@ export function ReflectionModalContent({
             {content.length} caracteres
           </ThemedText>
         </View>
-      ) : (
+      ) : isScale ? (
         <ScaleSelector1To10
           value={numericValue}
           onChange={setNumericValue}
           disabled={isSubmitting}
+        />
+      ) : (
+        <ItemListInput
+          items={items}
+          onChangeItems={setItems}
+          minItems={minItems}
+          maxItems={maxItems}
+          disabled={isSubmitting}
+          placeholder="Escribí un motivo de gratitud..."
         />
       )}
 
@@ -122,19 +166,23 @@ export function ReflectionModal({
   question,
   initialContent,
   initialNumericValue,
+  initialItems,
   onSave,
   onClose,
   isSubmitting = false,
 }: ReflectionModalProps) {
   if (!question || !visible) return null;
 
+  const key = `${question.id}-${initialContent ?? ""}-${initialNumericValue ?? ""}-${initialItems?.join("|") ?? ""}`;
+
   return (
     <AppBottomSheetModal visible={visible} onClose={onClose} maxWidth={580}>
       <ReflectionModalContent
-        key={`${question.id}-${initialContent ?? ""}-${initialNumericValue ?? ""}`}
+        key={key}
         question={question}
         initialContent={initialContent}
         initialNumericValue={initialNumericValue}
+        initialItems={initialItems}
         onSave={onSave}
         onClose={onClose}
         isSubmitting={isSubmitting}

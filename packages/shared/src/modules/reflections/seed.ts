@@ -1,5 +1,10 @@
 import { DateTime, type EntityId } from "../../primitives";
-import type { CohortStatus, Periodicity, ResponseType } from "./types";
+import type {
+  CohortStatus,
+  Periodicity,
+  ReflectionQuestionConfig,
+  ResponseType,
+} from "./types";
 
 export interface SeedReflectionCategory {
   id: EntityId;
@@ -37,6 +42,7 @@ export interface SeedReflectionQuestion {
   periodicity: Periodicity;
   preferredTimeOfDay: string | null;
   responseType: ResponseType;
+  config?: ReflectionQuestionConfig | null;
   isDefaultSuggested: boolean;
   orderIndex: number;
 }
@@ -208,6 +214,18 @@ export const SEED_REFLECTION_QUESTIONS: SeedReflectionQuestion[] = [
     periodicity: "daily",
     preferredTimeOfDay: "21:00",
     responseType: "scale_1_10",
+    isDefaultSuggested: true,
+    orderIndex: 0,
+  },
+  {
+    id: "b2000000-0000-4000-8000-000000000003" as EntityId,
+    categoryId: "c2000000-0000-4000-8000-000000000001" as EntityId,
+    themeId: null,
+    prompt: "Gratitud diaria: ¿De qué 3 momentos o cosas estás agradecido hoy?",
+    periodicity: "daily",
+    preferredTimeOfDay: "20:30",
+    responseType: "item_list",
+    config: { minItems: 3, maxItems: "unlimited" },
     isDefaultSuggested: true,
     orderIndex: 0,
   },

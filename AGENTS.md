@@ -8,20 +8,18 @@ Expo ships breaking changes every SDK release. APIs you remember are likely rena
 2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
 3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
 
-## Commands
+## Commands (Canonical: Makefile)
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
+Never run `bun`, `npm`, or `npx` directly for tasks or verification. Always use `make`:
 
-```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
-```
-
-Run lint and typecheck before declaring any task done.
+- `make check`: run before declaring tasks done (tests, types, lint)
+- `make check-tests`: unit and integration tests
+- `make check-types`: typecheck monorepo
+- `make check-lint`: lint monorepo
+- `make check-format`: verify prettier formatting
+- `make check-e2e-web`: Playwright browser E2E tests
+- `make dev-web` | `make dev-mobile`: dev servers
+- Native deps only: `bunx expo install <package>`
 
 ## Navigation & Routing
 

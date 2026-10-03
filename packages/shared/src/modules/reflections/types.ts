@@ -5,8 +5,24 @@ import { isoDateToDateTimeSchema } from "../../primitives/date-time";
 export const PERIODICITIES = ["daily", "weekly", "monthly", "ad_hoc"] as const;
 export type Periodicity = (typeof PERIODICITIES)[number];
 
-export const RESPONSE_TYPES = ["text", "scale_1_10"] as const;
+export const RESPONSE_TYPES = ["text", "scale_1_10", "item_list"] as const;
 export type ResponseType = (typeof RESPONSE_TYPES)[number];
+
+export const reflectionQuestionConfigSchema = z
+  .object({
+    minItems: z.number().int().positive().default(1),
+    maxItems: z.union([z.number().int().positive(), z.literal("unlimited")]),
+  })
+  .refine(
+    (data) => data.maxItems === "unlimited" || data.maxItems >= data.minItems,
+    {
+      message: "maxItems must be greater than or equal to minItems",
+      path: ["maxItems"],
+    },
+  );
+export type ReflectionQuestionConfig = z.infer<
+  typeof reflectionQuestionConfigSchema
+>;
 
 export const COHORT_STATUSES = [
   "upcoming",
@@ -76,6 +92,7 @@ export const reflectionQuestionSchema = z.object({
     .nullable()
     .optional(),
   responseType: z.enum(RESPONSE_TYPES).default("text"),
+  config: reflectionQuestionConfigSchema.nullable().optional(),
   isDefaultSuggested: z.boolean().default(false),
   orderIndex: z.number().int().nonnegative().default(0),
   createdAt: z.string(),
@@ -111,7 +128,18 @@ export const userThemeProgressSchema = z.object({
 });
 export type UserThemeProgress = z.infer<typeof userThemeProgressSchema>;
 
-// 7. User Reflection (Answer or Skip)
+// 7. User Reflection Item (Normalized atomic moments for item_list)
+export const userReflectionItemSchema = z.object({
+  id: entityIdSchema,
+  reflectionId: entityIdSchema,
+  orderIndex: z.number().int().positive(),
+  content: z.string().trim().min(1),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type UserReflectionItem = z.infer<typeof userReflectionItemSchema>;
+
+// 8. User Reflection (Answer or Skip)
 export const userReflectionSchema = z.object({
   id: entityIdSchema,
   userId: entityIdSchema,
@@ -121,12 +149,20 @@ export const userReflectionSchema = z.object({
   status: z.enum(REFLECTION_STATUSES).default("answered"),
   content: z.string().nullable().optional(),
   numericValue: z.number().int().min(1).max(10).nullable().optional(),
+  items: z.array(userReflectionItemSchema).optional(),
   skipReason: z.string().nullable().optional(),
   forDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD"),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 export type UserReflection = z.infer<typeof userReflectionSchema>;
+
+export const reflectionItemInputSchema = z.object({
+  id: entityIdSchema.optional(),
+  content: z.string().trim().min(1, "Item content cannot be blank"),
+  orderIndex: z.number().int().min(0).optional(),
+});
+export type ReflectionItemInput = z.infer<typeof reflectionItemInputSchema>;
 
 // Submission validation schema
 export const createReflectionInputSchema = z
@@ -139,6 +175,7 @@ export const createReflectionInputSchema = z
     responseType: z.enum(RESPONSE_TYPES),
     content: z.string().optional(),
     numericValue: z.number().int().min(1).max(10).optional(),
+    items: z.array(reflectionItemInputSchema).optional(),
     skipReason: z.string().optional(),
     forDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD"),
   })
@@ -170,6 +207,24 @@ export const createReflectionInputSchema = z
             code: "custom",
             message: "Numeric value must be an integer between 1 and 10",
             path: ["numericValue"],
+          });
+        }
+      } else if (data.responseType === "item_list") {
+        if (!data.items || data.items.length === 0) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Item list reflections require at least one item",
+            path: ["items"],
+          });
+        } else {
+          data.items.forEach((item, index) => {
+            if (!item.content || item.content.trim().length === 0) {
+              ctx.addIssue({
+                code: "custom",
+                message: "Item content cannot be blank",
+                path: ["items", index, "content"],
+              });
+            }
           });
         }
       }

@@ -3,14 +3,19 @@ import {
   createReflectionInputSchema,
   DateTime,
   generateEntityId,
+  type CohortStatus,
   type CreateReflectionInput,
   type EntityId,
+  type Periodicity,
   type ReflectionCategory,
   type ReflectionQuestion,
+  type ReflectionQuestionConfig,
   type ReflectionTheme,
+  type ResponseType,
   type ThemeCohort,
   type UserQuestionPreference,
   type UserReflection,
+  type UserReflectionItem,
   type UserThemeProgress,
 } from "@myself/shared";
 import type {
@@ -50,7 +55,7 @@ interface RawCohort {
   enrollment_end_date: string;
   program_start_date: string;
   enrollment_grace_days: number;
-  status: "upcoming" | "open_for_enrollment" | "active" | "closed";
+  status: CohortStatus;
   created_at: string;
 }
 
@@ -59,12 +64,22 @@ interface RawQuestion {
   category_id: EntityId;
   theme_id: EntityId | null;
   prompt: string;
-  periodicity: "daily" | "weekly" | "monthly" | "ad_hoc";
+  periodicity: Periodicity;
   preferred_time_of_day: string | null;
-  response_type: "text" | "scale_1_10";
+  response_type: ResponseType;
+  config: string | null;
   is_default_suggested: number;
   order_index: number;
   created_at: string;
+}
+
+interface RawReflectionItem {
+  id: EntityId;
+  reflection_id: EntityId;
+  order_index: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface RawPreference {
@@ -155,31 +170,31 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
 
   async getQuestionsForTheme(themeId: EntityId): Promise<ReflectionQuestion[]> {
     const rows = await this.db.getAllAsync<RawQuestion>(
-      "SELECT id, category_id, theme_id, prompt, periodicity, preferred_time_of_day, response_type, is_default_suggested, order_index, created_at FROM reflection_questions WHERE theme_id = ? ORDER BY order_index ASC",
+      "SELECT id, category_id, theme_id, prompt, periodicity, preferred_time_of_day, response_type, config, is_default_suggested, order_index, created_at FROM reflection_questions WHERE theme_id = ? ORDER BY order_index ASC",
       [themeId],
     );
-    return rows.map(this.mapQuestion);
+    return rows.map((r) => this.mapQuestion(r));
   }
 
   async getAdHocQuestions(): Promise<ReflectionQuestion[]> {
     const rows = await this.db.getAllAsync<RawQuestion>(
-      "SELECT id, category_id, theme_id, prompt, periodicity, preferred_time_of_day, response_type, is_default_suggested, order_index, created_at FROM reflection_questions WHERE periodicity = 'ad_hoc' ORDER BY prompt ASC",
+      "SELECT id, category_id, theme_id, prompt, periodicity, preferred_time_of_day, response_type, config, is_default_suggested, order_index, created_at FROM reflection_questions WHERE periodicity = 'ad_hoc' ORDER BY prompt ASC",
     );
-    return rows.map(this.mapQuestion);
+    return rows.map((r) => this.mapQuestion(r));
   }
 
   async getDailyRoutineQuestions(
     userId: EntityId,
   ): Promise<ReflectionQuestion[]> {
     const rows = await this.db.getAllAsync<RawQuestion>(
-      `SELECT q.id, q.category_id, q.theme_id, q.prompt, q.periodicity, q.preferred_time_of_day, q.response_type, q.is_default_suggested, q.order_index, q.created_at 
+      `SELECT q.id, q.category_id, q.theme_id, q.prompt, q.periodicity, q.preferred_time_of_day, q.response_type, q.config, q.is_default_suggested, q.order_index, q.created_at 
        FROM reflection_questions q
        LEFT JOIN user_question_preferences p ON p.question_id = q.id AND p.user_id = ?
        WHERE q.periodicity = 'daily' AND q.theme_id IS NULL AND (p.is_enabled IS NULL OR p.is_enabled = 1)
        ORDER BY q.preferred_time_of_day ASC, q.order_index ASC`,
       [userId],
     );
-    return rows.map(this.mapQuestion);
+    return rows.map((r) => this.mapQuestion(r));
   }
 
   async getUserPreferences(
@@ -329,7 +344,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
         [p.cohort_id],
       );
       const questionRow = await this.db.getFirstAsync<RawQuestion>(
-        "SELECT id, category_id, theme_id, prompt, periodicity, preferred_time_of_day, response_type, is_default_suggested, order_index, created_at FROM reflection_questions WHERE theme_id = ? AND order_index = ?",
+        "SELECT id, category_id, theme_id, prompt, periodicity, preferred_time_of_day, response_type, config, is_default_suggested, order_index, created_at FROM reflection_questions WHERE theme_id = ? AND order_index = ?",
         [p.theme_id, p.current_step],
       );
 
@@ -565,7 +580,69 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
           }
         }
       }
+
+      // Handle item_list items with diff/upsert reconciliation:
+      if (
+        validated.status === "answered" &&
+        validated.responseType === "item_list" &&
+        validated.items
+      ) {
+        const existingItems = await this.db.getAllAsync<RawReflectionItem>(
+          "SELECT id, reflection_id, order_index, content, created_at, updated_at FROM user_reflection_items WHERE reflection_id = ?",
+          [reflectionId!],
+        );
+        const existingMap = new Map(
+          existingItems.map((item) => [item.id, item]),
+        );
+        const incomingIds = new Set<string>();
+
+        for (let i = 0; i < validated.items.length; i++) {
+          const item = validated.items[i];
+          const orderIndex = item.orderIndex ?? i + 1;
+
+          if (item.id && existingMap.has(item.id)) {
+            incomingIds.add(item.id);
+            const existingItem = existingMap.get(item.id)!;
+            if (
+              existingItem.content !== item.content ||
+              existingItem.order_index !== orderIndex
+            ) {
+              await this.db.runAsync(
+                "UPDATE user_reflection_items SET content = ?, order_index = ?, updated_at = ? WHERE id = ?",
+                [item.content, orderIndex, now, item.id],
+              );
+            }
+          } else {
+            const newItemId = item.id ?? generateEntityId();
+            incomingIds.add(newItemId);
+            await this.db.runAsync(
+              "INSERT INTO user_reflection_items (id, reflection_id, order_index, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+              [newItemId, reflectionId!, orderIndex, item.content, now, now],
+            );
+          }
+        }
+
+        // Delete removed items
+        for (const existingItem of existingItems) {
+          if (!incomingIds.has(existingItem.id)) {
+            await this.db.runAsync(
+              "DELETE FROM user_reflection_items WHERE id = ?",
+              [existingItem.id],
+            );
+          }
+        }
+      } else if (validated.status === "skipped") {
+        await this.db.runAsync(
+          "DELETE FROM user_reflection_items WHERE reflection_id = ?",
+          [reflectionId!],
+        );
+      }
     });
+
+    const items =
+      validated.status === "answered" && validated.responseType === "item_list"
+        ? await this.getItemsForReflection(reflectionId!)
+        : undefined;
 
     return {
       id: reflectionId!,
@@ -583,6 +660,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
         validated.responseType === "scale_1_10"
           ? (validated.numericValue ?? null)
           : null,
+      items,
       skipReason:
         validated.status === "skipped" ? (validated.skipReason ?? null) : null,
       forDate: validated.forDate,
@@ -601,7 +679,11 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       [userId, questionId, forDate],
     );
     if (!r) return null;
-    return this.mapReflection(r);
+    const items = await this.getItemsForReflection(r.id);
+    return {
+      ...this.mapReflection(r),
+      items: items.length > 0 ? items : undefined,
+    };
   }
 
   async getReflectionsForCycleRun(
@@ -611,7 +693,15 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       "SELECT id, user_id, question_id, theme_id, cycle_run_id, status, content, numeric_value, skip_reason, for_date, created_at, updated_at FROM user_reflections WHERE cycle_run_id = ? ORDER BY created_at ASC",
       [cycleRunId],
     );
-    return rows.map(this.mapReflection);
+    const results: UserReflection[] = [];
+    for (const r of rows) {
+      const items = await this.getItemsForReflection(r.id);
+      results.push({
+        ...this.mapReflection(r),
+        items: items.length > 0 ? items : undefined,
+      });
+    }
+    return results;
   }
 
   async getUserReflectionHistory(
@@ -622,9 +712,10 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
         q_category_id: EntityId;
         q_theme_id: EntityId | null;
         q_prompt: string;
-        q_periodicity: "daily" | "weekly" | "monthly" | "ad_hoc";
+        q_periodicity: Periodicity;
         q_preferred_time_of_day: string | null;
-        q_response_type: "text" | "scale_1_10";
+        q_response_type: ResponseType;
+        q_config: string | null;
         q_is_default_suggested: number;
         q_order_index: number;
         q_created_at: string;
@@ -633,7 +724,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       `SELECT r.*, 
               q.category_id AS q_category_id, q.theme_id AS q_theme_id, q.prompt AS q_prompt, 
               q.periodicity AS q_periodicity, q.preferred_time_of_day AS q_preferred_time_of_day, 
-              q.response_type AS q_response_type, q.is_default_suggested AS q_is_default_suggested,
+              q.response_type AS q_response_type, q.config AS q_config, q.is_default_suggested AS q_is_default_suggested,
               q.order_index AS q_order_index, q.created_at AS q_created_at
        FROM user_reflections r
        INNER JOIN reflection_questions q ON q.id = r.question_id
@@ -642,21 +733,41 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       [userId],
     );
 
-    return rows.map((row) => ({
-      ...this.mapReflection(row),
-      question: {
-        id: row.question_id,
-        categoryId: row.q_category_id,
-        themeId: row.q_theme_id,
-        prompt: row.q_prompt,
-        periodicity: row.q_periodicity,
-        preferredTimeOfDay: row.q_preferred_time_of_day,
-        responseType: row.q_response_type,
-        isDefaultSuggested: Boolean(row.q_is_default_suggested),
-        orderIndex: row.q_order_index,
-        createdAt: row.q_created_at,
-      },
-    }));
+    const results: (UserReflection & { question: ReflectionQuestion })[] = [];
+    for (const row of rows) {
+      const items = await this.getItemsForReflection(row.id);
+      let parsedConfig: ReflectionQuestionConfig | null = null;
+      if (row.q_config) {
+        try {
+          parsedConfig =
+            typeof row.q_config === "string"
+              ? JSON.parse(row.q_config)
+              : row.q_config;
+        } catch {
+          parsedConfig = null;
+        }
+      }
+
+      results.push({
+        ...this.mapReflection(row),
+        items: items.length > 0 ? items : undefined,
+        question: {
+          id: row.question_id,
+          categoryId: row.q_category_id,
+          themeId: row.q_theme_id,
+          prompt: row.q_prompt,
+          periodicity: row.q_periodicity,
+          preferredTimeOfDay: row.q_preferred_time_of_day,
+          responseType: row.q_response_type,
+          config: parsedConfig,
+          isDefaultSuggested: Boolean(row.q_is_default_suggested),
+          orderIndex: row.q_order_index,
+          createdAt: row.q_created_at,
+        },
+      });
+    }
+
+    return results;
   }
 
   async getMissedDailyQuestions(
@@ -708,7 +819,32 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
     return missed;
   }
 
+  private async getItemsForReflection(
+    reflectionId: EntityId,
+  ): Promise<UserReflectionItem[]> {
+    const rows = await this.db.getAllAsync<RawReflectionItem>(
+      "SELECT id, reflection_id, order_index, content, created_at, updated_at FROM user_reflection_items WHERE reflection_id = ? ORDER BY order_index ASC",
+      [reflectionId],
+    );
+    return rows.map((row) => ({
+      id: row.id,
+      reflectionId: row.reflection_id,
+      orderIndex: row.order_index,
+      content: row.content,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }
+
   private mapQuestion(r: RawQuestion): ReflectionQuestion {
+    let config: ReflectionQuestionConfig | null = null;
+    if (r.config) {
+      try {
+        config = typeof r.config === "string" ? JSON.parse(r.config) : r.config;
+      } catch {
+        config = null;
+      }
+    }
     return {
       id: r.id,
       categoryId: r.category_id,
@@ -717,6 +853,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       periodicity: r.periodicity,
       preferredTimeOfDay: r.preferred_time_of_day,
       responseType: r.response_type,
+      config,
       isDefaultSuggested: Boolean(r.is_default_suggested),
       orderIndex: r.order_index,
       createdAt: r.created_at,
