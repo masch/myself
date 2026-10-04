@@ -60,10 +60,10 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
 
     repo = new SqliteReflectionRepository(db);
 
-    // Create a test user in DB
+    // Create a test user in DB (created 2026-09-01)
     testUserId = generateEntityId();
     await db.runAsync(
-      "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+      "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, '2026-09-01T00:00:00Z')",
       [testUserId, "Test User", "test@example.com"],
     );
 
@@ -409,6 +409,148 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       expect(prog?.answeredCount).toBe(0);
     });
 
+    it("submits item_list reflection and persists normalized items in user_reflection_items", async () => {
+      const routines = await repo.getDailyRoutineQuestions(testUserId);
+      const gratitudeQ = routines.find((q) => q.responseType === "item_list");
+      expect(gratitudeQ).toBeDefined();
+
+      const saved = await repo.saveReflection({
+        userId: testUserId,
+        questionId: gratitudeQ!.id,
+        themeId: null,
+        cycleRunId: null,
+        status: "answered",
+        responseType: "item_list",
+        items: [
+          { content: "El rico café de la mañana" },
+          { content: "La charla productiva con el equipo" },
+          { content: "Caminata al sol" },
+        ],
+        forDate: "2026-09-12",
+      });
+
+      expect(saved.id).toBeDefined();
+      expect(saved.status).toBe("answered");
+
+      // Verify hydration through getReflectionForQuestionAndDate
+      const fetched = await repo.getReflectionForQuestionAndDate(
+        testUserId,
+        gratitudeQ!.id,
+        "2026-09-12",
+      );
+      expect(fetched).not.toBeNull();
+      expect(fetched?.items).toBeDefined();
+      expect(fetched?.items?.length).toBe(3);
+      expect(fetched?.items?.[0].orderIndex).toBe(0);
+      expect(fetched?.items?.[0].content).toBe("El rico café de la mañana");
+      expect(fetched?.items?.[1].orderIndex).toBe(1);
+      expect(fetched?.items?.[1].content).toBe(
+        "La charla productiva con el equipo",
+      );
+      expect(fetched?.items?.[2].orderIndex).toBe(2);
+      expect(fetched?.items?.[2].content).toBe("Caminata al sol");
+    });
+
+    it("performs diff/upsert reconciliation when editing item_list reflections, preserving existing IDs and timestamps", async () => {
+      const routines = await repo.getDailyRoutineQuestions(testUserId);
+      const gratitudeQ = routines.find((q) => q.responseType === "item_list");
+
+      // 1. Initial save with 3 items
+      await repo.saveReflection({
+        userId: testUserId,
+        questionId: gratitudeQ!.id,
+        themeId: null,
+        cycleRunId: null,
+        status: "answered",
+        responseType: "item_list",
+        items: [
+          { content: "Momento 1 original" },
+          { content: "Momento 2 a eliminar" },
+          { content: "Momento 3 que se mantiene" },
+        ],
+        forDate: "2026-09-13",
+      });
+
+      const initial = await repo.getReflectionForQuestionAndDate(
+        testUserId,
+        gratitudeQ!.id,
+        "2026-09-13",
+      );
+      const item1Id = initial!.items![0].id;
+      const item1CreatedAt = initial!.items![0].createdAt;
+      const item3Id = initial!.items![2].id;
+
+      // 2. Edit: Update item 1, Delete item 2, Keep item 3, Add item 4
+      await repo.saveReflection({
+        userId: testUserId,
+        questionId: gratitudeQ!.id,
+        themeId: null,
+        cycleRunId: null,
+        status: "answered",
+        responseType: "item_list",
+        items: [
+          { id: item1Id, content: "Momento 1 EDITADO" },
+          { id: item3Id, content: "Momento 3 que se mantiene" },
+          { content: "Momento 4 NUEVO" },
+        ],
+        forDate: "2026-09-13",
+      });
+
+      const updated = await repo.getReflectionForQuestionAndDate(
+        testUserId,
+        gratitudeQ!.id,
+        "2026-09-13",
+      );
+      expect(updated?.items?.length).toBe(3);
+
+      // Verify item 1 kept its ID and createdAt
+      const updatedItem1 = updated?.items?.find((i) => i.id === item1Id);
+      expect(updatedItem1).toBeDefined();
+      expect(updatedItem1?.content).toBe("Momento 1 EDITADO");
+      expect(updatedItem1?.createdAt).toBe(item1CreatedAt);
+
+      // Verify item 2 was deleted
+      expect(updated?.items?.some((i) => i.content.includes("eliminar"))).toBe(
+        false,
+      );
+
+      // Verify item 3 kept its ID
+      expect(updated?.items?.some((i) => i.id === item3Id)).toBe(true);
+
+      // Verify item 4 has a new ID
+      const newItem = updated?.items?.find((i) => i.content.includes("NUEVO"));
+      expect(newItem).toBeDefined();
+      expect(newItem?.id).not.toBe(item1Id);
+      expect(newItem?.id).not.toBe(item3Id);
+    });
+
+    it("parses and hydrates question config for item_list questions", async () => {
+      const routines = await repo.getDailyRoutineQuestions(testUserId);
+      const gratitudeQ = routines.find((q) => q.responseType === "item_list");
+      expect(gratitudeQ).toBeDefined();
+      expect(gratitudeQ?.config?.minItems).toBe(3);
+      expect(gratitudeQ?.config?.maxItems).toBe("unlimited");
+    });
+
+    it("validates item count against question config minItems and maxItems in saveReflection", async () => {
+      const routines = await repo.getDailyRoutineQuestions(testUserId);
+      const gratitudeQ = routines.find((q) => q.responseType === "item_list");
+      expect(gratitudeQ).toBeDefined();
+
+      expect(
+        repo.saveReflection({
+          userId: testUserId,
+          questionId: gratitudeQ!.id,
+          themeId: null,
+          cycleRunId: null,
+          status: "answered",
+          responseType: "item_list",
+          items: [{ content: "Solo un motivo" }],
+          forDate: "2026-09-14",
+        }),
+      ).rejects.toThrow(/Item list reflection requires at least 3 items/);
+    });
+
     it("completes cycle when reaching target count", async () => {
       const cohorts = await repo.getOpenCohorts();
       const cohort = cohorts[0];
@@ -545,6 +687,17 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       for (let i = 0; i < missed.length - 1; i++) {
         expect(missed[i].missedDate <= missed[i + 1].missedDate).toBe(true);
       }
+    });
+
+    it("does not return missed questions for dates before user registration", async () => {
+      const freshUserId = generateEntityId();
+      await db.runAsync(
+        "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, '2026-09-15T10:00:00Z')",
+        [freshUserId, "Fresh User", "fresh@example.com"],
+      );
+      const today = "2026-09-15";
+      const missed = await repo.getMissedDailyQuestions(freshUserId, today);
+      expect(missed.length).toBe(0);
     });
   });
 

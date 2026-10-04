@@ -7,20 +7,17 @@ import {
 import { MeditationNotificationService } from "../meditation-notification.service";
 import type { IMeditationSessionService, SessionParams } from "./types";
 
-function formatClock(date: Date): string {
-  const h = date.getHours().toString().padStart(2, "0");
-  const m = date.getMinutes().toString().padStart(2, "0");
-  return `${h}:${m}`;
-}
-
 export class IosMeditationSessionService implements IMeditationSessionService {
   async startSession(params: SessionParams): Promise<void> {
     await this.stopSession();
 
+    const epochMs = params.targetDate.toMillis();
+    const timeFormatted = params.targetDate.toLocalTimeHHMM();
+
     // 1. Start timer in Swift native module
     startMeditationSession({
-      targetEpochMs: params.targetDate.getTime(),
-      targetTimeFormatted: formatClock(params.targetDate),
+      targetEpochMs: epochMs,
+      targetTimeFormatted: timeFormatted,
     });
 
     // 2. Schedule iOS local notification in UNUserNotificationCenter

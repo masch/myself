@@ -118,6 +118,7 @@ export function useDailyReflections() {
       input: {
         content?: string;
         numericValue?: number;
+        items?: ({ id?: EntityId; content: string } | string)[];
         forDate?: DateTime | string;
       },
     ) => {
@@ -141,6 +142,11 @@ export function useDailyReflections() {
           responseType: question.responseType,
           content: input.content,
           numericValue: input.numericValue,
+          items: input.items?.map((item, idx) => ({
+            id: typeof item === "string" ? undefined : item.id,
+            content: typeof item === "string" ? item : item.content,
+            orderIndex: idx,
+          })),
           forDate: effectiveDate,
         });
 

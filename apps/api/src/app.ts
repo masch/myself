@@ -24,7 +24,7 @@ export function createApp(
     createRepositories(config),
 ) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
-  const startedAt = Date.now();
+  const startedAt = performance.now();
 
   // Global Middlewares
   app.use("*", logger());

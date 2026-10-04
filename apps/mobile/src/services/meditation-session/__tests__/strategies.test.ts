@@ -1,4 +1,5 @@
 import { describe, expect, it, mock, beforeEach } from "bun:test";
+import { DateTime } from "@myself/shared";
 import { AndroidMeditationSessionService } from "../android-strategy";
 import { IosMeditationSessionService } from "../ios-strategy";
 import { WebMeditationSessionService } from "../web-strategy";
@@ -56,12 +57,12 @@ describe("AndroidMeditationSessionService", () => {
   });
 
   it("starts session and schedules notifications", async () => {
-    const targetDate = new Date(2026, 7, 30, 8, 30);
+    const targetDate = DateTime.today().withTime(8, 30);
     await service.startSession({ targetDate });
 
     expect(mockStopSession).toHaveBeenCalled();
     expect(mockStartSession).toHaveBeenCalledWith({
-      targetEpochMs: targetDate.getTime(),
+      targetEpochMs: targetDate.toMillis(),
       targetTimeFormatted: "08:30",
     });
     expect(mockSchedule).toHaveBeenCalledWith(targetDate);
@@ -115,12 +116,12 @@ describe("IosMeditationSessionService", () => {
   });
 
   it("starts session and schedules local notifications", async () => {
-    const targetDate = new Date(2026, 7, 30, 14, 5);
+    const targetDate = DateTime.today().withTime(14, 5);
     await service.startSession({ targetDate });
 
     expect(mockStopSession).toHaveBeenCalled();
     expect(mockStartSession).toHaveBeenCalledWith({
-      targetEpochMs: targetDate.getTime(),
+      targetEpochMs: targetDate.toMillis(),
       targetTimeFormatted: "14:05",
     });
     expect(mockSchedule).toHaveBeenCalledWith(targetDate);
@@ -160,7 +161,7 @@ describe("WebMeditationSessionService", () => {
     const onCompleted = mock(() => {});
     const unsub = service.subscribeCompletion(onCompleted);
 
-    const targetDate = new Date(Date.now() + 30);
+    const targetDate = DateTime.from(new Date(Date.now() + 30).toISOString());
     await service.startSession({ targetDate });
     expect(mockSchedule).toHaveBeenCalledWith(targetDate);
 
@@ -171,7 +172,7 @@ describe("WebMeditationSessionService", () => {
   });
 
   it("clears timer on stopSession", async () => {
-    const targetDate = new Date(Date.now() + 100);
+    const targetDate = DateTime.from(new Date(Date.now() + 100).toISOString());
     await service.startSession({ targetDate });
     await service.stopSession();
 
@@ -189,7 +190,7 @@ describe("WebMeditationSessionService", () => {
 
 describe("LazyMeditationSessionService (Delegation)", () => {
   it("delegates startSession, stopSession, and subscriptions according to platform", async () => {
-    const targetDate = new Date(2026, 7, 30, 9, 0);
+    const targetDate = DateTime.today().withTime(9, 0);
 
     await MeditationSessionService.startSession({ targetDate });
     await MeditationSessionService.stopSession();

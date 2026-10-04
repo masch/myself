@@ -36,7 +36,7 @@ export interface SystemRouterOptions {
 }
 
 export function createSystemRouter(options: SystemRouterOptions) {
-  const startedAt = options.startedAt ?? Date.now();
+  const startedAt = options.startedAt ?? performance.now();
 
   return new OpenAPIHono<AppEnv>({ defaultHook })
     .openapi(rootRoute, (c) =>
@@ -48,7 +48,7 @@ export function createSystemRouter(options: SystemRouterOptions) {
     .openapi(healthRoute, (c) =>
       ok(c, {
         status: "ok",
-        uptime: Math.floor((Date.now() - startedAt) / 1000),
+        uptime: Math.floor((performance.now() - startedAt) / 1000),
         environment: options.environment,
       }),
     );

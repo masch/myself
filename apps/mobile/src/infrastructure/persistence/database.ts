@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import { generateUUID } from "@/utils/uuid";
 import {
   SHARED_MIGRATIONS,
+  DateTime,
   type SupportedLocale,
   type UserDto as User,
   type TaskItem,
@@ -94,9 +95,10 @@ export async function addUser(
   avatarUrl: string = "",
 ): Promise<string> {
   const id = generateUUID();
+  const createdAt = DateTime.now().toISOString();
   await db.runAsync(
-    "INSERT INTO users (id, name, email, avatar_url, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
-    [id, name, email, avatarUrl],
+    "INSERT INTO users (id, name, email, avatar_url, created_at) VALUES (?, ?, ?, ?, ?)",
+    [id, name, email, avatarUrl, createdAt],
   );
   return id;
 }

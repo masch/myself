@@ -1,5 +1,6 @@
 import { generateUUID } from "@/utils/uuid";
 import {
+  DateTime,
   SEED_AUTHOR_IDS,
   SEED_AUTHORS,
   SEED_READINGS,
@@ -125,10 +126,14 @@ export async function seedDatabase(
   );
 
   if (existingUsers.length === 0) {
+    const userCreatedAt = options?.baseDateStr
+      ? `${options.baseDateStr}T00:00:00.000Z`
+      : DateTime.now().toISOString();
+
     for (const user of SEED_USERS) {
       await db.runAsync(
-        "INSERT OR IGNORE INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
-        [user.id, user.name, user.email],
+        "INSERT OR IGNORE INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)",
+        [user.id, user.name, user.email, userCreatedAt],
       );
 
       for (const task of user.tasks) {
@@ -208,8 +213,8 @@ export async function seedDatabase(
   // 6. Always Sync / Upsert Reflection Questions
   for (const q of SEED_REFLECTION_QUESTIONS) {
     await db.runAsync(
-      `INSERT INTO reflection_questions (id, category_id, theme_id, prompt, periodicity, preferred_time_of_day, response_type, is_default_suggested, order_index, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `INSERT INTO reflection_questions (id, category_id, theme_id, prompt, periodicity, preferred_time_of_day, response_type, config, is_default_suggested, order_index, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
        ON CONFLICT(id) DO UPDATE SET
          category_id = excluded.category_id,
          theme_id = excluded.theme_id,
@@ -217,6 +222,7 @@ export async function seedDatabase(
          periodicity = excluded.periodicity,
          preferred_time_of_day = excluded.preferred_time_of_day,
          response_type = excluded.response_type,
+         config = excluded.config,
          is_default_suggested = excluded.is_default_suggested,
          order_index = excluded.order_index`,
       [
@@ -227,6 +233,7 @@ export async function seedDatabase(
         q.periodicity,
         q.preferredTimeOfDay,
         q.responseType,
+        q.config ? JSON.stringify(q.config) : null,
         q.isDefaultSuggested ? 1 : 0,
         q.orderIndex,
       ],

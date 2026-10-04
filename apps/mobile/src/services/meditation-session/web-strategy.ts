@@ -1,3 +1,4 @@
+import { DateTime } from "@myself/shared";
 import { MeditationNotificationService } from "../meditation-notification.service";
 import type { IMeditationSessionService, SessionParams } from "./types";
 
@@ -8,7 +9,10 @@ export class WebMeditationSessionService implements IMeditationSessionService {
   async startSession(params: SessionParams): Promise<void> {
     await this.stopSession();
 
-    const delayMs = Math.max(0, params.targetDate.getTime() - Date.now());
+    const delayMs = Math.max(
+      0,
+      params.targetDate.toMillis() - DateTime.now().toMillis(),
+    );
 
     this.timer = setTimeout(() => {
       this.listeners.forEach((listener) => listener());

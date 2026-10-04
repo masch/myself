@@ -1,5 +1,6 @@
 import {
   check,
+  index,
   integer,
   sqliteTable,
   text,
@@ -17,6 +18,7 @@ import {
   type CohortStatus,
   type CycleStatus,
   type Periodicity,
+  type ReflectionQuestionConfig,
   type ReflectionStatus,
   type ResponseType,
 } from "./types";
@@ -79,6 +81,9 @@ export const reflectionQuestions = sqliteTable("reflection_questions", {
     .$type<ResponseType>()
     .notNull()
     .default("text"),
+  config: text("config", {
+    mode: "json",
+  }).$type<ReflectionQuestionConfig | null>(),
   isDefaultSuggested: integer("is_default_suggested", { mode: "boolean" })
     .notNull()
     .default(false),
@@ -177,6 +182,24 @@ export const userReflections = sqliteTable(
   ],
 );
 
+export const userReflectionItems = sqliteTable(
+  "user_reflection_items",
+  {
+    id: text("id").$type<EntityId>().primaryKey(),
+    reflectionId: text("reflection_id")
+      .$type<EntityId>()
+      .notNull()
+      .references(() => userReflections.id, { onDelete: "cascade" }),
+    orderIndex: integer("order_index").notNull(),
+    content: text("content").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    index("user_reflection_items_reflection_idx").on(table.reflectionId),
+  ],
+);
+
 export type ReflectionCategoryRecord = typeof reflectionCategories.$inferSelect;
 export type ReflectionThemeRecord = typeof reflectionThemes.$inferSelect;
 export type ThemeCohortRecord = typeof themeCohorts.$inferSelect;
@@ -185,3 +208,4 @@ export type UserQuestionPreferenceRecord =
   typeof userQuestionPreferences.$inferSelect;
 export type UserThemeProgressRecord = typeof userThemeProgress.$inferSelect;
 export type UserReflectionRecord = typeof userReflections.$inferSelect;
+export type UserReflectionItemRecord = typeof userReflectionItems.$inferSelect;

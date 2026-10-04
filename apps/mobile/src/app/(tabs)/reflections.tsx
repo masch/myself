@@ -77,7 +77,7 @@ export default function ReflectionsScreen() {
 
   const [currentDateTime, setCurrentDateTime] = useState(() => DateTime.now());
   const currentLocalDate = useMemo(
-    () => DateTime.today(currentDateTime.toDate()),
+    () => DateTime.today(currentDateTime),
     [currentDateTime],
   );
   const [showAnswered, setShowAnswered] = useState(true);
@@ -110,6 +110,9 @@ export default function ReflectionsScreen() {
   >(undefined);
   const [answeringInitialNumericValue, setAnsweringInitialNumericValue] =
     useState<number | undefined>(undefined);
+  const [answeringInitialItems, setAnsweringInitialItems] = useState<
+    { id?: EntityId; content: string }[] | undefined
+  >(undefined);
 
   // Modal states for skipping
   const [skippingQuestion, setSkippingQuestion] =
@@ -136,11 +139,18 @@ export default function ReflectionsScreen() {
     setAnsweringInitialNumericValue(
       existingReflection?.numericValue ?? undefined,
     );
+    setAnsweringInitialItems(
+      existingReflection?.items?.map((it) => ({
+        id: it.id,
+        content: it.content,
+      })) ?? undefined,
+    );
   };
 
   const handleConfirmAnswer = async (input: {
     content?: string;
     numericValue?: number;
+    items?: { id?: EntityId; content: string }[];
   }) => {
     if (!answeringQuestion) return;
 
@@ -162,6 +172,7 @@ export default function ReflectionsScreen() {
       setAnsweringForDate(undefined);
       setAnsweringInitialContent(undefined);
       setAnsweringInitialNumericValue(undefined);
+      setAnsweringInitialItems(undefined);
     } catch (err) {
       console.error("Failed to save reflection:", err);
     } finally {
@@ -935,6 +946,7 @@ export default function ReflectionsScreen() {
         question={answeringQuestion}
         initialContent={answeringInitialContent}
         initialNumericValue={answeringInitialNumericValue}
+        initialItems={answeringInitialItems}
         onSave={(input) => void handleConfirmAnswer(input)}
         onClose={() => {
           setAnsweringQuestion(null);
@@ -942,6 +954,7 @@ export default function ReflectionsScreen() {
           setAnsweringForDate(undefined);
           setAnsweringInitialContent(undefined);
           setAnsweringInitialNumericValue(undefined);
+          setAnsweringInitialItems(undefined);
         }}
         isSubmitting={isSubmitting}
       />

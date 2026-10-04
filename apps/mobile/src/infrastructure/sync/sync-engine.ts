@@ -2,7 +2,8 @@ import { type SQLiteDatabase } from "expo-sqlite";
 import { queryClient } from "../query/query-client";
 import { HttpReadingApiAdapter } from "../../features/readings/infrastructure/http-reading-api.adapter";
 import type { SyncOutboxRecord } from "./types";
-import { type CreateReadingInput } from "@myself/shared";
+import { type CreateReadingInput, type ErrorHandlerPort } from "@myself/shared";
+import { appErrorHandler } from "../errors/mobile-error-handler";
 
 const MAX_SYNC_ATTEMPTS = 5;
 
@@ -12,6 +13,7 @@ export class SyncEngine {
   constructor(
     private readonly db: SQLiteDatabase,
     private readonly apiAdapter: HttpReadingApiAdapter = new HttpReadingApiAdapter(),
+    private readonly errorHandler: ErrorHandlerPort = appErrorHandler,
   ) {}
 
   /**
@@ -26,7 +28,7 @@ export class SyncEngine {
       await this.pullRemoteUpdates();
       await queryClient.invalidateQueries({ queryKey: ["readings"] });
     } catch (error) {
-      console.warn("[SyncEngine] Sync failed:", error);
+      this.errorHandler.handle(error, { source: "SyncEngine.syncAll" });
     } finally {
       this.isSyncing = false;
     }
@@ -43,6 +45,12 @@ export class SyncEngine {
       "UPDATE sync_outbox SET attempts = ?, status = ?, last_error = ? WHERE id = ?",
       [nextAttempts, nextStatus, errorMsg, recordId],
     );
+    this.errorHandler.handle(new Error(errorMsg), {
+      source: "SyncEngine.recordFailure",
+      recordId,
+      attempts: nextAttempts,
+      status: nextStatus,
+    });
   }
 
   /**

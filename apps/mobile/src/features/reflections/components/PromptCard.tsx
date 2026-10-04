@@ -1,4 +1,5 @@
-import { View, StyleSheet } from "react-native";
+import { useState } from "react";
+import { View, StyleSheet, Pressable } from "react-native";
 import { type ReflectionQuestion, type UserReflection } from "@myself/shared";
 import { colors, layout, spacing, radius } from "@/theme";
 import {
@@ -42,9 +43,11 @@ export function PromptCard({
   onToggleOptOut,
   onToggleShortcut,
 }: PromptCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const isAnswered = reflection?.status === "answered";
   const isSkipped = reflection?.status === "skipped";
   const isScale = question.responseType === "scale_1_10";
+  const isItemList = question.responseType === "item_list";
 
   const cardTestId =
     testID ||
@@ -80,7 +83,9 @@ export function PromptCard({
               {
                 backgroundColor: isScale
                   ? colors.systemPurple
-                  : colors.systemBlue,
+                  : isItemList
+                    ? colors.systemGreen
+                    : colors.systemBlue,
               },
             ]}
           >
@@ -89,7 +94,11 @@ export function PromptCard({
               color={colors.white}
               style={styles.typePillText}
             >
-              {isScale ? "Escala 1-10" : "Texto libre"}
+              {isScale
+                ? "Escala 1-10"
+                : isItemList
+                  ? "Lista de momentos"
+                  : "Texto libre"}
             </ThemedText>
           </View>
 
@@ -195,6 +204,57 @@ export function PromptCard({
                 {reflection?.numericValue}/10
               </ThemedText>
             </ThemedText>
+          ) : isItemList ? (
+            <View style={styles.itemListPreviewContainer}>
+              <View style={styles.itemListHeaderRow}>
+                <ThemedText
+                  variant="caption1"
+                  color={colors.label}
+                  style={{ fontWeight: "600" }}
+                >
+                  {`${reflection?.items?.length ?? 0} momento${(reflection?.items?.length ?? 0) === 1 ? "" : "s"} anotado${(reflection?.items?.length ?? 0) === 1 ? "" : "s"}`}
+                </ThemedText>
+                {(reflection?.items?.length ?? 0) > 0 && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      isExpanded ? "Ocultar momentos" : "Ver lista de momentos"
+                    }
+                    onPress={() => setIsExpanded(!isExpanded)}
+                    hitSlop={8}
+                  >
+                    <ThemedText variant="caption2" color={colors.systemBlue}>
+                      {isExpanded ? "Ocultar" : "Ver lista"}
+                    </ThemedText>
+                  </Pressable>
+                )}
+              </View>
+
+              {isExpanded &&
+                reflection?.items &&
+                reflection.items.length > 0 && (
+                  <View style={styles.expandedItemList}>
+                    {reflection.items.map((item, idx) => (
+                      <View key={item.id ?? idx} style={styles.itemBulletRow}>
+                        <ThemedText
+                          variant="caption2"
+                          color={colors.secondaryLabel}
+                          style={{ width: 16 }}
+                        >
+                          {`${idx + 1}.`}
+                        </ThemedText>
+                        <ThemedText
+                          variant="caption1"
+                          color={colors.label}
+                          style={{ flex: 1 }}
+                        >
+                          {item.content}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                )}
+            </View>
           ) : (
             <AppMarkdownText
               style={[styles.resultContent, { color: colors.secondaryLabel }]}
@@ -326,6 +386,26 @@ const styles = StyleSheet.create({
   },
   resultContent: {
     fontStyle: "italic",
+  },
+  itemListPreviewContainer: {
+    gap: spacing.xs,
+  },
+  itemListHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  expandedItemList: {
+    marginTop: spacing.xs,
+    paddingTop: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.separator,
+    gap: spacing.xs,
+  },
+  itemBulletRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.xs,
   },
   cardActions: {
     flexDirection: "row",

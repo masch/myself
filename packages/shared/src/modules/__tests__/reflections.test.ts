@@ -7,6 +7,7 @@ import {
   themeCohortSchema,
   userQuestionPreferenceSchema,
   userThemeProgressSchema,
+  userReflectionItemSchema,
   createSeedThemeCohorts,
   getTodayDateString,
 } from "../reflections";
@@ -156,6 +157,71 @@ describe("Reflections Module - Zod Validation Schemas", () => {
         createdAt: "2026-09-12T00:00:00.000Z",
       }),
     ).toThrow("Must be HH:mm");
+
+    // Item list question with config
+    const listQ = reflectionQuestionSchema.parse({
+      id: questionId,
+      categoryId: sampleId,
+      prompt: "What 3 things are you grateful for today?",
+      periodicity: "daily",
+      preferredTimeOfDay: "20:00",
+      responseType: "item_list",
+      config: { minItems: 3, maxItems: 5 },
+      createdAt: "2026-09-12T00:00:00.000Z",
+    });
+    expect(listQ.responseType).toBe("item_list");
+    expect(listQ.config?.minItems).toBe(3);
+    expect(listQ.config?.maxItems).toBe(5);
+
+    // Item list question with unlimited maxItems
+    const unlimitedQ = reflectionQuestionSchema.parse({
+      id: questionId,
+      categoryId: sampleId,
+      prompt: "Open gratitude list",
+      periodicity: "daily",
+      preferredTimeOfDay: "20:00",
+      responseType: "item_list",
+      config: { minItems: 3, maxItems: "unlimited" },
+      createdAt: "2026-09-12T00:00:00.000Z",
+    });
+    expect(unlimitedQ.config?.maxItems).toBe("unlimited");
+
+    // Rejects maxItems < minItems
+    expect(() =>
+      reflectionQuestionSchema.parse({
+        id: questionId,
+        categoryId: sampleId,
+        prompt: "Invalid range",
+        periodicity: "daily",
+        responseType: "item_list",
+        config: { minItems: 5, maxItems: 2 },
+        createdAt: "2026-09-12T00:00:00.000Z",
+      }),
+    ).toThrow();
+  });
+
+  it("should validate UserReflectionItem schema", () => {
+    const item = userReflectionItemSchema.parse({
+      id: sampleId,
+      reflectionId: sampleId,
+      orderIndex: 1,
+      content: "Morning coffee in the sunshine",
+      createdAt: "2026-09-12T20:15:00.000Z",
+      updatedAt: "2026-09-12T20:15:00.000Z",
+    });
+    expect(item.orderIndex).toBe(1);
+    expect(item.content).toBe("Morning coffee in the sunshine");
+
+    expect(() =>
+      userReflectionItemSchema.parse({
+        id: sampleId,
+        reflectionId: sampleId,
+        orderIndex: 1,
+        content: "   ",
+        createdAt: "2026-09-12T20:15:00.000Z",
+        updatedAt: "2026-09-12T20:15:00.000Z",
+      }),
+    ).toThrow();
   });
 
   it("should validate UserQuestionPreference for routine opt-out and shortcuts", () => {
@@ -268,6 +334,41 @@ describe("Reflections Module - Zod Validation Schemas", () => {
         forDate: "2026-09-12",
       }),
     ).toThrow();
+
+    // 7. Valid item_list answer
+    const listAnswer = createReflectionInputSchema.parse({
+      userId,
+      questionId,
+      status: "answered",
+      responseType: "item_list",
+      items: [{ content: "Morning coffee" }, { content: "Productive meeting" }],
+      forDate: "2026-09-12",
+    });
+    expect(listAnswer.items?.length).toBe(2);
+
+    // 8. Reject item_list with empty items array
+    expect(() =>
+      createReflectionInputSchema.parse({
+        userId,
+        questionId,
+        status: "answered",
+        responseType: "item_list",
+        items: [],
+        forDate: "2026-09-12",
+      }),
+    ).toThrow();
+
+    // 9. Reject item_list with blank item content
+    expect(() =>
+      createReflectionInputSchema.parse({
+        userId,
+        questionId,
+        status: "answered",
+        responseType: "item_list",
+        items: [{ content: "   " }],
+        forDate: "2026-09-12",
+      }),
+    ).toThrow();
   });
 
   describe("Dynamic Seed Theme Cohorts", () => {
@@ -296,6 +397,11 @@ describe("Reflections Module - Zod Validation Schemas", () => {
       const cohorts = createSeedThemeCohorts();
       expect(cohorts.length).toBe(2);
       expect(cohorts[1].programStartDate).toBe(todayStr);
+
+      const fixedDateTime = DateTime.from("2026-05-10T12:00:00.000Z");
+      expect(getTodayDateString(fixedDateTime)).toBe(
+        DateTime.today(fixedDateTime).toISODate(),
+      );
     });
   });
 });

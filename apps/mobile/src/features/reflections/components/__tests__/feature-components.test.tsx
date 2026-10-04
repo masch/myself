@@ -7,12 +7,14 @@ import {
   type ThemeCohort,
   type ReflectionTheme,
   type EntityId,
+  type UserReflection,
 } from "@myself/shared";
 import { PromptCard } from "../PromptCard";
 import { CohortEnrollmentCard } from "../CohortEnrollmentCard";
 import { CycleProgressBadge } from "../CycleProgressBadge";
 import { ScaleSelector1To10 } from "../ScaleSelector1To10";
 import { ReflectionModalContent } from "../ReflectionModal";
+import { ItemListInput } from "../ItemListInput";
 import { BottomSheetModalContent } from "@/components";
 
 const mockId = (id: string) => id as EntityId;
@@ -128,5 +130,119 @@ describe("Reflections Feature Components", () => {
       />,
     );
     expect(sheetHtml).toContain("Sheet Content Body");
+  });
+
+  it("renders ItemListInput with numbered rows, minimum requirements and add button", () => {
+    const html = renderToString(
+      <ItemListInput
+        items={["Agradezco por el sol", "Agradezco por un buen café", ""]}
+        onChangeItems={() => {}}
+        minItems={3}
+        maxItems="unlimited"
+      />,
+    );
+    expect(html).toContain("Mínimo 3 requeridos");
+    expect(html).toContain("2 completados");
+    expect(html).toContain("1.");
+    expect(html).toContain("2.");
+    expect(html).toContain("3.");
+    expect(html).toContain("Agradezco por el sol");
+    expect(html).toContain("Agradezco por un buen café");
+    expect(html).toContain("+ Agregar otro momento");
+  });
+
+  it("renders PromptCard for item_list question in unanswered and answered states", () => {
+    const itemListQuestion: ReflectionQuestion = {
+      ...mockQuestion,
+      id: mockId("b2000000-0000-4000-8000-000000000003"),
+      prompt: "¿De qué 3 cosas te sentís agradecido hoy?",
+      responseType: "item_list",
+      config: { minItems: 3, maxItems: "unlimited" },
+    };
+
+    // Unanswered
+    const unansweredHtml = renderToString(
+      <PromptCard question={itemListQuestion} onAnswer={() => {}} />,
+    );
+    expect(unansweredHtml).toContain("Lista de momentos");
+    expect(unansweredHtml).toContain(
+      "¿De qué 3 cosas te sentís agradecido hoy?",
+    );
+    expect(unansweredHtml).toContain("Responder");
+
+    // Answered with items
+    const mockAnsweredReflection: UserReflection = {
+      id: mockId("c3000000-0000-4000-8000-000000000001"),
+      userId: mockId("u1000000-0000-4000-8000-000000000001"),
+      questionId: itemListQuestion.id,
+      themeId: null,
+      cycleRunId: null,
+      status: "answered",
+      content: null,
+      numericValue: null,
+      items: [
+        {
+          id: mockId("item-1"),
+          reflectionId: mockId("c3000000-0000-4000-8000-000000000001"),
+          orderIndex: 0,
+          content: "Paz mental",
+          createdAt: "2026-10-03T10:00:00Z",
+          updatedAt: "2026-10-03T10:00:00Z",
+        },
+        {
+          id: mockId("item-2"),
+          reflectionId: mockId("c3000000-0000-4000-8000-000000000001"),
+          orderIndex: 1,
+          content: "Café rico",
+          createdAt: "2026-10-03T10:05:00Z",
+          updatedAt: "2026-10-03T10:05:00Z",
+        },
+        {
+          id: mockId("item-3"),
+          reflectionId: mockId("c3000000-0000-4000-8000-000000000001"),
+          orderIndex: 2,
+          content: "Buena charla",
+          createdAt: "2026-10-03T10:10:00Z",
+          updatedAt: "2026-10-03T10:10:00Z",
+        },
+      ],
+      skipReason: null,
+      forDate: "2026-10-03",
+      createdAt: "2026-10-03T10:10:00Z",
+      updatedAt: "2026-10-03T10:10:00Z",
+    };
+
+    const answeredHtml = renderToString(
+      <PromptCard
+        question={itemListQuestion}
+        reflection={mockAnsweredReflection}
+        onAnswer={() => {}}
+      />,
+    );
+    expect(answeredHtml).toContain("3 momentos anotados");
+    expect(answeredHtml).toContain("Ver lista");
+  });
+
+  it("renders ReflectionModalContent for item_list questions", () => {
+    const itemListQuestion: ReflectionQuestion = {
+      ...mockQuestion,
+      id: mockId("b2000000-0000-4000-8000-000000000003"),
+      prompt: "¿De qué 3 cosas te sentís agradecido hoy?",
+      responseType: "item_list",
+      config: { minItems: 3, maxItems: "unlimited" },
+    };
+
+    const modalHtml = renderToString(
+      <ReflectionModalContent
+        question={itemListQuestion}
+        onSave={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(modalHtml).toContain("Lista de Momentos");
+    expect(modalHtml).toContain("Mínimo 3 requeridos");
+    expect(modalHtml).toContain("1.");
+    expect(modalHtml).toContain("2.");
+    expect(modalHtml).toContain("3.");
   });
 });

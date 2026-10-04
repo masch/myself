@@ -21,7 +21,7 @@ describe("System Routes & Docs Unit Tests", () => {
     });
 
     it("GET /health returns status ok, computed uptime and configured environment", async () => {
-      const startedAt = Date.now() - 5000;
+      const startedAt = performance.now() - 5000;
       const router = createSystemRouter({
         environment: "staging",
         startedAt,

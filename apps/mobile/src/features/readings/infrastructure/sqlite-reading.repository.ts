@@ -191,7 +191,7 @@ export class SqliteReadingRepository implements IReadingRepository {
   async recordLog(readingId: EntityId): Promise<string> {
     const logId = generateUUID();
     const outboxId = generateUUID();
-    const now = new Date().toISOString();
+    const now = DateTime.now().toISOString();
     const payload = JSON.stringify({ id: logId, readingId, readAt: now });
 
     await this.db.withTransactionAsync(async () => {

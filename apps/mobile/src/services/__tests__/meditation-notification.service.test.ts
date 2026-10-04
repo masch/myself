@@ -1,4 +1,5 @@
 import { describe, expect, it, mock, beforeEach } from "bun:test";
+import { DateTime } from "@myself/shared";
 import { Platform } from "react-native";
 import { mockNotifications } from "../../../test-setup";
 import {
@@ -52,7 +53,9 @@ describe("MeditationNotificationService", () => {
   });
 
   it("schedules notification successfully when permissions are granted", async () => {
-    const targetDate = new Date(Date.now() + 60000);
+    const targetDate = DateTime.from(
+      new Date(Date.now() + 60000).toISOString(),
+    );
     const id =
       await MeditationNotificationService.scheduleNotification(targetDate);
 
@@ -74,7 +77,9 @@ describe("MeditationNotificationService", () => {
       async () => ({ status: "denied" }),
     );
 
-    const targetDate = new Date(Date.now() + 60000);
+    const targetDate = DateTime.from(
+      new Date(Date.now() + 60000).toISOString(),
+    );
     const id =
       await MeditationNotificationService.scheduleNotification(targetDate);
 

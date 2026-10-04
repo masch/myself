@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { SyncEngine } from "@/infrastructure/sync/sync-engine";
+import { safeAsync } from "@/infrastructure/errors/safe-async";
 import {
   getAuthors as dbGetAuthors,
   getAuthorById as dbGetAuthorById,
@@ -76,7 +77,10 @@ export function useAuthors() {
         input.name.trim(),
         input.bio?.trim() ?? "",
       );
-      await syncEngine.pushPendingOutbox();
+      safeAsync(syncEngine.pushPendingOutbox(), {
+        source: "useAuthors.addAuthor",
+        authorId: id,
+      });
       await refreshAuthors();
       return id;
     },

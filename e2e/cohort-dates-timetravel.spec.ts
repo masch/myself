@@ -227,14 +227,19 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
   test("enforces 2-day catch-up grace period: questions older than 2 days expire and disappear from queue", async ({
     page,
   }) => {
-    // 1. Start on 2026-09-13
-    await TestClock.install(page, "2026-09-13T12:00:00Z");
+    // 1. Initial user registration on 2026-09-11
+    const clock = await TestClock.install(page, "2026-09-11T12:00:00Z");
     await page.goto("/reflections");
     await expect(page.getByText("Rutina del Día").first()).toBeVisible({
       timeout: 10000,
     });
+    // Fresh user on registration day has NO previous missed questions
+    await expect(
+      page.getByText("⏰ Pendientes de días anteriores"),
+    ).toBeHidden();
 
-    // 2. On 2026-09-13, missed questions within the 2-day catch-up window are visible with friendly relative labels
+    // 2. Fast forward 2 days to 2026-09-13: now missed questions from 2026-09-11 and 2026-09-12 are visible
+    await clock.travelAndReload("2026-09-13T12:00:00Z");
     const gracePeriodHeader = page.getByText(
       "⏰ Pendientes de días anteriores",
     );

@@ -29,17 +29,17 @@ describe("time-lock utility", () => {
     responseType: "scale_1_10",
     isDefaultSuggested: true,
     orderIndex: 0,
-    createdAt: new Date().toISOString(),
+    createdAt: DateTime.now().toISOString(),
   };
 
   it("formats date to HH:mm correctly", () => {
-    const fixedDate = new Date("2026-09-13T08:05:00");
-    expect(getCurrentTimeHHMM(fixedDate)).toBe("08:05");
+    const fixedDateTime = DateTime.today().withTime(8, 5);
+    expect(getCurrentTimeHHMM(fixedDateTime)).toBe("08:05");
   });
 
   const atTime = (hhmm: string) => {
     const [h, m] = hhmm.split(":").map(Number);
-    return DateTime.from(new Date(2026, 8, 13, h, m));
+    return DateTime.from("2026-09-13").withTime(h, m);
   };
 
   it("locks question when current time is earlier than preferredTimeOfDay", () => {
@@ -74,8 +74,8 @@ describe("time-lock utility", () => {
       status: "answered",
       numericValue: 8,
       forDate: "2026-09-13",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: DateTime.now().toISOString(),
+      updatedAt: DateTime.now().toISOString(),
     };
     expect(isReflectionLocked(baseQuestion, answeredRef, atTime("10:00"))).toBe(
       false,
@@ -92,8 +92,8 @@ describe("time-lock utility", () => {
       status: "skipped",
       skipReason: "Sin tiempo",
       forDate: "2026-09-13",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: DateTime.now().toISOString(),
+      updatedAt: DateTime.now().toISOString(),
     };
     expect(isReflectionLocked(baseQuestion, skippedRef, atTime("10:00"))).toBe(
       false,
@@ -119,7 +119,9 @@ describe("time-lock utility", () => {
       ...baseQuestion,
       preferredTimeOfDay: "23:00",
     };
-    const localLateNight = DateTime.from(new Date(2026, 8, 13, 22, 0));
+    const localLateNight = DateTime.from(
+      new Date(2026, 8, 13, 22, 0).toISOString(),
+    );
     const todayLocalDate = DateTime.from("2026-09-13");
 
     expect(
