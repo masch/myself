@@ -257,3 +257,38 @@ sequenceDiagram
     end
     deactivate Sync
 ```
+
+---
+
+## Personal Reflections & Mindful Inquiries
+
+The Personal Reflections system helps users build self-awareness and mindful introspection through structured daily questions and guided programs.
+
+### 1. Reflection Modes
+
+- **Daily Routine (Evergreen Habits)**:
+  - Accessible every day on the main reflections tab without needing to enroll in anything.
+  - Divided by time of day (Morning Intention, Evening Review).
+  - Users can enable or opt out of specific routine questions to tailor their daily practice.
+- **Thematic Cohorts (Guided Multi-Day Programs)**:
+  - Structured multi-day programs (e.g., _7 Days of Stoic Resilience_).
+  - Open for enrollment during specific calendar windows.
+  - Progress is progressive and daily: participants unlock one new question each day at midnight, keeping everyone moving at the same steady pace.
+  - Features catch-up grace periods for missed days.
+- **On-Demand Shortcuts**:
+  - Ad-hoc reflection prompts (such as emotional check-ins or clarity during stressful moments) that can be opened whenever needed or pinned as quick-access shortcuts.
+
+### 2. Available Question Types & Answering Modes
+
+Questions can be configured with three distinct interaction formats depending on the reflection goal:
+
+- **Free-Form Journal (`text`)**:
+  - Open multi-line text input for deep, expressive journaling.
+  - Best for open-ended introspection, capturing complex thoughts, or setting morning intentions.
+- **Rating Scale (`scale_1_10`)**:
+  - Quick 1-to-10 tap selector.
+  - Best for mood, energy, focus, or alignment tracking at the end of the day.
+- **Dynamic Item Lists (`item_list`)**:
+  - Interactive list input where users record separate, distinct items (e.g., "3 things I did well today" or "3 moments of gratitude").
+  - Can enforce a minimum required number of items (e.g., at least 3 entries) before saving.
+  - Allows adding entries on the fly and removing items with a quick undo option.

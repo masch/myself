@@ -68,9 +68,9 @@ describe("E2E Vertical Integration: All 10 Seeded Reflections Registration Flow"
     );
   });
 
-  it("registers every single one of the 11 loaded reflections across thematic cohorts, daily routines, and ad-hoc shortcuts", async () => {
+  it("registers every single one of the 14 loaded reflections across thematic cohorts, daily routines, and ad-hoc shortcuts", async () => {
     // -------------------------------------------------------------------------
-    // Phase 1: Verify Seed Integrity (11 questions loaded)
+    // Phase 1: Verify Seed Integrity (14 questions loaded)
     // -------------------------------------------------------------------------
     const openCohorts = await repo.getOpenCohorts();
     expect(openCohorts.length).toBeGreaterThanOrEqual(1);
@@ -82,14 +82,14 @@ describe("E2E Vertical Integration: All 10 Seeded Reflections Registration Flow"
     expect(cohortQuestions.length).toBe(7);
 
     const routineQuestions = await repo.getDailyRoutineQuestions(userId);
-    expect(routineQuestions.length).toBe(3);
+    expect(routineQuestions.length).toBe(6);
 
     const adHocQuestions = await repo.getAdHocQuestions();
     expect(adHocQuestions.length).toBe(1);
 
     const totalQuestionsCount =
       cohortQuestions.length + routineQuestions.length + adHocQuestions.length;
-    expect(totalQuestionsCount).toBe(11);
+    expect(totalQuestionsCount).toBe(14);
 
     // -------------------------------------------------------------------------
     // Phase 2: Cohort Progression - Complete all 7 questions in order
