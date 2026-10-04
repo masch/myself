@@ -47,6 +47,10 @@ Add support for dynamic item-list reflection questions (e.g. daily gratitude mom
 - `make check-types`: 3 packages typechecked clean without errors.
 - `make check-lint`: ESLint and expo lint passed with 0 errors.
 - `make check-format`: Prettier format verified clean across the repository.
-- `make check-tests`: 284 unit and integration tests passed across 38 files.
+- `make check-types`: 3 packages typechecked clean without errors.
+- `make check-lint`: ESLint and expo lint passed with 0 errors.
+- `make check-format`: Prettier format verified clean across the repository.
+- `make check-tests`: 285 unit and integration tests passed across 38 files (including item ID preservation on edit and repository min/max validations).
 - `make check-e2e-web`: 6 Playwright E2E tests passed (1.2m), including the new daily gratitude dynamic item list flow (validation, add row, delete with undo, SQLite persistence across reload, and expanded list preview).
-- **Completion & Delivery**: Delivered on Pull Request for issue [#65](https://github.com/masch/myself/issues/65) on branch `feat/dynamic-item-list-reflections`.
+- **CodeRabbit Review Resolutions**: Addressed all review points (schema FK index, 0-based orderIndex, capacity check on undo, stable row keys, item ID propagation preserving created_at on edits, and repository validation).
+- **Completion & Delivery**: Delivered on Pull Request [#66](https://github.com/masch/myself/pull/66) for issue [#65](https://github.com/masch/myself/issues/65) on branch `feat/dynamic-item-list-reflections`.

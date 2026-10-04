@@ -1,5 +1,6 @@
 import {
   check,
+  index,
   integer,
   sqliteTable,
   text,
@@ -181,17 +182,23 @@ export const userReflections = sqliteTable(
   ],
 );
 
-export const userReflectionItems = sqliteTable("user_reflection_items", {
-  id: text("id").$type<EntityId>().primaryKey(),
-  reflectionId: text("reflection_id")
-    .$type<EntityId>()
-    .notNull()
-    .references(() => userReflections.id, { onDelete: "cascade" }),
-  orderIndex: integer("order_index").notNull(),
-  content: text("content").notNull(),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-});
+export const userReflectionItems = sqliteTable(
+  "user_reflection_items",
+  {
+    id: text("id").$type<EntityId>().primaryKey(),
+    reflectionId: text("reflection_id")
+      .$type<EntityId>()
+      .notNull()
+      .references(() => userReflections.id, { onDelete: "cascade" }),
+    orderIndex: integer("order_index").notNull(),
+    content: text("content").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    index("user_reflection_items_reflection_idx").on(table.reflectionId),
+  ],
+);
 
 export type ReflectionCategoryRecord = typeof reflectionCategories.$inferSelect;
 export type ReflectionThemeRecord = typeof reflectionThemes.$inferSelect;

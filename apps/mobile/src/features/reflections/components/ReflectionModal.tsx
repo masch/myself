@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { View, StyleSheet } from "react-native";
-import { type ReflectionQuestion } from "@myself/shared";
+import {
+  type EntityId,
+  type ReflectionQuestion,
+  generateEntityId,
+} from "@myself/shared";
 import { colors, spacing } from "@/theme";
 import {
   AppButton,
@@ -10,7 +14,7 @@ import {
   ThemedText,
   ThemedTextInput,
 } from "@/components";
-import { ItemListInput } from "./ItemListInput";
+import { ItemListInput, type ItemListRow } from "./ItemListInput";
 import { ScaleSelector1To10 } from "./ScaleSelector1To10";
 
 interface ReflectionModalProps {
@@ -18,11 +22,11 @@ interface ReflectionModalProps {
   question: ReflectionQuestion | null;
   initialContent?: string;
   initialNumericValue?: number;
-  initialItems?: string[];
+  initialItems?: { id?: EntityId; content: string }[] | string[];
   onSave: (input: {
     content?: string;
     numericValue?: number;
-    items?: string[];
+    items?: { id?: EntityId; content: string }[];
   }) => void;
   onClose: () => void;
   isSubmitting?: boolean;
@@ -40,11 +44,11 @@ export function ReflectionModalContent({
   question: ReflectionQuestion;
   initialContent?: string;
   initialNumericValue?: number | null;
-  initialItems?: string[];
+  initialItems?: { id?: EntityId; content: string }[] | string[];
   onSave: (input: {
     content?: string;
     numericValue?: number;
-    items?: string[];
+    items?: { id?: EntityId; content: string }[];
   }) => void;
   onClose: () => void;
   isSubmitting?: boolean;
@@ -61,24 +65,39 @@ export function ReflectionModalContent({
   const minItems = question.config?.minItems ?? 1;
   const maxItems = question.config?.maxItems ?? "unlimited";
 
-  const [items, setItems] = useState<string[]>(() => {
+  const [items, setItems] = useState<ItemListRow[]>(() => {
     if (initialItems && initialItems.length > 0) {
-      return initialItems;
+      return initialItems.map((it) => {
+        if (typeof it === "string") {
+          return { key: generateEntityId(), content: it };
+        }
+        return {
+          key: it.id ?? generateEntityId(),
+          id: it.id,
+          content: it.content,
+        };
+      });
     }
-    return Array.from({ length: minItems }, () => "");
+    return Array.from({ length: minItems }, () => ({
+      key: generateEntityId(),
+      content: "",
+    }));
   });
 
   const isValid = isText
     ? content.trim().length > 0
     : isScale
       ? numericValue !== null && numericValue >= 1 && numericValue <= 10
-      : items.filter((it) => it.trim().length > 0).length >= minItems;
+      : items.filter((it) => it.content.trim().length > 0).length >= minItems;
 
   const handleSave = () => {
     if (!isValid) return;
     const cleanItems = items
-      .map((it) => it.trim())
-      .filter((it) => it.length > 0);
+      .map((it) => ({
+        id: it.id as EntityId | undefined,
+        content: it.content.trim(),
+      }))
+      .filter((it) => it.content.length > 0);
 
     onSave({
       content: isText ? content.trim() : undefined,
@@ -173,7 +192,13 @@ export function ReflectionModal({
 }: ReflectionModalProps) {
   if (!question || !visible) return null;
 
-  const key = `${question.id}-${initialContent ?? ""}-${initialNumericValue ?? ""}-${initialItems?.join("|") ?? ""}`;
+  const itemsKey =
+    initialItems
+      ?.map((it) =>
+        typeof it === "string" ? it : `${it.id ?? ""}:${it.content}`,
+      )
+      .join("|") ?? "";
+  const key = `${question.id}-${initialContent ?? ""}-${initialNumericValue ?? ""}-${itemsKey}`;
 
   return (
     <AppBottomSheetModal visible={visible} onClose={onClose} maxWidth={580}>

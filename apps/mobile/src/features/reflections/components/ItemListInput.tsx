@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { View, StyleSheet, type TextInput } from "react-native";
+import { generateEntityId } from "@myself/shared";
 import { colors, spacing, radius } from "@/theme";
 import {
   ThemedText,
@@ -8,9 +9,15 @@ import {
   ChipButton,
 } from "@/components";
 
+export interface ItemListRow {
+  key?: string;
+  id?: string;
+  content: string;
+}
+
 export interface ItemListInputProps {
-  items: string[];
-  onChangeItems: (items: string[]) => void;
+  items: (string | ItemListRow)[];
+  onChangeItems: (items: ItemListRow[]) => void;
   minItems?: number;
   maxItems?: number | "unlimited";
   placeholder?: string;
@@ -28,10 +35,21 @@ export function ItemListInput({
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const focusTargetIndexRef = useRef<number | null>(null);
 
+  // Normalize incoming items to stable row objects
+  const normalizedItems: ItemListRow[] = items.map((item, idx) => {
+    if (typeof item === "string") {
+      return { key: `item-${idx}`, content: item };
+    }
+    return {
+      ...item,
+      key: item.key ?? item.id ?? `item-${idx}`,
+    };
+  });
+
   // Undo state & timer
   const [deletedItem, setDeletedItem] = useState<{
     index: number;
-    text: string;
+    row: ItemListRow;
   } | null>(null);
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -54,60 +72,72 @@ export function ItemListInput({
   }, [items.length]);
 
   const canAdd =
-    !disabled && (maxItems === "unlimited" || items.length < maxItems);
+    !disabled &&
+    (maxItems === "unlimited" || normalizedItems.length < maxItems);
 
   const handleUpdate = (index: number, text: string) => {
-    const updated = [...items];
-    updated[index] = text;
+    const updated = [...normalizedItems];
+    updated[index] = { ...updated[index], content: text };
     onChangeItems(updated);
   };
 
   const handleAdd = () => {
     if (!canAdd) return;
-    const newIndex = items.length;
+    const newIndex = normalizedItems.length;
     focusTargetIndexRef.current = newIndex;
-    onChangeItems([...items, ""]);
+    onChangeItems([
+      ...normalizedItems,
+      { key: generateEntityId(), content: "" },
+    ]);
   };
 
   const handleDelete = (index: number) => {
     if (disabled) return;
-    const textToDelete = items[index] ?? "";
-    const updated = items.filter((_, i) => i !== index);
+    const rowToDelete = normalizedItems[index];
+    const updated = normalizedItems.filter((_, i) => i !== index);
 
     // Save for undo
     if (undoTimeoutRef.current) {
       clearTimeout(undoTimeoutRef.current);
     }
-    setDeletedItem({ index, text: textToDelete });
+    setDeletedItem({ index, row: rowToDelete });
     undoTimeoutRef.current = setTimeout(() => {
       setDeletedItem(null);
     }, 4000);
 
-    onChangeItems(updated.length > 0 ? updated : [""]);
+    onChangeItems(
+      updated.length > 0 ? updated : [{ key: generateEntityId(), content: "" }],
+    );
   };
 
   const handleUndo = () => {
     if (!deletedItem) return;
+    // Enforce capacity limit on undo
+    if (maxItems !== "unlimited" && normalizedItems.length >= maxItems) {
+      return;
+    }
     if (undoTimeoutRef.current) {
       clearTimeout(undoTimeoutRef.current);
     }
-    const restored = [...items];
+    const restored = [...normalizedItems];
     const insertAt = Math.min(deletedItem.index, restored.length);
-    restored.splice(insertAt, 0, deletedItem.text);
+    restored.splice(insertAt, 0, deletedItem.row);
     focusTargetIndexRef.current = insertAt;
     onChangeItems(restored);
     setDeletedItem(null);
   };
 
   const handleRowSubmit = (index: number) => {
-    if (index < items.length - 1) {
+    if (index < normalizedItems.length - 1) {
       inputRefs.current[index + 1]?.focus();
     } else if (canAdd) {
       handleAdd();
     }
   };
 
-  const filledCount = items.filter((item) => item.trim().length > 0).length;
+  const filledCount = normalizedItems.filter(
+    (item) => item.content.trim().length > 0,
+  ).length;
 
   return (
     <View style={styles.container}>
@@ -129,12 +159,13 @@ export function ItemListInput({
 
       {/* Rows */}
       <View style={styles.list}>
-        {items.map((item, index) => {
-          const isOnlyItem = items.length <= 1;
-          const isLast = index === items.length - 1;
+        {normalizedItems.map((row, index) => {
+          const isOnlyItem = normalizedItems.length <= 1;
+          const isLast = index === normalizedItems.length - 1;
+          const rowKey = row.key ?? `row-${index}`;
 
           return (
-            <View key={index} style={styles.row}>
+            <View key={rowKey} style={styles.row}>
               <ThemedText
                 variant="callout"
                 color={colors.secondaryLabel}
@@ -146,7 +177,7 @@ export function ItemListInput({
                 ref={(ref) => {
                   inputRefs.current[index] = ref;
                 }}
-                value={item}
+                value={row.content}
                 onChangeText={(text) => handleUpdate(index, text)}
                 placeholder={placeholder ?? `Momento ${index + 1}...`}
                 accessibilityLabel={`Ítem ${index + 1}`}
@@ -183,6 +214,9 @@ export function ItemListInput({
             title="Deshacer"
             variant="secondary"
             accessibilityLabel="Deshacer eliminación de ítem"
+            disabled={
+              maxItems !== "unlimited" && normalizedItems.length >= maxItems
+            }
             onPress={handleUndo}
           />
         </View>

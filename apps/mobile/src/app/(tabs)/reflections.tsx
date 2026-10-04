@@ -111,7 +111,7 @@ export default function ReflectionsScreen() {
   const [answeringInitialNumericValue, setAnsweringInitialNumericValue] =
     useState<number | undefined>(undefined);
   const [answeringInitialItems, setAnsweringInitialItems] = useState<
-    string[] | undefined
+    { id?: EntityId; content: string }[] | undefined
   >(undefined);
 
   // Modal states for skipping
@@ -140,14 +140,17 @@ export default function ReflectionsScreen() {
       existingReflection?.numericValue ?? undefined,
     );
     setAnsweringInitialItems(
-      existingReflection?.items?.map((it) => it.content) ?? undefined,
+      existingReflection?.items?.map((it) => ({
+        id: it.id,
+        content: it.content,
+      })) ?? undefined,
     );
   };
 
   const handleConfirmAnswer = async (input: {
     content?: string;
     numericValue?: number;
-    items?: string[];
+    items?: { id?: EntityId; content: string }[];
   }) => {
     if (!answeringQuestion) return;
 

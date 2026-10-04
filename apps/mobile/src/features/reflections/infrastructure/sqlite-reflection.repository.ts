@@ -587,6 +587,44 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
         validated.responseType === "item_list" &&
         validated.items
       ) {
+        // Validate list length against question.config rules if configured
+        const questionRow = await this.db.getFirstAsync<{
+          config: string | null;
+        }>("SELECT config FROM reflection_questions WHERE id = ?", [
+          validated.questionId,
+        ]);
+        if (questionRow?.config) {
+          try {
+            const parsedConfig = JSON.parse(questionRow.config) as {
+              minItems?: number;
+              maxItems?: number | "unlimited";
+            };
+            if (
+              typeof parsedConfig.minItems === "number" &&
+              validated.items.length < parsedConfig.minItems
+            ) {
+              throw new Error(
+                `Item list reflection requires at least ${parsedConfig.minItems} items (got ${validated.items.length})`,
+              );
+            }
+            if (
+              typeof parsedConfig.maxItems === "number" &&
+              validated.items.length > parsedConfig.maxItems
+            ) {
+              throw new Error(
+                `Item list reflection cannot exceed ${parsedConfig.maxItems} items (got ${validated.items.length})`,
+              );
+            }
+          } catch (err) {
+            if (
+              err instanceof Error &&
+              err.message.startsWith("Item list reflection")
+            ) {
+              throw err;
+            }
+          }
+        }
+
         const existingItems = await this.db.getAllAsync<RawReflectionItem>(
           "SELECT id, reflection_id, order_index, content, created_at, updated_at FROM user_reflection_items WHERE reflection_id = ?",
           [reflectionId!],
@@ -598,7 +636,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
 
         for (let i = 0; i < validated.items.length; i++) {
           const item = validated.items[i];
-          const orderIndex = item.orderIndex ?? i + 1;
+          const orderIndex = item.orderIndex ?? i;
 
           if (item.id && existingMap.has(item.id)) {
             incomingIds.add(item.id);

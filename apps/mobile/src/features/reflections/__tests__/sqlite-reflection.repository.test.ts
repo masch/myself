@@ -441,11 +441,13 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       expect(fetched).not.toBeNull();
       expect(fetched?.items).toBeDefined();
       expect(fetched?.items?.length).toBe(3);
-      expect(fetched?.items?.[0].orderIndex).toBe(1);
+      expect(fetched?.items?.[0].orderIndex).toBe(0);
       expect(fetched?.items?.[0].content).toBe("El rico café de la mañana");
+      expect(fetched?.items?.[1].orderIndex).toBe(1);
       expect(fetched?.items?.[1].content).toBe(
         "La charla productiva con el equipo",
       );
+      expect(fetched?.items?.[2].orderIndex).toBe(2);
       expect(fetched?.items?.[2].content).toBe("Caminata al sol");
     });
 
@@ -528,6 +530,25 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       expect(gratitudeQ).toBeDefined();
       expect(gratitudeQ?.config?.minItems).toBe(3);
       expect(gratitudeQ?.config?.maxItems).toBe("unlimited");
+    });
+
+    it("validates item count against question config minItems and maxItems in saveReflection", async () => {
+      const routines = await repo.getDailyRoutineQuestions(testUserId);
+      const gratitudeQ = routines.find((q) => q.responseType === "item_list");
+      expect(gratitudeQ).toBeDefined();
+
+      expect(
+        repo.saveReflection({
+          userId: testUserId,
+          questionId: gratitudeQ!.id,
+          themeId: null,
+          cycleRunId: null,
+          status: "answered",
+          responseType: "item_list",
+          items: [{ content: "Solo un motivo" }],
+          forDate: "2026-09-14",
+        }),
+      ).rejects.toThrow(/Item list reflection requires at least 3 items/);
     });
 
     it("completes cycle when reaching target count", async () => {

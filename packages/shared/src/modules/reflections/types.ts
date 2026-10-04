@@ -132,7 +132,7 @@ export type UserThemeProgress = z.infer<typeof userThemeProgressSchema>;
 export const userReflectionItemSchema = z.object({
   id: entityIdSchema,
   reflectionId: entityIdSchema,
-  orderIndex: z.number().int().positive(),
+  orderIndex: z.number().int().min(0),
   content: z.string().trim().min(1),
   createdAt: z.string(),
   updatedAt: z.string(),
