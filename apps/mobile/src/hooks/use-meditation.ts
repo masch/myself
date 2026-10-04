@@ -39,7 +39,7 @@ export function getTargetDate(
   let target = now.withTime(hour, minute, 0, 0);
 
   if (target.toMillis() <= now.toMillis()) {
-    target = target.addDays(1);
+    target = now.addDays(1).withTime(hour, minute, 0, 0);
   }
   return target;
 }

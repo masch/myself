@@ -256,6 +256,10 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       const withOffset = DateTime.from("2026-09-04T14:00:00+02:00");
       expect(withOffset.toISOString()).toBe("2026-09-04T12:00:00.000Z");
 
+      // SQLite space-separated datetime format (treated as UTC)
+      const sqliteDate = DateTime.from("2026-09-04 12:00:00");
+      expect(sqliteDate.toISOString()).toBe("2026-09-04T12:00:00.000Z");
+
       const fromInstance = DateTime.from(dt);
       expect(fromInstance).toBe(dt);
     });
@@ -288,11 +292,11 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       expect(() => DateTime.from("2026-01-32")).toThrow(
         "Invalid date representation",
       );
-      // Space-separated datetimes must be rejected
-      expect(() => DateTime.from("2026-09-04 12:00:00")).toThrow(
+      // Space-separated datetimes with trailing suffix or extra spacing must be rejected
+      expect(() => DateTime.from("2026-09-04 12:00:00Z")).toThrow(
         "Invalid date representation",
       );
-      expect(() => DateTime.from("2026-09-04 12:00:00Z")).toThrow(
+      expect(() => DateTime.from("2026-09-04  12:00:00")).toThrow(
         "Invalid date representation",
       );
       // Datetime without explicit timezone offset must be rejected (prevents local time ambiguity)

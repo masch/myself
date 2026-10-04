@@ -61,6 +61,14 @@ function isValidIsoDateString(val: string): boolean {
   return true;
 }
 
+export const DEFAULT_DISPLAY_DATETIME_OPTIONS: Intl.DateTimeFormatOptions = {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+};
+
 /**
  * Immutable Value Object representing a point in time.
  */
@@ -80,6 +88,8 @@ export class DateTime {
 
   /**
    * Creates a DateTime instance representing today at local calendar date (midnight UTC).
+   * Note: This instance is pinned to UTC midnight and should not be modified with withTime(),
+   * which operates on local time.
    */
   static today(now?: DateTime): DateTime {
     const d = (now ?? DateTime.now()).toDate();
@@ -90,7 +100,7 @@ export class DateTime {
   }
 
   /**
-   * Creates a DateTime instance from an ISO string or existing DateTime.
+   * Creates a DateTime instance from an ISO string, SQLite timestamp, or existing DateTime.
    * Throws an error if the value represents an invalid date.
    */
   static from(value: string | DateTime): DateTime {
@@ -99,11 +109,17 @@ export class DateTime {
     }
 
     if (typeof value === "string") {
-      if (!isValidIsoDateString(value)) {
+      const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(
+        value,
+      )
+        ? `${value.replace(" ", "T")}Z`
+        : value;
+
+      if (!isValidIsoDateString(normalized)) {
         throw new Error(`Invalid date representation: ${value}`);
       }
 
-      return new DateTime(new Date(value));
+      return new DateTime(new Date(normalized));
     }
 
     throw new Error(`Invalid date representation: ${String(value)}`);
@@ -234,14 +250,6 @@ export class DateTime {
     return this.toISODate();
   }
 }
-
-export const DEFAULT_DISPLAY_DATETIME_OPTIONS: Intl.DateTimeFormatOptions = {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-};
 
 export const dateTimeSchema = z.custom<DateTime>(
   (val) => val instanceof DateTime,
