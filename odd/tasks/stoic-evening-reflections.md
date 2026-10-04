@@ -15,6 +15,7 @@ Add 3 daily evening reflection questions based on Seneca's evening examination o
 - Package: `packages/shared` (`src/modules/reflections/seed.ts`).
 - Mobile app: `apps/mobile` (`src/features/reflections/__tests__/e2e-reflection-flow.test.ts`).
 - Category: Stoicism (`c1000000-0000-4000-8000-000000000001`).
+- Theme: `null`.
 - Periodicity: `daily`.
 - Preferred time of day: `21:30`.
 - Response Type: `item_list`.
@@ -31,7 +32,7 @@ Add 3 daily evening reflection questions based on Seneca's evening examination o
 
 ## Tasks
 
-- [x] **TASK-1**: Add the 3 daily stoic review questions to `SEED_REFLECTION_QUESTIONS` in `packages/shared/src/modules/reflections/seed.ts` with `minItems: 3`, `maxItems: "unlimited"`, `isDefaultSuggested: true`, `responseType: "item_list"`, and sequential ordering.
+- [x] **TASK-1**: Add the 3 daily stoic review questions to `SEED_REFLECTION_QUESTIONS` in `packages/shared/src/modules/reflections/seed.ts` with `themeId: null` for all three questions, `minItems: 3`, `maxItems: "unlimited"`, `isDefaultSuggested: true`, `responseType: "item_list"`, and sequential ordering.
 - [x] **TASK-2**: Verification & Quality Gates: Run unit and integration tests across monorepo (`make check-tests`), update vertical integration tests (`e2e-reflection-flow.test.ts`), and verify typecheck, lint, formatting, and ODD conformance.
 
 ## Evidence & Verification
