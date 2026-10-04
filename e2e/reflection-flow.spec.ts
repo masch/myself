@@ -330,7 +330,7 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     // -------------------------------------------------------------------------
     // 7b. Time-travel to evening (22:00 local time) & Answer Gratitude Dynamic Item-List
     // -------------------------------------------------------------------------
-    await clock.travelAndReload(new Date(2026, 8, 13, 22, 0, 0));
+    await clock.travelAndReload("2026-09-13T22:00:00-03:00");
     await expect(page.getByText("Rutina del Día").first()).toBeVisible({
       timeout: 10000,
     });

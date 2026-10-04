@@ -365,5 +365,21 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       expect(past.diffInDays(start)).toBe(-2);
       expect(future.diffInDays(start)).toBe(7);
     });
+
+    it("DateTime.toMillis() returns epoch milliseconds", () => {
+      const iso = "2026-10-04T12:00:00.000Z";
+      const dt = DateTime.from(iso);
+      expect(dt.toMillis()).toBe(new Date(iso).getTime());
+    });
+
+    it("DateTime.withTime() returns new instance with specified wall-clock time", () => {
+      const dt = DateTime.from("2026-10-04T00:00:00.000Z");
+      const updated = dt.withTime(8, 30, 0, 0);
+
+      expect(updated instanceof DateTime).toBe(true);
+      expect(updated.toLocalTimeHHMM()).toBe("08:30");
+      // Immutability: original remains untouched
+      expect(dt.toMillis()).not.toBe(updated.toMillis());
+    });
   });
 });

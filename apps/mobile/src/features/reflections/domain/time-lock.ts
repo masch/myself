@@ -7,10 +7,11 @@ import {
 /**
  * Returns the current local time formatted as "HH:mm".
  */
-export function getCurrentTimeHHMM(date: Date = new Date()): string {
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
+export function getCurrentTimeHHMM(
+  date: DateTime | Date = DateTime.now(),
+): string {
+  const dt = date instanceof DateTime ? date : DateTime.from(date);
+  return dt.toLocalTimeHHMM();
 }
 
 /**

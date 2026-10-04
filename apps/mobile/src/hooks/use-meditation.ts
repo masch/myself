@@ -2,6 +2,7 @@ import { MEDITATION_SOUNDS } from "@/constants/sounds";
 import { appConfig } from "@/infrastructure/config";
 import { GongPlaybackService } from "@/services/gong-playback";
 import { MeditationSessionService } from "@/services/meditation-session";
+import { DateTime } from "@myself/shared";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import { useCallback, useEffect, useState } from "react";
 import { AppState, type AppStateStatus } from "react-native";
@@ -24,18 +25,22 @@ const DEFAULT_MOMENTS = [
 ];
 
 /**
- * Calculates the next upcoming Date instance for a configured wall-clock time (hour & minute).
+ * Calculates the next upcoming DateTime instance for a configured wall-clock time (hour & minute).
  *
  * If the target time for the current calendar day has already passed or crosses midnight
  * (e.g. starting a session at 23:55 targeting 00:15, or starting at 10:00 targeting 08:00),
  * it rolls over the target date to tomorrow to prevent negative durations or immediate firing.
  */
-export function getTargetDate(now: Date, hour: number, minute: number): Date {
-  const target = new Date(now);
-  target.setHours(hour, minute, 0, 0);
+export function getTargetDate(
+  now: DateTime | Date = DateTime.now(),
+  hour: number,
+  minute: number,
+): DateTime {
+  const dtNow = now instanceof DateTime ? now : DateTime.from(now);
+  let target = dtNow.withTime(hour, minute, 0, 0);
 
-  if (target.getTime() <= now.getTime()) {
-    target.setDate(target.getDate() + 1);
+  if (target.toMillis() <= dtNow.toMillis()) {
+    target = target.addDays(1);
   }
   return target;
 }
@@ -173,11 +178,10 @@ export function useMeditation() {
     }
 
     const checkTargetTime = () => {
-      const now = new Date();
-      const todayTarget = new Date(now);
-      todayTarget.setHours(targetHour, targetMinute, 0, 0);
+      const now = DateTime.now();
+      const todayTarget = now.withTime(targetHour, targetMinute, 0, 0);
 
-      if (now.getTime() >= todayTarget.getTime()) {
+      if (now.toMillis() >= todayTarget.toMillis()) {
         setHasAlarmTriggered(true);
         void MeditationSessionService.stopSession().catch(() => {});
         void playSingleGong().catch(() => {});
@@ -231,7 +235,7 @@ export function useMeditation() {
     if (status === "paused") {
       setStatus("running");
       if (currentMomentIndex === 1 && alarmEnabled && !hasAlarmTriggered) {
-        const now = new Date();
+        const now = DateTime.now();
         const targetDate = getTargetDate(now, targetHour, targetMinute);
         void MeditationSessionService.startSession({ targetDate }).catch(
           () => {},
@@ -264,7 +268,7 @@ export function useMeditation() {
 
       // Al ingresar al Momento 2, iniciar la sesión en segundo plano en la plataforma correspondiente
       if (nextIndex === 1 && alarmEnabled && !hasAlarmTriggered) {
-        const now = new Date();
+        const now = DateTime.now();
         const targetDate = getTargetDate(now, targetHour, targetMinute);
         await MeditationSessionService.startSession({ targetDate });
       } else {

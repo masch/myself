@@ -15,6 +15,7 @@ export default defineConfig({
     baseURL: "http://localhost:8082",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    timezoneId: "America/Argentina/Buenos_Aires",
   },
   projects: [
     {

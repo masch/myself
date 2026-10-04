@@ -39,11 +39,12 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
 
     const authorInput = page.getByPlaceholder(/Author name/i);
     await expect(authorInput).toBeVisible({ timeout: 5000 });
-    const testAuthor = `Author ${Date.now()}`;
+    const nonce = crypto.randomUUID().slice(0, 8);
+    const testAuthor = `Author ${nonce}`;
     await authorInput.fill(testAuthor);
 
     // 5. Fill in the reading form
-    const testTitle = `E2E Browser Test ${Date.now()}`;
+    const testTitle = `E2E Browser Test ${nonce}`;
     const testContent = "Vivir con tranquilidad y foco en el presente.";
 
     // Title input
@@ -201,13 +202,14 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
 
     const authorInput = page.getByPlaceholder(/Author name/i);
     await expect(authorInput).toBeVisible({ timeout: 5000 });
-    const testAuthor = `Offline Author ${Date.now()}`;
+    const offlineNonce = crypto.randomUUID().slice(0, 8);
+    const testAuthor = `Offline Author ${offlineNonce}`;
     await authorInput.fill(testAuthor);
 
     // 4. Simulate Backend network failure (Go Offline)
     await page.route("**/v1/**", (route) => route.abort("failed"));
 
-    const testTitle = `Offline Reading ${Date.now()}`;
+    const testTitle = `Offline Reading ${offlineNonce}`;
     const testContent = "Escrita localmente sin conexión de red.";
 
     const titleInput = page

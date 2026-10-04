@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { AppState } from "react-native";
 import { mockMeditationSession } from "../../../test-setup";
 import { getTargetDate, useMeditation } from "../use-meditation";
+import { DateTime } from "@myself/shared";
 
 // Mock sound assets
 mock.module("../constants/sounds", () => ({
@@ -76,46 +77,58 @@ describe("getTargetDate Wall-Clock Calculation", () => {
   it("schedules for today if target time is in the future", () => {
     const now = new Date(2026, 7, 30, 10, 0, 0);
     const target = getTargetDate(now, 10, 30);
+    const d = target.toDate();
 
-    expect(target.getFullYear()).toBe(2026);
-    expect(target.getMonth()).toBe(7);
-    expect(target.getDate()).toBe(30);
-    expect(target.getHours()).toBe(10);
-    expect(target.getMinutes()).toBe(30);
-    expect(target.getTime()).toBeGreaterThan(now.getTime());
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(7);
+    expect(d.getDate()).toBe(30);
+    expect(d.getHours()).toBe(10);
+    expect(d.getMinutes()).toBe(30);
+    expect(target.toMillis()).toBeGreaterThan(now.getTime());
   });
 
   it("rolls over to tomorrow if target time for today has already passed", () => {
     const now = new Date(2026, 7, 30, 10, 0, 0);
     const target = getTargetDate(now, 8, 30);
+    const d = target.toDate();
 
-    expect(target.getFullYear()).toBe(2026);
-    expect(target.getMonth()).toBe(7);
-    expect(target.getDate()).toBe(31);
-    expect(target.getHours()).toBe(8);
-    expect(target.getMinutes()).toBe(30);
-    expect(target.getTime()).toBeGreaterThan(now.getTime());
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(7);
+    expect(d.getDate()).toBe(31);
+    expect(d.getHours()).toBe(8);
+    expect(d.getMinutes()).toBe(30);
+    expect(target.toMillis()).toBeGreaterThan(now.getTime());
   });
 
   it("handles midnight crossing correctly (overnight meditation)", () => {
     const now = new Date(2026, 7, 30, 23, 50, 0);
     const target = getTargetDate(now, 0, 15);
+    const d = target.toDate();
 
-    expect(target.getFullYear()).toBe(2026);
-    expect(target.getMonth()).toBe(7);
-    expect(target.getDate()).toBe(31);
-    expect(target.getHours()).toBe(0);
-    expect(target.getMinutes()).toBe(15);
-    expect(target.getTime() - now.getTime()).toBe(25 * 60 * 1000);
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(7);
+    expect(d.getDate()).toBe(31);
+    expect(d.getHours()).toBe(0);
+    expect(d.getMinutes()).toBe(15);
+    expect(target.toMillis() - now.getTime()).toBe(25 * 60 * 1000);
   });
 
   it("rolls over if target is exact same second as current time", () => {
     const now = new Date(2026, 7, 30, 8, 0, 0);
     const target = getTargetDate(now, 8, 0);
+    const d = target.toDate();
 
-    expect(target.getDate()).toBe(31);
-    expect(target.getHours()).toBe(8);
-    expect(target.getMinutes()).toBe(0);
+    expect(d.getDate()).toBe(31);
+    expect(d.getHours()).toBe(8);
+    expect(d.getMinutes()).toBe(0);
+  });
+
+  it("accepts DateTime instance as now parameter directly", () => {
+    const now = DateTime.from(new Date(2026, 7, 30, 10, 0, 0));
+    const target = getTargetDate(now, 10, 30);
+
+    expect(target instanceof DateTime).toBe(true);
+    expect(target.toLocalTimeHHMM()).toBe("10:30");
   });
 });
 

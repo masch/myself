@@ -81,11 +81,17 @@ export class DateTime {
   /**
    * Creates a DateTime instance representing today at local calendar date (midnight UTC).
    */
-  static today(now: Date = new Date()): DateTime {
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, "0");
-    const d = String(now.getDate()).padStart(2, "0");
-    return DateTime.from(`${y}-${m}-${d}`);
+  static today(now?: DateTime | Date): DateTime {
+    const d =
+      now instanceof DateTime
+        ? now.toDate()
+        : now instanceof Date
+          ? now
+          : new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return DateTime.from(`${y}-${m}-${day}`);
   }
 
   /**
@@ -170,6 +176,27 @@ export class DateTime {
       return false;
     }
     return this.date.getTime() === other.date.getTime();
+  }
+
+  /**
+   * Returns the epoch time in milliseconds.
+   */
+  toMillis(): number {
+    return this.date.getTime();
+  }
+
+  /**
+   * Returns a new DateTime instance with the local wall-clock time set to the specified values.
+   */
+  withTime(
+    hour: number,
+    minute: number,
+    second = 0,
+    millisecond = 0,
+  ): DateTime {
+    const nextDate = new Date(this.date.getTime());
+    nextDate.setHours(hour, minute, second, millisecond);
+    return new DateTime(nextDate);
   }
 
   /**

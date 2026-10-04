@@ -75,7 +75,7 @@ export const SEED_REFLECTION_THEMES: SeedReflectionTheme[] = [
   },
 ];
 
-export function getTodayDateString(now: Date = new Date()): string {
+export function getTodayDateString(now?: DateTime | Date): string {
   return DateTime.today(now).toISODate();
 }
 

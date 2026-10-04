@@ -5,6 +5,7 @@ import {
   stopMeditationSession,
 } from "@/modules/meditation-session";
 import { MeditationNotificationService } from "../meditation-notification.service";
+import { DateTime } from "@myself/shared";
 import type { IMeditationSessionService, SessionParams } from "./types";
 
 function formatClock(date: Date): string {
@@ -17,10 +18,19 @@ export class AndroidMeditationSessionService implements IMeditationSessionServic
   async startSession(params: SessionParams): Promise<void> {
     await this.stopSession();
 
+    const epochMs =
+      params.targetDate instanceof DateTime
+        ? params.targetDate.toMillis()
+        : params.targetDate.getTime();
+    const timeFormatted =
+      params.targetDate instanceof DateTime
+        ? params.targetDate.toLocalTimeHHMM()
+        : formatClock(params.targetDate);
+
     // 1. Start Android Foreground Service with WakeLock and ongoing lockscreen notification
     startMeditationSession({
-      targetEpochMs: params.targetDate.getTime(),
-      targetTimeFormatted: formatClock(params.targetDate),
+      targetEpochMs: epochMs,
+      targetTimeFormatted: timeFormatted,
     });
 
     // 2. Schedule fallback local notification

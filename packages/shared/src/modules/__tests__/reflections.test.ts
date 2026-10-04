@@ -397,6 +397,16 @@ describe("Reflections Module - Zod Validation Schemas", () => {
       const cohorts = createSeedThemeCohorts();
       expect(cohorts.length).toBe(2);
       expect(cohorts[1].programStartDate).toBe(todayStr);
+
+      const fixedDate = new Date("2026-05-10T12:00:00.000Z");
+      expect(getTodayDateString(fixedDate)).toBe(
+        DateTime.today(fixedDate).toISODate(),
+      );
+
+      const fixedDateTime = DateTime.from(fixedDate);
+      expect(getTodayDateString(fixedDateTime)).toBe(
+        DateTime.today(fixedDateTime).toISODate(),
+      );
     });
   });
 });

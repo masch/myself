@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { DateTime } from "@myself/shared";
 import { getNotifications } from "./notifications/notifications-runtime";
 
 export const MEDITATION_NOTIFICATION_CHANNEL_ID = "meditation_notifications_v1";
@@ -49,7 +50,7 @@ export const MeditationNotificationService = {
    * Schedules a standard notification when meditation target time is reached.
    */
   async scheduleNotification(
-    targetDate: Date,
+    targetDate: DateTime | Date,
     title = "Momento 3: Cierre e Integración",
     body = "Se cumplió la hora programada de la meditación.",
   ): Promise<string | null> {
@@ -65,9 +66,11 @@ export const MeditationNotificationService = {
         }
       }
 
+      const epochMs =
+        "toMillis" in targetDate ? targetDate.toMillis() : targetDate.getTime();
       const diffSeconds = Math.max(
         1,
-        Math.round((targetDate.getTime() - Date.now()) / 1000),
+        Math.round((epochMs - DateTime.now().toMillis()) / 1000),
       );
 
       await this.cancelAllNotifications();

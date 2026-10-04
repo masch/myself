@@ -35,6 +35,9 @@ describe("time-lock utility", () => {
   it("formats date to HH:mm correctly", () => {
     const fixedDate = new Date("2026-09-13T08:05:00");
     expect(getCurrentTimeHHMM(fixedDate)).toBe("08:05");
+
+    const fixedDateTime = DateTime.from(fixedDate);
+    expect(getCurrentTimeHHMM(fixedDateTime)).toBe("08:05");
   });
 
   const atTime = (hhmm: string) => {
