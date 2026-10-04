@@ -1,7 +1,7 @@
 import type { DateTime } from "@myself/shared";
 
 export interface SessionParams {
-  targetDate: DateTime | Date;
+  targetDate: DateTime;
 }
 
 export interface IMeditationSessionService {

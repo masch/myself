@@ -9,8 +9,7 @@ import {
   ThemedText,
 } from "@/components";
 import { colors, spacing } from "@/theme";
-import { type MeditationReadingWithAuthor } from "@myself/shared";
-import { formatDisplayDateTime } from "@/utils";
+import { DateTime, type MeditationReadingWithAuthor } from "@myself/shared";
 
 export interface ReadingCardProps {
   reading: MeditationReadingWithAuthor;
@@ -97,7 +96,7 @@ export function ReadingCard({
       <View style={styles.cardFooter}>
         <View style={styles.timestampContainer}>
           <ThemedText variant="caption2" color={colors.secondaryLabel}>
-            Added: {formatDisplayDateTime(reading.created_at)}
+            Added: {DateTime.toDisplayString(reading.created_at)}
           </ThemedText>
           {isCompleted && (
             <ThemedText
@@ -107,7 +106,7 @@ export function ReadingCard({
             >
               Read {reading.times_read}{" "}
               {reading.times_read === 1 ? "time" : "times"} • Last:{" "}
-              {formatDisplayDateTime(reading.last_read_at)}
+              {DateTime.toDisplayString(reading.last_read_at)}
             </ThemedText>
           )}
         </View>

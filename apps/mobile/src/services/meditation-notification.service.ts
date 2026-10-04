@@ -50,7 +50,7 @@ export const MeditationNotificationService = {
    * Schedules a standard notification when meditation target time is reached.
    */
   async scheduleNotification(
-    targetDate: DateTime | Date,
+    targetDate: DateTime,
     title = "Momento 3: Cierre e Integración",
     body = "Se cumplió la hora programada de la meditación.",
   ): Promise<string | null> {
@@ -66,11 +66,9 @@ export const MeditationNotificationService = {
         }
       }
 
-      const epochMs =
-        "toMillis" in targetDate ? targetDate.toMillis() : targetDate.getTime();
       const diffSeconds = Math.max(
         1,
-        Math.round((epochMs - DateTime.now().toMillis()) / 1000),
+        Math.round((targetDate.toMillis() - DateTime.now().toMillis()) / 1000),
       );
 
       await this.cancelAllNotifications();

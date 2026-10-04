@@ -398,12 +398,7 @@ describe("Reflections Module - Zod Validation Schemas", () => {
       expect(cohorts.length).toBe(2);
       expect(cohorts[1].programStartDate).toBe(todayStr);
 
-      const fixedDate = new Date("2026-05-10T12:00:00.000Z");
-      expect(getTodayDateString(fixedDate)).toBe(
-        DateTime.today(fixedDate).toISODate(),
-      );
-
-      const fixedDateTime = DateTime.from(fixedDate);
+      const fixedDateTime = DateTime.from("2026-05-10T12:00:00.000Z");
       expect(getTodayDateString(fixedDateTime)).toBe(
         DateTime.today(fixedDateTime).toISODate(),
       );

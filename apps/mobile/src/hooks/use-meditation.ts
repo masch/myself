@@ -32,14 +32,13 @@ const DEFAULT_MOMENTS = [
  * it rolls over the target date to tomorrow to prevent negative durations or immediate firing.
  */
 export function getTargetDate(
-  now: DateTime | Date = DateTime.now(),
+  now: DateTime = DateTime.now(),
   hour: number,
   minute: number,
 ): DateTime {
-  const dtNow = now instanceof DateTime ? now : DateTime.from(now);
-  let target = dtNow.withTime(hour, minute, 0, 0);
+  let target = now.withTime(hour, minute, 0, 0);
 
-  if (target.toMillis() <= dtNow.toMillis()) {
+  if (target.toMillis() <= now.toMillis()) {
     target = target.addDays(1);
   }
   return target;

@@ -77,7 +77,7 @@ export default function ReflectionsScreen() {
 
   const [currentDateTime, setCurrentDateTime] = useState(() => DateTime.now());
   const currentLocalDate = useMemo(
-    () => DateTime.today(currentDateTime.toDate()),
+    () => DateTime.today(currentDateTime),
     [currentDateTime],
   );
   const [showAnswered, setShowAnswered] = useState(true);

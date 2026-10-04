@@ -81,13 +81,8 @@ export class DateTime {
   /**
    * Creates a DateTime instance representing today at local calendar date (midnight UTC).
    */
-  static today(now?: DateTime | Date): DateTime {
-    const d =
-      now instanceof DateTime
-        ? now.toDate()
-        : now instanceof Date
-          ? now
-          : new Date();
+  static today(now?: DateTime): DateTime {
+    const d = (now ?? DateTime.now()).toDate();
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
@@ -95,19 +90,12 @@ export class DateTime {
   }
 
   /**
-   * Creates a DateTime instance from an ISO string, Date, or existing DateTime.
+   * Creates a DateTime instance from an ISO string or existing DateTime.
    * Throws an error if the value represents an invalid date.
    */
-  static from(value: string | Date | DateTime): DateTime {
+  static from(value: string | DateTime): DateTime {
     if (value instanceof DateTime) {
       return value;
-    }
-
-    if (value instanceof Date) {
-      if (Number.isNaN(value.getTime())) {
-        throw new Error(`Invalid date representation: ${String(value)}`);
-      }
-      return new DateTime(new Date(value.getTime()));
     }
 
     if (typeof value === "string") {
@@ -115,12 +103,7 @@ export class DateTime {
         throw new Error(`Invalid date representation: ${value}`);
       }
 
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) {
-        throw new Error(`Invalid date representation: ${value}`);
-      }
-
-      return new DateTime(date);
+      return new DateTime(new Date(value));
     }
 
     throw new Error(`Invalid date representation: ${String(value)}`);
@@ -216,12 +199,49 @@ export class DateTime {
   }
 
   /**
+   * Formats a DateTime or ISO string for display in UI components.
+   * Returns an empty string if null, undefined or empty string is provided.
+   * Falls back to the input string if parsing fails.
+   */
+  static toDisplayString(
+    value: DateTime | string | null | undefined,
+    options: Intl.DateTimeFormatOptions = DEFAULT_DISPLAY_DATETIME_OPTIONS,
+    locale?: string,
+  ): string {
+    if (!value) return "";
+    try {
+      const dateTime = value instanceof DateTime ? value : DateTime.from(value);
+      return dateTime.toDisplayString(options, locale);
+    } catch {
+      return typeof value === "string" ? value : "";
+    }
+  }
+
+  /**
+   * Formats the DateTime as a human-readable localized string.
+   */
+  toDisplayString(
+    options: Intl.DateTimeFormatOptions = DEFAULT_DISPLAY_DATETIME_OPTIONS,
+    locale?: string,
+  ): string {
+    return this.date.toLocaleDateString(locale, options);
+  }
+
+  /**
    * Returns the ISO date representation when converted to string or interpolated.
    */
   toString(): string {
     return this.toISODate();
   }
 }
+
+export const DEFAULT_DISPLAY_DATETIME_OPTIONS: Intl.DateTimeFormatOptions = {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+};
 
 export const dateTimeSchema = z.custom<DateTime>(
   (val) => val instanceof DateTime,

@@ -5,27 +5,14 @@ import {
   stopMeditationSession,
 } from "@/modules/meditation-session";
 import { MeditationNotificationService } from "../meditation-notification.service";
-import { DateTime } from "@myself/shared";
 import type { IMeditationSessionService, SessionParams } from "./types";
-
-function formatClock(date: Date): string {
-  const h = date.getHours().toString().padStart(2, "0");
-  const m = date.getMinutes().toString().padStart(2, "0");
-  return `${h}:${m}`;
-}
 
 export class IosMeditationSessionService implements IMeditationSessionService {
   async startSession(params: SessionParams): Promise<void> {
     await this.stopSession();
 
-    const epochMs =
-      params.targetDate instanceof DateTime
-        ? params.targetDate.toMillis()
-        : params.targetDate.getTime();
-    const timeFormatted =
-      params.targetDate instanceof DateTime
-        ? params.targetDate.toLocalTimeHHMM()
-        : formatClock(params.targetDate);
+    const epochMs = params.targetDate.toMillis();
+    const timeFormatted = params.targetDate.toLocalTimeHHMM();
 
     // 1. Start timer in Swift native module
     startMeditationSession({

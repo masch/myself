@@ -7,11 +7,8 @@ import {
 /**
  * Returns the current local time formatted as "HH:mm".
  */
-export function getCurrentTimeHHMM(
-  date: DateTime | Date = DateTime.now(),
-): string {
-  const dt = date instanceof DateTime ? date : DateTime.from(date);
-  return dt.toLocalTimeHHMM();
+export function getCurrentTimeHHMM(date: DateTime = DateTime.now()): string {
+  return date.toLocalTimeHHMM();
 }
 
 /**
@@ -36,7 +33,7 @@ export function isReflectionLocked(
   if (!question.preferredTimeOfDay) {
     return false;
   }
-  const today = DateTime.today(now.toDate());
+  const today = DateTime.today(now);
   if (forDate && today.diffInDays(forDate) > 0) {
     return false;
   }

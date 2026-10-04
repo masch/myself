@@ -9,11 +9,10 @@ export class WebMeditationSessionService implements IMeditationSessionService {
   async startSession(params: SessionParams): Promise<void> {
     await this.stopSession();
 
-    const epochMs =
-      params.targetDate instanceof DateTime
-        ? params.targetDate.toMillis()
-        : params.targetDate.getTime();
-    const delayMs = Math.max(0, epochMs - DateTime.now().toMillis());
+    const delayMs = Math.max(
+      0,
+      params.targetDate.toMillis() - DateTime.now().toMillis(),
+    );
 
     this.timer = setTimeout(() => {
       this.listeners.forEach((listener) => listener());

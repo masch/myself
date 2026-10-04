@@ -7,6 +7,8 @@ import {
   entityIdSchema,
   type EntityId,
   DateTime,
+  dateTimeSchema,
+  isoDateToDateTimeSchema,
   ErrorCode,
   generateEntityId,
   HttpStatus,
@@ -234,7 +236,7 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       expect(Number.isNaN(Date.parse(dt.toISOString()))).toBe(false);
     });
 
-    it("DateTime.from() parses valid ISO strings and Dates", () => {
+    it("DateTime.from() parses valid ISO strings and existing DateTime instances", () => {
       const iso = "2026-09-04T12:00:00.000Z";
       const dt = DateTime.from(iso);
       expect(dt.toISOString()).toBe(iso);
@@ -253,10 +255,6 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       // Datetime with explicit timezone offset
       const withOffset = DateTime.from("2026-09-04T14:00:00+02:00");
       expect(withOffset.toISOString()).toBe("2026-09-04T12:00:00.000Z");
-
-      const fromDate = DateTime.from(new Date(iso));
-      expect(fromDate.toISOString()).toBe(iso);
-      expect(dt.equals(fromDate)).toBe(true);
 
       const fromInstance = DateTime.from(dt);
       expect(fromInstance).toBe(dt);
@@ -322,7 +320,7 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       expect(() => DateTime.from("2026-09-04T12:00:00-0300")).toThrow(
         "Invalid date representation",
       );
-      expect(() => DateTime.from(new Date("invalid"))).toThrow(
+      expect(() => DateTime.from(123 as any)).toThrow(
         "Invalid date representation",
       );
     });
@@ -380,6 +378,72 @@ describe("@myself/shared - Complete Functional & Schema Test Suite", () => {
       expect(updated.toLocalTimeHHMM()).toBe("08:30");
       // Immutability: original remains untouched
       expect(dt.toMillis()).not.toBe(updated.toMillis());
+    });
+
+    it("DateTime.toDisplayString() formats for display (instance and static)", () => {
+      const iso = "2026-10-04T15:30:00.000Z";
+      const dt = DateTime.from(iso);
+      const expected = new Date(iso).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      expect(dt.toDisplayString(undefined, "en-US")).toBe(expected);
+      expect(DateTime.toDisplayString(dt, undefined, "en-US")).toBe(expected);
+      expect(DateTime.toDisplayString(iso, undefined, "en-US")).toBe(expected);
+      expect(DateTime.toDisplayString(null)).toBe("");
+      expect(DateTime.toDisplayString(undefined)).toBe("");
+      expect(DateTime.toDisplayString("")).toBe("");
+      expect(DateTime.toDisplayString("invalid-date")).toBe("invalid-date");
+    });
+
+    it("DateTime.toString() and toDate() return ISO date string and Date clone", () => {
+      const iso = "2026-10-04T15:30:00.000Z";
+      const dt = DateTime.from(iso);
+
+      expect(dt.toString()).toBe("2026-10-04");
+      expect(`${dt}`).toBe("2026-10-04");
+
+      const clonedDate = dt.toDate();
+      expect(clonedDate instanceof Date).toBe(true);
+      expect(clonedDate.getTime()).toBe(dt.toMillis());
+      // Verify independence
+      clonedDate.setFullYear(2099);
+      expect(dt.toDate().getFullYear()).toBe(2026);
+    });
+
+    it("dateTimeSchema validates DateTime instances with Zod", () => {
+      const dt = DateTime.now();
+      const valid = dateTimeSchema.safeParse(dt);
+      expect(valid.success).toBe(true);
+      if (valid.success) {
+        expect(valid.data).toBe(dt);
+      }
+
+      const invalid = dateTimeSchema.safeParse("2026-10-04");
+      expect(invalid.success).toBe(false);
+    });
+
+    it("isoDateToDateTimeSchema validates instances and transforms YYYY-MM-DD strings", () => {
+      const dt = DateTime.now();
+      const fromInstance = isoDateToDateTimeSchema.safeParse(dt);
+      expect(fromInstance.success).toBe(true);
+      if (fromInstance.success) {
+        expect(fromInstance.data).toBe(dt);
+      }
+
+      const fromString = isoDateToDateTimeSchema.safeParse("2026-10-04");
+      expect(fromString.success).toBe(true);
+      if (fromString.success) {
+        expect(fromString.data instanceof DateTime).toBe(true);
+        expect(fromString.data.toISOString()).toBe("2026-10-04T00:00:00.000Z");
+      }
+
+      const invalid = isoDateToDateTimeSchema.safeParse("not-a-date");
+      expect(invalid.success).toBe(false);
     });
   });
 });
