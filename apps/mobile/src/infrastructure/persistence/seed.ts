@@ -1,5 +1,6 @@
 import { generateUUID } from "@/utils/uuid";
 import {
+  DateTime,
   SEED_AUTHOR_IDS,
   SEED_AUTHORS,
   SEED_READINGS,
@@ -125,10 +126,14 @@ export async function seedDatabase(
   );
 
   if (existingUsers.length === 0) {
+    const userCreatedAt = options?.baseDateStr
+      ? `${options.baseDateStr}T00:00:00.000Z`
+      : DateTime.now().toISOString();
+
     for (const user of SEED_USERS) {
       await db.runAsync(
-        "INSERT OR IGNORE INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
-        [user.id, user.name, user.email],
+        "INSERT OR IGNORE INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)",
+        [user.id, user.name, user.email, userCreatedAt],
       );
 
       for (const task of user.tasks) {

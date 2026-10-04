@@ -173,4 +173,105 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
       )
       .toBe(true);
   });
+
+  test("creates reading while offline, stores locally, and syncs to backend once back online", async ({
+    page,
+    request,
+    context,
+  }) => {
+    // 1. Open frontend and navigate to readings
+    await page.goto("/readings");
+    await expect(page).toHaveTitle(/myself|Readings/i);
+
+    // 2. Open New Reading Modal
+    const plusButton = page
+      .locator('button, [role="button"]')
+      .filter({ hasText: /\+/ })
+      .first();
+    if (await plusButton.isVisible()) {
+      await plusButton.click();
+    } else {
+      await page.goto("/reading-modal");
+    }
+
+    // 3. Create new author
+    const newAuthorBtn = page.getByRole("button", { name: "+ New author" });
+    await expect(newAuthorBtn).toBeVisible({ timeout: 5000 });
+    await newAuthorBtn.click();
+
+    const authorInput = page.getByPlaceholder(/Author name/i);
+    await expect(authorInput).toBeVisible({ timeout: 5000 });
+    const testAuthor = `Offline Author ${Date.now()}`;
+    await authorInput.fill(testAuthor);
+
+    // 4. Simulate Backend network failure (Go Offline)
+    await page.route("**/v1/**", (route) => route.abort("failed"));
+
+    const testTitle = `Offline Reading ${Date.now()}`;
+    const testContent = "Escrita localmente sin conexión de red.";
+
+    const titleInput = page
+      .locator(
+        'input[placeholder*="Poder sobre la Mente"], input[placeholder*="Ej:"]',
+      )
+      .first();
+    await titleInput.fill(testTitle);
+
+    const contentInput = page
+      .locator('textarea, input[placeholder*="escribe"]')
+      .first();
+    if (await contentInput.isVisible()) {
+      await contentInput.fill(testContent);
+    }
+
+    // 5. Submit while offline - must succeed locally in SQLite
+    const saveButton = page.getByRole("button", { name: "Save" });
+    await expect(saveButton).toBeVisible();
+    await saveButton.click({ force: true });
+
+    // 6. Verify reading is rendered locally in the UI
+    await expect(
+      page
+        .getByRole("tabpanel", { name: "Meditation Readings" })
+        .getByText(testTitle),
+    ).toBeVisible({ timeout: 5000 });
+
+    // 7. Verify directly in Backend API that it does NOT exist yet (network failed)
+    const checkBefore = await request.get(
+      "http://localhost:8788/v1/readings?limit=50",
+    );
+    expect(checkBefore.ok()).toBe(true);
+    const beforeJson = await checkBefore.json();
+    const beforeItems = beforeJson.items ?? beforeJson.data?.items ?? [];
+    expect(
+      beforeItems.some(
+        (item: any) => item.translations?.es?.title === testTitle,
+      ),
+    ).toBe(false);
+
+    // 8. Restore network connectivity to Backend (Go Online)
+    await page.unroute("**/v1/**");
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+
+    // 9. Verify with polling that SyncEngine automatically drains outbox to Backend API
+    await expect
+      .poll(
+        async () => {
+          const res = await request.get(
+            "http://localhost:8788/v1/readings?limit=50",
+          );
+          if (!res.ok()) return false;
+          const json = await res.json();
+          const items = json.items ?? json.data?.items ?? [];
+          return items.some(
+            (item: any) => item.translations?.es?.title === testTitle,
+          );
+        },
+        {
+          intervals: [500, 1000],
+          timeout: 15000,
+        },
+      )
+      .toBe(true);
+  });
 });

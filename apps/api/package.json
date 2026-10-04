@@ -34,7 +34,7 @@
     "test:unit": "ENVIRONMENT=\"test\" bun test src/__tests__/ src/lib/__tests__/ src/errors/__tests__/ src/middleware/__tests__/ src/services/__tests__/ src/infrastructure/persistence/__tests__/",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "ENVIRONMENT=\"${ENVIRONMENT:-development}\" bun run src/infrastructure/persistence/seed.ts",
+    "db:seed": "ENVIRONMENT=\"${ENVIRONMENT:-development}\" TURSO_DATABASE_URL=\"${TURSO_DATABASE_URL:-file:local.db}\" bun run src/infrastructure/persistence/seed.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

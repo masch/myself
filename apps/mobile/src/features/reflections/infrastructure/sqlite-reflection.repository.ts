@@ -302,7 +302,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
     );
     const cycleRunNumber = (nextRunRow?.max_run ?? 0) + 1;
     const id = generateEntityId();
-    const startedAt = new Date().toISOString();
+    const startedAt = DateTime.now().toISOString();
 
     await this.db.runAsync(
       `INSERT INTO user_theme_progress (id, user_id, theme_id, cohort_id, cycle_run_number, current_step, answered_count, skipped_count, status, started_at)
@@ -412,7 +412,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
 
   async saveReflection(input: CreateReflectionInput): Promise<UserReflection> {
     const validated = createReflectionInputSchema.parse(input);
-    const now = new Date().toISOString();
+    const now = DateTime.now().toISOString();
 
     let reflectionId: EntityId;
 
@@ -818,6 +818,14 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       reflection?: UserReflection | null;
     }[]
   > {
+    const userRow = await this.db.getFirstAsync<{ created_at: string }>(
+      "SELECT created_at FROM users WHERE id = ?",
+      [userId],
+    );
+    const userCreatedDateStr = userRow?.created_at
+      ? userRow.created_at.slice(0, 10).replace(" ", "T")
+      : todayDate;
+
     const routines = await this.getDailyRoutineQuestions(userId);
     const missed: {
       question: ReflectionQuestion;
@@ -826,11 +834,14 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
     }[] = [];
 
     // Check past dates from oldest to newest within the 2-day catch-up window (FIFO: oldest first)
-    const today = new Date(todayDate);
+    const today = DateTime.from(todayDate);
     for (let dayOffset = 2; dayOffset >= 1; dayOffset--) {
-      const pastDate = new Date(today);
-      pastDate.setDate(today.getDate() - dayOffset);
-      const dateStr = pastDate.toISOString().split("T")[0];
+      const dateStr = today.addDays(-dayOffset).toISODate();
+
+      // Do not consider dates before user registration as missed
+      if (dateStr < userCreatedDateStr) {
+        continue;
+      }
 
       for (const q of routines) {
         const answered = await this.getReflectionForQuestionAndDate(

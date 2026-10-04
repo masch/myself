@@ -29,7 +29,7 @@ describe("time-lock utility", () => {
     responseType: "scale_1_10",
     isDefaultSuggested: true,
     orderIndex: 0,
-    createdAt: new Date().toISOString(),
+    createdAt: DateTime.now().toISOString(),
   };
 
   it("formats date to HH:mm correctly", () => {
@@ -74,8 +74,8 @@ describe("time-lock utility", () => {
       status: "answered",
       numericValue: 8,
       forDate: "2026-09-13",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: DateTime.now().toISOString(),
+      updatedAt: DateTime.now().toISOString(),
     };
     expect(isReflectionLocked(baseQuestion, answeredRef, atTime("10:00"))).toBe(
       false,
@@ -92,8 +92,8 @@ describe("time-lock utility", () => {
       status: "skipped",
       skipReason: "Sin tiempo",
       forDate: "2026-09-13",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: DateTime.now().toISOString(),
+      updatedAt: DateTime.now().toISOString(),
     };
     expect(isReflectionLocked(baseQuestion, skippedRef, atTime("10:00"))).toBe(
       false,

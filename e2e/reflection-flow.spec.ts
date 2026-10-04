@@ -25,8 +25,8 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     const health = await request.get("http://localhost:8788/health");
     expect(health.ok()).toBe(true);
 
-    // 1b. Mock browser clock to fixed daytime (12:00 PM) for deterministic testing
-    const clock = await TestClock.install(page);
+    // 1b. Mock browser clock to registration day (2026-09-11 12:00 PM)
+    const clock = await TestClock.install(page, "2026-09-11T12:00:00Z");
 
     // 2. Navigate directly to reflections screen
     await page.goto("/reflections");
@@ -35,6 +35,14 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     // 3. Verify screen rendered with Cola Diaria section
     const dailySection = page.getByText("Rutina del Día").first();
     await expect(dailySection).toBeVisible({ timeout: 10000 });
+
+    // Positive Verification: fresh user created today has NO past missed questions and exactly 1 gratitude card
+    await expect(
+      page.getByText("⏰ Pendientes de días anteriores"),
+    ).toBeHidden();
+    await expect(
+      page.getByTestId(`prompt-card-${SEEDED_IDS.gratitude}`),
+    ).toHaveCount(1);
 
     // -------------------------------------------------------------------------
     // 4. Answer Morning Routine Reflection (Text response)
@@ -140,8 +148,10 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     await expect(reloadedMorningCard).toBeVisible({ timeout: 5000 });
 
     // -------------------------------------------------------------------------
-    // 5. Verify Evening Routine Reflection is locked in "Más tarde hoy" section
+    // 5. Fast forward 2 days to 2026-09-13 (12:00 PM) to test lock & catch-up grace window
     // -------------------------------------------------------------------------
+    await clock.travelAndReload("2026-09-13T12:00:00Z");
+
     await expect(page.getByText("Más tarde hoy")).toBeVisible({
       timeout: 5000,
     });
@@ -209,8 +219,11 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     // -------------------------------------------------------------------------
     // 6. Skip a Question with Mandatory Reason
     // -------------------------------------------------------------------------
-    // Use first available "Saltear" button in the queue
-    const skipBtn = page.getByRole("button", { name: "Saltear" }).first();
+    // Target missed morning text question in the queue
+    const morningCardToSkip = page
+      .getByTestId(`prompt-card-missed-${SEEDED_IDS.morning}`)
+      .first();
+    const skipBtn = morningCardToSkip.getByRole("button", { name: "Saltear" });
     await expect(skipBtn).toBeVisible({ timeout: 5000 });
     await skipBtn.click();
 

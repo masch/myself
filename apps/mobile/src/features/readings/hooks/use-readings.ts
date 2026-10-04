@@ -1,6 +1,11 @@
 import { useMemo, useCallback, useEffect } from "react";
 import { useSQLiteContext } from "expo-sqlite";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  onlineManager,
+} from "@tanstack/react-query";
 import {
   type SupportedLocale,
   type CreateReadingInput,
@@ -10,6 +15,7 @@ import {
 } from "@myself/shared";
 import { SqliteReadingRepository } from "../infrastructure/sqlite-reading.repository";
 import { SyncEngine } from "@/infrastructure/sync/sync-engine";
+import { safeAsync } from "@/infrastructure/errors/safe-async";
 import { generateUUID } from "@/utils/uuid";
 import {
   getAllReadings,
@@ -39,9 +45,21 @@ export function useReadings(locale: SupportedLocale = "es") {
   const repository = useMemo(() => new SqliteReadingRepository(db), [db]);
   const syncEngine = useMemo(() => new SyncEngine(db), [db]);
 
-  // Initial and lifecycle sync in background
+  // Initial and lifecycle sync in background, and automatic sync upon network reconnection
   useEffect(() => {
-    syncEngine.syncAll().catch(() => {});
+    safeAsync(syncEngine.syncAll(), { source: "useReadings.initialSync" });
+
+    const unsubscribe = onlineManager.subscribe((isOnline) => {
+      if (isOnline) {
+        safeAsync(syncEngine.syncAll(), {
+          source: "useReadings.reconnectSync",
+        });
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, [syncEngine]);
 
   // Query: Reads instantly from local SQLite via repository
@@ -77,7 +95,10 @@ export function useReadings(locale: SupportedLocale = "es") {
     mutationFn: async (readingId: string) => {
       const logId = await repository.recordLog(readingId as EntityId);
       // Trigger eager push in background explicitly
-      void syncEngine.pushPendingOutbox().catch(() => {});
+      safeAsync(syncEngine.pushPendingOutbox(), {
+        source: "useReadings.recordLog",
+        readingId,
+      });
       return logId;
     },
     onSuccess: async () => {
@@ -89,7 +110,10 @@ export function useReadings(locale: SupportedLocale = "es") {
   const removeLogMutation = useMutation({
     mutationFn: async (readingId: string) => {
       await repository.deleteLastLog(readingId as EntityId);
-      void syncEngine.pushPendingOutbox().catch(() => {});
+      safeAsync(syncEngine.pushPendingOutbox(), {
+        source: "useReadings.removeLog",
+        readingId,
+      });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["readings"] });
@@ -111,7 +135,10 @@ export function useReadings(locale: SupportedLocale = "es") {
       });
 
       await repository.save(reading);
-      void syncEngine.pushPendingOutbox().catch(() => {});
+      safeAsync(syncEngine.pushPendingOutbox(), {
+        source: "useReadings.addReading",
+        readingId: reading.id,
+      });
       return reading.id;
     },
     onSuccess: async () => {
@@ -123,7 +150,10 @@ export function useReadings(locale: SupportedLocale = "es") {
   const deleteReadingMutation = useMutation({
     mutationFn: async (id: string) => {
       await repository.delete(id as EntityId);
-      void syncEngine.pushPendingOutbox().catch(() => {});
+      safeAsync(syncEngine.pushPendingOutbox(), {
+        source: "useReadings.deleteReading",
+        readingId: id,
+      });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["readings"] });
@@ -168,7 +198,10 @@ export function useReadings(locale: SupportedLocale = "es") {
         },
       });
       await repository.save(reading);
-      void syncEngine.pushPendingOutbox().catch(() => {});
+      safeAsync(syncEngine.pushPendingOutbox(), {
+        source: "useReadings.updateReading",
+        readingId: input.id,
+      });
       await queryClient.invalidateQueries({ queryKey: ["readings"] });
     },
     getTranslations,

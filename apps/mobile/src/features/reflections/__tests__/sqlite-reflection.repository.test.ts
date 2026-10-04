@@ -60,10 +60,10 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
 
     repo = new SqliteReflectionRepository(db);
 
-    // Create a test user in DB
+    // Create a test user in DB (created 2026-09-01)
     testUserId = generateEntityId();
     await db.runAsync(
-      "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+      "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, '2026-09-01T00:00:00Z')",
       [testUserId, "Test User", "test@example.com"],
     );
 
@@ -687,6 +687,17 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       for (let i = 0; i < missed.length - 1; i++) {
         expect(missed[i].missedDate <= missed[i + 1].missedDate).toBe(true);
       }
+    });
+
+    it("does not return missed questions for dates before user registration", async () => {
+      const freshUserId = generateEntityId();
+      await db.runAsync(
+        "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, '2026-09-15T10:00:00Z')",
+        [freshUserId, "Fresh User", "fresh@example.com"],
+      );
+      const today = "2026-09-15";
+      const missed = await repo.getMissedDailyQuestions(freshUserId, today);
+      expect(missed.length).toBe(0);
     });
   });
 

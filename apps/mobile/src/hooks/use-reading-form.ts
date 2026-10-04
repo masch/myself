@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { useReadings } from "./use-readings";
 import { useAuthors } from "./use-authors";
 import { type EntityId, type SupportedLocale } from "@myself/shared";
+import { safeAsync } from "@/infrastructure/errors/safe-async";
 
 export interface TranslationFormState {
   title: string;
@@ -50,8 +51,8 @@ export function useReadingForm({
   // Load existing translations if editing
   useEffect(() => {
     if (isEditing && id) {
-      void getTranslations(id)
-        .then((savedTranslations) => {
+      safeAsync(
+        getTranslations(id).then((savedTranslations) => {
           const es = savedTranslations.find((t) => t.locale === "es");
           const en = savedTranslations.find((t) => t.locale === "en");
           setTranslations({
@@ -64,8 +65,9 @@ export function useReadingForm({
               content: en?.content ?? "",
             },
           });
-        })
-        .catch(() => {});
+        }),
+        { source: "useReadingForm.loadTranslations", readingId: id },
+      );
     }
   }, [isEditing, id, getTranslations, initialTitle, initialContent]);
 
