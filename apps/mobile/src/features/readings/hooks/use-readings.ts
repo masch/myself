@@ -57,8 +57,21 @@ export function useReadings(locale: SupportedLocale = "es") {
       }
     });
 
+    const handleBrowserOnline = () => {
+      safeAsync(syncEngine.syncAll(), {
+        source: "useReadings.browserOnlineEvent",
+      });
+    };
+
+    if (typeof window !== "undefined" && window.addEventListener) {
+      window.addEventListener("online", handleBrowserOnline);
+    }
+
     return () => {
       unsubscribe();
+      if (typeof window !== "undefined" && window.removeEventListener) {
+        window.removeEventListener("online", handleBrowserOnline);
+      }
     };
   }, [syncEngine]);
 

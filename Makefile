@@ -11,8 +11,6 @@ help: ## Show this help menu
 API_DIR          := apps/api
 MOBILE_DIR       := apps/mobile
 SHARED_DIR       := packages/shared
-XDG_CONFIG_HOME  := $(CURDIR)/.wrangler-config
-export XDG_CONFIG_HOME
 
 # ── Monorepo Root Tasks (Turborepo) ──────────
 
@@ -87,6 +85,18 @@ check-e2e-web: ## Run Playwright browser E2E tests (Front ➔ API ➔ DB)
 	rm -f $(API_DIR)/test-e2e.db*
 	cd $(API_DIR) && TURSO_DATABASE_URL="file:test-e2e.db" bun run db:migrate
 	bunx playwright test
+
+.PHONY: check-e2e-web-ui
+check-e2e-web-ui: ## Run Playwright browser E2E tests in interactive UI mode
+	rm -f $(API_DIR)/test-e2e.db*
+	cd $(API_DIR) && TURSO_DATABASE_URL="file:test-e2e.db" bun run db:migrate
+	bunx playwright test --ui
+
+.PHONY: check-e2e-web-headed
+check-e2e-web-headed: ## Run Playwright browser E2E tests with visible browser window
+	rm -f $(API_DIR)/test-e2e.db*
+	cd $(API_DIR) && TURSO_DATABASE_URL="file:test-e2e.db" bun run db:migrate
+	bunx playwright test --headed
 
 .PHONY: check-format
 check-format: ## Check code formatting using prettier
@@ -427,6 +437,23 @@ api-docs: ## Display local API documentation endpoints
 	@echo "  OpenAPI 3.1 JSON Specification:  http://localhost:8787/doc"
 
 # ── Cloudflare Workers Tasks ─────────────────
+
+WRANGLER_CONFIG_DIR := $(CURDIR)/.wrangler-config
+WRANGLER_TARGETS    := \
+	api-cf-login \
+	api-cf-whoami \
+	api-dev-turso-local \
+	api-dev-turso-remote \
+	prd-api-deploy \
+	stg-api-deploy \
+	prd-api-tail \
+	stg-api-tail \
+	prd-api-secret-list \
+	stg-api-secret-list \
+	prd-api-secret-put \
+	stg-api-secret-put
+
+$(WRANGLER_TARGETS): export XDG_CONFIG_HOME := $(WRANGLER_CONFIG_DIR)
 
 .PHONY: api-cf-login
 api-cf-login: ## Authenticate wrangler with Cloudflare

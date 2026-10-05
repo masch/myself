@@ -26,6 +26,7 @@ export interface ReflectionRepositoryPort {
   getQuestionsForTheme(themeId: EntityId): Promise<ReflectionQuestion[]>;
   getAdHocQuestions(): Promise<ReflectionQuestion[]>;
   getDailyRoutineQuestions(userId: EntityId): Promise<ReflectionQuestion[]>;
+  getOptedOutRoutineQuestions(userId: EntityId): Promise<ReflectionQuestion[]>;
 
   // 2. User Preferences (Opt-out & Shortcuts)
   getUserPreferences(userId: EntityId): Promise<UserQuestionPreference[]>;

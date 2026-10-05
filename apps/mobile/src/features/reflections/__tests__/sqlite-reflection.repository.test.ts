@@ -657,6 +657,31 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       );
     });
 
+    it("retrieves opted-out routine questions via getOptedOutRoutineQuestions", async () => {
+      const initialRoutine = await repo.getDailyRoutineQuestions(testUserId);
+      const targetQuestion = initialRoutine[0];
+
+      // Initially no opted-out questions
+      const initialOptedOut =
+        await repo.getOptedOutRoutineQuestions(testUserId);
+      expect(initialOptedOut.some((q) => q.id === targetQuestion.id)).toBe(
+        false,
+      );
+
+      // Opt out
+      await repo.setRoutineOptOut(testUserId, targetQuestion.id, false);
+      const optedOut = await repo.getOptedOutRoutineQuestions(testUserId);
+      expect(optedOut.some((q) => q.id === targetQuestion.id)).toBe(true);
+
+      // Restore
+      await repo.setRoutineOptOut(testUserId, targetQuestion.id, true);
+      const restoredOptedOut =
+        await repo.getOptedOutRoutineQuestions(testUserId);
+      expect(restoredOptedOut.some((q) => q.id === targetQuestion.id)).toBe(
+        false,
+      );
+    });
+
     it("pins and unpins ad-hoc questions as shortcuts", async () => {
       const adHocQuestions = await repo.getAdHocQuestions();
       expect(adHocQuestions.length).toBeGreaterThanOrEqual(1);

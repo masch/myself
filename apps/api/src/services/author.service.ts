@@ -32,13 +32,19 @@ export class AuthorService {
   }
 
   async create(input: CreateAuthorInput): Promise<Author> {
+    const trimmedName = input.name.trim();
+    const existing = await this.authorRepo.findByName(trimmedName);
+    if (existing) {
+      return existing;
+    }
+
     const id = input.id ?? generateEntityId();
     const createdAt = DateTime.now();
     const bio = input.bio?.trim() || undefined;
 
     const author = new Author({
       id,
-      name: input.name.trim(),
+      name: trimmedName,
       bio,
       createdAt,
     });

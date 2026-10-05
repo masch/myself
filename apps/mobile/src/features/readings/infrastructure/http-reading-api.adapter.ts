@@ -71,7 +71,7 @@ export class HttpReadingApiAdapter {
       return await this.client.readings.create(input);
     } catch (error) {
       console.warn("[HttpReadingApiAdapter] postReading network error:", error);
-      return false;
+      throw error;
     }
   }
 
@@ -89,7 +89,7 @@ export class HttpReadingApiAdapter {
       });
     } catch (error) {
       console.warn("[HttpReadingApiAdapter] putReading network error:", error);
-      return false;
+      throw error;
     }
   }
 
@@ -101,7 +101,7 @@ export class HttpReadingApiAdapter {
         "[HttpReadingApiAdapter] deleteReading network error:",
         error,
       );
-      return false;
+      throw error;
     }
   }
 
@@ -118,7 +118,7 @@ export class HttpReadingApiAdapter {
       });
     } catch (error) {
       console.warn("[HttpReadingApiAdapter] postAuthor network error:", error);
-      return null;
+      throw error;
     }
   }
 }

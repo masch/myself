@@ -297,7 +297,7 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     ).toBeVisible({ timeout: 5000 });
 
     // -------------------------------------------------------------------------
-    // 6c. Routine Opt-Out ("Bajar" question from daily routine queue)
+    // 6c. Routine Opt-Out ("Bajar" question from daily routine queue) & Undo
     // -------------------------------------------------------------------------
     const optOutBtn = eveningCard.getByRole("button", {
       name: /Desuscribir de rutina|Bajar/i,
@@ -305,8 +305,55 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     await expect(optOutBtn).toBeVisible({ timeout: 5000 });
     await optOutBtn.click();
 
-    // Evening routine card should now disappear from the daily routine queue
+    // 1. Evening routine card should now disappear from the daily routine queue
     await expect(eveningCard).toBeHidden({ timeout: 5000 });
+
+    // 2. Toast banner should appear with "Pregunta dada de baja de tu rutina" and "Deshacer"
+    const toastBanner = page.getByTestId("toast-banner");
+    await expect(toastBanner).toBeVisible({ timeout: 5000 });
+    await expect(
+      toastBanner.getByText("Pregunta dada de baja de tu rutina"),
+    ).toBeVisible({ timeout: 5000 });
+    const optOutUndoBtn = toastBanner.getByRole("button", { name: "Deshacer" });
+    await expect(optOutUndoBtn).toBeVisible({ timeout: 5000 });
+
+    // 3. Test Undo: clicking "Deshacer" restores the card to the daily queue
+    await optOutUndoBtn.click();
+    await expect(eveningCard).toBeVisible({ timeout: 5000 });
+
+    // 4. Opt out again to test the "Preguntas Pausadas" collapsible section
+    const reOptOutBtn = eveningCard.getByRole("button", {
+      name: /Desuscribir de rutina|Bajar/i,
+    });
+    await expect(reOptOutBtn).toBeVisible({ timeout: 5000 });
+    await reOptOutBtn.click();
+    await expect(eveningCard).toBeHidden({ timeout: 5000 });
+
+    // 5. Expand "Preguntas Pausadas" section and verify "Reactivar"
+    await expect(page.getByText("Preguntas Pausadas (1)")).toBeVisible({
+      timeout: 5000,
+    });
+    const showPausedToggle = page.getByTestId("toggle-show-paused");
+    await expect(showPausedToggle).toBeVisible({ timeout: 5000 });
+    await showPausedToggle.click();
+
+    const pausedCard = page.getByTestId(`prompt-card-${SEEDED_IDS.evening}`);
+    await expect(pausedCard).toBeVisible({ timeout: 5000 });
+
+    const reactivateBtn = pausedCard.getByRole("button", {
+      name: /Suscribir a rutina|Reactivar/i,
+    });
+    await expect(reactivateBtn).toBeVisible({ timeout: 5000 });
+    await reactivateBtn.click();
+
+    // 6. Success toast appears, question is restored to the active queue, and paused section clears
+    await expect(
+      page.getByText("Pregunta reactivada en tu rutina"),
+    ).toBeVisible({ timeout: 5000 });
+    await expect(eveningCard).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Preguntas Pausadas")).toBeHidden({
+      timeout: 5000,
+    });
 
     // -------------------------------------------------------------------------
     // 7. Pin Ad-Hoc Question as Quick Shortcut

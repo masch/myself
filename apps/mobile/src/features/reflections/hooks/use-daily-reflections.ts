@@ -22,6 +22,9 @@ export function useDailyReflections() {
   const [routineQuestions, setRoutineQuestions] = useState<
     ReflectionQuestion[]
   >([]);
+  const [optedOutRoutineQuestions, setOptedOutRoutineQuestions] = useState<
+    ReflectionQuestion[]
+  >([]);
   const [adHocQuestions, setAdHocQuestions] = useState<ReflectionQuestion[]>(
     [],
   );
@@ -45,6 +48,7 @@ export function useDailyReflections() {
 
     if (!currentUser) {
       setRoutineQuestions([]);
+      setOptedOutRoutineQuestions([]);
       setAdHocQuestions([]);
       setPreferences([]);
       setMissedQuestions([]);
@@ -57,8 +61,9 @@ export function useDailyReflections() {
 
     try {
       setIsLoading(true);
-      const [routine, adHoc, prefs, missed] = await Promise.all([
+      const [routine, optedOut, adHoc, prefs, missed] = await Promise.all([
         repository.getDailyRoutineQuestions(currentUser.id as EntityId),
+        repository.getOptedOutRoutineQuestions(currentUser.id as EntityId),
         repository.getAdHocQuestions(),
         repository.getUserPreferences(currentUser.id as EntityId),
         repository.getMissedDailyQuestions(
@@ -70,6 +75,7 @@ export function useDailyReflections() {
       if (activeUserIdRef.current !== currentUserId) return;
 
       setRoutineQuestions(routine);
+      setOptedOutRoutineQuestions(optedOut);
       setAdHocQuestions(adHoc);
       setPreferences(prefs);
       setMissedQuestions(missed);
@@ -246,6 +252,7 @@ export function useDailyReflections() {
   return {
     currentUser,
     routineQuestions,
+    optedOutRoutineQuestions,
     adHocQuestions,
     pinnedQuestions,
     missedQuestions,
