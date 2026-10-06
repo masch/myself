@@ -188,7 +188,6 @@ export class SqliteReadingRepository implements ReadingRepository {
           target: meditationReadings.id,
           set: {
             authorId: reading.authorId,
-            version: reading.version,
           },
         });
 

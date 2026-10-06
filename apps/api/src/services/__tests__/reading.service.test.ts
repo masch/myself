@@ -257,4 +257,27 @@ describe("ReadingService Domain Application Service Unit Tests", () => {
       }),
     ).rejects.toThrow(ConflictError);
   });
+
+  it("preserves advanced version on create retry (idempotent upsert)", async () => {
+    const reading = await service.create({
+      authorId: testAuthorId,
+      translations: {
+        es: { title: "V1", content: "C1" },
+      },
+    });
+
+    // Update to version 2
+    await service.update(reading.id, {
+      version: 1,
+      translations: {
+        es: { title: "V2", content: "C2" },
+      },
+    });
+
+    // Client retries create with original id and version 1
+    await readingRepo.create(reading);
+
+    const stored = await service.findById(reading.id);
+    expect(stored?.version).toBe(2);
+  });
 });

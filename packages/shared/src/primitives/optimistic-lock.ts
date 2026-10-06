@@ -3,13 +3,12 @@ import { ConflictError } from "./errors";
 
 /**
  * Standard Zod schema for monotonic entity versions.
- * Starts at 1 and must be a positive integer.
+ * Must be a positive integer (>= 1).
  */
 export const versionSchema = z
   .number()
   .int("Version must be an integer")
-  .min(1, "Version must be at least 1")
-  .default(1);
+  .min(1, "Version must be at least 1");
 
 export type EntityVersion = z.infer<typeof versionSchema>;
 

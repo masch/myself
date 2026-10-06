@@ -3,12 +3,17 @@ import { assertOptimisticLock, versionSchema } from "../optimistic-lock";
 import { ConflictError } from "../errors";
 
 describe("versionSchema", () => {
-  it("validates positive integers and defaults to 1", () => {
-    expect(versionSchema.parse(undefined)).toBe(1);
+  it("validates positive integers and rejects invalid values", () => {
+    expect(versionSchema.parse(1)).toBe(1);
     expect(versionSchema.parse(5)).toBe(5);
     expect(() => versionSchema.parse(0)).toThrow();
     expect(() => versionSchema.parse(-1)).toThrow();
     expect(() => versionSchema.parse(1.5)).toThrow();
+  });
+
+  it("leaves optional version as undefined when omitted", () => {
+    const optionalSchema = versionSchema.optional();
+    expect(optionalSchema.parse(undefined)).toBeUndefined();
   });
 });
 
