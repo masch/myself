@@ -8,7 +8,7 @@ import {
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { colors, layout } from "@/theme";
+import { colors, layout, spacing } from "@/theme";
 import {
   ScreenContainer,
   Accordion,
@@ -20,6 +20,7 @@ import {
   NativeSwitch,
   SegmentedControl,
   Spinner,
+  useToast,
 } from "@/components";
 
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
@@ -43,11 +44,16 @@ import {
 
 type SectionTab = "daily" | "cohorts";
 
+/**
+ * Displays daily and cohort reflections, with answer and skip flows, routine
+ * opt-out undo, and controls for reactivating paused questions.
+ */
 export default function ReflectionsScreen() {
   const [currentTab, setCurrentTab] = useState<SectionTab>("daily");
 
   const {
     routineQuestions,
+    optedOutRoutineQuestions,
     adHocQuestions,
     pinnedQuestions,
     missedQuestions,
@@ -81,6 +87,26 @@ export default function ReflectionsScreen() {
     [currentDateTime],
   );
   const [showAnswered, setShowAnswered] = useState(true);
+  const [showPaused, setShowPaused] = useState(false);
+  const toast = useToast();
+
+  const handleToggleRoutineOptOut = useCallback(
+    async (questionId: EntityId, isEnabled: boolean) => {
+      try {
+        await toggleRoutineOptOut(questionId, isEnabled);
+        if (!isEnabled) {
+          toast.undo("Pregunta dada de baja de tu rutina", () => {
+            void toggleRoutineOptOut(questionId, true);
+          });
+        } else {
+          toast.success("Pregunta reactivada en tu rutina");
+        }
+      } catch (err) {
+        console.error("Failed to toggle routine opt-out:", err);
+      }
+    },
+    [toggleRoutineOptOut, toast],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -469,7 +495,7 @@ export default function ReflectionsScreen() {
                     onAnswer={() => handleOpenAnswer(q)}
                     onSkip={() => handleOpenSkip(q)}
                     onToggleOptOut={(enabled) =>
-                      void toggleRoutineOptOut(q.id, enabled)
+                      void handleToggleRoutineOptOut(q.id, enabled)
                     }
                   />
                 );
@@ -523,7 +549,7 @@ export default function ReflectionsScreen() {
                         onAnswer={() => handleOpenAnswer(q)}
                         onSkip={() => handleOpenSkip(q)}
                         onToggleOptOut={(enabled) =>
-                          void toggleRoutineOptOut(q.id, enabled)
+                          void handleToggleRoutineOptOut(q.id, enabled)
                         }
                       />
                     );
@@ -647,6 +673,57 @@ export default function ReflectionsScreen() {
                         />
                       ),
                     )}
+                  </Collapsible.Content>
+                </Collapsible>
+              )}
+
+              {/* ---------------------------------------------------- */}
+              {/* MACRO-BLOCK 3: PREGUNTAS PAUSADAS                    */}
+              {/* ---------------------------------------------------- */}
+              {optedOutRoutineQuestions.length > 0 && (
+                <Collapsible
+                  open={showPaused}
+                  onOpenChange={setShowPaused}
+                  style={styles.answeredMacroBlock}
+                >
+                  <View style={styles.macroBlockHeader}>
+                    <View style={{ flex: 1 }}>
+                      <ThemedText
+                        variant="headline"
+                        style={styles.sectionTitle}
+                      >
+                        Preguntas Pausadas ({optedOutRoutineQuestions.length})
+                      </ThemedText>
+                      <ThemedText
+                        variant="caption1"
+                        color={colors.secondaryLabel}
+                        style={styles.sectionSubtitle}
+                      >
+                        Preguntas dadas de baja de tu rutina. Podés reactivarlas
+                        cuando quieras.
+                      </ThemedText>
+                    </View>
+                    <NativeSwitch
+                      testID="toggle-show-paused"
+                      value={showPaused}
+                      onValueChange={setShowPaused}
+                      accessibilityLabel="Mostrar preguntas pausadas"
+                    />
+                  </View>
+
+                  <Collapsible.Content style={styles.pausedContent}>
+                    {optedOutRoutineQuestions.map((q) => (
+                      <PromptCard
+                        key={`opted-out-${q.id}`}
+                        question={q}
+                        isRoutine={true}
+                        isRoutineEnabled={false}
+                        onAnswer={() => handleOpenAnswer(q)}
+                        onToggleOptOut={(enabled) =>
+                          void handleToggleRoutineOptOut(q.id, enabled)
+                        }
+                      />
+                    ))}
                   </Collapsible.Content>
                 </Collapsible>
               )}
@@ -1065,7 +1142,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    gap: spacing.compact,
     marginBottom: 6,
+  },
+  pausedContent: {
+    marginTop: spacing.sm,
   },
 });

@@ -20,17 +20,14 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
     await page.goto("/readings");
     await expect(page).toHaveTitle(/myself|Readings/i);
 
-    // 3. Open New Reading Modal
-    // In mobile web, header or plus button navigates to modal
-    const plusButton = page
-      .locator('button, [role="button"]')
-      .filter({ hasText: /\+/ })
+    // 3. Open New Reading Modal via accessible header button or hero card button
+    const addReadingBtn = page
+      .getByRole("button", { name: /Add new reading/i })
+      .or(page.getByLabel(/Add new reading/i))
+      .or(page.locator('button, [role="button"]').filter({ hasText: /\+/ }))
       .first();
-    if (await plusButton.isVisible()) {
-      await plusButton.click();
-    } else {
-      await page.goto("/reading-modal");
-    }
+    await expect(addReadingBtn).toBeVisible({ timeout: 5000 });
+    await addReadingBtn.click();
 
     // 4. Create new author via UI ABM
     const newAuthorBtn = page.getByRole("button", { name: "+ New author" });
@@ -184,16 +181,14 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
     await page.goto("/readings");
     await expect(page).toHaveTitle(/myself|Readings/i);
 
-    // 2. Open New Reading Modal
-    const plusButton = page
-      .locator('button, [role="button"]')
-      .filter({ hasText: /\+/ })
+    // 2. Open New Reading Modal via accessible header button or hero card button
+    const addReadingBtn = page
+      .getByRole("button", { name: /Add new reading/i })
+      .or(page.getByLabel(/Add new reading/i))
+      .or(page.locator('button, [role="button"]').filter({ hasText: /\+/ }))
       .first();
-    if (await plusButton.isVisible()) {
-      await plusButton.click();
-    } else {
-      await page.goto("/reading-modal");
-    }
+    await expect(addReadingBtn).toBeVisible({ timeout: 5000 });
+    await addReadingBtn.click();
 
     // 3. Create new author
     const newAuthorBtn = page.getByRole("button", { name: "+ New author" });

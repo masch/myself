@@ -197,6 +197,20 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
     return rows.map((r) => this.mapQuestion(r));
   }
 
+  async getOptedOutRoutineQuestions(
+    userId: EntityId,
+  ): Promise<ReflectionQuestion[]> {
+    const rows = await this.db.getAllAsync<RawQuestion>(
+      `SELECT q.id, q.category_id, q.theme_id, q.prompt, q.periodicity, q.preferred_time_of_day, q.response_type, q.config, q.is_default_suggested, q.order_index, q.created_at 
+       FROM reflection_questions q
+       JOIN user_question_preferences p ON p.question_id = q.id AND p.user_id = ?
+       WHERE q.periodicity = 'daily' AND q.theme_id IS NULL AND p.is_enabled = 0
+       ORDER BY q.preferred_time_of_day ASC, q.order_index ASC`,
+      [userId],
+    );
+    return rows.map((r) => this.mapQuestion(r));
+  }
+
   async getUserPreferences(
     userId: EntityId,
   ): Promise<UserQuestionPreference[]> {

@@ -50,4 +50,18 @@ describe("AuthorService Domain Application Service Unit Tests", () => {
     expect(result.items.length).toBe(1);
     expect(result.total).toBe(2);
   });
+
+  it("returns existing author idempotently when creating with an already existing name", async () => {
+    const first = await service.create({
+      name: "Marcus Aurelius",
+      bio: "Roman Emperor",
+    });
+    const duplicate = await service.create({
+      name: "Marcus Aurelius",
+      bio: "Stoic Philosopher",
+    });
+
+    expect(duplicate.id).toBe(first.id);
+    expect(duplicate.name).toBe("Marcus Aurelius");
+  });
 });
