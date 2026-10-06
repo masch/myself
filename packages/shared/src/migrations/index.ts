@@ -3,6 +3,7 @@ import journal from "./meta/_journal.json";
 import m0000 from "./0000_hard_jigsaw.sql";
 import m0001 from "./0001_reflections_initial.sql";
 import m0002 from "./0002_item_list_reflections.sql";
+import m0003 from "./0003_add_readings_version.sql";
 
 export interface MigrationJournalEntry {
   idx: number;
@@ -29,5 +30,6 @@ export const SHARED_MIGRATIONS: SharedMigrationsBundle = {
     m0000,
     m0001,
     m0002,
+    m0003,
   },
 };

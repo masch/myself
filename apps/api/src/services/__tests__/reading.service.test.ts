@@ -211,4 +211,50 @@ describe("ReadingService Domain Application Service Unit Tests", () => {
     const fetched = await service.findById(reading.id);
     expect(fetched).toBeNull();
   });
+
+  it("increments reading version monotonically on successful update", async () => {
+    const reading = await service.create({
+      authorId: testAuthorId,
+      translations: {
+        es: { title: "V1", content: "C1" },
+      },
+    });
+    expect(reading.version).toBe(1);
+
+    const updated = await service.update(reading.id, {
+      version: 1,
+      translations: {
+        es: { title: "V2", content: "C2" },
+      },
+    });
+    expect(updated.version).toBe(2);
+  });
+
+  it("rejects concurrent update with ConflictError when version is stale", async () => {
+    const reading = await service.create({
+      authorId: testAuthorId,
+      translations: {
+        es: { title: "V1", content: "C1" },
+      },
+    });
+
+    // Client A updates to version 2
+    await service.update(reading.id, {
+      version: 1,
+      translations: {
+        es: { title: "Client A Edit", content: "C1" },
+      },
+    });
+
+    // Client B attempts to update with stale version 1
+    const { ConflictError } = await import("@myself/shared");
+    expect(
+      service.update(reading.id, {
+        version: 1,
+        translations: {
+          es: { title: "Client B Stale Edit", content: "C1" },
+        },
+      }),
+    ).rejects.toThrow(ConflictError);
+  });
 });

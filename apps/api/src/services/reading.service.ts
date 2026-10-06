@@ -5,6 +5,7 @@ import {
   type EntityId,
   generateEntityId,
   type ReadingTranslationsMap,
+  assertOptimisticLock,
   Reading,
 } from "@myself/shared";
 import type {
@@ -50,6 +51,8 @@ export class ReadingService {
       throw new NotFoundError(`Reading ${id} not found`);
     }
 
+    assertOptimisticLock(existing.version, input.version);
+
     const translations = this.validateTranslations(input.translations);
 
     const updated = new Reading({
@@ -58,6 +61,7 @@ export class ReadingService {
       createdAt: existing.createdAt,
       readDates: existing.readDates,
       translations,
+      version: existing.version + 1,
     });
 
     return this.readingRepo.update(updated);

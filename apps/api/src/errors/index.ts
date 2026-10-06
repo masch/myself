@@ -1,6 +1,10 @@
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { ErrorCode, HttpStatus } from "@myself/shared";
+import {
+  ErrorCode,
+  HttpStatus,
+  ConflictError as SharedConflictError,
+} from "@myself/shared";
 import type { AppEnv } from "../types";
 import { fail } from "../lib/response";
 
@@ -95,6 +99,13 @@ export class EntityNotFoundError extends NotFoundError {
 export function handleApiError(err: unknown, c: Context<AppEnv>) {
   if (err instanceof AppError) {
     return fail(c, err.message, err.status, err.code);
+  }
+
+  if (
+    err instanceof SharedConflictError ||
+    (err instanceof Error && err.name === "ConflictError")
+  ) {
+    return fail(c, err.message, HttpStatus.CONFLICT, ErrorCode.CONFLICT);
   }
 
   console.error("Unhandled API Error:", err);

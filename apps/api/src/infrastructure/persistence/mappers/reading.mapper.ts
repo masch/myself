@@ -11,6 +11,7 @@ export interface RawReadingRecord {
   createdAt: string;
   readDates?: string[];
   translations: ReadingTranslationsMap;
+  version?: number;
 }
 
 export class ReadingMapper {
@@ -21,6 +22,7 @@ export class ReadingMapper {
       createdAt: DateTime.from(raw.createdAt),
       readDates: (raw.readDates ?? []).map((dateStr) => DateTime.from(dateStr)),
       translations: raw.translations,
+      version: raw.version,
     });
   }
 }

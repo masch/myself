@@ -1,7 +1,7 @@
 import {
   DateTime,
   type EntityId,
-  generateEntityId,
+  generateAuthorId,
   Author,
 } from "@myself/shared";
 import type {
@@ -38,7 +38,7 @@ export class AuthorService {
       return existing;
     }
 
-    const id = input.id ?? generateEntityId();
+    const id = input.id ?? generateAuthorId(trimmedName);
     const createdAt = DateTime.now();
     const bio = input.bio?.trim() || undefined;
 

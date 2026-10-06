@@ -5,3 +5,5 @@ export * from "./error-handler.port";
 export * from "./errors";
 export * from "./http";
 export * from "./locale";
+export * from "./author-id";
+export * from "./optimistic-lock";
