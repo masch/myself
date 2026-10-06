@@ -11,6 +11,11 @@ import {
 import { SqliteReflectionRepository } from "../infrastructure/sqlite-reflection.repository";
 import { ExpoNotificationAdapter } from "../infrastructure/expo-notification.adapter";
 
+/**
+ * Loads the current user's daily questions, paused routines, preferences, and
+ * reflections from SQLite. Exposes loading state and actions to refresh,
+ * answer, skip, and update routine or shortcut preferences.
+ */
 export function useDailyReflections() {
   const db = useSQLiteContext();
   const { currentUser } = useAuth();
@@ -214,7 +219,9 @@ export function useDailyReflections() {
       if (!isEnabled) {
         await notificationService.cancelReminderForQuestion(questionId);
       } else {
-        const question = routineQuestions.find((q) => q.id === questionId);
+        const question =
+          routineQuestions.find((q) => q.id === questionId) ??
+          optedOutRoutineQuestions.find((q) => q.id === questionId);
         if (question?.preferredTimeOfDay) {
           await notificationService.scheduleDailyReminder(
             questionId,
@@ -226,7 +233,14 @@ export function useDailyReflections() {
 
       await refresh();
     },
-    [currentUser, repository, notificationService, routineQuestions, refresh],
+    [
+      currentUser,
+      repository,
+      notificationService,
+      routineQuestions,
+      optedOutRoutineQuestions,
+      refresh,
+    ],
   );
 
   const toggleAdHocShortcut = useCallback(

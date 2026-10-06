@@ -38,6 +38,10 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   );
 }
 
+/**
+ * Renders the app's route stack with authentication, color-scheme theming,
+ * and shared toast notifications.
+ */
 function AppNavigation() {
   const colorScheme = useColorScheme();
 

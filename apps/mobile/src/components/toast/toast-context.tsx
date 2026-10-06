@@ -16,6 +16,12 @@ export interface ToastProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Provides toast controls and renders one active toast, replacing any previous
+ * toast when shown. Defaults to dismissal after 4 seconds (or 8 seconds if an
+ * interactive action is provided); nonpositive durations keep the toast visible
+ * until dismissed or replaced.
+ */
 export function ToastProvider({ children }: ToastProviderProps) {
   const [currentToast, setCurrentToast] = useState<ToastOptions | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -37,7 +43,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
 
       setCurrentToast(options);
 
-      const duration = options.duration ?? 4000;
+      const defaultDuration = options.action ? 8000 : 4000;
+      const duration = options.duration ?? defaultDuration;
       if (duration > 0) {
         timerRef.current = setTimeout(() => {
           hide();
@@ -90,6 +97,10 @@ export function ToastProvider({ children }: ToastProviderProps) {
   );
 }
 
+/**
+ * Returns the nearest provider's show, hide, success, error, and undo controls.
+ * @throws {Error} When called outside a ToastProvider.
+ */
 export function useToast(): ToastContextValue {
   const context = useContext(ToastContext);
   if (!context) {

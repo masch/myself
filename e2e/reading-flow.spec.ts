@@ -20,9 +20,10 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
     await page.goto("/readings");
     await expect(page).toHaveTitle(/myself|Readings/i);
 
-    // 3. Open New Reading Modal via accessible header button
+    // 3. Open New Reading Modal via accessible header button or hero card button
     const addReadingBtn = page
-      .getByLabel(/Add new reading/i)
+      .getByRole("button", { name: /Add new reading/i })
+      .or(page.getByLabel(/Add new reading/i))
       .or(page.locator('button, [role="button"]').filter({ hasText: /\+/ }))
       .first();
     await expect(addReadingBtn).toBeVisible({ timeout: 5000 });
@@ -180,9 +181,10 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
     await page.goto("/readings");
     await expect(page).toHaveTitle(/myself|Readings/i);
 
-    // 2. Open New Reading Modal via accessible header button
+    // 2. Open New Reading Modal via accessible header button or hero card button
     const addReadingBtn = page
-      .getByLabel(/Add new reading/i)
+      .getByRole("button", { name: /Add new reading/i })
+      .or(page.getByLabel(/Add new reading/i))
       .or(page.locator('button, [role="button"]').filter({ hasText: /\+/ }))
       .first();
     await expect(addReadingBtn).toBeVisible({ timeout: 5000 });

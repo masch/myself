@@ -1,15 +1,12 @@
 import { describe, expect, it, mock } from "bun:test";
 import React from "react";
 import { renderToString } from "react-dom/server";
-import {
-  ToastBanner,
-  ToastProvider,
-  useToast,
-  type ToastOptions,
-} from "../index";
+import { ToastBanner } from "../toast-banner";
+import { ToastProvider, useToast } from "../toast-context";
+import type { ToastOptions } from "../types";
 
 describe("Toast System Components", () => {
-  it("renders ToastBanner when toast is provided", () => {
+  it("renders ToastBanner with assertive live region when toast is provided", () => {
     const toast: ToastOptions = {
       message: "Pregunta dada de baja",
       variant: "default",
@@ -19,7 +16,7 @@ describe("Toast System Components", () => {
     );
     expect(html).toContain("Pregunta dada de baja");
     expect(html).toContain('role="alert"');
-    expect(html).toContain('aria-live="polite"');
+    expect(html).toContain('aria-live="assertive"');
   });
 
   it("returns null when toast is null", () => {

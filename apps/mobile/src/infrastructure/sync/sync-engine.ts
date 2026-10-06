@@ -4,15 +4,43 @@ import { HttpReadingApiAdapter } from "../../features/readings/infrastructure/ht
 import type { SyncOutboxRecord } from "./types";
 import { type CreateReadingInput, type ErrorHandlerPort } from "@myself/shared";
 import { appErrorHandler } from "../errors/mobile-error-handler";
-import { ApiNetworkError, ApiTimeoutError } from "../http/errors";
+import { ApiHttpError, ApiNetworkError, ApiTimeoutError } from "../http/errors";
 
 const MAX_SYNC_ATTEMPTS = 5;
 
+/**
+ * Identifies transient connectivity failures by API error type or message text
+ * so the outbox can keep them pending. Returns false for non-transient client errors (4xx).
+ */
 export function isNetworkError(error: unknown): boolean {
   if (!error) return false;
-  if (error instanceof ApiNetworkError || error instanceof ApiTimeoutError) {
+
+  // 1. ApiHttpError: 4xx client errors (e.g. 400 Bad Request, 404, 422) are non-transient poison pills.
+  // 5xx and 408 Request Timeout are transient gateway/server errors.
+  if (
+    error instanceof ApiHttpError ||
+    (typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      typeof (error as { status: unknown }).status === "number")
+  ) {
+    const status = (error as { status: number }).status;
+    return status === 408 || status >= 500;
+  }
+
+  // 2. ApiNetworkError or ApiTimeoutError are always transient
+  if (
+    error instanceof ApiNetworkError ||
+    error instanceof ApiTimeoutError ||
+    (error instanceof Error &&
+      (error.name === "ApiNetworkError" ||
+        error.name === "ApiTimeoutError" ||
+        error.name === "AbortError"))
+  ) {
     return true;
   }
+
+  // 3. Network connection/transport errors (string or Error message)
   const str = String(error).toLowerCase();
   return (
     str.includes("network") ||
@@ -44,7 +72,7 @@ export class SyncEngine {
 
     try {
       await this.db.runAsync(
-        "UPDATE sync_outbox SET status = 'pending', attempts = 0 WHERE status = 'failed' AND (last_error LIKE '%network%' OR last_error LIKE '%timeout%' OR last_error LIKE '%failed to fetch%' OR last_error LIKE '%abort%' OR last_error LIKE '%offline%')",
+        "UPDATE sync_outbox SET status = 'pending', attempts = 0 WHERE status = 'failed' AND (last_error LIKE '%network%' OR last_error LIKE '%timeout%' OR last_error LIKE '%failed to fetch%' OR last_error LIKE '%connection refused%' OR last_error LIKE '%abort%' OR last_error LIKE '%offline%')",
       );
       await this.pushPendingOutbox();
       await this.pullRemoteUpdates();
@@ -101,24 +129,16 @@ export class SyncEngine {
 
             const remoteAuthorId = await this.apiAdapter.postAuthor(payload);
             if (remoteAuthorId) {
-              // Update local author and readings referencing the local id if remote returned a new id
               if (remoteAuthorId !== record.entityId) {
-                await this.db.runAsync(
-                  "UPDATE authors SET id = ? WHERE id = ?",
-                  [remoteAuthorId, record.entityId],
-                );
-                await this.db.runAsync(
-                  "UPDATE meditation_readings SET author_id = ? WHERE author_id = ?",
-                  [remoteAuthorId, record.entityId],
-                );
-
-                // Remap authorId in any pending outbox readings (both persistent SQLite and in-memory queue)
+                // Fetch pending readings to update before opening write transaction
                 const pendingReadings = await this.db.getAllAsync<{
                   id: string;
                   payload: string;
                 }>(
                   "SELECT id, payload FROM sync_outbox WHERE entity = 'reading' AND status = 'pending'",
                 );
+
+                const updatesToApply: { id: string; payload: string }[] = [];
                 for (const readingRec of pendingReadings) {
                   try {
                     const parsed =
@@ -127,16 +147,38 @@ export class SyncEngine {
                         : readingRec.payload;
                     if (parsed.authorId === record.entityId) {
                       parsed.authorId = remoteAuthorId;
-                      await this.db.runAsync(
-                        "UPDATE sync_outbox SET payload = ? WHERE id = ?",
-                        [JSON.stringify(parsed), readingRec.id],
-                      );
+                      updatesToApply.push({
+                        id: readingRec.id,
+                        payload: JSON.stringify(parsed),
+                      });
                     }
                   } catch {
                     // Ignore parse error
                   }
                 }
 
+                await this.db.withTransactionAsync(async () => {
+                  await this.db.runAsync(
+                    "UPDATE authors SET id = ? WHERE id = ?",
+                    [remoteAuthorId, record.entityId],
+                  );
+                  await this.db.runAsync(
+                    "UPDATE meditation_readings SET author_id = ? WHERE author_id = ?",
+                    [remoteAuthorId, record.entityId],
+                  );
+                  for (const upd of updatesToApply) {
+                    await this.db.runAsync(
+                      "UPDATE sync_outbox SET payload = ? WHERE id = ?",
+                      [upd.payload, upd.id],
+                    );
+                  }
+                  await this.db.runAsync(
+                    "UPDATE sync_outbox SET status = 'synced' WHERE id = ?",
+                    [record.id],
+                  );
+                });
+
+                // Remap in active in-memory queue for remaining items in this drain cycle
                 for (const item of pending) {
                   if (item.entity === "reading") {
                     try {
@@ -153,11 +195,12 @@ export class SyncEngine {
                     }
                   }
                 }
+              } else {
+                await this.db.runAsync(
+                  "UPDATE sync_outbox SET status = 'synced' WHERE id = ?",
+                  [record.id],
+                );
               }
-              await this.db.runAsync(
-                "UPDATE sync_outbox SET status = 'synced' WHERE id = ?",
-                [record.id],
-              );
             } else {
               await this.recordFailure(
                 record.id,

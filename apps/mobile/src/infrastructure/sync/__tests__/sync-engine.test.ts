@@ -4,6 +4,7 @@ import { type SQLiteDatabase } from "expo-sqlite";
 import { SyncEngine } from "../sync-engine";
 import type { ErrorHandlerPort } from "@myself/shared";
 import type { HttpReadingApiAdapter } from "../../../features/readings/infrastructure/http-reading-api.adapter";
+import { ApiHttpError } from "../../../infrastructure/http/errors";
 
 function createExpoSqliteAdapter(rawDb: Database): SQLiteDatabase {
   return {
@@ -22,6 +23,17 @@ function createExpoSqliteAdapter(rawDb: Database): SQLiteDatabase {
     },
     async execAsync(sql: string): Promise<void> {
       rawDb.run(sql);
+    },
+    async withTransactionAsync<T>(callback: () => Promise<T>): Promise<T> {
+      rawDb.run("BEGIN IMMEDIATE;");
+      try {
+        const result = await callback();
+        rawDb.run("COMMIT;");
+        return result;
+      } catch (err) {
+        rawDb.run("ROLLBACK;");
+        throw err;
+      }
     },
   } as unknown as SQLiteDatabase;
 }
@@ -298,5 +310,38 @@ describe("SyncEngine", () => {
     expect(pushedReadingPayload).not.toBeNull();
     // Must be updated to the new remote author id!
     expect(pushedReadingPayload.authorId).toBe("remote-auth-id");
+  });
+
+  it("marks outbox record as failed when error is a non-transient 400 Bad Request", async () => {
+    // Record already at MAX_SYNC_ATTEMPTS - 1 (4 attempts)
+    rawDb.run(`
+      INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, attempts, created_at)
+      VALUES ('outbox-http-400', 'author', 'author-1', 'CREATE', '{"id":"author-1","name":"Invalid"}', 'pending', 4, '2026-01-01T00:00:00.000Z');
+    `);
+
+    // HTTP 400 Bad Request error containing the word "timeout" in its server message
+    const mockApi = {
+      postAuthor: mock(() =>
+        Promise.reject(
+          new ApiHttpError(400, "Bad Request", {
+            error: "Validation failed: timeout param out of range",
+          }),
+        ),
+      ),
+      fetchReadings: mock(() => Promise.resolve([])),
+    } as unknown as HttpReadingApiAdapter;
+
+    const engine = new SyncEngine(db, mockApi, mockHandler);
+    await engine.pushPendingOutbox();
+
+    const record = rawDb
+      .query(
+        "SELECT attempts, status FROM sync_outbox WHERE id = 'outbox-http-400'",
+      )
+      .get() as { attempts: number; status: string };
+
+    // 400 Bad Request must NOT be marked transient; it must transition to 'failed' on 5th attempt
+    expect(record.attempts).toBe(5);
+    expect(record.status).toBe("failed");
   });
 });

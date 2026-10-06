@@ -8,7 +8,7 @@ import {
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { colors, layout } from "@/theme";
+import { colors, layout, spacing } from "@/theme";
 import {
   ScreenContainer,
   Accordion,
@@ -44,6 +44,10 @@ import {
 
 type SectionTab = "daily" | "cohorts";
 
+/**
+ * Displays daily and cohort reflections, with answer and skip flows, routine
+ * opt-out undo, and controls for reactivating paused questions.
+ */
 export default function ReflectionsScreen() {
   const [currentTab, setCurrentTab] = useState<SectionTab>("daily");
 
@@ -707,7 +711,7 @@ export default function ReflectionsScreen() {
                     />
                   </View>
 
-                  <Collapsible.Content style={{ marginTop: 6 }}>
+                  <Collapsible.Content style={styles.pausedContent}>
                     {optedOutRoutineQuestions.map((q) => (
                       <PromptCard
                         key={`opted-out-${q.id}`}
@@ -1138,7 +1142,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    gap: spacing.compact,
     marginBottom: 6,
+  },
+  pausedContent: {
+    marginTop: spacing.sm,
   },
 });

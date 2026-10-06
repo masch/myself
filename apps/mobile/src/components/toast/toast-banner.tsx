@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, radius, shadows, spacing } from "@/theme";
+import { colors, radius, shadows, spacing, typography } from "@/theme";
 import { ThemedText } from "../themed-text";
 import type { ToastOptions } from "./types";
 
@@ -10,6 +10,11 @@ export interface ToastBannerProps {
   onDismiss: () => void;
 }
 
+/**
+ * Renders an animated toast above the bottom safe-area inset, or nothing when
+ * no toast is active. Dismisses the toast before invoking the optional action
+ * to avoid clearing any subsequent toast spawned by that action.
+ */
 export function ToastBanner({ toast, onDismiss }: ToastBannerProps) {
   let insetsBottom = 0;
   try {
@@ -19,12 +24,12 @@ export function ToastBanner({ toast, onDismiss }: ToastBannerProps) {
     insetsBottom = 0;
   }
 
-  const [translateY] = useState(() => new Animated.Value(24));
+  const [translateY] = useState(() => new Animated.Value(spacing.lg));
   const [opacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (toast) {
-      translateY.setValue(24);
+      translateY.setValue(spacing.lg);
       opacity.setValue(0);
 
       Animated.parallel([
@@ -61,16 +66,16 @@ export function ToastBanner({ toast, onDismiss }: ToastBannerProps) {
   };
 
   const handleActionPress = () => {
+    onDismiss();
     if (toast.action?.onPress) {
       toast.action.onPress();
     }
-    onDismiss();
   };
 
   return (
     <Animated.View
       accessibilityRole="alert"
-      accessibilityLiveRegion="polite"
+      accessibilityLiveRegion="assertive"
       testID="toast-banner"
       style={[
         styles.container,
@@ -143,6 +148,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   actionLabel: {
-    fontWeight: "600",
+    fontWeight: typography.headline.fontWeight,
   },
 });
