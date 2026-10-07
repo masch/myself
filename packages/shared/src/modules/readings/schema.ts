@@ -1,4 +1,10 @@
-import { check, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  check,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { SUPPORTED_LOCALES, type EntityId } from "../../primitives";
 import { authors } from "../authors/schema";
@@ -10,6 +16,7 @@ export const meditationReadings = sqliteTable("meditation_readings", {
     .notNull()
     .references(() => authors.id, { onDelete: "cascade" }),
   createdAt: text("created_at").notNull(),
+  version: integer("version").notNull().default(1),
 });
 
 export const meditationReadingTranslations = sqliteTable(

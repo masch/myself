@@ -78,7 +78,8 @@ describe("E2E Vertical Integration: Mobile Front ➔ SQLite Outbox ➔ Hono API 
       CREATE TABLE IF NOT EXISTS meditation_readings (
         id TEXT PRIMARY KEY NOT NULL,
         author_id TEXT NOT NULL,
-        created_at TEXT DEFAULT (datetime('now'))
+        created_at TEXT DEFAULT (datetime('now')),
+        version INTEGER NOT NULL DEFAULT 1
       );
 
       CREATE TABLE IF NOT EXISTS meditation_reading_translations (

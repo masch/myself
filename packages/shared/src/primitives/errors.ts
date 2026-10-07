@@ -22,3 +22,13 @@ export interface ApiErrorResponse {
   error: string;
   code?: ErrorCode;
 }
+
+export class ConflictError extends Error {
+  readonly code: ErrorCode = ErrorCode.CONFLICT;
+  readonly status: number = 409;
+
+  constructor(message: string) {
+    super(message);
+    this.name = "ConflictError";
+  }
+}

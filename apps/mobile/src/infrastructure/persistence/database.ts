@@ -4,6 +4,7 @@ import { generateUUID } from "@/utils/uuid";
 import {
   SHARED_MIGRATIONS,
   DateTime,
+  generateAuthorId,
   type SupportedLocale,
   type UserDto as User,
   type TaskItem,
@@ -178,14 +179,20 @@ export async function addAuthor(
   name: string,
   bio: string = "",
 ): Promise<string> {
-  const id = generateUUID();
+  const trimmedName = name.trim();
+  const id = generateAuthorId(trimmedName);
+  const existing = await getAuthorById(db, id);
+  if (existing) {
+    return existing.id;
+  }
+
   const outboxId = generateUUID();
-  const payload = JSON.stringify({ id, name, bio });
+  const payload = JSON.stringify({ id, name: trimmedName, bio });
 
   await db.withTransactionAsync(async () => {
     await db.runAsync(
       "INSERT INTO authors (id, name, bio, created_at) VALUES (?, ?, ?, datetime('now'))",
-      [id, name, bio],
+      [id, trimmedName, bio],
     );
     await db.runAsync(
       `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)

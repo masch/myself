@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   entityIdSchema,
   dateTimeSchema,
+  versionSchema,
   type EntityId,
   type SupportedLocale,
 } from "../../../primitives";
@@ -43,6 +44,7 @@ export interface ReadingDto {
   createdAt: string;
   readDates: string[];
   translations: ReadingTranslationsMap;
+  version?: number;
 }
 
 export type SeedReading = ReadingDto;
@@ -66,6 +68,7 @@ export const readingPropsSchema = z.object({
     es: readingTranslationInputSchema,
     en: readingTranslationInputSchema.optional(),
   }),
+  version: versionSchema.optional(),
 });
 
 export const createReadingSchema = z.object({
@@ -75,6 +78,7 @@ export const createReadingSchema = z.object({
     es: readingTranslationInputSchema,
     en: readingTranslationInputSchema.optional(),
   }),
+  version: versionSchema.optional(),
 });
 
 export const updateReadingSchema = z.object({
@@ -83,6 +87,7 @@ export const updateReadingSchema = z.object({
     es: readingTranslationInputSchema,
     en: readingTranslationInputSchema.optional(),
   }),
+  version: versionSchema.optional(),
 });
 
 export const listReadingsQuerySchema = paginationQuerySchema.extend({
