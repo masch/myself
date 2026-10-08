@@ -82,6 +82,9 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
 
     const handleKeyPress = (e: TextInputKeyPressEvent) => {
       const nativeEvt = e?.nativeEvent as any;
+      if (nativeEvt?.isComposing || nativeEvt?.keyCode === 229) {
+        return;
+      }
       if (
         onSubmitShortcut &&
         (nativeEvt?.key === "Enter" || nativeEvt?.keyCode === 13) &&
@@ -95,6 +98,9 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
     };
 
     const handleKeyDown = (e: any) => {
+      if (e?.isComposing || e?.keyCode === 229) {
+        return;
+      }
       if (
         onSubmitShortcut &&
         (e?.key === "Enter" || e?.keyCode === 13) &&

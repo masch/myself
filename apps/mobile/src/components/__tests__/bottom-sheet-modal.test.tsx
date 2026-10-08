@@ -90,6 +90,23 @@ describe("AppBottomSheetModal component", () => {
     expect(scrollView.props.keyboardShouldPersistTaps).toBe("handled");
   });
 
+  it("renders footer outside ScrollView when provided to AppBottomSheetModal.Scroll", () => {
+    const element = AppBottomSheetModal.Scroll({
+      visible: true,
+      onClose: () => {},
+      children: <span key="5">Scrollable Compound Content</span>,
+      footer: <span key="footer">Pinned Footer</span>,
+    });
+
+    expect(element).not.toBeNull();
+    const provider = element?.props.children;
+    const content = provider.props.children;
+    const innerContent = content.props.innerContent;
+    const html = renderToString(innerContent);
+    expect(html).toContain("Scrollable Compound Content");
+    expect(html).toContain("Pinned Footer");
+  });
+
   describe("BottomSheetModalContent structure & keyboard edge calculations", () => {
     it("returns bottom edge when keyboard is closed", () => {
       expect(getBottomSheetSafeAreaEdges(false)).toEqual(["bottom"]);

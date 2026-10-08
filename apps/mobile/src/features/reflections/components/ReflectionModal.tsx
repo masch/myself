@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import {
   type EntityId,
   type ReflectionQuestion,
@@ -121,121 +121,131 @@ export function ReflectionModalContent({
 
   return (
     <View style={styles.content}>
-      <View style={styles.badgeRow}>
-        <Badge variant="neutral" label={badgeLabel} />
-      </View>
-
-      <AppMarkdownText style={[styles.promptText, { color: colors.label }]}>
-        {question.prompt}
-      </AppMarkdownText>
-
-      {isText ? (
-        <View style={styles.inputContainer}>
-          <ThemedTextInput
-            autoFocus
-            style={styles.textInput}
-            placeholder="Escribí tu respuesta con honestidad..."
-            value={content}
-            onChangeText={setContent}
-            onSubmitShortcut={handleSave}
-            multiline
-            numberOfLines={5}
-          />
-          <View style={styles.footerRow}>
-            <ThemedText
-              variant="caption2"
-              color={colors.secondaryLabel}
-              style={styles.shortcutHint}
-            >
-              Ctrl+Enter para guardar
-            </ThemedText>
-            <ThemedText
-              variant="caption2"
-              color={colors.secondaryLabel}
-              style={styles.charCount}
-            >
-              {content.length} caracteres
-            </ThemedText>
-          </View>
+      <ScrollView
+        style={styles.bodyScrollView}
+        contentContainerStyle={styles.bodyScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.badgeRow}>
+          <Badge variant="neutral" label={badgeLabel} />
         </View>
-      ) : isScale ? (
-        <ScaleSelector1To10
-          value={numericValue}
-          onChange={setNumericValue}
-          disabled={isSubmitting}
-        />
-      ) : (
-        <ItemListInput
-          ref={itemListRef}
-          items={items}
-          onChangeItems={setItems}
-          minItems={minItems}
-          maxItems={maxItems}
-          disabled={isSubmitting}
-          onSubmitShortcut={handleSave}
-          placeholder="Escribí un motivo de gratitud..."
-        />
-      )}
 
-      {/* Floating Keyboard Accessory Bar when Keyboard is Visible */}
-      {isKeyboardVisible ? (
-        <View
-          style={styles.keyboardAccessoryBar}
-          testID="keyboard-accessory-bar"
-        >
-          <View style={{ flex: 1 }}>
-            <AppButton
-              title="Cancelar"
-              variant="secondary"
-              onPress={onClose}
-              disabled={isSubmitting}
-              style={styles.compactButton}
+        <AppMarkdownText style={[styles.promptText, { color: colors.label }]}>
+          {question.prompt}
+        </AppMarkdownText>
+
+        {isText ? (
+          <View style={styles.inputContainer}>
+            <ThemedTextInput
+              autoFocus
+              style={styles.textInput}
+              placeholder="Escribí tu respuesta con honestidad..."
+              value={content}
+              onChangeText={setContent}
+              onSubmitShortcut={handleSave}
+              multiline
+              numberOfLines={5}
             />
+            <View style={styles.footerRow}>
+              <ThemedText
+                variant="caption2"
+                color={colors.secondaryLabel}
+                style={styles.shortcutHint}
+              >
+                Ctrl+Enter para guardar
+              </ThemedText>
+              <ThemedText
+                variant="caption2"
+                color={colors.secondaryLabel}
+                style={styles.charCount}
+              >
+                {content.length} caracteres
+              </ThemedText>
+            </View>
           </View>
-          {isItemList && (
-            <View style={{ flex: 1.2 }}>
+        ) : isScale ? (
+          <ScaleSelector1To10
+            value={numericValue}
+            onChange={setNumericValue}
+            disabled={isSubmitting}
+          />
+        ) : (
+          <ItemListInput
+            ref={itemListRef}
+            items={items}
+            onChangeItems={setItems}
+            minItems={minItems}
+            maxItems={maxItems}
+            disabled={isSubmitting}
+            onSubmitShortcut={handleSave}
+            placeholder="Escribí un motivo de gratitud..."
+          />
+        )}
+      </ScrollView>
+
+      {/* Fixed Modal Footer outside ScrollView */}
+      <View style={styles.modalFooter}>
+        {isKeyboardVisible ? (
+          <View
+            style={styles.keyboardAccessoryBar}
+            testID="keyboard-accessory-bar"
+          >
+            <View style={{ flex: 1 }}>
               <AppButton
-                title="Siguiente ↓"
+                title="Cancelar"
                 variant="secondary"
-                onPress={() => itemListRef.current?.focusNext()}
+                onPress={onClose}
                 disabled={isSubmitting}
                 style={styles.compactButton}
-                testID="keyboard-next-button"
               />
             </View>
-          )}
-          <View style={{ flex: 1.4 }}>
-            <AppButton
-              title={isSubmitting ? "Guardando..." : "Guardar"}
-              icon="sf:checkmark"
-              variant="primary"
-              onPress={handleSave}
-              disabled={!isValid || isSubmitting}
-              style={styles.compactButton}
-            />
+            {isItemList && (
+              <View style={{ flex: 1.2 }}>
+                <AppButton
+                  title="Siguiente ↓"
+                  variant="secondary"
+                  onPress={() => itemListRef.current?.focusNext()}
+                  disabled={isSubmitting}
+                  style={styles.compactButton}
+                  testID="keyboard-next-button"
+                />
+              </View>
+            )}
+            <View style={{ flex: 1.4 }}>
+              <AppButton
+                title={isSubmitting ? "Guardando..." : "Guardar"}
+                icon="sf:checkmark"
+                variant="primary"
+                onPress={handleSave}
+                disabled={!isValid || isSubmitting}
+                style={styles.compactButton}
+              />
+            </View>
           </View>
-        </View>
-      ) : (
-        /* Standard bottom action row when keyboard is NOT active */
-        <View style={styles.actionsRow}>
-          <View style={{ flex: 1 }}>
-            <AppButton
-              title="Cancelar"
-              variant="secondary"
-              onPress={onClose}
-              disabled={isSubmitting}
-            />
+        ) : (
+          /* Standard bottom action row when keyboard is NOT active */
+          <View style={styles.actionsRow}>
+            <View style={{ flex: 1 }}>
+              <AppButton
+                title="Cancelar"
+                variant="secondary"
+                onPress={onClose}
+                disabled={isSubmitting}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppButton
+                title={isSubmitting ? "Guardando..." : "Guardar"}
+                variant="primary"
+                onPress={handleSave}
+                disabled={!isValid || isSubmitting}
+              />
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <AppButton
-              title={isSubmitting ? "Guardando..." : "Guardar"}
-              variant="primary"
-              onPress={handleSave}
-              disabled={!isValid || isSubmitting}
-            />
-          </View>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 }
@@ -261,9 +271,10 @@ export function ReflectionModal({
   const key = `${question.id}-${initialContent ?? ""}-${initialNumericValue ?? ""}-${itemsKey}`;
 
   return (
-    <AppBottomSheetModal.Scroll
+    <AppBottomSheetModal
       visible={visible}
       onClose={onClose}
+      scrollable={false}
       maxWidth={580}
     >
       <ReflectionModalContent
@@ -276,13 +287,28 @@ export function ReflectionModal({
         onClose={onClose}
         isSubmitting={isSubmitting}
       />
-    </AppBottomSheetModal.Scroll>
+    </AppBottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
     width: "100%",
+    maxHeight: "100%",
+    display: "flex",
+    flexDirection: "column",
+  },
+  bodyScrollView: {
+    width: "100%",
+    flexShrink: 1,
+  },
+  bodyScrollContent: {
+    paddingBottom: spacing.sm,
+  },
+  modalFooter: {
+    width: "100%",
+    flexShrink: 0,
+    paddingTop: spacing.xs,
   },
   badgeRow: {
     flexDirection: "row",

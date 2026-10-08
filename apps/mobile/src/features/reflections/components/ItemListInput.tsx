@@ -8,11 +8,13 @@ import React, {
 import {
   View,
   StyleSheet,
+  Platform,
   type TextInput,
   type TextInputKeyPressEvent,
+  type TextInputContentSizeChangeEvent,
 } from "react-native";
 import { generateEntityId } from "@myself/shared";
-import { colors, spacing, radius } from "@/theme";
+import { colors, spacing, radius, layout } from "@/theme";
 import {
   ThemedText,
   ThemedTextInput,
@@ -84,6 +86,25 @@ export const ItemListInput = forwardRef<
     row: ItemListRow;
   } | null>(null);
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Dynamic row height tracking clamped between layout bounds for web multiline inputs
+  const [rowHeights, setRowHeights] = useState<Record<number, number>>({});
+
+  const handleContentSizeChange = (
+    index: number,
+    e: TextInputContentSizeChangeEvent,
+  ) => {
+    const measuredHeight = e.nativeEvent?.contentSize?.height;
+    if (typeof measuredHeight !== "number") return;
+    const clampedHeight = Math.min(
+      Math.max(measuredHeight, layout.inputMinHeight),
+      layout.inputMultilineMaxHeight,
+    );
+    setRowHeights((prev) => {
+      if (prev[index] === clampedHeight) return prev;
+      return { ...prev, [index]: clampedHeight };
+    });
+  };
 
   useEffect(() => {
     return () => {
@@ -160,7 +181,17 @@ export const ItemListInput = forwardRef<
   };
 
   const handleRowKeyPress = (index: number, e: TextInputKeyPressEvent) => {
+    if (Platform.OS !== "web") {
+      // On native mobile platforms, multiline TextInput onKeyPress only delivers { key }
+      // without shift modifier or preventDefault support. Row navigation is driven by
+      // returnKeyType/onSubmitEditing or the floating keyboard accessory bar.
+      return;
+    }
+
     const nativeEvt = e?.nativeEvent as any;
+    if (nativeEvt?.isComposing || nativeEvt?.keyCode === 229) {
+      return;
+    }
     if (
       (nativeEvt?.key === "Enter" || nativeEvt?.keyCode === 13) &&
       !nativeEvt?.shiftKey &&
@@ -173,6 +204,9 @@ export const ItemListInput = forwardRef<
   };
 
   const handleRowKeyDown = (index: number, e: any) => {
+    if (e?.isComposing || e?.keyCode === 229) {
+      return;
+    }
     if (
       (e?.key === "Enter" || e?.keyCode === 13) &&
       !e?.shiftKey &&
@@ -241,6 +275,7 @@ export const ItemListInput = forwardRef<
                 accessibilityLabel={`Ítem ${index + 1}`}
                 multiline
                 onFocus={() => setActiveRowIndex(index)}
+                onContentSizeChange={(e) => handleContentSizeChange(index, e)}
                 onKeyPress={(e) => handleRowKeyPress(index, e)}
                 {...({
                   onKeyDown: (e: any) => handleRowKeyDown(index, e),
@@ -249,7 +284,10 @@ export const ItemListInput = forwardRef<
                 onSubmitEditing={() => handleRowSubmit(index)}
                 onSubmitShortcut={onSubmitShortcut}
                 editable={!disabled}
-                style={styles.input}
+                style={[
+                  styles.input,
+                  rowHeights[index] ? { height: rowHeights[index] } : undefined,
+                ]}
               />
               <IconButton
                 icon="sf:trash"
@@ -325,16 +363,16 @@ const styles = StyleSheet.create({
     width: 24,
     textAlign: "right",
     fontWeight: "600",
-    paddingTop: 11,
+    paddingTop: layout.rowLabelTopOffset,
   },
   input: {
     flex: 1,
-    minHeight: 44,
-    maxHeight: 110,
+    minHeight: layout.inputMinHeight,
+    maxHeight: layout.inputMultilineMaxHeight,
   },
   deleteButton: {
-    width: 44,
-    height: 44,
+    width: layout.minInteractiveTarget,
+    height: layout.minInteractiveTarget,
     alignItems: "center",
     justifyContent: "center",
   },

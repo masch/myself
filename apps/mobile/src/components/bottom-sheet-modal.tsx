@@ -90,6 +90,7 @@ export interface BottomSheetModalProps extends BottomSheetModalBaseProps {
 
 export interface BottomSheetModalScrollProps extends BottomSheetModalBaseProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
+  footer?: ReactNode;
 }
 
 /**
@@ -271,24 +272,36 @@ function renderModalShell({
   );
 }
 
-export function AppBottomSheetModalScroll(props: BottomSheetModalScrollProps) {
+export function AppBottomSheetModalScroll({
+  footer,
+  ...props
+}: BottomSheetModalScrollProps) {
   if (!props.visible) return null;
+
+  const scrollView = (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={[
+        styles.scrollContent,
+        props.contentContainerStyle,
+      ]}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+    >
+      {props.children}
+    </ScrollView>
+  );
 
   return renderModalShell({
     ...props,
-    innerContent: (
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          props.contentContainerStyle,
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        {props.children}
-      </ScrollView>
+    innerContent: footer ? (
+      <>
+        {scrollView}
+        <View style={styles.scrollFooter}>{footer}</View>
+      </>
+    ) : (
+      scrollView
     ),
   });
 }
@@ -375,5 +388,11 @@ const styles = StyleSheet.create({
   nonScrollContent: {
     paddingHorizontal: spacing.lg - 4,
     paddingBottom: 0,
+  },
+  scrollFooter: {
+    paddingHorizontal: spacing.lg - 4,
+    paddingTop: spacing.xs,
+    width: "100%",
+    flexShrink: 0,
   },
 });
