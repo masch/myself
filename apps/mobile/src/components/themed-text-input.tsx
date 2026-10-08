@@ -1,4 +1,9 @@
-import React, { forwardRef, useImperativeHandle, useRef } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import {
   TextInput,
   StyleSheet,
@@ -7,6 +12,7 @@ import {
   type TextStyle,
   type NativeSyntheticEvent,
   type TargetedEvent,
+  type TextInputKeyPressEvent,
 } from "react-native";
 import {
   colors,
@@ -16,10 +22,12 @@ import {
   type TypographyVariant,
 } from "@/theme";
 import { useScrollContainer } from "./screen-container";
+import { useBottomSheetModalContext } from "./bottom-sheet-modal";
 
 export interface ThemedTextInputProps extends TextInputProps {
   variant?: TypographyVariant;
   style?: StyleProp<TextStyle>;
+  onSubmitShortcut?: () => void;
 }
 
 export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
@@ -30,6 +38,9 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
       style,
       multiline,
       onFocus,
+      autoFocus,
+      onSubmitShortcut,
+      onKeyPress,
       ...props
     },
     ref,
@@ -37,8 +48,30 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
     const typeStyle = typography[variant] ?? typography.body;
     const internalRef = useRef<TextInput>(null);
     const scrollContainer = useScrollContainer();
+    const modalLifecycle = useBottomSheetModalContext();
 
     useImperativeHandle(ref, () => internalRef.current as TextInput);
+
+    useEffect(() => {
+      if (!autoFocus || !modalLifecycle) {
+        return;
+      }
+
+      let isFocused = false;
+      const doFocus = () => {
+        if (isFocused) return;
+        isFocused = true;
+        internalRef.current?.focus();
+      };
+
+      const unsubscribe = modalLifecycle.subscribe(doFocus);
+      const timer = setTimeout(doFocus, 300);
+
+      return () => {
+        unsubscribe();
+        clearTimeout(timer);
+      };
+    }, [autoFocus, modalLifecycle]);
 
     const handleFocus = (e: NativeSyntheticEvent<TargetedEvent>) => {
       onFocus?.(e as any);
@@ -47,9 +80,38 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
       }
     };
 
+    const handleKeyPress = (e: TextInputKeyPressEvent) => {
+      const nativeEvt = e?.nativeEvent as any;
+      if (
+        onSubmitShortcut &&
+        (nativeEvt?.key === "Enter" || nativeEvt?.keyCode === 13) &&
+        (nativeEvt?.ctrlKey || nativeEvt?.metaKey)
+      ) {
+        nativeEvt?.preventDefault?.();
+        onSubmitShortcut();
+        return;
+      }
+      onKeyPress?.(e);
+    };
+
+    const handleKeyDown = (e: any) => {
+      if (
+        onSubmitShortcut &&
+        (e?.key === "Enter" || e?.keyCode === 13) &&
+        (e?.ctrlKey || e?.metaKey)
+      ) {
+        e?.preventDefault?.();
+        onSubmitShortcut();
+        return;
+      }
+      (props as any).onKeyDown?.(e);
+    };
+
     const finalAccessibilityLabel =
       props.accessibilityLabel ??
       (typeof props.placeholder === "string" ? props.placeholder : undefined);
+
+    const effectiveAutoFocus = modalLifecycle ? false : autoFocus;
 
     return (
       <TextInput
@@ -57,7 +119,10 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
         placeholderTextColor={placeholderTextColor}
         multiline={multiline}
         onFocus={handleFocus}
+        autoFocus={effectiveAutoFocus}
         accessibilityLabel={finalAccessibilityLabel}
+        onKeyPress={handleKeyPress}
+        {...({ onKeyDown: handleKeyDown } as any)}
         style={[styles.input, typeStyle, multiline && styles.multiline, style]}
         {...props}
       />

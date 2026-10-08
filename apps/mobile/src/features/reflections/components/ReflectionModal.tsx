@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import {
   type EntityId,
@@ -13,8 +13,13 @@ import {
   Badge,
   ThemedText,
   ThemedTextInput,
+  useBottomSheetModalKeyboard,
 } from "@/components";
-import { ItemListInput, type ItemListRow } from "./ItemListInput";
+import {
+  ItemListInput,
+  type ItemListRow,
+  type ItemListInputHandle,
+} from "./ItemListInput";
 import { ScaleSelector1To10 } from "./ScaleSelector1To10";
 
 interface ReflectionModalProps {
@@ -53,6 +58,8 @@ export function ReflectionModalContent({
   onClose: () => void;
   isSubmitting?: boolean;
 }) {
+  const itemListRef = useRef<ItemListInputHandle>(null);
+  const isKeyboardVisible = useBottomSheetModalKeyboard();
   const [content, setContent] = useState(initialContent);
   const [numericValue, setNumericValue] = useState<number | null>(
     initialNumericValue,
@@ -91,7 +98,7 @@ export function ReflectionModalContent({
       : items.filter((it) => it.content.trim().length > 0).length >= minItems;
 
   const handleSave = () => {
-    if (!isValid) return;
+    if (!isValid || isSubmitting) return;
     const cleanItems = items
       .map((it) => ({
         id: it.id as EntityId | undefined,
@@ -130,16 +137,26 @@ export function ReflectionModalContent({
             placeholder="Escribí tu respuesta con honestidad..."
             value={content}
             onChangeText={setContent}
+            onSubmitShortcut={handleSave}
             multiline
             numberOfLines={5}
           />
-          <ThemedText
-            variant="caption2"
-            color={colors.secondaryLabel}
-            style={styles.charCount}
-          >
-            {content.length} caracteres
-          </ThemedText>
+          <View style={styles.footerRow}>
+            <ThemedText
+              variant="caption2"
+              color={colors.secondaryLabel}
+              style={styles.shortcutHint}
+            >
+              Ctrl+Enter para guardar
+            </ThemedText>
+            <ThemedText
+              variant="caption2"
+              color={colors.secondaryLabel}
+              style={styles.charCount}
+            >
+              {content.length} caracteres
+            </ThemedText>
+          </View>
         </View>
       ) : isScale ? (
         <ScaleSelector1To10
@@ -149,33 +166,76 @@ export function ReflectionModalContent({
         />
       ) : (
         <ItemListInput
+          ref={itemListRef}
           items={items}
           onChangeItems={setItems}
           minItems={minItems}
           maxItems={maxItems}
           disabled={isSubmitting}
+          onSubmitShortcut={handleSave}
           placeholder="Escribí un motivo de gratitud..."
         />
       )}
 
-      <View style={styles.actionsRow}>
-        <View style={{ flex: 1 }}>
-          <AppButton
-            title="Cancelar"
-            variant="secondary"
-            onPress={onClose}
-            disabled={isSubmitting}
-          />
+      {/* Floating Keyboard Accessory Bar when Keyboard is Visible */}
+      {isKeyboardVisible ? (
+        <View
+          style={styles.keyboardAccessoryBar}
+          testID="keyboard-accessory-bar"
+        >
+          <View style={{ flex: 1 }}>
+            <AppButton
+              title="Cancelar"
+              variant="secondary"
+              onPress={onClose}
+              disabled={isSubmitting}
+              style={styles.compactButton}
+            />
+          </View>
+          {isItemList && (
+            <View style={{ flex: 1.2 }}>
+              <AppButton
+                title="Siguiente ↓"
+                variant="secondary"
+                onPress={() => itemListRef.current?.focusNext()}
+                disabled={isSubmitting}
+                style={styles.compactButton}
+                testID="keyboard-next-button"
+              />
+            </View>
+          )}
+          <View style={{ flex: 1.4 }}>
+            <AppButton
+              title={isSubmitting ? "Guardando..." : "Guardar"}
+              icon="sf:checkmark"
+              variant="primary"
+              onPress={handleSave}
+              disabled={!isValid || isSubmitting}
+              style={styles.compactButton}
+            />
+          </View>
         </View>
-        <View style={{ flex: 1 }}>
-          <AppButton
-            title={isSubmitting ? "Guardando..." : "Guardar"}
-            variant="primary"
-            onPress={handleSave}
-            disabled={!isValid || isSubmitting}
-          />
+      ) : (
+        /* Standard bottom action row when keyboard is NOT active */
+        <View style={styles.actionsRow}>
+          <View style={{ flex: 1 }}>
+            <AppButton
+              title="Cancelar"
+              variant="secondary"
+              onPress={onClose}
+              disabled={isSubmitting}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <AppButton
+              title={isSubmitting ? "Guardando..." : "Guardar"}
+              variant="primary"
+              onPress={handleSave}
+              disabled={!isValid || isSubmitting}
+            />
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 }
@@ -201,7 +261,11 @@ export function ReflectionModal({
   const key = `${question.id}-${initialContent ?? ""}-${initialNumericValue ?? ""}-${itemsKey}`;
 
   return (
-    <AppBottomSheetModal visible={visible} onClose={onClose} maxWidth={580}>
+    <AppBottomSheetModal.Scroll
+      visible={visible}
+      onClose={onClose}
+      maxWidth={580}
+    >
       <ReflectionModalContent
         key={key}
         question={question}
@@ -212,7 +276,7 @@ export function ReflectionModal({
         onClose={onClose}
         isSubmitting={isSubmitting}
       />
-    </AppBottomSheetModal>
+    </AppBottomSheetModal.Scroll>
   );
 }
 
@@ -238,13 +302,30 @@ const styles = StyleSheet.create({
     minHeight: 120,
     width: "100%",
   },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: spacing.xs,
+  },
+  shortcutHint: {
+    fontStyle: "italic",
+  },
   charCount: {
     textAlign: "right",
-    marginTop: spacing.xs,
   },
   actionsRow: {
     flexDirection: "row",
     gap: spacing.sm + 4,
     marginTop: spacing.sm + 2,
+  },
+  keyboardAccessoryBar: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
+    alignItems: "center",
+  },
+  compactButton: {
+    minHeight: 44,
   },
 });

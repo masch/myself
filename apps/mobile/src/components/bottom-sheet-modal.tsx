@@ -15,9 +15,66 @@ import {
 import { colors, spacing, radius } from "@/theme";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
+export interface ModalLifecycle {
+  readonly shown: boolean;
+  subscribe: (listener: () => void) => () => void;
+  notifyShow: () => void;
+}
+
+export function createModalLifecycle(): ModalLifecycle {
+  let isShown = false;
+  const listeners = new Set<() => void>();
+
+  return {
+    get shown() {
+      return isShown;
+    },
+    subscribe(listener: () => void) {
+      if (isShown) {
+        listener();
+        return () => {};
+      }
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    notifyShow() {
+      isShown = true;
+      listeners.forEach((listener) => {
+        try {
+          listener();
+        } catch (err) {
+          console.error("Error notifying modal show listener:", err);
+        }
+      });
+    },
+  };
+}
+
+export interface BottomSheetModalContextValue {
+  lifecycle: ModalLifecycle | null;
+  isKeyboardVisible: boolean;
+}
+
+export const BottomSheetModalContext =
+  React.createContext<BottomSheetModalContextValue | null>(null);
+
+export function useBottomSheetModalContext(): ModalLifecycle | null {
+  const ctx = React.useContext(BottomSheetModalContext);
+  return ctx?.lifecycle ?? null;
+}
+
+export function useBottomSheetModalKeyboard(): boolean {
+  const ctx = React.useContext(BottomSheetModalContext);
+  const fallback = useIsKeyboardVisible();
+  return ctx?.isKeyboardVisible ?? fallback;
+}
+
 export interface BottomSheetModalBaseProps {
   visible: boolean;
   onClose: () => void;
+  onShow?: () => void;
   children: ReactNode;
   maxWidth?: number;
   sheetStyle?: StyleProp<ViewStyle>;
@@ -91,6 +148,7 @@ export interface BottomSheetModalContentProps {
   keyboardVerticalOffset?: number;
   innerContent: ReactNode;
   isKeyboardVisible?: boolean;
+  modalLifecycle?: ModalLifecycle | null;
 }
 
 export function BottomSheetModalContent({
@@ -100,6 +158,7 @@ export function BottomSheetModalContent({
   keyboardVerticalOffset = 0,
   innerContent,
   isKeyboardVisible: controlledKeyboardVisible,
+  modalLifecycle,
 }: BottomSheetModalContentProps) {
   const { height: windowHeight } = useWindowDimensions();
   const screenHeight = Dimensions.get("screen")?.height ?? 0;
@@ -147,7 +206,14 @@ export function BottomSheetModalContent({
         ]}
       >
         <View style={styles.dragIndicator} />
-        {innerContent}
+        <BottomSheetModalContext.Provider
+          value={{
+            lifecycle: modalLifecycle ?? null,
+            isKeyboardVisible,
+          }}
+        >
+          {innerContent}
+        </BottomSheetModalContext.Provider>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -159,6 +225,7 @@ export const BottomSheetBody = BottomSheetModalContent;
 function renderModalShell({
   visible,
   onClose,
+  onShow,
   maxWidth = 580,
   sheetStyle,
   testID,
@@ -170,12 +237,20 @@ function renderModalShell({
 }) {
   if (!visible) return null;
 
+  const modalLifecycle = createModalLifecycle();
+
+  const handleShow = () => {
+    modalLifecycle.notifyShow();
+    onShow?.();
+  };
+
   return (
     <Modal
       visible={visible}
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      onShow={handleShow}
       testID={testID}
       accessibilityViewIsModal
       statusBarTranslucent
@@ -189,6 +264,7 @@ function renderModalShell({
           keyboardVerticalOffset={keyboardVerticalOffset}
           innerContent={innerContent}
           isKeyboardVisible={isKeyboardVisible}
+          modalLifecycle={modalLifecycle}
         />
       </SafeAreaProvider>
     </Modal>

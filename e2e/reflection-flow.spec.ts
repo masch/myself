@@ -75,8 +75,9 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     );
     await expect(saveBtn).toBeEnabled();
 
-    // Submit answer
-    await saveBtn.click();
+    // Submit answer via keyboard shortcut (Control+Enter)
+    await textInput.focus();
+    await page.keyboard.press("Control+Enter");
     await expect(textModal).toBeHidden({ timeout: 5000 });
 
     // Functional Verification: card updates immediately in Respondidas Hoy with exact content and edit button
@@ -404,25 +405,36 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     // Negative validation: cannot save with fewer than 3 items
     await expect(saveItemListBtn).toBeDisabled();
 
-    // Fill initial 3 rows using accessible textbox labels
+    // Fill initial rows and test keyboard interactions (multiline, Enter navigation, shortcut submit)
     const input1 = itemListModal.getByRole("textbox", { name: "Ítem 1" });
     const input2 = itemListModal.getByRole("textbox", { name: "Ítem 2" });
     const input3 = itemListModal.getByRole("textbox", { name: "Ítem 3" });
+
+    // 1. Multiline test with Shift+Enter in Item 1 (inserts newline without submitting or navigating)
+    await input1.focus();
     await input1.fill("Familia y afectos");
-    await input2.fill("Un buen café");
+    await page.keyboard.press("Shift+Enter");
+    await page.keyboard.type("y momentos de calma");
+    await expect(input1).toHaveValue("Familia y afectos\ny momentos de calma");
+
+    // 2. Keyboard navigation with Enter (moves focus from Item 1 to Item 2)
+    await page.keyboard.press("Enter");
+    await expect(input2).toBeFocused();
+    await page.keyboard.type("Un buen café");
     await expect(saveItemListBtn).toBeDisabled();
 
-    await input3.fill("Avances en el código");
+    // 3. Keyboard navigation with Enter (moves focus from Item 2 to Item 3)
+    await page.keyboard.press("Enter");
+    await expect(input3).toBeFocused();
+    await page.keyboard.type("Avances en el código");
     await expect(saveItemListBtn).toBeEnabled();
 
-    // Add 4th item via button
-    const addRowBtn = itemListModal.getByRole("button", {
-      name: "Agregar otro ítem a la lista",
-    });
-    await addRowBtn.click();
+    // 4. Pressing Enter on the last row automatically appends and focuses Item 4
+    await page.keyboard.press("Enter");
     const input4 = itemListModal.getByRole("textbox", { name: "Ítem 4" });
     await expect(input4).toBeVisible({ timeout: 5000 });
-    await input4.fill("Momento extra temporal");
+    await expect(input4).toBeFocused();
+    await page.keyboard.type("Momento extra temporal");
 
     // Delete 4th item and test undo
     const deleteBtn4 = itemListModal.getByRole("button", {
@@ -441,8 +453,9 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
     await deleteBtn4.click();
     await expect(input4).toBeHidden({ timeout: 5000 });
 
-    // Submit valid 3 items
-    await saveItemListBtn.click();
+    // Submit valid 3 items using Control+Enter shortcut
+    await input3.focus();
+    await page.keyboard.press("Control+Enter");
     await expect(itemListModal).toBeHidden({ timeout: 5000 });
 
     // Functional Verification: card shows answered preview with "3 momentos anotados" and "Ver lista"
@@ -457,7 +470,7 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
 
     // Expanded list renders items
     await expect(
-      unlockedGratitudeCard.getByText("Familia y afectos"),
+      unlockedGratitudeCard.getByText(/Familia y afectos/),
     ).toBeVisible({ timeout: 5000 });
     await expect(unlockedGratitudeCard.getByText("Un buen café")).toBeVisible({
       timeout: 5000,
