@@ -3,10 +3,12 @@ import React, {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
 } from "react";
 import {
   TextInput,
   StyleSheet,
+  Platform,
   type TextInputProps,
   type StyleProp,
   type TextStyle,
@@ -49,6 +51,7 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
     const internalRef = useRef<TextInput>(null);
     const scrollContainer = useScrollContainer();
     const modalLifecycle = useBottomSheetModalContext();
+    const [isFocused, setIsFocused] = useState(false);
 
     useImperativeHandle(ref, () => internalRef.current as TextInput);
 
@@ -74,10 +77,16 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
     }, [autoFocus, modalLifecycle]);
 
     const handleFocus = (e: NativeSyntheticEvent<TargetedEvent>) => {
+      setIsFocused(true);
       onFocus?.(e as any);
       if (scrollContainer && internalRef.current) {
         scrollContainer.scrollToFocusedInput(internalRef.current);
       }
+    };
+
+    const handleBlur = (e: NativeSyntheticEvent<TargetedEvent>) => {
+      setIsFocused(false);
+      props.onBlur?.(e as any);
     };
 
     const handleKeyPress = (e: TextInputKeyPressEvent) => {
@@ -119,17 +128,38 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
 
     const effectiveAutoFocus = modalLifecycle ? false : autoFocus;
 
+    const focusStyle = isFocused
+      ? {
+          borderColor: colors.systemGreen,
+          ...(Platform.OS === "web"
+            ? ({
+                outlineStyle: "none",
+                boxShadow: `0 0 0 1px ${String(colors.systemGreen)}`,
+              } as any)
+            : {}),
+        }
+      : Platform.OS === "web"
+        ? ({ outlineStyle: "none" } as any)
+        : undefined;
+
     return (
       <TextInput
         ref={internalRef}
         placeholderTextColor={placeholderTextColor}
         multiline={multiline}
         onFocus={handleFocus}
+        onBlur={handleBlur}
         autoFocus={effectiveAutoFocus}
         accessibilityLabel={finalAccessibilityLabel}
         onKeyPress={handleKeyPress}
         {...({ onKeyDown: handleKeyDown } as any)}
-        style={[styles.input, typeStyle, multiline && styles.multiline, style]}
+        style={[
+          styles.input,
+          typeStyle,
+          multiline && styles.multiline,
+          style,
+          focusStyle,
+        ]}
         {...props}
       />
     );

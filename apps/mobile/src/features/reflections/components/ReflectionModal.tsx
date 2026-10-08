@@ -304,6 +304,8 @@ const styles = StyleSheet.create({
   },
   bodyScrollContent: {
     paddingBottom: spacing.sm,
+    paddingHorizontal: 2,
+    paddingTop: 2,
   },
   modalFooter: {
     width: "100%",
@@ -332,7 +334,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
   shortcutHint: {
     fontStyle: "italic",
