@@ -1,7 +1,20 @@
-import React, { useRef, useState, useEffect } from "react";
-import { View, StyleSheet, type TextInput } from "react-native";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
+import {
+  View,
+  StyleSheet,
+  Platform,
+  type TextInput,
+  type TextInputKeyPressEvent,
+  type TextInputContentSizeChangeEvent,
+} from "react-native";
 import { generateEntityId } from "@myself/shared";
-import { colors, spacing, radius } from "@/theme";
+import { colors, spacing, radius, layout } from "@/theme";
 import {
   ThemedText,
   ThemedTextInput,
@@ -22,18 +35,39 @@ export interface ItemListInputProps {
   maxItems?: number | "unlimited";
   placeholder?: string;
   disabled?: boolean;
+  autoFocusFirstItem?: boolean;
+  onSubmitShortcut?: () => void;
 }
 
-export function ItemListInput({
-  items,
-  onChangeItems,
-  minItems = 1,
-  maxItems = "unlimited",
-  placeholder,
-  disabled = false,
-}: ItemListInputProps) {
+export interface ItemListInputHandle {
+  focusNext: () => void;
+}
+
+export const ItemListInput = forwardRef<
+  ItemListInputHandle,
+  ItemListInputProps
+>(function ItemListInput(
+  {
+    items,
+    onChangeItems,
+    minItems = 1,
+    maxItems = "unlimited",
+    placeholder,
+    disabled = false,
+    autoFocusFirstItem = true,
+    onSubmitShortcut,
+  },
+  ref,
+) {
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const focusTargetIndexRef = useRef<number | null>(null);
+  const [activeRowIndex, setActiveRowIndex] = useState<number>(0);
+
+  useImperativeHandle(ref, () => ({
+    focusNext: () => {
+      handleRowSubmit(activeRowIndex);
+    },
+  }));
 
   // Normalize incoming items to stable row objects
   const normalizedItems: ItemListRow[] = items.map((item, idx) => {
@@ -52,6 +86,25 @@ export function ItemListInput({
     row: ItemListRow;
   } | null>(null);
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Dynamic row height tracking clamped between layout bounds for web multiline inputs
+  const [rowHeights, setRowHeights] = useState<Record<number, number>>({});
+
+  const handleContentSizeChange = (
+    index: number,
+    e: TextInputContentSizeChangeEvent,
+  ) => {
+    const measuredHeight = e.nativeEvent?.contentSize?.height;
+    if (typeof measuredHeight !== "number") return;
+    const clampedHeight = Math.min(
+      Math.max(measuredHeight, layout.inputMinHeight),
+      layout.inputMultilineMaxHeight,
+    );
+    setRowHeights((prev) => {
+      if (prev[index] === clampedHeight) return prev;
+      return { ...prev, [index]: clampedHeight };
+    });
+  };
 
   useEffect(() => {
     return () => {
@@ -127,6 +180,44 @@ export function ItemListInput({
     setDeletedItem(null);
   };
 
+  const handleRowKeyPress = (index: number, e: TextInputKeyPressEvent) => {
+    if (Platform.OS !== "web") {
+      // On native mobile platforms, multiline TextInput onKeyPress only delivers { key }
+      // without shift modifier or preventDefault support. Row navigation is driven by
+      // returnKeyType/onSubmitEditing or the floating keyboard accessory bar.
+      return;
+    }
+
+    const nativeEvt = e?.nativeEvent as any;
+    if (nativeEvt?.isComposing || nativeEvt?.keyCode === 229) {
+      return;
+    }
+    if (
+      (nativeEvt?.key === "Enter" || nativeEvt?.keyCode === 13) &&
+      !nativeEvt?.shiftKey &&
+      !nativeEvt?.ctrlKey &&
+      !nativeEvt?.metaKey
+    ) {
+      nativeEvt?.preventDefault?.();
+      handleRowSubmit(index);
+    }
+  };
+
+  const handleRowKeyDown = (index: number, e: any) => {
+    if (e?.isComposing || e?.keyCode === 229) {
+      return;
+    }
+    if (
+      (e?.key === "Enter" || e?.keyCode === 13) &&
+      !e?.shiftKey &&
+      !e?.ctrlKey &&
+      !e?.metaKey
+    ) {
+      e?.preventDefault?.();
+      handleRowSubmit(index);
+    }
+  };
+
   const handleRowSubmit = (index: number) => {
     if (index < normalizedItems.length - 1) {
       inputRefs.current[index + 1]?.focus();
@@ -177,14 +268,26 @@ export function ItemListInput({
                 ref={(ref) => {
                   inputRefs.current[index] = ref;
                 }}
+                autoFocus={autoFocusFirstItem && index === 0}
                 value={row.content}
                 onChangeText={(text) => handleUpdate(index, text)}
                 placeholder={placeholder ?? `Momento ${index + 1}...`}
                 accessibilityLabel={`Ítem ${index + 1}`}
+                multiline
+                onFocus={() => setActiveRowIndex(index)}
+                onContentSizeChange={(e) => handleContentSizeChange(index, e)}
+                onKeyPress={(e) => handleRowKeyPress(index, e)}
+                {...({
+                  onKeyDown: (e: any) => handleRowKeyDown(index, e),
+                } as any)}
                 returnKeyType={isLast ? (canAdd ? "next" : "done") : "next"}
                 onSubmitEditing={() => handleRowSubmit(index)}
+                onSubmitShortcut={onSubmitShortcut}
                 editable={!disabled}
-                style={styles.input}
+                style={[
+                  styles.input,
+                  rowHeights[index] ? { height: rowHeights[index] } : undefined,
+                ]}
               />
               <IconButton
                 icon="sf:trash"
@@ -235,7 +338,7 @@ export function ItemListInput({
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -253,20 +356,23 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: spacing.sm,
   },
   indexLabel: {
     width: 24,
     textAlign: "right",
     fontWeight: "600",
+    paddingTop: layout.rowLabelTopOffset,
   },
   input: {
     flex: 1,
+    minHeight: layout.inputMinHeight,
+    maxHeight: layout.inputMultilineMaxHeight,
   },
   deleteButton: {
-    width: 32,
-    height: 32,
+    width: layout.minInteractiveTarget,
+    height: layout.minInteractiveTarget,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -46,4 +46,43 @@ describe("ThemedTextInput component", () => {
     );
     expect(html).toContain('aria-label="Nota de reflexión diaria"');
   });
+
+  it("renders with autoFocus without error outside of modal", () => {
+    const html = renderToString(
+      <ThemedTextInput placeholder="Foco nativo" autoFocus />,
+    );
+    expect(html).toContain("Foco nativo");
+  });
+
+  it("triggers onSubmitShortcut when Ctrl+Enter or Cmd+Enter is pressed", () => {
+    let shortcutTriggered = false;
+    let renderedElement: any = null;
+
+    function TestComponent() {
+      renderedElement = (ThemedTextInput as any).render(
+        {
+          onSubmitShortcut: () => {
+            shortcutTriggered = true;
+          },
+        },
+        null,
+      );
+      return null;
+    }
+
+    renderToString(<TestComponent />);
+
+    renderedElement.props.onKeyPress({
+      nativeEvent: { key: "Enter", ctrlKey: true, preventDefault: () => {} },
+    });
+    expect(shortcutTriggered).toBe(true);
+
+    shortcutTriggered = false;
+    renderedElement.props.onKeyDown({
+      key: "Enter",
+      metaKey: true,
+      preventDefault: () => {},
+    });
+    expect(shortcutTriggered).toBe(true);
+  });
 });
