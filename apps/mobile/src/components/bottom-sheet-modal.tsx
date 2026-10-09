@@ -223,6 +223,8 @@ export function BottomSheetModalContent({
 // Backwards-compatibility alias for tests
 export const BottomSheetBody = BottomSheetModalContent;
 
+let activeModalLifecycle: ModalLifecycle | null = null;
+
 function renderModalShell({
   visible,
   onClose,
@@ -236,9 +238,20 @@ function renderModalShell({
 }: BottomSheetModalBaseProps & {
   innerContent: ReactNode;
 }) {
-  if (!visible) return null;
+  if (!visible) {
+    activeModalLifecycle = null;
+    return null;
+  }
 
-  const modalLifecycle = createModalLifecycle();
+  if (!activeModalLifecycle) {
+    activeModalLifecycle = createModalLifecycle();
+  }
+  const modalLifecycle = activeModalLifecycle;
+
+  const handleClose = () => {
+    activeModalLifecycle = null;
+    onClose();
+  };
 
   const handleShow = () => {
     modalLifecycle.notifyShow();
@@ -250,7 +263,7 @@ function renderModalShell({
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
       onShow={handleShow}
       testID={testID}
       accessibilityViewIsModal
@@ -259,7 +272,7 @@ function renderModalShell({
     >
       <SafeAreaProvider style={styles.provider}>
         <BottomSheetModalContent
-          onClose={onClose}
+          onClose={handleClose}
           maxWidth={maxWidth}
           sheetStyle={sheetStyle}
           keyboardVerticalOffset={keyboardVerticalOffset}

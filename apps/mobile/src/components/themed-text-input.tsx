@@ -61,18 +61,30 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
       }
 
       let isFocused = false;
+      let androidTimer: ReturnType<typeof setTimeout> | null = null;
+
       const doFocus = () => {
         if (isFocused) return;
         isFocused = true;
-        internalRef.current?.focus();
+        if (Platform.OS === "android") {
+          // In Android Dialog windows (Modal), input requires a tick after onShow to acquire window focus
+          androidTimer = setTimeout(() => {
+            internalRef.current?.focus();
+          }, 150);
+        } else {
+          internalRef.current?.focus();
+        }
       };
 
       const unsubscribe = modalLifecycle.subscribe(doFocus);
-      const timer = setTimeout(doFocus, 300);
+      const timer = setTimeout(doFocus, 350);
 
       return () => {
         unsubscribe();
         clearTimeout(timer);
+        if (androidTimer) {
+          clearTimeout(androidTimer);
+        }
       };
     }, [autoFocus, modalLifecycle]);
 
@@ -126,7 +138,12 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
       props.accessibilityLabel ??
       (typeof props.placeholder === "string" ? props.placeholder : undefined);
 
-    const effectiveAutoFocus = modalLifecycle ? false : autoFocus;
+    const effectiveAutoFocus =
+      Platform.OS === "android"
+        ? autoFocus
+        : modalLifecycle
+          ? false
+          : autoFocus;
 
     const focusStyle = isFocused
       ? {
