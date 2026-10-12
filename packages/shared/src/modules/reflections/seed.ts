@@ -47,6 +47,14 @@ export interface SeedReflectionQuestion {
   orderIndex: number;
 }
 
+export interface SeedProgramStepContent {
+  id: EntityId;
+  questionId: EntityId;
+  videoUrl?: string | null;
+  preparatoryText: string;
+  createdAt: string;
+}
+
 export const SEED_REFLECTION_CATEGORIES: SeedReflectionCategory[] = [
   {
     id: "c1000000-0000-4000-8000-000000000001" as EntityId,
@@ -115,7 +123,7 @@ export const SEED_REFLECTION_QUESTIONS: SeedReflectionQuestion[] = [
     categoryId: "c1000000-0000-4000-8000-000000000001" as EntityId,
     themeId: "e1000000-0000-4000-8000-000000000001" as EntityId,
     prompt:
-      "¿Qué situaciones de hoy estuvieron completamente fuera de tu control y cómo reaccionaste?",
+      "Al final del día, anotá un momento en el que aplicaste esta distinción y cómo te sentiste ⭐",
     periodicity: "daily",
     preferredTimeOfDay: "20:00",
     responseType: "text",
@@ -276,5 +284,22 @@ export const SEED_REFLECTION_QUESTIONS: SeedReflectionQuestion[] = [
     responseType: "text",
     isDefaultSuggested: false,
     orderIndex: 0,
+  },
+];
+
+export const SEED_PROGRAM_STEP_CONTENTS: SeedProgramStepContent[] = [
+  {
+    id: "d1000000-0000-4000-8000-000000000001" as EntityId,
+    questionId: "b1000000-0000-4000-8000-000000000001" as EntityId,
+    videoUrl: "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
+    preparatoryText: `> "La tranquilidad comienza cuando distingues lo que depende de ti y lo que no." — Epicteto
+
+### Ejercicio Práctico
+Durante el día, cada vez que algo te genere frustración o ansiedad, hacé una pausa y preguntate:
+
+* **"¿Esto depende de mí o no?"**
+* Si depende de vos, actuá con claridad.
+* Si no depende de vos, soltá la tensión y repetí mentalmente: *"Elijo la calma."*`,
+    createdAt: "2026-09-01T00:00:00.000Z",
   },
 ];

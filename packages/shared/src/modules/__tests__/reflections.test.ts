@@ -10,6 +10,8 @@ import {
   userReflectionItemSchema,
   createSeedThemeCohorts,
   getTodayDateString,
+  programStepContentSchema,
+  SEED_PROGRAM_STEP_CONTENTS,
 } from "../reflections";
 import { generateEntityId, DateTime, type EntityId } from "../../primitives";
 
@@ -401,6 +403,66 @@ describe("Reflections Module - Zod Validation Schemas", () => {
       const fixedDateTime = DateTime.from("2026-05-10T12:00:00.000Z");
       expect(getTodayDateString(fixedDateTime)).toBe(
         DateTime.today(fixedDateTime).toISODate(),
+      );
+    });
+  });
+
+  describe("ProgramStepContent Schema & Seed", () => {
+    it("should validate a valid ProgramStepContent", () => {
+      const valid = programStepContentSchema.parse({
+        id: sampleId,
+        questionId,
+        videoUrl: "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
+        preparatoryText:
+          "La tranquilidad comienza cuando distingues lo que depende de ti y lo que no.",
+        createdAt: "2026-10-12T00:00:00.000Z",
+      });
+      expect(valid.videoUrl).toBe(
+        "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
+      );
+      expect(valid.preparatoryText).toContain("tranquilidad");
+    });
+
+    it("should reject ProgramStepContent with invalid url", () => {
+      expect(() =>
+        programStepContentSchema.parse({
+          id: sampleId,
+          questionId,
+          videoUrl: "not-a-valid-url",
+          preparatoryText: "Some text",
+          createdAt: "2026-10-12T00:00:00.000Z",
+        }),
+      ).toThrow();
+    });
+
+    it("should allow ProgramStepContent without videoUrl or with null", () => {
+      const withoutVideo = programStepContentSchema.parse({
+        id: sampleId,
+        questionId,
+        preparatoryText: "Solo ejercicio de reflexión sin video.",
+        createdAt: "2026-10-12T00:00:00.000Z",
+      });
+      expect(withoutVideo.videoUrl).toBeUndefined();
+
+      const withNullVideo = programStepContentSchema.parse({
+        id: sampleId,
+        questionId,
+        videoUrl: null,
+        preparatoryText: "Solo ejercicio de reflexión con null video.",
+        createdAt: "2026-10-12T00:00:00.000Z",
+      });
+      expect(withNullVideo.videoUrl).toBeNull();
+    });
+
+    it("should validate SEED_PROGRAM_STEP_CONTENTS correctly", () => {
+      expect(SEED_PROGRAM_STEP_CONTENTS.length).toBeGreaterThan(0);
+      const step1 = SEED_PROGRAM_STEP_CONTENTS[0];
+      expect(step1.videoUrl).toBe(
+        "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
+      );
+      expect(step1.preparatoryText).toContain("Epicteto");
+      expect(step1.questionId).toBe(
+        "b1000000-0000-4000-8000-000000000001" as EntityId,
       );
     });
   });
