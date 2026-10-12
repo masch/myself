@@ -45,6 +45,7 @@ export function YouTubePlayer({
         title={title}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
         style={{
           width: "100%",
           height: "100%",

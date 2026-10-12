@@ -40,6 +40,7 @@ export function YouTubePlayer({
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <style>
       body, html {
         margin: 0;
@@ -67,10 +68,11 @@ export function YouTubePlayer({
   <body>
     <div class="video-wrapper">
       <iframe
-        src="https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1&modestbranding=1&rel=0"
+        src="https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1&modestbranding=1&rel=0&origin=https://www.youtube-nocookie.com"
         title="${title}"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen>
+        allowfullscreen
+        referrerpolicy="strict-origin-when-cross-origin">
       </iframe>
     </div>
   </body>
@@ -85,7 +87,10 @@ export function YouTubePlayer({
       accessibilityLabel={accessibilityLabel}
     >
       <WebView
-        source={{ html: embedHtml }}
+        source={{
+          html: embedHtml,
+          baseUrl: "https://www.youtube-nocookie.com",
+        }}
         originWhitelist={["*"]}
         allowsFullscreenVideo
         allowsInlineMediaPlayback
