@@ -1,11 +1,13 @@
 import React, { useMemo } from "react";
 import {
   Text,
+  View,
   StyleSheet,
   Platform,
   type TextProps,
   type StyleProp,
   type TextStyle,
+  type ViewStyle,
 } from "react-native";
 import { colors } from "@/theme";
 
@@ -123,7 +125,288 @@ export function AppMarkdownText({
   );
 }
 
+export type MarkdownBlock =
+  | { type: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; text: string }
+  | { type: "blockquote"; text: string }
+  | { type: "unordered-list-item"; text: string }
+  | { type: "ordered-list-item"; index: number; text: string }
+  | { type: "paragraph"; text: string };
+
+/**
+ * Parses multi-line markdown text into structured document blocks:
+ * headings (#, ##, ###), blockquotes (>), lists (*, -, 1.), and paragraphs.
+ */
+export function parseMarkdownBlocks(rawText: string): MarkdownBlock[] {
+  const lines = rawText.split(/\r?\n/);
+  const blocks: MarkdownBlock[] = [];
+  let currentBlock: MarkdownBlock | null = null;
+
+  const flushCurrentBlock = () => {
+    if (currentBlock) {
+      blocks.push(currentBlock);
+      currentBlock = null;
+    }
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      flushCurrentBlock();
+      continue;
+    }
+
+    // Heading (# H1, ## H2, etc.)
+    const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (headingMatch) {
+      flushCurrentBlock();
+      blocks.push({
+        type: "heading",
+        level: headingMatch[1].length as 1 | 2 | 3 | 4 | 5 | 6,
+        text: headingMatch[2],
+      });
+      continue;
+    }
+
+    // Blockquote (> Quote)
+    const quoteMatch = trimmed.match(/^>\s?(.*)$/);
+    if (quoteMatch) {
+      const quoteText = quoteMatch[1];
+      if (currentBlock && currentBlock.type === "blockquote") {
+        currentBlock.text += "\n" + quoteText;
+      } else {
+        flushCurrentBlock();
+        currentBlock = { type: "blockquote", text: quoteText };
+      }
+      continue;
+    }
+
+    // Unordered list item (* Item, - Item, + Item)
+    const bulletMatch = trimmed.match(/^[*+-]\s+(.*)$/);
+    if (bulletMatch) {
+      flushCurrentBlock();
+      blocks.push({
+        type: "unordered-list-item",
+        text: bulletMatch[1],
+      });
+      continue;
+    }
+
+    // Ordered list item (1. Item, 2. Item)
+    const orderedMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (orderedMatch) {
+      flushCurrentBlock();
+      blocks.push({
+        type: "ordered-list-item",
+        index: parseInt(orderedMatch[1], 10),
+        text: orderedMatch[2],
+      });
+      continue;
+    }
+
+    // Paragraph (accumulate multi-line paragraph)
+    if (currentBlock && currentBlock.type === "paragraph") {
+      currentBlock.text += "\n" + trimmed;
+    } else {
+      flushCurrentBlock();
+      currentBlock = { type: "paragraph", text: trimmed };
+    }
+  }
+
+  flushCurrentBlock();
+  return blocks;
+}
+
+export interface AppMarkdownProps {
+  content?: string;
+  children?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+  paragraphStyle?: StyleProp<TextStyle>;
+  blockquoteStyle?: StyleProp<ViewStyle>;
+  blockquoteTextStyle?: StyleProp<TextStyle>;
+  listItemStyle?: StyleProp<TextStyle>;
+}
+
+/**
+ * Block-level Markdown document renderer that structures headings, blockquotes,
+ * bullet/ordered lists, and paragraphs, rendering inline text via AppMarkdownText.
+ */
+export function AppMarkdown({
+  content,
+  children,
+  style,
+  paragraphStyle,
+  blockquoteStyle,
+  blockquoteTextStyle,
+  listItemStyle,
+}: AppMarkdownProps) {
+  const rawText =
+    typeof content === "string"
+      ? content
+      : typeof children === "string"
+        ? children
+        : "";
+
+  const blocks: MarkdownBlock[] = useMemo(
+    () => (rawText ? parseMarkdownBlocks(rawText) : []),
+    [rawText],
+  );
+
+  if (!rawText) {
+    return null;
+  }
+
+  return (
+    <View style={[styles.container, style]}>
+      {blocks.map((block, index) => {
+        switch (block.type) {
+          case "heading": {
+            const headingStyle =
+              block.level === 1
+                ? styles.h1
+                : block.level === 2
+                  ? styles.h2
+                  : block.level === 3
+                    ? styles.h3
+                    : styles.h4;
+            return (
+              <AppMarkdownText key={index} style={headingStyle}>
+                {block.text}
+              </AppMarkdownText>
+            );
+          }
+          case "blockquote":
+            return (
+              <View key={index} style={[styles.blockquote, blockquoteStyle]}>
+                <AppMarkdownText
+                  style={[styles.blockquoteText, blockquoteTextStyle]}
+                  italicStyle={styles.italic}
+                >
+                  {block.text}
+                </AppMarkdownText>
+              </View>
+            );
+          case "unordered-list-item":
+            return (
+              <View key={index} style={styles.listItemRow}>
+                <Text style={styles.bulletMarker}>•</Text>
+                <AppMarkdownText
+                  style={[styles.listItemContent, listItemStyle]}
+                >
+                  {block.text}
+                </AppMarkdownText>
+              </View>
+            );
+          case "ordered-list-item":
+            return (
+              <View key={index} style={styles.listItemRow}>
+                <Text style={styles.orderedMarker}>{block.index}.</Text>
+                <AppMarkdownText
+                  style={[styles.listItemContent, listItemStyle]}
+                >
+                  {block.text}
+                </AppMarkdownText>
+              </View>
+            );
+          case "paragraph":
+            return (
+              <AppMarkdownText
+                key={index}
+                style={[styles.paragraph, paragraphStyle]}
+              >
+                {block.text}
+              </AppMarkdownText>
+            );
+        }
+      })}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  container: {
+    width: "100%",
+  },
+  paragraph: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.label,
+    marginVertical: 4,
+  },
+  h1: {
+    fontSize: 22,
+    fontWeight: "700",
+    lineHeight: 28,
+    color: colors.label,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  h2: {
+    fontSize: 19,
+    fontWeight: "700",
+    lineHeight: 25,
+    color: colors.label,
+    marginTop: 14,
+    marginBottom: 6,
+  },
+  h3: {
+    fontSize: 16,
+    fontWeight: "600",
+    lineHeight: 22,
+    color: colors.label,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  h4: {
+    fontSize: 15,
+    fontWeight: "600",
+    lineHeight: 21,
+    color: colors.label,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  blockquote: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.systemBlue,
+    paddingLeft: 12,
+    paddingVertical: 6,
+    marginVertical: 8,
+    backgroundColor: colors.systemGray15,
+    borderRadius: 4,
+  },
+  blockquoteText: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: colors.secondaryLabel,
+    fontStyle: "italic",
+  },
+  listItemRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginVertical: 3,
+  },
+  bulletMarker: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: colors.systemBlue,
+    marginRight: 8,
+    width: 14,
+    textAlign: "center",
+  },
+  orderedMarker: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: colors.secondaryLabel,
+    marginRight: 8,
+    minWidth: 18,
+    textAlign: "right",
+  },
+  listItemContent: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.label,
+  },
   bold: {
     fontWeight: "700",
   },

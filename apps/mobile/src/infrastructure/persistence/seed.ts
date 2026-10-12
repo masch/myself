@@ -9,6 +9,7 @@ import {
   SEED_REFLECTION_THEMES,
   SEED_THEME_COHORTS,
   SEED_REFLECTION_QUESTIONS,
+  SEED_PROGRAM_STEP_CONTENTS,
   createSeedThemeCohorts,
   type ReadingTranslationInput,
   type AuthorDto,
@@ -18,6 +19,7 @@ import {
   type SeedReflectionTheme,
   type SeedThemeCohort,
   type SeedReflectionQuestion,
+  type SeedProgramStepContent,
 } from "@myself/shared";
 import { type SQLiteDatabase } from "expo-sqlite";
 
@@ -30,6 +32,7 @@ export {
   SEED_REFLECTION_THEMES,
   SEED_THEME_COHORTS,
   SEED_REFLECTION_QUESTIONS,
+  SEED_PROGRAM_STEP_CONTENTS,
 };
 export type {
   ReadingTranslationInput,
@@ -40,6 +43,7 @@ export type {
   SeedReflectionTheme,
   SeedThemeCohort,
   SeedReflectionQuestion,
+  SeedProgramStepContent,
 };
 
 export interface SeedDatabaseOptions {
@@ -236,6 +240,24 @@ export async function seedDatabase(
         q.config ? JSON.stringify(q.config) : null,
         q.isDefaultSuggested ? 1 : 0,
         q.orderIndex,
+      ],
+    );
+  }
+
+  // 7. Always Sync / Upsert Program Step Contents
+  for (const content of SEED_PROGRAM_STEP_CONTENTS) {
+    await db.runAsync(
+      `INSERT INTO program_step_contents (id, question_id, video_url, preparatory_text, created_at)
+       VALUES (?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(id) DO UPDATE SET
+         question_id = excluded.question_id,
+         video_url = excluded.video_url,
+         preparatory_text = excluded.preparatory_text`,
+      [
+        content.id,
+        content.questionId,
+        content.videoUrl ?? null,
+        content.preparatoryText,
       ],
     );
   }

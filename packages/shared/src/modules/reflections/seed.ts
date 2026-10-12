@@ -81,6 +81,16 @@ export const SEED_REFLECTION_THEMES: SeedReflectionTheme[] = [
     catchUpWindowDays: 2,
     editWindowDays: 3,
   },
+  {
+    id: "e2000000-0000-4000-8000-000000000001" as EntityId,
+    categoryId: "c1000000-0000-4000-8000-000000000001" as EntityId,
+    title: "Dicotomía del Control Estoico",
+    description:
+      "Aprende a distinguir lo que depende de ti y lo que no, para actuar con serenidad y claridad mental.",
+    targetQuestionCount: 1,
+    catchUpWindowDays: 2,
+    editWindowDays: 3,
+  },
 ];
 
 export function getTodayDateString(now?: DateTime): string {
@@ -112,6 +122,16 @@ export function createSeedThemeCohorts(
       enrollmentGraceDays: 2,
       status: "open_for_enrollment",
     },
+    {
+      id: "a2000000-0000-4000-8000-000000000001" as EntityId,
+      themeId: "e2000000-0000-4000-8000-000000000001" as EntityId,
+      name: "Convocatoria Dicotomía del Control",
+      enrollmentStartDate: baseDt.addDays(-7).toISODate(),
+      enrollmentEndDate: baseDt.addDays(30).toISODate(),
+      programStartDate: baseDt.toISODate(),
+      enrollmentGraceDays: 2,
+      status: "open_for_enrollment",
+    },
   ];
 }
 
@@ -123,7 +143,7 @@ export const SEED_REFLECTION_QUESTIONS: SeedReflectionQuestion[] = [
     categoryId: "c1000000-0000-4000-8000-000000000001" as EntityId,
     themeId: "e1000000-0000-4000-8000-000000000001" as EntityId,
     prompt:
-      "Al final del día, anotá un momento en el que aplicaste esta distinción y cómo te sentiste ⭐",
+      "¿Qué situaciones de hoy estuvieron completamente fuera de tu control y cómo reaccionaste?",
     periodicity: "daily",
     preferredTimeOfDay: "20:00",
     responseType: "text",
@@ -285,21 +305,33 @@ export const SEED_REFLECTION_QUESTIONS: SeedReflectionQuestion[] = [
     isDefaultSuggested: false,
     orderIndex: 0,
   },
+  {
+    id: "b4000000-0000-4000-8000-000000000001" as EntityId,
+    categoryId: "c1000000-0000-4000-8000-000000000001" as EntityId,
+    themeId: "e2000000-0000-4000-8000-000000000001" as EntityId,
+    prompt:
+      "Al final del día, anotá un momento en el que aplicaste esta distinción y cómo te sentiste ⭐",
+    periodicity: "daily",
+    preferredTimeOfDay: "20:00",
+    responseType: "text",
+    isDefaultSuggested: false,
+    orderIndex: 1,
+  },
 ];
 
 export const SEED_PROGRAM_STEP_CONTENTS: SeedProgramStepContent[] = [
   {
-    id: "d1000000-0000-4000-8000-000000000001" as EntityId,
-    questionId: "b1000000-0000-4000-8000-000000000001" as EntityId,
+    id: "d2000000-0000-4000-8000-000000000001" as EntityId,
+    questionId: "b4000000-0000-4000-8000-000000000001" as EntityId,
     videoUrl: "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
     preparatoryText: `> "La tranquilidad comienza cuando distingues lo que depende de ti y lo que no." — Epicteto
 
 ### Ejercicio Práctico
 Durante el día, cada vez que algo te genere frustración o ansiedad, hacé una pausa y preguntate:
 
-* **"¿Esto depende de mí o no?"**
-* Si depende de vos, actuá con claridad.
-* Si no depende de vos, soltá la tensión y repetí mentalmente: *"Elijo la calma."*`,
+* **¿Esto depende de mí o no?**
+* **Si depende de vos, actuá con claridad.**
+* **Si no depende de vos, soltá la tensión y repetí mentalmente: "Elijo la calma."**`,
     createdAt: "2026-09-01T00:00:00.000Z",
   },
 ];

@@ -376,7 +376,7 @@ describe("Reflections Module - Zod Validation Schemas", () => {
   describe("Dynamic Seed Theme Cohorts", () => {
     it("generates cohort starting on provided base date", () => {
       const cohorts = createSeedThemeCohorts("2026-09-30");
-      expect(cohorts.length).toBe(2);
+      expect(cohorts.length).toBe(3);
       // Historical cohort
       expect(cohorts[0].id).toBe(
         "a1000000-0000-4000-8000-000000000001" as EntityId,
@@ -397,7 +397,7 @@ describe("Reflections Module - Zod Validation Schemas", () => {
     it("generates dynamic cohort starting today when base date is omitted", () => {
       const todayStr = getTodayDateString();
       const cohorts = createSeedThemeCohorts();
-      expect(cohorts.length).toBe(2);
+      expect(cohorts.length).toBe(3);
       expect(cohorts[1].programStartDate).toBe(todayStr);
 
       const fixedDateTime = DateTime.from("2026-05-10T12:00:00.000Z");
@@ -462,7 +462,7 @@ describe("Reflections Module - Zod Validation Schemas", () => {
       );
       expect(step1.preparatoryText).toContain("Epicteto");
       expect(step1.questionId).toBe(
-        "b1000000-0000-4000-8000-000000000001" as EntityId,
+        "b4000000-0000-4000-8000-000000000001" as EntityId,
       );
     });
   });

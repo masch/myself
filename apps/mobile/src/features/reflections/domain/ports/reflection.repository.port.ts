@@ -2,6 +2,7 @@ import type {
   CreateReflectionInput,
   DateTime,
   EntityId,
+  ProgramStepContent,
   ReflectionCategory,
   ReflectionQuestion,
   ReflectionTheme,
@@ -15,6 +16,7 @@ export interface ActiveCohortProgressDetail extends UserThemeProgress {
   theme: ReflectionTheme;
   cohort: ThemeCohort;
   currentQuestion: ReflectionQuestion | null;
+  currentStepContent?: ProgramStepContent | null;
 }
 
 export interface ReflectionRepositoryPort {
@@ -24,6 +26,9 @@ export interface ReflectionRepositoryPort {
   getOpenCohorts(): Promise<ThemeCohort[]>;
   getCohortById(cohortId: EntityId): Promise<ThemeCohort | null>;
   getQuestionsForTheme(themeId: EntityId): Promise<ReflectionQuestion[]>;
+  getProgramStepContentForQuestion(
+    questionId: EntityId,
+  ): Promise<ProgramStepContent | null>;
   getAdHocQuestions(): Promise<ReflectionQuestion[]>;
   getDailyRoutineQuestions(userId: EntityId): Promise<ReflectionQuestion[]>;
   getOptedOutRoutineQuestions(userId: EntityId): Promise<ReflectionQuestion[]>;

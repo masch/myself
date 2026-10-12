@@ -31,14 +31,15 @@ Add dedicated multimedia preparatory content (`program_step_contents`) for cohor
 ## Tasks
 
 - [x] **TASK-1**: Shared Schema & Types: Define `program_step_contents` in Drizzle SQLite schema, Zod schema, types, and seed data (with optional `video_url`).
-- [ ] **TASK-2**: Persistence & Repository: Create table in SQLite schema, seed data in `seed.ts`, and load `programStepContent` in `SqliteReflectionRepository`.
-- [ ] **TASK-3**: Universal Video Player: Install `react-native-webview` and implement `YouTubePlayer` component.
-- [ ] **TASK-4**: Cohort Step UI Flow: Display video player (when present) and preparatory exercise text before the answer prompt in `reflections.tsx`.
-- [ ] **TASK-5**: Verification & Quality Gates: Run test suites, typechecks, lint, format, and commit evidence.
+- [x] **TASK-2**: Persistence & Repository: Create table in SQLite schema, seed data in `seed.ts`, and load `programStepContent` in `SqliteReflectionRepository`.
+- [x] **TASK-3**: Universal Video Player: Install `react-native-webview` and implement `YouTubePlayer` component.
+- [x] **TASK-4**: Cohort Step UI Flow: Display video player (when present) and preparatory exercise text before the answer prompt in `reflections.tsx`.
+- [x] **TASK-5**: Verification & Quality Gates: Run test suites, typechecks, lint, format, and commit evidence.
 
 ## Evidence & Verification
 
-- `make check-tests`: 326 pass, 0 fail (covering `programStepContentSchema` validation with and without `videoUrl`, and `SEED_PROGRAM_STEP_CONTENTS`).
-- `make check-types`: 3 packages typechecked clean without errors.
-- `make check-lint`: ESLint and expo lint passed with 0 errors.
+- `make check-tests`: 335 pass, 0 fail (across 44 files, including `programStepContentSchema` validation, `SEED_PROGRAM_STEP_CONTENTS`, `extractYouTubeVideoId`, and `SqliteReflectionRepository.getProgramStepContentForQuestion`).
+- `make check-types`: 3 packages (`@myself/api`, `@myself/mobile`, `@myself/shared`) typechecked clean without errors.
+- `make check-lint`: ESLint and expo lint passed with 0 errors across monorepo.
 - `make check-format`: Prettier format verified clean across the repository.
+- **Completion & Delivery**: Completed on branch `feat/cohort-video-step-content` (closes #77).

@@ -551,6 +551,33 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       ).rejects.toThrow(/Item list reflection requires at least 3 items/);
     });
 
+    it("returns program step content for active cohort and question", async () => {
+      const cohorts = await repo.getOpenCohorts();
+      const cohort =
+        cohorts.find(
+          (c) => c.themeId === "e2000000-0000-4000-8000-000000000001",
+        ) ?? cohorts[0];
+      await repo.enrollInCohort(testUserId, cohort.themeId, cohort.id);
+
+      const activeList = await repo.getUserActiveCohortProgress(testUserId);
+      expect(activeList.length).toBeGreaterThan(0);
+      const active = activeList[0];
+      expect(active.currentStep).toBe(1);
+      expect(active.currentQuestion).not.toBeNull();
+      expect(active.currentStepContent).not.toBeNull();
+      expect(active.currentStepContent?.videoUrl).toBe(
+        "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
+      );
+      expect(active.currentStepContent?.preparatoryText).toContain("Epicteto");
+
+      // Direct query by question ID
+      const directContent = await repo.getProgramStepContentForQuestion(
+        active.currentQuestion!.id,
+      );
+      expect(directContent).not.toBeNull();
+      expect(directContent?.id).toBe(active.currentStepContent?.id);
+    });
+
     it("completes cycle when reaching target count", async () => {
       const cohorts = await repo.getOpenCohorts();
       const cohort = cohorts[0];

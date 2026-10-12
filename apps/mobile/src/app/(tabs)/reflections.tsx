@@ -21,6 +21,8 @@ import {
   SegmentedControl,
   Spinner,
   useToast,
+  AppMarkdown,
+  YouTubePlayer,
 } from "@/components";
 
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
@@ -865,14 +867,46 @@ export default function ReflectionsScreen() {
                               </ThemedText>
                             </View>
                           ) : (
-                            <View style={{ marginTop: 10 }}>
+                            <View style={{ marginTop: 12, gap: 12 }}>
                               <ThemedText
                                 variant="caption1"
                                 color={colors.secondaryLabel}
                                 style={styles.subHeader}
                               >
-                                Pregunta de hoy (Paso {active.currentStep}):
+                                Paso {active.currentStep} de{" "}
+                                {active.theme.targetQuestionCount} — Práctica de
+                                hoy:
                               </ThemedText>
+
+                              {/* Multimedia Video Player if available */}
+                              {active.currentStepContent?.videoUrl ? (
+                                <YouTubePlayer
+                                  url={active.currentStepContent.videoUrl}
+                                  title={`Video del Paso ${active.currentStep}`}
+                                  testID={`cohort-video-step-${active.currentStep}`}
+                                />
+                              ) : null}
+
+                              {/* Preparatory Text / Exercise if available */}
+                              {active.currentStepContent?.preparatoryText ? (
+                                <Card
+                                  variant="subdued"
+                                  padding="md"
+                                  style={styles.preparatoryCard}
+                                >
+                                  <ThemedText
+                                    variant="caption2"
+                                    color={colors.secondaryLabel}
+                                    style={styles.preparatoryBadge}
+                                  >
+                                    📖 Ejercicio Práctico & Lectura
+                                  </ThemedText>
+                                  <AppMarkdown>
+                                    {active.currentStepContent.preparatoryText}
+                                  </AppMarkdown>
+                                </Card>
+                              ) : null}
+
                               <PromptCard
                                 question={active.currentQuestion}
                                 onAnswer={() =>
@@ -1021,6 +1055,9 @@ export default function ReflectionsScreen() {
       <ReflectionModal
         visible={answeringQuestion !== null}
         question={answeringQuestion}
+        preparatoryText={
+          answeringCycleProgress?.currentStepContent?.preparatoryText
+        }
         initialContent={answeringInitialContent}
         initialNumericValue={answeringInitialNumericValue}
         initialItems={answeringInitialItems}
@@ -1147,5 +1184,23 @@ const styles = StyleSheet.create({
   },
   pausedContent: {
     marginTop: spacing.sm,
+  },
+  preparatoryCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.systemGray15,
+    backgroundColor: colors.systemGray15,
+    gap: 4,
+  },
+  preparatoryBadge: {
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  preparatoryBodyText: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: colors.label,
   },
 });
