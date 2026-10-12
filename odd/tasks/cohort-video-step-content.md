@@ -42,4 +42,4 @@ Add dedicated multimedia preparatory content (`program_step_contents`) for cohor
 - `make check-types`: 3 packages (`@myself/api`, `@myself/mobile`, `@myself/shared`) typechecked clean without errors.
 - `make check-lint`: ESLint and expo lint passed with 0 errors across monorepo.
 - `make check-format`: Prettier format verified clean across the repository.
-- **Completion & Delivery**: Completed on branch `feat/cohort-video-step-content` (closes #77).
+- **Completion & Delivery**: Delivered on Pull Request [#78](https://github.com/masch/myself/pull/78) (closes #77) on branch `feat/cohort-video-step-content`.
