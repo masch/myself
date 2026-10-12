@@ -245,4 +245,57 @@ describe("Reflections Feature Components", () => {
     expect(modalHtml).toContain("2.");
     expect(modalHtml).toContain("3.");
   });
+
+  it("renders desktop shortcut hint and floating keyboard accessory bar when keyboard is active", () => {
+    // Check desktop shortcut hint
+    const textModalHtml = renderToString(
+      <ReflectionModalContent
+        question={mockQuestion}
+        onSave={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(textModalHtml).toContain("Ctrl+Enter para guardar");
+
+    // Check floating accessory bar inside BottomSheetModalContent with keyboard active
+    const activeKeyboardHtml = renderToString(
+      <BottomSheetModalContent
+        onClose={() => {}}
+        isKeyboardVisible={true}
+        innerContent={
+          <ReflectionModalContent
+            question={mockQuestion}
+            onSave={() => {}}
+            onClose={() => {}}
+          />
+        }
+      />,
+    );
+    expect(activeKeyboardHtml).toContain(
+      'data-testid="keyboard-accessory-bar"',
+    );
+    expect(activeKeyboardHtml).toContain("Guardar");
+
+    // Check Siguiente button for item_list questions
+    const activeItemListKeyboardHtml = renderToString(
+      <BottomSheetModalContent
+        onClose={() => {}}
+        isKeyboardVisible={true}
+        innerContent={
+          <ReflectionModalContent
+            question={{
+              ...mockQuestion,
+              responseType: "item_list",
+            }}
+            onSave={() => {}}
+            onClose={() => {}}
+          />
+        }
+      />,
+    );
+    expect(activeItemListKeyboardHtml).toContain(
+      'data-testid="keyboard-next-button"',
+    );
+    expect(activeItemListKeyboardHtml).toContain("Siguiente ↓");
+  });
 });

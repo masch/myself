@@ -1,30 +1,52 @@
 import React from "react";
-import { type ColorValue, type StyleProp } from "react-native";
-import { Image, type ImageStyle } from "expo-image";
+import {
+  Platform,
+  type ColorValue,
+  type StyleProp,
+  type TextStyle,
+  type ImageStyle,
+} from "react-native";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import { SF_VECTOR_MAP } from "./app-icon.constants";
 
 export interface AppIconProps {
   name: string;
   size?: number;
   color?: ColorValue;
-  style?: StyleProp<ImageStyle>;
+  style?: StyleProp<TextStyle | ImageStyle>;
 }
 
 /**
- * Native AppIcon rendering SF Symbols via expo-image.
- * On web, Metro resolves app-icon.web.tsx instead.
+ * Cross-platform vector AppIcon component.
+ * - On iOS: Renders native Apple SF Symbols via expo-image.
+ * - On Android & Web: Renders native vector iconography via @expo/vector-icons (Ionicons).
  */
 export function AppIcon({ name, size = 18, color, style }: AppIconProps) {
+  if (Platform.OS === "ios" && name.startsWith("sf:")) {
+    return (
+      <Image
+        source={name}
+        tintColor={color ? String(color) : undefined}
+        style={[
+          {
+            width: size,
+            height: size,
+          },
+          style as StyleProp<ImageStyle>,
+        ]}
+      />
+    );
+  }
+
+  const vectorName = SF_VECTOR_MAP[name] ?? "help-circle-outline";
+
   return (
-    <Image
-      source={name}
-      style={[
-        {
-          width: size,
-          height: size,
-          tintColor: color as any,
-        },
-        style,
-      ]}
+    <Ionicons
+      name={vectorName}
+      size={size}
+      color={color ? String(color) : undefined}
+      style={style as StyleProp<TextStyle>}
     />
   );
 }

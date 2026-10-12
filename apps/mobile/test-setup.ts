@@ -66,6 +66,9 @@ export const mockMeditationSession = {
   modules: {
     ExpoAsset: {},
     ExponentConstants: {},
+    ExpoFontLoader: {
+      loadAsync: async () => {},
+    },
     MeditationSession: mockMeditationSession,
   },
 };
@@ -254,6 +257,41 @@ mock.module("expo-image", () => {
     Image,
   };
 });
+
+mock.module("@expo/vector-icons", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require("react");
+  const { Text } = ReactNativeWeb;
+
+  const createIconMock = (family: string) => {
+    const Component = ({ name, size, color, style, ...props }: any) =>
+      React.createElement(
+        Text,
+        {
+          style: [{ fontSize: size, color }, style],
+          "data-icon-family": family,
+          "data-icon-name": name,
+          ...props,
+        },
+        name,
+      );
+    Component.displayName = family;
+    return Component;
+  };
+
+  return {
+    Ionicons: createIconMock("Ionicons"),
+    MaterialIcons: createIconMock("MaterialIcons"),
+    Feather: createIconMock("Feather"),
+    createIconSet: () => createIconMock("CustomIconSet"),
+  };
+});
+
+mock.module("expo-font", () => ({
+  loadAsync: async () => {},
+  isLoaded: () => true,
+  useFonts: () => [true, null],
+}));
 
 mock.module("@expo/ui", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports

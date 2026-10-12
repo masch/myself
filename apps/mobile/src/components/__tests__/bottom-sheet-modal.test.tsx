@@ -4,7 +4,9 @@ import { renderToString } from "react-dom/server";
 import {
   AppBottomSheetModal,
   BottomSheetModalContent,
+  createModalLifecycle,
   getBottomSheetSafeAreaEdges,
+  useBottomSheetModalKeyboard,
 } from "../bottom-sheet-modal";
 
 describe("AppBottomSheetModal component", () => {
@@ -88,6 +90,23 @@ describe("AppBottomSheetModal component", () => {
     expect(scrollView.props.keyboardShouldPersistTaps).toBe("handled");
   });
 
+  it("renders footer outside ScrollView when provided to AppBottomSheetModal.Scroll", () => {
+    const element = AppBottomSheetModal.Scroll({
+      visible: true,
+      onClose: () => {},
+      children: <span key="5">Scrollable Compound Content</span>,
+      footer: <span key="footer">Pinned Footer</span>,
+    });
+
+    expect(element).not.toBeNull();
+    const provider = element?.props.children;
+    const content = provider.props.children;
+    const innerContent = content.props.innerContent;
+    const html = renderToString(innerContent);
+    expect(html).toContain("Scrollable Compound Content");
+    expect(html).toContain("Pinned Footer");
+  });
+
   describe("BottomSheetModalContent structure & keyboard edge calculations", () => {
     it("returns bottom edge when keyboard is closed", () => {
       expect(getBottomSheetSafeAreaEdges(false)).toEqual(["bottom"]);
@@ -117,6 +136,71 @@ describe("AppBottomSheetModal component", () => {
         />,
       );
       expect(html).toContain("Active Keyboard Content");
+    });
+  });
+
+  describe("ModalLifecycle & onShow propagation", () => {
+    it("subscribes and notifies listener when notifyShow is called", () => {
+      const lifecycle = createModalLifecycle();
+      expect(lifecycle.shown).toBe(false);
+
+      let called = false;
+      const unsubscribe = lifecycle.subscribe(() => {
+        called = true;
+      });
+
+      expect(called).toBe(false);
+      lifecycle.notifyShow();
+      expect(called).toBe(true);
+      expect(lifecycle.shown).toBe(true);
+
+      unsubscribe();
+    });
+
+    it("immediately triggers callback if subscribed after shown", () => {
+      const lifecycle = createModalLifecycle();
+      lifecycle.notifyShow();
+
+      let calledImmediately = false;
+      lifecycle.subscribe(() => {
+        calledImmediately = true;
+      });
+
+      expect(calledImmediately).toBe(true);
+    });
+
+    it("properly propagates onShow via Modal props", () => {
+      let customOnShowCalled = false;
+      const element = AppBottomSheetModal({
+        visible: true,
+        onClose: () => {},
+        onShow: () => {
+          customOnShowCalled = true;
+        },
+        children: <span>Content</span>,
+      });
+
+      expect(element?.props.onShow).toBeDefined();
+      element?.props.onShow();
+      expect(customOnShowCalled).toBe(true);
+    });
+
+    it("provides isKeyboardVisible in context value and via useBottomSheetModalKeyboard", () => {
+      let observedKeyboardVisible = false;
+      function TestChild() {
+        observedKeyboardVisible = useBottomSheetModalKeyboard();
+        return <span>Child</span>;
+      }
+
+      renderToString(
+        <BottomSheetModalContent
+          onClose={() => {}}
+          innerContent={<TestChild />}
+          isKeyboardVisible={true}
+        />,
+      );
+
+      expect(observedKeyboardVisible).toBe(true);
     });
   });
 });
