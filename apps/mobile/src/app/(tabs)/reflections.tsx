@@ -873,9 +873,7 @@ export default function ReflectionsScreen() {
                                 color={colors.secondaryLabel}
                                 style={styles.subHeader}
                               >
-                                Paso {active.currentStep} de{" "}
-                                {active.theme.targetQuestionCount} — Práctica de
-                                hoy:
+                                Pregunta de hoy (Paso {active.currentStep}):
                               </ThemedText>
 
                               {/* Multimedia Video Player if available */}
