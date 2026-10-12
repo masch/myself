@@ -219,7 +219,7 @@ export const programStepContents = sqliteTable(
       .notNull()
       .references(() => reflectionQuestions.id, { onDelete: "cascade" }),
     videoUrl: text("video_url"),
-    preparatoryText: text("preparatory_text").notNull(),
+    preparatoryText: text("preparatory_text"),
     createdAt: text("created_at").notNull(),
   },
   (table) => [index("program_step_contents_question_idx").on(table.questionId)],

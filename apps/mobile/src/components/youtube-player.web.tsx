@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 9,
     borderRadius: radius.md,
     overflow: "hidden",
-    backgroundColor: "#000",
+    backgroundColor: colors.black,
   },
   fallbackContainer: {
     justifyContent: "center",

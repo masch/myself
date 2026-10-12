@@ -5,7 +5,7 @@ import {
   type ReflectionQuestion,
   generateEntityId,
 } from "@myself/shared";
-import { colors, spacing } from "@/theme";
+import { colors, radius, spacing, typography } from "@/theme";
 import {
   AppButton,
   AppBottomSheetModal,
@@ -377,10 +377,10 @@ const styles = StyleSheet.create({
   },
   preparatoryContainer: {
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: radius.md,
     backgroundColor: colors.systemGray15,
     marginBottom: spacing.md,
-    gap: 4,
+    gap: spacing.xs,
   },
   preparatoryHeader: {
     fontWeight: "600",
@@ -388,8 +388,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   preparatoryText: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...typography.callout,
     color: colors.label,
   },
 });

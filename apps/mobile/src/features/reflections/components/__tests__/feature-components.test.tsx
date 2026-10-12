@@ -123,6 +123,17 @@ describe("Reflections Feature Components", () => {
     );
     expect(modalHtml).toContain("Reflexión Libre");
 
+    const modalWithPrep = renderToString(
+      <ReflectionModalContent
+        question={mockQuestion}
+        preparatoryText="*Consigna preparatoria del ejercicio*"
+        onSave={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(modalWithPrep).toContain("Consigna del día");
+    expect(modalWithPrep).toContain("Consigna preparatoria");
+
     const sheetHtml = renderToString(
       <BottomSheetModalContent
         onClose={() => {}}

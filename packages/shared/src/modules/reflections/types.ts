@@ -243,7 +243,7 @@ export const programStepContentSchema = z.object({
     .check(z.url("Invalid video URL"))
     .nullable()
     .optional(),
-  preparatoryText: z.string().trim().min(1),
+  preparatoryText: z.string().trim().min(1).nullable().optional(),
   createdAt: z.string(),
 });
 export type ProgramStepContent = z.infer<typeof programStepContentSchema>;

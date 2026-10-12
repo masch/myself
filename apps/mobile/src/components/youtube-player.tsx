@@ -86,6 +86,7 @@ export function YouTubePlayer({
     >
       <WebView
         source={{ html: embedHtml }}
+        originWhitelist={["*"]}
         allowsFullscreenVideo
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
@@ -110,18 +111,18 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 9,
     borderRadius: radius.md,
     overflow: "hidden",
-    backgroundColor: "#000",
+    backgroundColor: colors.black,
     position: "relative",
   },
   webView: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: colors.black,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFill,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    backgroundColor: colors.scrim,
   },
   fallbackContainer: {
     justifyContent: "center",

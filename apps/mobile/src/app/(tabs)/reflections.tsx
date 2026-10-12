@@ -8,7 +8,7 @@ import {
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { colors, layout, spacing } from "@/theme";
+import { colors, layout, radius, spacing } from "@/theme";
 import {
   ScreenContainer,
   Accordion,
@@ -75,6 +75,7 @@ export default function ReflectionsScreen() {
     themes,
     cycleReflections,
     cohortQuestions,
+    cohortStepContents,
     isLoading: isCohortLoading,
     refresh: refreshCohorts,
     enroll,
@@ -1054,7 +1055,13 @@ export default function ReflectionsScreen() {
         visible={answeringQuestion !== null}
         question={answeringQuestion}
         preparatoryText={
-          answeringCycleProgress?.currentStepContent?.preparatoryText
+          answeringQuestion
+            ? (cohortStepContents[answeringQuestion.id]?.preparatoryText ??
+              (answeringQuestion.id ===
+              answeringCycleProgress?.currentQuestion?.id
+                ? answeringCycleProgress?.currentStepContent?.preparatoryText
+                : null))
+            : null
         }
         initialContent={answeringInitialContent}
         initialNumericValue={answeringInitialNumericValue}
@@ -1184,21 +1191,16 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   preparatoryCard: {
-    borderRadius: 14,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.systemGray15,
     backgroundColor: colors.systemGray15,
-    gap: 4,
+    gap: spacing.xs,
   },
   preparatoryBadge: {
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  preparatoryBodyText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: colors.label,
+    marginBottom: spacing.xs / 2,
   },
 });

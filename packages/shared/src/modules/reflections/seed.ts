@@ -51,7 +51,7 @@ export interface SeedProgramStepContent {
   id: EntityId;
   questionId: EntityId;
   videoUrl?: string | null;
-  preparatoryText: string;
+  preparatoryText?: string | null;
   createdAt: string;
 }
 

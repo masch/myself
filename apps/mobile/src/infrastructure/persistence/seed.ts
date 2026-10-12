@@ -257,7 +257,7 @@ export async function seedDatabase(
         content.id,
         content.questionId,
         content.videoUrl ?? null,
-        content.preparatoryText,
+        content.preparatoryText ?? null,
       ],
     );
   }

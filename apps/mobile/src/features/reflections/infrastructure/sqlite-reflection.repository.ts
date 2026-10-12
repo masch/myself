@@ -87,7 +87,7 @@ interface RawProgramStepContent {
   id: EntityId;
   question_id: EntityId;
   video_url: string | null;
-  preparatory_text: string;
+  preparatory_text: string | null;
   created_at: string;
 }
 

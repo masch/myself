@@ -32,5 +32,13 @@ describe("YouTubePlayer & extractYouTubeVideoId", () => {
     expect(extractYouTubeVideoId("https://vimeo.com/12345678")).toBeNull();
     expect(extractYouTubeVideoId("")).toBeNull();
     expect(extractYouTubeVideoId("not-a-url")).toBeNull();
+    expect(
+      extractYouTubeVideoId(
+        "https://example.com/?next=https://youtube.com/watch?v=6jolZrkdsOw",
+      ),
+    ).toBeNull();
+    expect(
+      extractYouTubeVideoId("https://youtube.com/watch?v=6jolZrkdsOwEXTRA"),
+    ).toBeNull();
   });
 });
