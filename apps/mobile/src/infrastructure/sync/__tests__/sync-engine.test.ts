@@ -53,7 +53,8 @@ describe("SyncEngine", () => {
       CREATE TABLE IF NOT EXISTS meditation_readings (
         id TEXT PRIMARY KEY,
         author_id TEXT NOT NULL,
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        version INTEGER NOT NULL DEFAULT 1
       );
       CREATE TABLE IF NOT EXISTS meditation_reading_translations (
         reading_id TEXT NOT NULL,
@@ -312,6 +313,45 @@ describe("SyncEngine", () => {
     expect(pushedReadingPayload.authorId).toBe("remote-auth-id");
   });
 
+  it("pushes author and reading with identical deterministic author ID without needing remapping", async () => {
+    const { generateAuthorId } = await import("@myself/shared");
+    const authorId = generateAuthorId("Seneca");
+
+    rawDb.run(`
+      INSERT INTO authors (id, name) VALUES ('${authorId}', 'Seneca');
+      INSERT INTO meditation_readings (id, author_id, created_at)
+      VALUES ('reading-deterministic', '${authorId}', '2026-01-01T00:00:00.000Z');
+      INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, attempts, created_at)
+      VALUES 
+        ('author-outbox-det', 'author', '${authorId}', 'CREATE', '{"id":"${authorId}","name":"Seneca"}', 'pending', 0, '2026-01-01T00:00:00.000Z'),
+        ('reading-outbox-det', 'reading', 'reading-deterministic', 'CREATE', '{"id":"reading-deterministic","authorId":"${authorId}","translations":{"es":{"title":"T","content":"C"}}}', 'pending', 0, '2026-01-01T00:00:00.000Z');
+    `);
+
+    let pushedReadingPayload: any = null;
+    const mockApi = {
+      // Backend returns identical deterministic authorId
+      postAuthor: mock(() => Promise.resolve(authorId)),
+      postReading: mock((input: any) => {
+        pushedReadingPayload = input;
+        return Promise.resolve(true);
+      }),
+      fetchReadings: mock(() => Promise.resolve([])),
+    } as unknown as HttpReadingApiAdapter;
+
+    const engine = new SyncEngine(db, mockApi, mockHandler);
+    await engine.pushPendingOutbox();
+
+    expect(pushedReadingPayload).not.toBeNull();
+    expect(pushedReadingPayload.authorId).toBe(authorId);
+
+    const pendingCount = rawDb
+      .query(
+        "SELECT COUNT(*) as count FROM sync_outbox WHERE status = 'pending'",
+      )
+      .get() as { count: number };
+    expect(pendingCount.count).toBe(0);
+  });
+
   it("marks outbox record as failed when error is a non-transient 400 Bad Request", async () => {
     // Record already at MAX_SYNC_ATTEMPTS - 1 (4 attempts)
     rawDb.run(`
@@ -341,6 +381,39 @@ describe("SyncEngine", () => {
       .get() as { attempts: number; status: string };
 
     // 400 Bad Request must NOT be marked transient; it must transition to 'failed' on 5th attempt
+    expect(record.attempts).toBe(5);
+    expect(record.status).toBe("failed");
+  });
+
+  it("marks outbox record as failed when error is a non-transient 409 Conflict (stale version)", async () => {
+    rawDb.run(`
+      INSERT INTO meditation_readings (id, author_id, created_at, version)
+      VALUES ('reading-occ', 'author-1', '2026-01-01T00:00:00.000Z', 1);
+      INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, attempts, created_at)
+      VALUES ('outbox-occ-409', 'reading', 'reading-occ', 'UPDATE', '{"id":"reading-occ","version":1,"translations":{"es":{"title":"T","content":"C"}}}', 'pending', 4, '2026-01-01T00:00:00.000Z');
+    `);
+
+    const mockApi = {
+      putReading: mock(() =>
+        Promise.reject(
+          new ApiHttpError(409, "Conflict", {
+            error: "Resource version conflict",
+            code: "CONFLICT",
+          }),
+        ),
+      ),
+      fetchReadings: mock(() => Promise.resolve([])),
+    } as unknown as HttpReadingApiAdapter;
+
+    const engine = new SyncEngine(db, mockApi, mockHandler);
+    await engine.pushPendingOutbox();
+
+    const record = rawDb
+      .query(
+        "SELECT attempts, status FROM sync_outbox WHERE id = 'outbox-occ-409'",
+      )
+      .get() as { attempts: number; status: string };
+
     expect(record.attempts).toBe(5);
     expect(record.status).toBe("failed");
   });

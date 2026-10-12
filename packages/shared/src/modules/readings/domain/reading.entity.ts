@@ -22,6 +22,7 @@ export interface ReadingProps {
   createdAt: DateTime;
   readDates: DateTime[];
   translations: ReadingTranslationsMap;
+  version?: number;
 }
 
 export class Reading {
@@ -40,6 +41,7 @@ export class Reading {
       ...rawProps,
       id,
       authorId,
+      version: rawProps.version ?? 1,
     };
   }
 
@@ -61,6 +63,10 @@ export class Reading {
 
   get translations(): ReadingTranslationsMap {
     return this.props.translations;
+  }
+
+  get version(): number {
+    return this.props.version ?? 1;
   }
 
   /**

@@ -13,6 +13,7 @@ interface RawReadingRecord {
   id: EntityId;
   author_id: EntityId;
   created_at: string;
+  version?: number;
 }
 
 interface RawTranslationRecord {
@@ -32,7 +33,7 @@ export class SqliteReadingRepository implements IReadingRepository {
 
   async getAll(locale: SupportedLocale = "es"): Promise<Reading[]> {
     const rawReadings = await this.db.getAllAsync<RawReadingRecord>(
-      "SELECT id, author_id, created_at FROM meditation_readings ORDER BY created_at DESC",
+      "SELECT id, author_id, created_at, version FROM meditation_readings ORDER BY created_at DESC",
     );
 
     if (rawReadings.length === 0) {
@@ -72,6 +73,7 @@ export class SqliteReadingRepository implements IReadingRepository {
           createdAt: DateTime.from(raw.created_at),
           readDates: logs.map((l) => DateTime.from(l.read_at)),
           translations: transMap,
+          version: raw.version,
         }),
       );
     }
@@ -81,7 +83,7 @@ export class SqliteReadingRepository implements IReadingRepository {
 
   async getById(id: EntityId): Promise<Reading | null> {
     const raw = await this.db.getFirstAsync<RawReadingRecord>(
-      "SELECT id, author_id, created_at FROM meditation_readings WHERE id = ?",
+      "SELECT id, author_id, created_at, version FROM meditation_readings WHERE id = ?",
       [id],
     );
 
@@ -116,6 +118,7 @@ export class SqliteReadingRepository implements IReadingRepository {
       createdAt: DateTime.from(raw.created_at),
       readDates: logs.map((l) => DateTime.from(l.read_at)),
       translations: transMap,
+      version: raw.version,
     });
   }
 
@@ -125,6 +128,7 @@ export class SqliteReadingRepository implements IReadingRepository {
       id: reading.id,
       authorId: reading.authorId,
       translations: reading.translations,
+      version: reading.version,
     });
 
     await this.db.withTransactionAsync(async () => {
@@ -138,10 +142,15 @@ export class SqliteReadingRepository implements IReadingRepository {
       const operation = existing ? "UPDATE" : "CREATE";
 
       await this.db.runAsync(
-        `INSERT INTO meditation_readings (id, author_id, created_at)
-         VALUES (?, ?, ?)
-         ON CONFLICT(id) DO UPDATE SET author_id = excluded.author_id`,
-        [reading.id, reading.authorId, reading.createdAt.toISOString()],
+        `INSERT INTO meditation_readings (id, author_id, created_at, version)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET author_id = excluded.author_id, version = excluded.version`,
+        [
+          reading.id,
+          reading.authorId,
+          reading.createdAt.toISOString(),
+          reading.version,
+        ],
       );
 
       for (const [loc, t] of Object.entries(reading.translations)) {
@@ -165,6 +174,45 @@ export class SqliteReadingRepository implements IReadingRepository {
         );
       }
 
+      // Outbox Mutation Coalescing (Issue #70, Phase 2)
+      const pendingRecords = await this.db.getAllAsync<{
+        id: string;
+        operation: string;
+      }>(
+        "SELECT id, operation FROM sync_outbox WHERE entity = 'reading' AND entity_id = ? AND status = 'pending' ORDER BY rowid ASC",
+        [reading.id],
+      );
+
+      const pendingCreate = pendingRecords.find(
+        (r) => r.operation === "CREATE",
+      );
+      if (pendingCreate) {
+        // CREATE + UPDATE => Squash into existing pending CREATE with latest payload
+        await this.db.runAsync(
+          "UPDATE sync_outbox SET payload = ?, created_at = strftime('%Y-%m-%dT%H:%M:%f', 'now') WHERE id = ?",
+          [payload, pendingCreate.id],
+        );
+        // Clean up any extraneous pending updates if any exist
+        await this.db.runAsync(
+          "DELETE FROM sync_outbox WHERE entity = 'reading' AND entity_id = ? AND status = 'pending' AND id != ?",
+          [reading.id, pendingCreate.id],
+        );
+        return;
+      }
+
+      const pendingUpdate = pendingRecords.find(
+        (r) => r.operation === "UPDATE",
+      );
+      if (pendingUpdate) {
+        // UPDATE + UPDATE => Squash into existing pending UPDATE with latest payload
+        await this.db.runAsync(
+          "UPDATE sync_outbox SET payload = ?, created_at = strftime('%Y-%m-%dT%H:%M:%f', 'now') WHERE id = ?",
+          [payload, pendingUpdate.id],
+        );
+        return;
+      }
+
+      // No coalescible pending record; enqueue standard mutation
       await this.db.runAsync(
         `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)
          VALUES (?, 'reading', ?, ?, ?, 'pending', strftime('%Y-%m-%dT%H:%M:%f', 'now'))`,
@@ -180,11 +228,37 @@ export class SqliteReadingRepository implements IReadingRepository {
         id,
       ]);
 
-      await this.db.runAsync(
-        `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)
-         VALUES (?, 'reading', ?, 'DELETE', '{}', 'pending', strftime('%Y-%m-%dT%H:%M:%f', 'now'))`,
-        [outboxId, id],
+      // Outbox Mutation Coalescing (Issue #70, Phase 2)
+      const pendingRecords = await this.db.getAllAsync<{
+        id: string;
+        operation: string;
+      }>(
+        "SELECT id, operation FROM sync_outbox WHERE entity = 'reading' AND entity_id = ? AND status = 'pending'",
+        [id],
       );
+
+      const hasPendingCreate = pendingRecords.some(
+        (r) => r.operation === "CREATE",
+      );
+
+      if (hasPendingCreate) {
+        // CREATE + DELETE => Purge locally without transmitting any remote requests
+        await this.db.runAsync(
+          "DELETE FROM sync_outbox WHERE entity = 'reading' AND entity_id = ? AND status = 'pending'",
+          [id],
+        );
+      } else {
+        // UPDATE + DELETE or standalone DELETE => Discard prior pending updates and enqueue single DELETE
+        await this.db.runAsync(
+          "DELETE FROM sync_outbox WHERE entity = 'reading' AND entity_id = ? AND status = 'pending'",
+          [id],
+        );
+        await this.db.runAsync(
+          `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)
+           VALUES (?, 'reading', ?, 'DELETE', '{}', 'pending', strftime('%Y-%m-%dT%H:%M:%f', 'now'))`,
+          [outboxId, id],
+        );
+      }
     });
   }
 

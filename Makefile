@@ -209,6 +209,12 @@ mobile-android-sync-time: ## Synchronize Android emulator clock with host system
 	adb wait-for-device
 	adb shell date -u "@$$(date -u +%s)"
 
+.PHONY: mobile-android-clear-data
+mobile-android-clear-data: ## Clear application data from Android emulator (Expo Go & standalone)
+	adb wait-for-device
+	adb shell pm clear host.exp.exponent || true
+	adb shell pm clear org.masch.myself.staging.app || true
+
 .PHONY: mobile-android-expo
 mobile-android-expo: ## Start Expo dev server and open in Android emulator (Expo Go)
 	cd $(MOBILE_DIR) && bun run android:expo

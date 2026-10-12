@@ -80,12 +80,14 @@ export class HttpReadingApiAdapter {
     input: {
       authorId?: string;
       translations: Record<string, { title: string; content: string }>;
+      version?: number;
     },
   ): Promise<boolean> {
     try {
       return await this.client.readings.update(id as EntityId, {
         authorId: input.authorId as EntityId | undefined,
         translations: input.translations,
+        version: input.version,
       });
     } catch (error) {
       console.warn("[HttpReadingApiAdapter] putReading network error:", error);

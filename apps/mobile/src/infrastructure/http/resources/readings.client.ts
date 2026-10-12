@@ -36,6 +36,7 @@ export class ReadingsClient {
     input: {
       authorId?: EntityId;
       translations: Record<string, { title: string; content: string }>;
+      version?: number;
     },
   ): Promise<boolean> {
     await this.http.put(`/v1/readings/${id}`, input);

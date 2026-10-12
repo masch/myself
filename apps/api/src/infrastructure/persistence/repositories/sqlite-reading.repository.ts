@@ -51,6 +51,7 @@ export class SqliteReadingRepository implements ReadingRepository {
           id: meditationReadings.id,
           authorId: meditationReadings.authorId,
           createdAt: meditationReadings.createdAt,
+          version: meditationReadings.version,
         })
         .from(meditationReadings)
         .where(baseWhere)
@@ -103,6 +104,7 @@ export class SqliteReadingRepository implements ReadingRepository {
         createdAt: r.createdAt,
         readDates: logsByReading.get(r.id) ?? [],
         translations: mapTranslations(translationsByReading.get(r.id) ?? []),
+        version: r.version,
       }),
     );
 
@@ -118,6 +120,7 @@ export class SqliteReadingRepository implements ReadingRepository {
         id: meditationReadings.id,
         authorId: meditationReadings.authorId,
         createdAt: meditationReadings.createdAt,
+        version: meditationReadings.version,
       })
       .from(meditationReadings)
       .where(eq(meditationReadings.id, id))
@@ -144,6 +147,7 @@ export class SqliteReadingRepository implements ReadingRepository {
       createdAt: row.createdAt,
       readDates: logs.map((l) => l.readAt),
       translations: mapTranslations(translations),
+      version: row.version,
     });
   }
 
@@ -178,6 +182,7 @@ export class SqliteReadingRepository implements ReadingRepository {
           id: reading.id,
           authorId: reading.authorId,
           createdAt: reading.createdAt.toISOString(),
+          version: reading.version,
         })
         .onConflictDoUpdate({
           target: meditationReadings.id,
@@ -208,6 +213,7 @@ export class SqliteReadingRepository implements ReadingRepository {
         .update(meditationReadings)
         .set({
           authorId: reading.authorId,
+          version: reading.version,
         })
         .where(eq(meditationReadings.id, reading.id));
 

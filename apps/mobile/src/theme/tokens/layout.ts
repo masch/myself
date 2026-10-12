@@ -17,6 +17,9 @@ export const layout = {
   minInteractiveTarget: 44,
   rowHeight: 44,
   rowPaddingVertical: 6,
+  inputMinHeight: 44,
+  inputMultilineMaxHeight: 110,
+  rowLabelTopOffset: 11,
   iconSize: {
     sm: 16,
     md: 20,

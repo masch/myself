@@ -1,6 +1,13 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { Database } from "bun:sqlite";
-import { initDatabase, resetDatabase, getUsers, createUser } from "../database";
+import {
+  initDatabase,
+  resetDatabase,
+  getUsers,
+  createUser,
+  addAuthor,
+  getAuthorById,
+} from "../database";
 import { type SQLiteDatabase } from "expo-sqlite";
 
 function createExpoSqliteAdapter(rawDb: Database): SQLiteDatabase {
@@ -98,5 +105,29 @@ describe("Database Lifecycle & Reset", () => {
       program_start_date: string;
     }>("SELECT * FROM theme_cohorts");
     expect(recheckCohorts[0].program_start_date).toBe(initialStartDate);
+  });
+
+  it("creates an author with deterministic RFC4122 UUID v5 in SQLite and sync_outbox", async () => {
+    await initDatabase(db);
+    const { generateAuthorId } = await import("@myself/shared");
+    const expectedId = generateAuthorId("Marcus Aurelius");
+
+    const authorId = await addAuthor(db, "  Marcus Aurelius  ", "Philosopher");
+    expect(authorId).toBe(expectedId);
+
+    const author = await getAuthorById(db, expectedId);
+    expect(author).not.toBeNull();
+    expect(author?.id).toBe(expectedId);
+
+    const outboxRecord = await db.getFirstAsync<{
+      entity_id: string;
+      payload: string;
+    }>(
+      "SELECT entity_id, payload FROM sync_outbox WHERE entity = 'author' AND entity_id = ?",
+      [expectedId],
+    );
+    expect(outboxRecord).not.toBeNull();
+    expect(outboxRecord?.entity_id).toBe(expectedId);
+    expect(JSON.parse(outboxRecord!.payload).id).toBe(expectedId);
   });
 });

@@ -22,6 +22,7 @@ function toReadingDto(entity: Reading): ReadingDto {
     createdAt: entity.createdAt.toISOString(),
     readDates: entity.readDates.map((d) => d.toISOString()),
     translations: entity.translations,
+    version: entity.version,
   };
 }
 
@@ -113,6 +114,9 @@ export const updateReadingRoute = createRoute({
     },
     [HttpStatus.NOT_FOUND]: {
       description: "Reading not found",
+    },
+    [HttpStatus.CONFLICT]: {
+      description: "Resource version conflict",
     },
   },
 });

@@ -64,4 +64,14 @@ describe("AuthorService Domain Application Service Unit Tests", () => {
     expect(duplicate.id).toBe(first.id);
     expect(duplicate.name).toBe("Marcus Aurelius");
   });
+
+  it("generates deterministic RFC4122 UUID v5 derived from author name when id is omitted", async () => {
+    const { generateAuthorId } = await import("@myself/shared");
+    const expectedId = generateAuthorId("Epictetus");
+    const author = await service.create({
+      name: "  Epictetus  ",
+    });
+
+    expect(author.id).toBe(expectedId);
+  });
 });
