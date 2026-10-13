@@ -21,3 +21,4 @@ export * from "./badge";
 export * from "./primitives";
 export * from "./native-controls";
 export * from "./toast";
+export * from "./youtube-player";

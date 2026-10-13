@@ -7,6 +7,7 @@ import {
   type CreateReflectionInput,
   type EntityId,
   type Periodicity,
+  type ProgramStepContent,
   type ReflectionCategory,
   type ReflectionQuestion,
   type ReflectionQuestionConfig,
@@ -80,6 +81,14 @@ interface RawReflectionItem {
   content: string;
   created_at: string;
   updated_at: string;
+}
+
+interface RawProgramStepContent {
+  id: EntityId;
+  question_id: EntityId;
+  video_url: string | null;
+  preparatory_text: string | null;
+  created_at: string;
 }
 
 interface RawPreference {
@@ -362,6 +371,10 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
         [p.theme_id, p.current_step],
       );
 
+      const stepContent = questionRow
+        ? await this.getProgramStepContentForQuestion(questionRow.id)
+        : null;
+
       if (themeRow && cohortRow) {
         results.push({
           id: p.id,
@@ -387,6 +400,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
           },
           cohort: this.mapCohort(cohortRow),
           currentQuestion: questionRow ? this.mapQuestion(questionRow) : null,
+          currentStepContent: stepContent,
         });
       }
     }
@@ -952,5 +966,25 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       createdAt: r.created_at,
       updatedAt: r.updated_at,
     };
+  }
+
+  private mapProgramStepContent(r: RawProgramStepContent): ProgramStepContent {
+    return {
+      id: r.id,
+      questionId: r.question_id,
+      videoUrl: r.video_url,
+      preparatoryText: r.preparatory_text,
+      createdAt: r.created_at,
+    };
+  }
+
+  async getProgramStepContentForQuestion(
+    questionId: EntityId,
+  ): Promise<ProgramStepContent | null> {
+    const row = await this.db.getFirstAsync<RawProgramStepContent>(
+      "SELECT id, question_id, video_url, preparatory_text, created_at FROM program_step_contents WHERE question_id = ? LIMIT 1",
+      [questionId],
+    );
+    return row ? this.mapProgramStepContent(row) : null;
   }
 }

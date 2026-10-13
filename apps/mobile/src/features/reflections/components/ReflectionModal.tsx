@@ -5,11 +5,12 @@ import {
   type ReflectionQuestion,
   generateEntityId,
 } from "@myself/shared";
-import { colors, spacing } from "@/theme";
+import { colors, radius, spacing, typography } from "@/theme";
 import {
   AppButton,
   AppBottomSheetModal,
   AppMarkdownText,
+  AppMarkdown,
   Badge,
   ThemedText,
   ThemedTextInput,
@@ -25,6 +26,7 @@ import { ScaleSelector1To10 } from "./ScaleSelector1To10";
 interface ReflectionModalProps {
   visible: boolean;
   question: ReflectionQuestion | null;
+  preparatoryText?: string | null;
   initialContent?: string;
   initialNumericValue?: number;
   initialItems?: { id?: EntityId; content: string }[] | string[];
@@ -39,6 +41,7 @@ interface ReflectionModalProps {
 
 export function ReflectionModalContent({
   question,
+  preparatoryText,
   initialContent = "",
   initialNumericValue = null,
   initialItems,
@@ -47,6 +50,7 @@ export function ReflectionModalContent({
   isSubmitting = false,
 }: {
   question: ReflectionQuestion;
+  preparatoryText?: string | null;
   initialContent?: string;
   initialNumericValue?: number | null;
   initialItems?: { id?: EntityId; content: string }[] | string[];
@@ -131,6 +135,19 @@ export function ReflectionModalContent({
         <View style={styles.badgeRow}>
           <Badge variant="neutral" label={badgeLabel} />
         </View>
+
+        {preparatoryText ? (
+          <View style={styles.preparatoryContainer}>
+            <ThemedText
+              variant="caption2"
+              color={colors.secondaryLabel}
+              style={styles.preparatoryHeader}
+            >
+              📖 Consigna del día
+            </ThemedText>
+            <AppMarkdown>{preparatoryText}</AppMarkdown>
+          </View>
+        ) : null}
 
         <AppMarkdownText style={[styles.promptText, { color: colors.label }]}>
           {question.prompt}
@@ -253,6 +270,7 @@ export function ReflectionModalContent({
 export function ReflectionModal({
   visible,
   question,
+  preparatoryText,
   initialContent,
   initialNumericValue,
   initialItems,
@@ -280,6 +298,7 @@ export function ReflectionModal({
       <ReflectionModalContent
         key={key}
         question={question}
+        preparatoryText={preparatoryText}
         initialContent={initialContent}
         initialNumericValue={initialNumericValue}
         initialItems={initialItems}
@@ -355,5 +374,21 @@ const styles = StyleSheet.create({
   },
   compactButton: {
     minHeight: 44,
+  },
+  preparatoryContainer: {
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.systemGray15,
+    marginBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  preparatoryHeader: {
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  preparatoryText: {
+    ...typography.callout,
+    color: colors.label,
   },
 });

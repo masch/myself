@@ -232,3 +232,18 @@ export const createReflectionInputSchema = z
   });
 
 export type CreateReflectionInput = z.infer<typeof createReflectionInputSchema>;
+
+// 10. Program Step Content Schema (multimedia & preparatory exercises for cohort steps)
+export const programStepContentSchema = z.object({
+  id: entityIdSchema,
+  questionId: entityIdSchema,
+  videoUrl: z
+    .string()
+    .trim()
+    .check(z.url("Invalid video URL"))
+    .nullable()
+    .optional(),
+  preparatoryText: z.string().trim().min(1).nullable().optional(),
+  createdAt: z.string(),
+});
+export type ProgramStepContent = z.infer<typeof programStepContentSchema>;

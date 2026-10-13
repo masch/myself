@@ -209,3 +209,20 @@ export type UserQuestionPreferenceRecord =
 export type UserThemeProgressRecord = typeof userThemeProgress.$inferSelect;
 export type UserReflectionRecord = typeof userReflections.$inferSelect;
 export type UserReflectionItemRecord = typeof userReflectionItems.$inferSelect;
+
+export const programStepContents = sqliteTable(
+  "program_step_contents",
+  {
+    id: text("id").$type<EntityId>().primaryKey(),
+    questionId: text("question_id")
+      .$type<EntityId>()
+      .notNull()
+      .references(() => reflectionQuestions.id, { onDelete: "cascade" }),
+    videoUrl: text("video_url"),
+    preparatoryText: text("preparatory_text"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("program_step_contents_question_idx").on(table.questionId)],
+);
+
+export type ProgramStepContentRecord = typeof programStepContents.$inferSelect;

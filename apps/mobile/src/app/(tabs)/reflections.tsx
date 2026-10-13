@@ -8,7 +8,7 @@ import {
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { colors, layout, spacing } from "@/theme";
+import { colors, layout, radius, spacing } from "@/theme";
 import {
   ScreenContainer,
   Accordion,
@@ -21,6 +21,8 @@ import {
   SegmentedControl,
   Spinner,
   useToast,
+  AppMarkdown,
+  YouTubePlayer,
 } from "@/components";
 
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
@@ -73,6 +75,7 @@ export default function ReflectionsScreen() {
     themes,
     cycleReflections,
     cohortQuestions,
+    cohortStepContents,
     isLoading: isCohortLoading,
     refresh: refreshCohorts,
     enroll,
@@ -865,7 +868,7 @@ export default function ReflectionsScreen() {
                               </ThemedText>
                             </View>
                           ) : (
-                            <View style={{ marginTop: 10 }}>
+                            <View style={{ marginTop: 12, gap: 12 }}>
                               <ThemedText
                                 variant="caption1"
                                 color={colors.secondaryLabel}
@@ -873,6 +876,36 @@ export default function ReflectionsScreen() {
                               >
                                 Pregunta de hoy (Paso {active.currentStep}):
                               </ThemedText>
+
+                              {/* Multimedia Video Player if available */}
+                              {active.currentStepContent?.videoUrl ? (
+                                <YouTubePlayer
+                                  url={active.currentStepContent.videoUrl}
+                                  title={`Video del Paso ${active.currentStep}`}
+                                  testID={`cohort-video-step-${active.currentStep}`}
+                                />
+                              ) : null}
+
+                              {/* Preparatory Text / Exercise if available */}
+                              {active.currentStepContent?.preparatoryText ? (
+                                <Card
+                                  variant="subdued"
+                                  padding="md"
+                                  style={styles.preparatoryCard}
+                                >
+                                  <ThemedText
+                                    variant="caption2"
+                                    color={colors.secondaryLabel}
+                                    style={styles.preparatoryBadge}
+                                  >
+                                    📖 Ejercicio Práctico & Lectura
+                                  </ThemedText>
+                                  <AppMarkdown>
+                                    {active.currentStepContent.preparatoryText}
+                                  </AppMarkdown>
+                                </Card>
+                              ) : null}
+
                               <PromptCard
                                 question={active.currentQuestion}
                                 onAnswer={() =>
@@ -1021,6 +1054,15 @@ export default function ReflectionsScreen() {
       <ReflectionModal
         visible={answeringQuestion !== null}
         question={answeringQuestion}
+        preparatoryText={
+          answeringQuestion
+            ? (cohortStepContents[answeringQuestion.id]?.preparatoryText ??
+              (answeringQuestion.id ===
+              answeringCycleProgress?.currentQuestion?.id
+                ? answeringCycleProgress?.currentStepContent?.preparatoryText
+                : null))
+            : null
+        }
         initialContent={answeringInitialContent}
         initialNumericValue={answeringInitialNumericValue}
         initialItems={answeringInitialItems}
@@ -1147,5 +1189,18 @@ const styles = StyleSheet.create({
   },
   pausedContent: {
     marginTop: spacing.sm,
+  },
+  preparatoryCard: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.systemGray15,
+    backgroundColor: colors.systemGray15,
+    gap: spacing.xs,
+  },
+  preparatoryBadge: {
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: spacing.xs / 2,
   },
 });

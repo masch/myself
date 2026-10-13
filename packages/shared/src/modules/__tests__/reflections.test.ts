@@ -10,6 +10,8 @@ import {
   userReflectionItemSchema,
   createSeedThemeCohorts,
   getTodayDateString,
+  programStepContentSchema,
+  SEED_PROGRAM_STEP_CONTENTS,
 } from "../reflections";
 import { generateEntityId, DateTime, type EntityId } from "../../primitives";
 
@@ -374,7 +376,7 @@ describe("Reflections Module - Zod Validation Schemas", () => {
   describe("Dynamic Seed Theme Cohorts", () => {
     it("generates cohort starting on provided base date", () => {
       const cohorts = createSeedThemeCohorts("2026-09-30");
-      expect(cohorts.length).toBe(2);
+      expect(cohorts.length).toBe(3);
       // Historical cohort
       expect(cohorts[0].id).toBe(
         "a1000000-0000-4000-8000-000000000001" as EntityId,
@@ -395,12 +397,72 @@ describe("Reflections Module - Zod Validation Schemas", () => {
     it("generates dynamic cohort starting today when base date is omitted", () => {
       const todayStr = getTodayDateString();
       const cohorts = createSeedThemeCohorts();
-      expect(cohorts.length).toBe(2);
+      expect(cohorts.length).toBe(3);
       expect(cohorts[1].programStartDate).toBe(todayStr);
 
       const fixedDateTime = DateTime.from("2026-05-10T12:00:00.000Z");
       expect(getTodayDateString(fixedDateTime)).toBe(
         DateTime.today(fixedDateTime).toISODate(),
+      );
+    });
+  });
+
+  describe("ProgramStepContent Schema & Seed", () => {
+    it("should validate a valid ProgramStepContent", () => {
+      const valid = programStepContentSchema.parse({
+        id: sampleId,
+        questionId,
+        videoUrl: "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
+        preparatoryText:
+          "La tranquilidad comienza cuando distingues lo que depende de ti y lo que no.",
+        createdAt: "2026-10-12T00:00:00.000Z",
+      });
+      expect(valid.videoUrl).toBe(
+        "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
+      );
+      expect(valid.preparatoryText).toContain("tranquilidad");
+    });
+
+    it("should reject ProgramStepContent with invalid url", () => {
+      expect(() =>
+        programStepContentSchema.parse({
+          id: sampleId,
+          questionId,
+          videoUrl: "not-a-valid-url",
+          preparatoryText: "Some text",
+          createdAt: "2026-10-12T00:00:00.000Z",
+        }),
+      ).toThrow();
+    });
+
+    it("should allow ProgramStepContent without videoUrl or with null", () => {
+      const withoutVideo = programStepContentSchema.parse({
+        id: sampleId,
+        questionId,
+        preparatoryText: "Solo ejercicio de reflexión sin video.",
+        createdAt: "2026-10-12T00:00:00.000Z",
+      });
+      expect(withoutVideo.videoUrl).toBeUndefined();
+
+      const withNullVideo = programStepContentSchema.parse({
+        id: sampleId,
+        questionId,
+        videoUrl: null,
+        preparatoryText: "Solo ejercicio de reflexión con null video.",
+        createdAt: "2026-10-12T00:00:00.000Z",
+      });
+      expect(withNullVideo.videoUrl).toBeNull();
+    });
+
+    it("should validate SEED_PROGRAM_STEP_CONTENTS correctly", () => {
+      expect(SEED_PROGRAM_STEP_CONTENTS.length).toBeGreaterThan(0);
+      const step1 = SEED_PROGRAM_STEP_CONTENTS[0];
+      expect(step1.videoUrl).toBe(
+        "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
+      );
+      expect(step1.preparatoryText).toContain("Epicteto");
+      expect(step1.questionId).toBe(
+        "b4000000-0000-4000-8000-000000000001" as EntityId,
       );
     });
   });

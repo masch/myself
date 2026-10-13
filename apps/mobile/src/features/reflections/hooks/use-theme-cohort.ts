@@ -4,6 +4,7 @@ import { useAuth } from "@/context/auth-context";
 import {
   DateTime,
   type EntityId,
+  type ProgramStepContent,
   type ReflectionQuestion,
   type ReflectionTheme,
   type ThemeCohort,
@@ -31,6 +32,9 @@ export function useThemeCohort() {
   const [cohortQuestions, setCohortQuestions] = useState<
     Record<string, ReflectionQuestion[]>
   >({});
+  const [cohortStepContents, setCohortStepContents] = useState<
+    Record<string, ProgramStepContent | null>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -44,6 +48,7 @@ export function useThemeCohort() {
       setThemes([]);
       setCycleReflections({});
       setCohortQuestions({});
+      setCohortStepContents({});
       setIsLoading(false);
       return;
     }
@@ -65,6 +70,7 @@ export function useThemeCohort() {
       // Load reflections and questions for active cohorts
       const reflectionsMap: Record<string, UserReflection[]> = {};
       const questionsMap: Record<string, ReflectionQuestion[]> = {};
+      const stepContentsMap: Record<string, ProgramStepContent | null> = {};
       await Promise.all(
         active.map(async (progress) => {
           const [refs, questions] = await Promise.all([
@@ -73,6 +79,19 @@ export function useThemeCohort() {
           ]);
           reflectionsMap[progress.id] = refs;
           questionsMap[progress.id] = questions;
+          await Promise.all(
+            questions.map(async (q) => {
+              if (
+                progress.currentQuestion?.id === q.id &&
+                progress.currentStepContent !== undefined
+              ) {
+                stepContentsMap[q.id] = progress.currentStepContent;
+              } else {
+                stepContentsMap[q.id] =
+                  await repository.getProgramStepContentForQuestion(q.id);
+              }
+            }),
+          );
         }),
       );
 
@@ -80,6 +99,7 @@ export function useThemeCohort() {
 
       setCycleReflections(reflectionsMap);
       setCohortQuestions(questionsMap);
+      setCohortStepContents(stepContentsMap);
     } catch (error) {
       if (activeUserIdRef.current === currentUserId) {
         console.error("Failed to load theme cohorts:", error);
@@ -245,6 +265,7 @@ export function useThemeCohort() {
     themes,
     cycleReflections,
     cohortQuestions,
+    cohortStepContents,
     isLoading,
     isSubmitting,
     refresh,

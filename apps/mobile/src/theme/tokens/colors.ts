@@ -62,6 +62,8 @@ export const colors = {
   })!,
   /** Fully transparent color for backgrounds that must not obstruct content. */
   transparent: "transparent" as const,
+  /** Full black — used for media players and high-contrast letterboxes. */
+  black: "#000000" as const,
   /** Full white — used for text/icons on colored backgrounds. */
   white: "#FFFFFF" as const,
   /** Subdued white at 80% opacity — used for secondary text on colored backgrounds. */
