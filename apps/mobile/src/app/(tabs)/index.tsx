@@ -113,6 +113,30 @@ export default function HomeScreen() {
         />
       </Card>
 
+      {/* Barter POC Feature Card */}
+      <Card
+        variant="elevated"
+        padding="md"
+        style={{
+          backgroundColor: colors.systemGreen12,
+          borderColor: colors.systemGreen,
+          borderWidth: 1,
+          gap: spacing.xs,
+        }}
+      >
+        <ThemedText variant="headline" color={colors.systemGreen}>
+          🌾 Góndola de Trueque P2P (POC)
+        </ThemedText>
+        <ThemedText variant="caption1" color={colors.secondaryLabel}>
+          Intercambio directo entre productores con paridad en moneda PAP.
+        </ThemedText>
+        <AppButton
+          title="Abrir Góndola de Trueque"
+          variant="primary"
+          onPress={() => router.push("/barter")}
+        />
+      </Card>
+
       {/* Tasks Section */}
       <View style={styles.tasksSection}>
         {pendingTasks.length > 0 && (

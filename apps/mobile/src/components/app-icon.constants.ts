@@ -22,6 +22,9 @@ export const SF_VECTOR_MAP: Record<string, IoniconsName> = {
   "sf:arrow.uturn.backward": "arrow-undo",
   "sf:xmark": "close",
 
+  // Sharing & Links
+  "sf:link": "link",
+
   // Stars & Favorites
   "sf:star": "star-outline",
   "sf:star.fill": "star",
