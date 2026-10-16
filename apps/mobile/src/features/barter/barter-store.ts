@@ -2,7 +2,9 @@ import {
   assertValidTransition,
   calculatePapValue,
   DEFAULT_PAP_VALUE_ARS,
+  productPackageSchema,
   requiresStockRollback,
+  tradeMatchSchema,
   type Producer,
   type ProductionType,
   type ProductPackage,
@@ -182,6 +184,46 @@ export function migratePersistedState(
 }
 
 /**
+ * Validates a payload that came from outside the store, after migration.
+ *
+ * Persisted bytes and broadcast messages are written by another build, another
+ * tab, or a user with devtools open, so neither reaches the state before it
+ * parses against the shared schemas: a stored match without
+ * `deliveryConfirmation` used to pass the load path and then crash inside
+ * `confirmDelivery`. Returns `null` when either list fails, so the caller
+ * falls back to the seed catalog (load) or drops the message (broadcast).
+ */
+function parseExternalState(
+  state: Partial<BarterState>,
+): Partial<BarterState> | null {
+  const packages = productPackageSchema.array().safeParse(state.packages);
+  const matches = tradeMatchSchema.array().safeParse(state.matches);
+
+  if (!packages.success || !matches.success) {
+    return null;
+  }
+
+  return { ...state, packages: packages.data, matches: matches.data };
+}
+
+/**
+ * Refuses a pre-completion command on a proposal whose TTL already elapsed.
+ *
+ * `checkExpiredMatches` only sweeps when a screen mounts, so an expiry that
+ * elapses while the inbox stays open would still let the target reserve stock.
+ * The rule is enforced in the transition itself, with the same predicate the
+ * sweep uses.
+ */
+function assertProposalNotExpired(match: TradeMatch): void {
+  if (
+    (match.status === "PENDING" || match.status === "COUNTER_OFFERED") &&
+    new Date(match.expiresAt).getTime() < Date.now()
+  ) {
+    throw new Error(`Trade proposal expired at ${match.expiresAt}`);
+  }
+}
+
+/**
  * Resolves a `?producerId=` / `?producer=` value to a producer id.
  *
  * The value may be either the producer id or its display name. Names are
@@ -249,7 +291,10 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         // A state written before a producer rename still carries the old ids.
-        persistedState = migratePersistedState(JSON.parse(raw));
+        // It is validated after that rewrite, so a migrated id is not mistaken
+        // for a malformed one.
+        persistedState =
+          parseExternalState(migratePersistedState(JSON.parse(raw))) ?? {};
       }
     } catch {
       persistedState = {};
@@ -338,11 +383,19 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
           matches,
           papConfigArs,
         });
+        const validated = parseExternalState(synced);
+
+        // A message that does not parse is dropped before it reaches the state
+        // (and it is never echoed back to the peer).
+        if (!validated) {
+          return;
+        }
+
         state = {
           ...state,
-          packages: synced.packages ?? state.packages,
-          matches: synced.matches ?? state.matches,
-          papConfigArs: synced.papConfigArs ?? state.papConfigArs,
+          packages: validated.packages ?? state.packages,
+          matches: validated.matches ?? state.matches,
+          papConfigArs: validated.papConfigArs ?? state.papConfigArs,
         };
         // Notify local components without re-broadcasting
         notify(false);
@@ -407,6 +460,27 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
         throw new Error("Specified product packages not found in catalog");
       }
 
+      if (offeredPkg.producerId !== input.requesterId) {
+        throw new Error(
+          "Offered package must belong to the requesting producer",
+        );
+      }
+
+      if (targetPkg.producerId !== input.targetProducerId) {
+        throw new Error("Target package must belong to the target producer");
+      }
+
+      if (input.requesterId === input.targetProducerId) {
+        throw new Error("A producer cannot trade with itself");
+      }
+
+      // Whole PAP units traded 1:1: an unbalanced pair is not a barter.
+      if (offeredPkg.papValue !== targetPkg.papValue) {
+        throw new Error(
+          `Trade packages must have the same PAP value: offered ${offeredPkg.papValue} PAP, target ${targetPkg.papValue} PAP`,
+        );
+      }
+
       const papConfig = input.papConfigArs ?? state.papConfigArs;
       const ttl = input.ttlHours ?? 48;
       const expiresAt = new Date(Date.now() + ttl * 3600 * 1000).toISOString();
@@ -446,6 +520,7 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       }
 
       assertValidTransition(match.status, "ACCEPTED");
+      assertProposalNotExpired(match);
 
       const offeredPkg = state.packages.find(
         (p) => p.id === match.offeredPackageId,
@@ -522,6 +597,7 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       if (!match) throw new Error(`Match ${matchId} not found`);
 
       assertValidTransition(match.status, "REJECTED");
+      assertProposalNotExpired(match);
 
       const updated: TradeMatch = {
         ...match,
@@ -547,11 +623,33 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       if (!match) throw new Error(`Match ${input.matchId} not found`);
 
       assertValidTransition(match.status, "COUNTER_OFFERED");
+      assertProposalNotExpired(match);
+
+      if (input.targetProducerId !== match.targetProducerId) {
+        throw new Error(
+          "Only the target producer of a trade can counter-offer",
+        );
+      }
 
       const counterPkg = state.packages.find(
         (p) => p.id === input.counterOfferedPackageId,
       );
       if (!counterPkg) throw new Error("Counter-offered package not found");
+
+      // The counter package comes out of the requester's own catalog: a package
+      // of the target would be a self-swap that leaves the requester empty
+      // handed.
+      if (counterPkg.producerId !== match.requesterId) {
+        throw new Error("Counter-offered package must belong to the requester");
+      }
+
+      // The counter keeps the trade balanced: same PAP value, or the 1:1 rule
+      // no longer holds for the pair.
+      if (counterPkg.papValue !== match.totalPap) {
+        throw new Error(
+          `Counter-offered package must have the same PAP value as the trade: ${counterPkg.papValue} PAP vs ${match.totalPap} PAP`,
+        );
+      }
 
       const now = new Date().toISOString();
       const updated: TradeMatch = {
@@ -623,11 +721,19 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       return updated;
     },
 
-    cancelTradeMatch: (matchId: string, _producerId: string): TradeMatch => {
+    cancelTradeMatch: (matchId: string, producerId: string): TradeMatch => {
       const match = state.matches.find((m) => m.id === matchId);
       if (!match) throw new Error(`Match ${matchId} not found`);
 
       assertValidTransition(match.status, "CANCELLED_BY_PRODUCER");
+
+      // Cancelling rolls back stock, so only the two parties may do it.
+      const isRequester = producerId === match.requesterId;
+      const isTarget = producerId === match.targetProducerId;
+
+      if (!isRequester && !isTarget) {
+        throw new Error("Producer not party to this trade");
+      }
 
       // Rollback stock if previously deducted
       let nextPackages = state.packages;

@@ -84,17 +84,18 @@ export function getMatchActionAvailability(
 
 /**
  * Packages the target may propose as a counter-offer: alternatives from the
- * requester's own catalog, excluding the currently offered package and any
- * package without stock.
+ * requester's own catalog, excluding the currently offered package, any package
+ * without stock, and any package whose PAP value would unbalance the 1:1 trade.
  */
 export function getCounterOfferCandidates(
   allPackages: ProductPackage[],
-  match: Pick<TradeMatch, "requesterId" | "offeredPackageId">,
+  match: Pick<TradeMatch, "requesterId" | "offeredPackageId" | "totalPap">,
 ): ProductPackage[] {
   return allPackages.filter(
     (pkg) =>
       pkg.producerId === match.requesterId &&
       pkg.id !== match.offeredPackageId &&
-      pkg.stockUnits > 0,
+      pkg.stockUnits > 0 &&
+      pkg.papValue === match.totalPap,
   );
 }

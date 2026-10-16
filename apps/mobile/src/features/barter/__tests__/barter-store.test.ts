@@ -293,13 +293,18 @@ describe("Renamed producer ids (migration)", () => {
   });
 
   it("rewrites the ids inside a state written by a previous build", () => {
-    // Built through the store so the fixture follows the real match shape.
-    const legacyMatch = store.createTradeProposal({
+    // Built through the store so the fixture follows the real match shape, then
+    // given the producer ids the previous build wrote into its state.
+    const legacyMatch = {
+      ...store.createTradeProposal({
+        requesterId: PRODUCER_IDS.VERMUT,
+        targetProducerId: PRODUCER_IDS.QUESO,
+        offeredPackageId: SEED_PACKAGES[0].id,
+        targetPackageId: SEED_PACKAGES[2].id,
+      }),
       requesterId: "prod-vermut",
       targetProducerId: "prod-queso",
-      offeredPackageId: SEED_PACKAGES[0].id,
-      targetPackageId: SEED_PACKAGES[2].id,
-    });
+    };
 
     const migrated = migratePersistedState({
       producers: [{ ...SEED_PRODUCERS[0], id: "prod-vermut" }],

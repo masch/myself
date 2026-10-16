@@ -29,7 +29,7 @@ export const productPackageSchema = z.object({
   title: z.string().min(1),
   productionType: productionTypeSchema,
   priceArs: z.number().positive(),
-  papValue: z.number().positive(),
+  papValue: z.number().int().positive(),
   stockUnits: z.number().int().min(0),
 });
 
@@ -64,7 +64,7 @@ export const tradeMatchSchema = z.object({
   offeredPackageId: z.string().min(1),
   targetPackageId: z.string().min(1),
   papSnapshotArs: z.number().positive(),
-  totalPap: z.number().positive(),
+  totalPap: z.number().int().positive(),
   status: tradeMatchStatusSchema,
   deliveryConfirmation: deliveryConfirmationSchema,
   counterOfferHistory: counterOfferHistorySchema.optional(),
@@ -88,6 +88,14 @@ export const counterOfferInputSchema = z.object({
   counterOfferedPackageId: z.string().min(1),
 });
 
+/**
+ * Converts an ARS price into PAP units.
+ *
+ * The POC trades whole PAP units 1:1, so the single owner of this math refuses
+ * a price that is not an exact multiple of the PAP configuration instead of
+ * rounding it silently: a rounded value would let an unbalanced trade pass as
+ * balanced.
+ */
 export function calculatePapValue(
   priceArs: number,
   papConfigArs: number,
@@ -95,5 +103,10 @@ export function calculatePapValue(
   if (papConfigArs <= 0) {
     throw new Error("PAP configuration value must be strictly positive");
   }
-  return Number((priceArs / papConfigArs).toFixed(4));
+  if (priceArs % papConfigArs !== 0) {
+    throw new Error(
+      `Price ${priceArs} ARS is not an exact multiple of the PAP configuration ${papConfigArs} ARS`,
+    );
+  }
+  return priceArs / papConfigArs;
 }

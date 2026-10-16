@@ -48,6 +48,9 @@ export default function BarterTradeScreen() {
   }
 
   const role = getTradeRole(match, activeProducer.id);
+  // A third producer opening a shared trade link sees the summary but no
+  // action: the store refuses them, so the screen must not offer the buttons.
+  const isParticipant = role !== null;
   const requester = producers.find((p) => p.id === match.requesterId);
   const target = producers.find((p) => p.id === match.targetProducerId);
   const counterpart = role === "requester" ? target : requester;
@@ -159,7 +162,7 @@ export default function BarterTradeScreen() {
       </Card>
 
       {/* WhatsApp coordination */}
-      {isWaitingDelivery && counterpart ? (
+      {isWaitingDelivery && isParticipant && counterpart ? (
         <Card variant="subdued" style={styles.card}>
           <ThemedText variant="headline" style={styles.sectionTitle}>
             Coordinación de entrega
@@ -177,7 +180,7 @@ export default function BarterTradeScreen() {
       ) : null}
 
       {/* Dual delivery confirmation */}
-      {isWaitingDelivery ? (
+      {isWaitingDelivery && isParticipant ? (
         <Card variant="subdued" style={styles.card}>
           <ThemedText variant="headline" style={styles.sectionTitle}>
             Confirmación de recepción

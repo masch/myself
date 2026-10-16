@@ -138,6 +138,94 @@ describe("producer rename migration on the paths a user can reach", () => {
   });
 });
 
+describe("external payload validation", () => {
+  it("drops a stored match that does not match the trade schema", () => {
+    // Missing `deliveryConfirmation`: it used to load and then crash inside
+    // confirmDelivery, which reads the confirmation of both parties.
+    const malformed = {
+      id: "match-malformed",
+      requesterId: "prod-vermut",
+      targetProducerId: "prod-queso",
+      offeredPackageId: legacyPackage.id,
+      targetPackageId: legacyPackage.id,
+      papSnapshotArs: 50000,
+      totalPap: 1,
+      status: "WAITING_DELIVERY" as const,
+      expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    storage.set(
+      STORAGE_KEY,
+      JSON.stringify({
+        packages: [legacyPackage],
+        matches: [malformed],
+        papConfigArs: 50000,
+      }),
+    );
+
+    const store = createBarterStore({ broadcastEnabled: false });
+
+    // Without the schema check this match loads and then crashes inside
+    // confirmDelivery, which reads the confirmation of both parties.
+    expect(() =>
+      store.confirmDelivery("match-malformed", PRODUCER_IDS.VERMUT),
+    ).toThrow("Match match-malformed not found");
+
+    // The seed catalog replaces the stored slices, so the malformed match never
+    // reaches the state at all.
+    expect(store.getState().matches).toEqual([]);
+    expect(store.getState().packages).toHaveLength(SEED_PACKAGES.length);
+    expect(store.getState().packages[0].producerId).toBe(PRODUCER_IDS.VERMUT);
+  });
+
+  it("drops a broadcast payload that does not match the trade schema", () => {
+    const store = createBarterStore({});
+    const peer = peers.at(-1)!;
+    const before = store.getState();
+
+    peer.onmessage?.({
+      data: {
+        type: "BARTER_STATE_SYNC",
+        payload: {
+          packages: [{ ...legacyPackage, producerId: "prod-queso" }],
+          matches: [
+            {
+              ...createMatch("match-malformed", "prod-vermut", "prod-queso"),
+              deliveryConfirmation: undefined,
+            },
+          ],
+          papConfigArs: 50000,
+        },
+      },
+    });
+
+    // The message is dropped before it reaches the state, and it is never
+    // echoed back to the peer.
+    expect(store.getState().packages).toEqual(before.packages);
+    expect(store.getState().matches).toEqual(before.matches);
+    expect(peer.posted).toHaveLength(0);
+  });
+
+  it("still loads a stored state whose packages and matches parse", () => {
+    storage.set(
+      STORAGE_KEY,
+      JSON.stringify({
+        packages: [legacyPackage],
+        matches: [createMatch("m-stored", "prod-vermut", "prod-queso")],
+        papConfigArs: 50000,
+      }),
+    );
+
+    const state = createBarterStore({ broadcastEnabled: false }).getState();
+
+    expect(state.packages).toHaveLength(1);
+    expect(state.packages[0].producerId).toBe(PRODUCER_IDS.VERMUT);
+    expect(state.matches).toHaveLength(1);
+    expect(state.matches[0].id).toBe("m-stored");
+  });
+});
+
 function createMatch(
   id: string,
   requesterId: string,

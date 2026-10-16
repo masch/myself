@@ -59,8 +59,49 @@ describe("Barter Domain Models & Schemas", () => {
   it("calculates PAP value accurately from ARS price and config", () => {
     expect(calculatePapValue(50000, DEFAULT_PAP_VALUE_ARS)).toBe(1);
     expect(calculatePapValue(100000, DEFAULT_PAP_VALUE_ARS)).toBe(2);
-    expect(calculatePapValue(25000, DEFAULT_PAP_VALUE_ARS)).toBe(0.5);
+    expect(calculatePapValue(150000, DEFAULT_PAP_VALUE_ARS)).toBe(3);
     expect(calculatePapValue(60000, 60000)).toBe(1);
+  });
+
+  it("rejects a price that is not an exact multiple of the PAP configuration", () => {
+    expect(() => calculatePapValue(25000, DEFAULT_PAP_VALUE_ARS)).toThrow(
+      "Price 25000 ARS is not an exact multiple of the PAP configuration 50000 ARS",
+    );
+    expect(() => calculatePapValue(75000, DEFAULT_PAP_VALUE_ARS)).toThrow(
+      "Price 75000 ARS is not an exact multiple of the PAP configuration 50000 ARS",
+    );
+  });
+
+  it("rejects a fractional PAP amount on a package and on a trade", () => {
+    const pkg = productPackageSchema.safeParse({
+      id: "pkg-1",
+      producerId: "prod-1",
+      title: "Pack 4 Botellas Vermut Rosso 750ml",
+      productionType: "AGROECOLOGICAL" as const,
+      priceArs: 50000,
+      papValue: 1.5,
+      stockUnits: 10,
+    });
+    expect(pkg.success).toBe(false);
+
+    const match = tradeMatchSchema.safeParse({
+      id: "match-101",
+      requesterId: "prod-1",
+      targetProducerId: "prod-2",
+      offeredPackageId: "pkg-vermut",
+      targetPackageId: "pkg-gouda",
+      papSnapshotArs: 50000,
+      totalPap: 1.5,
+      status: "PENDING" as const,
+      deliveryConfirmation: {
+        confirmedByRequester: false,
+        confirmedByTarget: false,
+      },
+      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    expect(match.success).toBe(false);
   });
 
   it("validates a full TradeMatch entity with snapshot and timestamps", () => {
