@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   packageOptionSelected: {
     borderColor: colors.systemGreen,
-    backgroundColor: "rgba(52, 199, 89, 0.08)",
+    backgroundColor: colors.systemGreen8,
   },
   packageOptionDisabled: {
     opacity: 0.4,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   balanceBanner: {
-    backgroundColor: "rgba(52, 199, 89, 0.12)",
+    backgroundColor: colors.systemGreen12,
     borderRadius: radius.md,
     padding: spacing.sm,
     marginBottom: spacing.md,

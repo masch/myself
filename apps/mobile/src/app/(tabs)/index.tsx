@@ -118,7 +118,7 @@ export default function HomeScreen() {
         variant="elevated"
         padding="md"
         style={{
-          backgroundColor: "rgba(52, 199, 89, 0.12)",
+          backgroundColor: colors.systemGreen12,
           borderColor: colors.systemGreen,
           borderWidth: 1,
           gap: spacing.xs,

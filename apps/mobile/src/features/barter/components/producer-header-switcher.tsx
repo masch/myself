@@ -64,6 +64,14 @@ export function ProducerHeaderSwitcher({
         </View>
 
         <View style={styles.badgeColumn}>
+          {onResetSeed && (
+            <ChipButton
+              title="↺ Reiniciar Datos"
+              variant="destructive"
+              onPress={onResetSeed}
+              style={styles.resetChip}
+            />
+          )}
           <Badge
             label={`1 PAP = $${papConfigArs.toLocaleString("es-AR")}`}
             variant="success"
@@ -110,14 +118,6 @@ export function ProducerHeaderSwitcher({
             </View>
           );
         })}
-        {onResetSeed && (
-          <ChipButton
-            title="↺ Reiniciar Datos"
-            variant="destructive"
-            onPress={onResetSeed}
-            style={styles.resetChip}
-          />
-        )}
       </ScrollView>
     </Card>
   );
