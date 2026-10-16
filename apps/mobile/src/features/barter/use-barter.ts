@@ -10,12 +10,10 @@ export function useBarter(): BarterState & {
   activeProducer: BarterState["producers"][number] | undefined;
   otherProducers: BarterState["producers"];
   activeProducerPackages: BarterState["packages"];
-  gondolaPackages: Array<
-    BarterState["packages"][number] & {
-      producer: BarterState["producers"][number];
-      distanceKm: number;
-    }
-  >;
+  gondolaPackages: (BarterState["packages"][number] & {
+    producer: BarterState["producers"][number];
+    distanceKm: number;
+  })[];
   incomingMatches: BarterState["matches"];
   outgoingMatches: BarterState["matches"];
   setActiveProducer: (producerId: string) => void;
