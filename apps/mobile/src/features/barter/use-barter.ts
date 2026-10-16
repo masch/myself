@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { globalBarterStore, type BarterState } from "./barter-store";
-import { calculateDistanceKm } from "./geo-utils";
+import { deriveGondolaPackages, type GondolaPackage } from "./barter-selectors";
 
 /**
  * React hook to bind components directly to the BarterStore with zero tearing
@@ -10,10 +10,7 @@ export function useBarter(): BarterState & {
   activeProducer: BarterState["producers"][number] | undefined;
   otherProducers: BarterState["producers"];
   activeProducerPackages: BarterState["packages"];
-  gondolaPackages: (BarterState["packages"][number] & {
-    producer: BarterState["producers"][number];
-    distanceKm: number;
-  })[];
+  gondolaPackages: GondolaPackage[];
   incomingMatches: BarterState["matches"];
   outgoingMatches: BarterState["matches"];
   setActiveProducer: (producerId: string) => void;
@@ -50,40 +47,7 @@ export function useBarter(): BarterState & {
   );
 
   // Gondola contains only packages from OTHER producers, with distance and filter applied
-  const gondolaPackages = state.packages
-    .filter((p) => p.producerId !== state.activeProducerId)
-    .filter((p) => {
-      if (
-        state.productionTypeFilter &&
-        state.productionTypeFilter !== "ALL" &&
-        p.productionType !== state.productionTypeFilter
-      ) {
-        return false;
-      }
-      return true;
-    })
-    .map((pkg) => {
-      const producer = state.producers.find((p) => p.id === pkg.producerId)!;
-      const distanceKm = activeProducer
-        ? calculateDistanceKm(
-            activeProducer.latitude,
-            activeProducer.longitude,
-            producer.latitude,
-            producer.longitude,
-          )
-        : 0;
-      return {
-        ...pkg,
-        producer,
-        distanceKm,
-      };
-    })
-    .filter((item) => {
-      if (state.maxDistanceKm !== undefined && state.maxDistanceKm > 0) {
-        return item.distanceKm <= state.maxDistanceKm;
-      }
-      return true;
-    });
+  const gondolaPackages = deriveGondolaPackages(state);
 
   const incomingMatches = state.matches.filter(
     (m) => m.targetProducerId === state.activeProducerId,

@@ -9,9 +9,27 @@ import {
   type TradeMatch,
 } from "@myself/shared";
 
+/**
+ * Canonical producer ids.
+ *
+ * Seeded packages point at their producer through these constants instead of
+ * repeating the literal, so a package can never reference a producer that does
+ * not exist.
+ *
+ * These values are a persisted contract: every stored package carries one, and
+ * they are the `?producerId=` link values. A value may only be renamed together
+ * with an entry in `RENAMED_PRODUCER_IDS`, which translates both the stored
+ * state and the links written by a previous build.
+ */
+export const PRODUCER_IDS = {
+  VERMUT: "sabado",
+  QUESO: "naturaleza-viva",
+  MIEL: "colmenas-del-sol",
+} as const;
+
 export const SEED_PRODUCERS: Producer[] = [
   {
-    id: "prod-vermut",
+    id: PRODUCER_IDS.VERMUT,
     name: "Vermut Sabado",
     productionType: "AGROECOLOGICAL",
     address: "Chacra Alimento, Umepay",
@@ -20,7 +38,7 @@ export const SEED_PRODUCERS: Producer[] = [
     phone: "+5492615551234",
   },
   {
-    id: "prod-queso",
+    id: PRODUCER_IDS.QUESO,
     name: "Naturaleza Viva",
     productionType: "ORGANIC",
     address: "Guadalupe Norte, Santa Fe",
@@ -29,7 +47,7 @@ export const SEED_PRODUCERS: Producer[] = [
     phone: "+5493482555678",
   },
   {
-    id: "prod-miel",
+    id: PRODUCER_IDS.MIEL,
     name: "Colmenas del Sol",
     productionType: "AGROECOLOGICAL",
     address: "Villa Las Rosas, Traslasierra, Córdoba",
@@ -42,7 +60,7 @@ export const SEED_PRODUCERS: Producer[] = [
 export const SEED_PACKAGES: ProductPackage[] = [
   {
     id: "pkg-vermut-pack4",
-    producerId: "prod-vermut",
+    producerId: PRODUCER_IDS.VERMUT,
     title: "Pack 4 Botellas Vermut Rosso 750ml",
     productionType: "AGROECOLOGICAL",
     priceArs: 50000,
@@ -51,7 +69,7 @@ export const SEED_PACKAGES: ProductPackage[] = [
   },
   {
     id: "pkg-vermut-miel",
-    producerId: "prod-vermut",
+    producerId: PRODUCER_IDS.VERMUT,
     title: "Miel Multiflora de Chacra 1kg",
     productionType: "AGROECOLOGICAL",
     priceArs: 50000,
@@ -60,7 +78,7 @@ export const SEED_PACKAGES: ProductPackage[] = [
   },
   {
     id: "pkg-queso-gouda",
-    producerId: "prod-queso",
+    producerId: PRODUCER_IDS.QUESO,
     title: "Horma 2kg Queso Gouda Agroecológico",
     productionType: "ORGANIC",
     priceArs: 50000,
@@ -69,7 +87,7 @@ export const SEED_PACKAGES: ProductPackage[] = [
   },
   {
     id: "pkg-queso-provoleta",
-    producerId: "prod-queso",
+    producerId: PRODUCER_IDS.QUESO,
     title: "Pack 6 Provoletas Estacionadas",
     productionType: "ORGANIC",
     priceArs: 50000,
@@ -78,7 +96,7 @@ export const SEED_PACKAGES: ProductPackage[] = [
   },
   {
     id: "pkg-miel-1kg",
-    producerId: "prod-miel",
+    producerId: PRODUCER_IDS.MIEL,
     title: "Caja 3 Frascos Polen & Jalea Real",
     productionType: "AGROECOLOGICAL",
     priceArs: 50000,
@@ -108,6 +126,105 @@ export interface CreateStoreOptions {
 const STORAGE_KEY = "p2p_barter_poc_state_v1";
 const BROADCAST_CHANNEL_NAME = "p2p_barter_sync_channel";
 
+/**
+ * Normalizes a producer reference for comparison: case-insensitive, without
+ * surrounding or repeated whitespace, and treating dashes and underscores as
+ * spaces so a slug-shaped name still matches its display form.
+ */
+function normalizeProducerReference(value: string): string {
+  return value.trim().toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ");
+}
+
+/**
+ * Producer ids that were renamed, mapped to the value they carry today.
+ *
+ * Both the persisted state and the links already handed out still name the old
+ * ids, so they are translated instead of dropped.
+ */
+const RENAMED_PRODUCER_IDS: Record<string, string> = {
+  "prod-vermut": PRODUCER_IDS.VERMUT,
+  "prod-queso": PRODUCER_IDS.QUESO,
+  "prod-miel": PRODUCER_IDS.MIEL,
+};
+
+/** Translates the former id of a renamed producer to its current value. */
+export function migrateProducerId(producerId: string): string {
+  return RENAMED_PRODUCER_IDS[producerId] ?? producerId;
+}
+
+/**
+ * Rewrites the producer ids inside a state written by a previous build.
+ *
+ * Every stored package and match carries a producer id, and a persisted state
+ * may also carry the producer list itself, so a rename has to travel with the
+ * data: without this rewrite the packages drop out of the gondola and the
+ * matches point at producers that no longer exist.
+ */
+export function migratePersistedState(
+  state: Partial<BarterState>,
+): Partial<BarterState> {
+  return {
+    ...state,
+    producers: state.producers?.map((producer) => ({
+      ...producer,
+      id: migrateProducerId(producer.id),
+    })),
+    packages: state.packages?.map((pkg) => ({
+      ...pkg,
+      producerId: migrateProducerId(pkg.producerId),
+    })),
+    matches: state.matches?.map((match) => ({
+      ...match,
+      requesterId: migrateProducerId(match.requesterId),
+      targetProducerId: migrateProducerId(match.targetProducerId),
+    })),
+  };
+}
+
+/**
+ * Resolves a `?producerId=` / `?producer=` value to a producer id.
+ *
+ * The value may be either the producer id or its display name. Names are
+ * compared case-insensitively and ignore spacing differences, so
+ * `Naturaleza Viva`, `naturaleza viva` and `naturaleza-viva` all resolve to
+ * the same producer. A renamed producer still resolves through its former id
+ * (see `migrateProducerId`), so an older link keeps working. Returns
+ * `undefined` when nothing matches.
+ */
+export function resolveProducerId(
+  producers: Producer[],
+  rawValue: string | null | undefined,
+): string | undefined {
+  if (!rawValue) {
+    return undefined;
+  }
+
+  const reference = migrateProducerId(rawValue);
+  const byId = producers.find((producer) => producer.id === reference);
+
+  if (byId) {
+    return byId.id;
+  }
+
+  const wanted = normalizeProducerReference(reference);
+
+  return producers.find(
+    (producer) => normalizeProducerReference(producer.name) === wanted,
+  )?.id;
+}
+
+/**
+ * Builds the link that opens the barter screen operating as `producerId`.
+ *
+ * The id is what we hand out, not the display name: it is the value every
+ * stored package and every match carries, so the link keeps working after a
+ * producer is renamed. A display name still resolves when typed by hand (see
+ * `resolveProducerId`), which is why the value is encoded here.
+ */
+export function buildProducerLink(origin: string, producerId: string): string {
+  return `${origin}/barter?producerId=${encodeURIComponent(producerId)}`;
+}
+
 export function createBarterStore(options: CreateStoreOptions = {}) {
   let isWeb =
     typeof window !== "undefined" && typeof localStorage !== "undefined";
@@ -125,6 +242,24 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     }
   }
 
+  // Load persisted state if on Web
+  let persistedState: Partial<BarterState> = {};
+  if (isWeb) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        // A state written before a producer rename still carries the old ids.
+        persistedState = migratePersistedState(JSON.parse(raw));
+      }
+    } catch {
+      persistedState = {};
+    }
+  }
+
+  // Producers this store runs with: explicit options win over persisted state.
+  const producers =
+    options.initialProducers ?? persistedState.producers ?? SEED_PRODUCERS;
+
   // Initial producer resolution from query params (?producerId=...)
   let initialActiveId = options.defaultActiveProducerId ?? SEED_PRODUCERS[0].id;
   if (isWeb && typeof window.location !== "undefined") {
@@ -132,29 +267,25 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       const params = new URLSearchParams(window.location.search);
       const urlProducer = params.get("producerId") || params.get("producer");
       if (urlProducer) {
-        initialActiveId = urlProducer;
+        const resolvedId = resolveProducerId(producers, urlProducer);
+
+        if (resolvedId) {
+          initialActiveId = resolvedId;
+        } else {
+          console.warn(
+            `[barter] Unknown producer "${urlProducer}" in the URL. Use one of: ${producers
+              .map((producer) => `"${producer.id}" or "${producer.name}"`)
+              .join(", ")}.`,
+          );
+        }
       }
     } catch {
       // Ignored in non-browser envs
     }
   }
 
-  // Load persisted state if on Web
-  let persistedState: Partial<BarterState> = {};
-  if (isWeb) {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        persistedState = JSON.parse(raw);
-      }
-    } catch {
-      persistedState = {};
-    }
-  }
-
   let state: BarterState = {
-    producers:
-      options.initialProducers ?? persistedState.producers ?? SEED_PRODUCERS,
+    producers,
     packages:
       options.initialPackages ?? persistedState.packages ?? SEED_PACKAGES,
     matches: options.initialMatches ?? persistedState.matches ?? [],
@@ -201,11 +332,17 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     channel.onmessage = (event) => {
       if (event.data?.type === "BARTER_STATE_SYNC" && event.data.payload) {
         const { packages, matches, papConfigArs } = event.data.payload;
+        // A tab still running the previous bundle broadcasts the former ids.
+        const synced = migratePersistedState({
+          packages,
+          matches,
+          papConfigArs,
+        });
         state = {
           ...state,
-          packages: packages ?? state.packages,
-          matches: matches ?? state.matches,
-          papConfigArs: papConfigArs ?? state.papConfigArs,
+          packages: synced.packages ?? state.packages,
+          matches: synced.matches ?? state.matches,
+          papConfigArs: synced.papConfigArs ?? state.papConfigArs,
         };
         // Notify local components without re-broadcasting
         notify(false);

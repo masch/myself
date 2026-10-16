@@ -1,6 +1,11 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import {
+  buildProducerLink,
   createBarterStore,
+  migratePersistedState,
+  migrateProducerId,
+  PRODUCER_IDS,
+  resolveProducerId,
   SEED_PRODUCERS,
   SEED_PACKAGES,
 } from "../barter-store";
@@ -23,7 +28,18 @@ describe("Barter Store & Concurrency Engine", () => {
     const state = store.getState();
     expect(state.producers.length).toBeGreaterThanOrEqual(2);
     expect(state.packages.length).toBeGreaterThanOrEqual(3);
-    expect(state.activeProducerId).toBe("prod-vermut");
+    expect(state.activeProducerId).toBe("sabado");
+  });
+
+  it("keeps every seeded package pointing at a seeded producer", () => {
+    const state = store.getState();
+    const producerIds = state.producers.map((producer) => producer.id);
+
+    // use-barter.ts resolves this link with a non-null assertion, so a package
+    // naming an unknown producer would crash the gondola at render time.
+    for (const pkg of state.packages) {
+      expect(producerIds).toContain(pkg.producerId);
+    }
   });
 
   it("calculates geographical distance accurately with Haversine formula", () => {
@@ -47,8 +63,8 @@ describe("Barter Store & Concurrency Engine", () => {
     const initialStock = initialPkgVermut.stockUnits;
 
     const match = store.createTradeProposal({
-      requesterId: "prod-vermut",
-      targetProducerId: "prod-queso",
+      requesterId: PRODUCER_IDS.VERMUT,
+      targetProducerId: PRODUCER_IDS.QUESO,
       offeredPackageId: "pkg-vermut-pack4",
       targetPackageId: "pkg-queso-gouda",
       papConfigArs: 50000,
@@ -67,8 +83,8 @@ describe("Barter Store & Concurrency Engine", () => {
 
   it("accepts a trade match, deducts stock for both producers, and enters WAITING_DELIVERY", () => {
     const match = store.createTradeProposal({
-      requesterId: "prod-vermut",
-      targetProducerId: "prod-queso",
+      requesterId: PRODUCER_IDS.VERMUT,
+      targetProducerId: PRODUCER_IDS.QUESO,
       offeredPackageId: "pkg-vermut-pack4",
       targetPackageId: "pkg-queso-gouda",
     });
@@ -100,16 +116,16 @@ describe("Barter Store & Concurrency Engine", () => {
 
     // Producer A proposes match 1 for Queso Gouda
     const match1 = store.createTradeProposal({
-      requesterId: "prod-vermut",
-      targetProducerId: "prod-queso",
+      requesterId: PRODUCER_IDS.VERMUT,
+      targetProducerId: PRODUCER_IDS.QUESO,
       offeredPackageId: "pkg-vermut-pack4",
       targetPackageId: "pkg-queso-gouda",
     });
 
     // Producer C also proposes match 2 for Queso Gouda
     const match2 = store.createTradeProposal({
-      requesterId: "prod-miel",
-      targetProducerId: "prod-queso",
+      requesterId: PRODUCER_IDS.MIEL,
+      targetProducerId: PRODUCER_IDS.QUESO,
       offeredPackageId: "pkg-miel-1kg",
       targetPackageId: "pkg-queso-gouda",
     });
@@ -127,8 +143,8 @@ describe("Barter Store & Concurrency Engine", () => {
 
   it("handles single-round counter-offer and transfers turn to requester", () => {
     const match = store.createTradeProposal({
-      requesterId: "prod-vermut",
-      targetProducerId: "prod-queso",
+      requesterId: PRODUCER_IDS.VERMUT,
+      targetProducerId: PRODUCER_IDS.QUESO,
       offeredPackageId: "pkg-vermut-pack4",
       targetPackageId: "pkg-queso-gouda",
     });
@@ -136,7 +152,7 @@ describe("Barter Store & Concurrency Engine", () => {
     // Target producer counters proposing miel instead of vermut
     const countered = store.counterOfferTradeMatch({
       matchId: match.id,
-      targetProducerId: "prod-queso",
+      targetProducerId: PRODUCER_IDS.QUESO,
       counterOfferedPackageId: "pkg-vermut-miel",
     });
 
@@ -161,21 +177,21 @@ describe("Barter Store & Concurrency Engine", () => {
 
   it("completes trade only when both producers confirm delivery (double handshake)", () => {
     const match = store.createTradeProposal({
-      requesterId: "prod-vermut",
-      targetProducerId: "prod-queso",
+      requesterId: PRODUCER_IDS.VERMUT,
+      targetProducerId: PRODUCER_IDS.QUESO,
       offeredPackageId: "pkg-vermut-pack4",
       targetPackageId: "pkg-queso-gouda",
     });
     store.acceptTradeMatch(match.id);
 
     // Requester confirms
-    const step1 = store.confirmDelivery(match.id, "prod-vermut");
+    const step1 = store.confirmDelivery(match.id, PRODUCER_IDS.VERMUT);
     expect(step1.status).toBe("WAITING_DELIVERY");
     expect(step1.deliveryConfirmation.confirmedByRequester).toBe(true);
     expect(step1.deliveryConfirmation.confirmedByTarget).toBe(false);
 
     // Target confirms
-    const step2 = store.confirmDelivery(match.id, "prod-queso");
+    const step2 = store.confirmDelivery(match.id, PRODUCER_IDS.QUESO);
     expect(step2.status).toBe("COMPLETED");
     expect(step2.deliveryConfirmation.confirmedByTarget).toBe(true);
   });
@@ -189,8 +205,8 @@ describe("Barter Store & Concurrency Engine", () => {
       .packages.find((p) => p.id === "pkg-queso-gouda")!.stockUnits;
 
     const match = store.createTradeProposal({
-      requesterId: "prod-vermut",
-      targetProducerId: "prod-queso",
+      requesterId: PRODUCER_IDS.VERMUT,
+      targetProducerId: PRODUCER_IDS.QUESO,
       offeredPackageId: "pkg-vermut-pack4",
       targetPackageId: "pkg-queso-gouda",
     });
@@ -198,7 +214,7 @@ describe("Barter Store & Concurrency Engine", () => {
     store.acceptTradeMatch(match.id);
 
     // One producer cancels while in WAITING_DELIVERY
-    const cancelled = store.cancelTradeMatch(match.id, "prod-vermut");
+    const cancelled = store.cancelTradeMatch(match.id, PRODUCER_IDS.VERMUT);
     expect(cancelled.status).toBe("CANCELLED_BY_PRODUCER");
 
     // Stock must be restored to initial values
@@ -211,5 +227,108 @@ describe("Barter Store & Concurrency Engine", () => {
 
     expect(vermutStockRestored).toBe(vermutStockInitial);
     expect(quesoStockRestored).toBe(quesoStockInitial);
+  });
+});
+
+describe("Producer reference resolution (?producerId=)", () => {
+  it("still resolves a producer id", () => {
+    expect(resolveProducerId(SEED_PRODUCERS, "naturaleza-viva")).toBe(
+      "naturaleza-viva",
+    );
+    expect(resolveProducerId(SEED_PRODUCERS, "sabado")).toBe("sabado");
+  });
+
+  it("resolves a producer display name, ignoring case and spacing", () => {
+    expect(resolveProducerId(SEED_PRODUCERS, "Naturaleza Viva")).toBe(
+      "naturaleza-viva",
+    );
+    expect(resolveProducerId(SEED_PRODUCERS, "  naturaleza   viva  ")).toBe(
+      "naturaleza-viva",
+    );
+    expect(resolveProducerId(SEED_PRODUCERS, "vermut-sabado")).toBe("sabado");
+    expect(resolveProducerId(SEED_PRODUCERS, "colmenas del sol")).toBe(
+      "colmenas-del-sol",
+    );
+  });
+
+  it("returns undefined when the reference matches no producer", () => {
+    expect(resolveProducerId(SEED_PRODUCERS, "prod-quinoa")).toBeUndefined();
+    expect(resolveProducerId(SEED_PRODUCERS, "")).toBeUndefined();
+    expect(resolveProducerId(SEED_PRODUCERS, null)).toBeUndefined();
+    expect(resolveProducerId(SEED_PRODUCERS, undefined)).toBeUndefined();
+  });
+});
+
+describe("Producer simulation link (buildProducerLink)", () => {
+  it("builds the link that opens the barter screen as a producer", () => {
+    const link = buildProducerLink("https://app.test", PRODUCER_IDS.QUESO);
+
+    expect(link).toBe("https://app.test/barter?producerId=naturaleza-viva");
+  });
+
+  it("encodes a reference that needs escaping", () => {
+    const link = buildProducerLink("https://app.test", "Naturaleza Viva");
+
+    expect(link).toBe("https://app.test/barter?producerId=Naturaleza%20Viva");
+  });
+});
+
+describe("Renamed producer ids (migration)", () => {
+  const store = createBarterStore({
+    initialProducers: SEED_PRODUCERS,
+    initialPackages: SEED_PACKAGES,
+    initialMatches: [],
+    broadcastEnabled: false,
+  });
+
+  it("translates a former producer id to its current value", () => {
+    expect(migrateProducerId("prod-vermut")).toBe(PRODUCER_IDS.VERMUT);
+    expect(migrateProducerId("prod-queso")).toBe(PRODUCER_IDS.QUESO);
+    expect(migrateProducerId("prod-miel")).toBe("colmenas-del-sol");
+  });
+
+  it("leaves a current or unknown id untouched", () => {
+    expect(migrateProducerId(PRODUCER_IDS.MIEL)).toBe(PRODUCER_IDS.MIEL);
+    expect(migrateProducerId("prod-quinoa")).toBe("prod-quinoa");
+  });
+
+  it("rewrites the ids inside a state written by a previous build", () => {
+    // Built through the store so the fixture follows the real match shape.
+    const legacyMatch = store.createTradeProposal({
+      requesterId: "prod-vermut",
+      targetProducerId: "prod-queso",
+      offeredPackageId: SEED_PACKAGES[0].id,
+      targetPackageId: SEED_PACKAGES[2].id,
+    });
+
+    const migrated = migratePersistedState({
+      producers: [{ ...SEED_PRODUCERS[0], id: "prod-vermut" }],
+      packages: [{ ...SEED_PACKAGES[2], producerId: "prod-queso" }],
+      matches: [legacyMatch],
+      papConfigArs: 1234,
+    });
+
+    expect(migrated.producers?.[0].id).toBe(PRODUCER_IDS.VERMUT);
+    expect(migrated.packages?.[0].producerId).toBe(PRODUCER_IDS.QUESO);
+    expect(migrated.matches?.[0].requesterId).toBe(PRODUCER_IDS.VERMUT);
+    expect(migrated.matches?.[0].targetProducerId).toBe(PRODUCER_IDS.QUESO);
+    // Slices the migration does not own survive untouched.
+    expect(migrated.papConfigArs).toBe(1234);
+  });
+
+  it("leaves a state without packages or matches empty", () => {
+    const migrated = migratePersistedState({});
+
+    expect(migrated.packages).toBeUndefined();
+    expect(migrated.matches).toBeUndefined();
+  });
+
+  it("still resolves the former id of a renamed producer", () => {
+    expect(resolveProducerId(SEED_PRODUCERS, "prod-queso")).toBe(
+      PRODUCER_IDS.QUESO,
+    );
+    expect(resolveProducerId(SEED_PRODUCERS, "prod-vermut")).toBe(
+      PRODUCER_IDS.VERMUT,
+    );
   });
 });

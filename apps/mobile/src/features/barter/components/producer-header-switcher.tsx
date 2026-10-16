@@ -1,8 +1,16 @@
 import React from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
-import { Card, ThemedText, ChipButton, Badge } from "@/components";
+import { View, StyleSheet, ScrollView, Platform } from "react-native";
+import {
+  Card,
+  ThemedText,
+  ChipButton,
+  Badge,
+  IconButton,
+  useToast,
+} from "@/components";
 import { colors, spacing, radius } from "@/theme";
 import type { Producer } from "@myself/shared";
+import { buildProducerLink } from "../barter-store";
 
 interface ProducerHeaderSwitcherProps {
   activeProducer?: Producer;
@@ -19,6 +27,23 @@ export function ProducerHeaderSwitcher({
   onSelectProducer,
   onResetSeed,
 }: ProducerHeaderSwitcherProps) {
+  const toast = useToast();
+
+  // A simulation link only means something in a browser: the simulation is two
+  // same-origin tabs, so on native the affordance is not rendered at all.
+  const canCopyLink = Platform.OS === "web";
+
+  const handleCopyProducerLink = async (producer: Producer) => {
+    const link = buildProducerLink(window.location.origin, producer.id);
+
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success(`Link de ${producer.name} copiado`);
+    } catch {
+      toast.error(`No se pudo copiar. Link: ${link}`);
+    }
+  };
+
   return (
     <Card variant="elevated" style={styles.card}>
       <View style={styles.topRow}>
@@ -26,7 +51,11 @@ export function ProducerHeaderSwitcher({
           <ThemedText variant="caption1" style={styles.label}>
             ESTÁS OPERANDO COMO:
           </ThemedText>
-          <ThemedText variant="headline" style={styles.producerName}>
+          <ThemedText
+            variant="headline"
+            style={styles.producerName}
+            testID="active-producer-name"
+          >
             {activeProducer?.name ?? "Seleccionar productor"}
           </ThemedText>
           <ThemedText variant="caption1" style={styles.locationText}>
@@ -63,13 +92,22 @@ export function ProducerHeaderSwitcher({
         {producers.map((prod) => {
           const isSelected = prod.id === activeProducer?.id;
           return (
-            <ChipButton
-              key={prod.id}
-              title={prod.name}
-              variant={isSelected ? "success" : "default"}
-              onPress={() => onSelectProducer(prod.id)}
-              style={styles.chip}
-            />
+            <View key={prod.id} style={styles.chipGroup}>
+              <ChipButton
+                title={prod.name}
+                variant={isSelected ? "success" : "default"}
+                onPress={() => onSelectProducer(prod.id)}
+              />
+              {canCopyLink && (
+                <IconButton
+                  icon="sf:link"
+                  size="small"
+                  accessibilityLabel={`Copiar link de ${prod.name}`}
+                  testID={`copy-link-${prod.id}`}
+                  onPress={() => void handleCopyProducerLink(prod)}
+                />
+              )}
+            </View>
           );
         })}
         {onResetSeed && (
@@ -136,7 +174,10 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingVertical: 2,
   },
-  chip: {
+  chipGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
     marginRight: spacing.xs,
   },
   resetChip: {
