@@ -48,5 +48,17 @@ export const typography = {
   },
 } as const satisfies Record<string, TextStyle>;
 
+/**
+ * Shared numeric font-weight scale so component styles reference tokens instead
+ * of repeating string literals.
+ */
+export const fontWeights = {
+  regular: "400",
+  medium: "500",
+  semibold: "600",
+  bold: "700",
+  heavy: "800",
+} as const;
+
 export type Typography = typeof typography;
 export type TypographyVariant = keyof typeof typography;

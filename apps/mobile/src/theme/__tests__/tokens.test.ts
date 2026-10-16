@@ -1,5 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { colors, layout, radius, shadows, spacing, typography } from "../index";
+import {
+  colors,
+  fontWeights,
+  layout,
+  radius,
+  shadows,
+  spacing,
+  typography,
+} from "../index";
 
 describe("Design System Tokens", () => {
   describe("spacing tokens", () => {
@@ -13,10 +21,14 @@ describe("Design System Tokens", () => {
       expect(spacing.xxl).toBe(48);
     });
 
+    it("should expose a 2px minimum step alongside the 4-point scale", () => {
+      expect(spacing.xxs).toBe(2);
+    });
+
     it("should ensure all non-zero spacing tokens conform to 4-point grid", () => {
       for (const value of Object.values(spacing)) {
         expect(typeof value).toBe("number");
-        expect(value % 4).toBe(0);
+        expect(value % 4 === 0 || value === spacing.xxs).toBe(true);
       }
     });
   });
@@ -49,6 +61,14 @@ describe("Design System Tokens", () => {
           true,
         );
       }
+    });
+
+    it("should expose the shared numeric font-weight scale", () => {
+      expect(fontWeights.regular).toBe("400");
+      expect(fontWeights.medium).toBe("500");
+      expect(fontWeights.semibold).toBe("600");
+      expect(fontWeights.bold).toBe("700");
+      expect(fontWeights.heavy).toBe("800");
     });
   });
 
@@ -98,6 +118,7 @@ describe("Design System Tokens", () => {
       expect(layout.rowPaddingVertical).toBe(6);
       expect(layout.iconSize.md).toBe(20);
       expect(layout.iconSize.row).toBe(22);
+      expect(layout.iconSize.xs).toBe(10);
     });
   });
 });

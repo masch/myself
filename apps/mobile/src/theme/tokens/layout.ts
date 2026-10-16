@@ -21,6 +21,7 @@ export const layout = {
   inputMultilineMaxHeight: 110,
   rowLabelTopOffset: 11,
   iconSize: {
+    xs: 10,
     sm: 16,
     md: 20,
     row: 22,
