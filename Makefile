@@ -12,6 +12,16 @@ API_DIR          := apps/api
 MOBILE_DIR       := apps/mobile
 SHARED_DIR       := packages/shared
 
+# ── Tool Pins ─────────────────────────────────
+
+# expo-doctor is deliberately version-pinned. The targets below resolve it through
+# `bunx` at run time, so an unpinned call makes every CI run follow whatever release
+# is newest. 1.21.x regressed on the Expo SDK 57 `.icon` bundle and reported the
+# valid `ios.icon: "./assets/expo.icon"` entry as "cannot access file", turning the
+# `Unit Tests & Expo Doctor` job red with no repository change; 1.20.2 validates the
+# same project with 20 checks passed. Bump only after running check-doctor locally.
+EXPO_DOCTOR      := bunx expo-doctor@1.20.2
+
 # ── Monorepo Root Tasks (Turborepo) ──────────
 
 .PHONY: install
@@ -113,11 +123,11 @@ check-odd: ## Verify all ODD task documents are completed and closed
 
 .PHONY: check-doctor
 check-doctor: ## Run Expo Doctor to verify project health (skips remote dependency version check)
-	cd $(MOBILE_DIR) && APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_DOCTOR_SKIP_DEPENDENCY_VERSION_CHECK=1 bunx expo-doctor
+	cd $(MOBILE_DIR) && APP_VERSION_NAME="$(APP_VERSION_NAME)" EXPO_DOCTOR_SKIP_DEPENDENCY_VERSION_CHECK=1 $(EXPO_DOCTOR)
 
 .PHONY: check-doctor-strict
 check-doctor-strict: ## Run Expo Doctor with strict remote dependency version check
-	cd $(MOBILE_DIR) && APP_VERSION_NAME="$(APP_VERSION_NAME)" bunx expo-doctor
+	cd $(MOBILE_DIR) && APP_VERSION_NAME="$(APP_VERSION_NAME)" $(EXPO_DOCTOR)
 
 .PHONY: ci-weekly-deps
 ci-weekly-deps: ## Run weekly dependencies update and open a pull request if changes are detected

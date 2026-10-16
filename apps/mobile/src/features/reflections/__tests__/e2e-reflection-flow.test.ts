@@ -62,9 +62,13 @@ describe("E2E Vertical Integration: All 10 Seeded Reflections Registration Flow"
       [userId, "Filósofo Práctico", "filosofo@example.com"],
     );
 
-    // Keep seeded cohort open during test execution
+    // Keep seeded cohort open during test execution.
+    // enrollment_grace_days is a sentinel (100 years) so the enrollment deadline
+    // never expires: getCohortEnrollmentDeadline returns
+    // min(enrollmentEndDate, programStartDate + graceDays), so a finite grace
+    // window would silently close this fixture on a fixed calendar date.
     await db.runAsync(
-      "UPDATE theme_cohorts SET enrollment_start_date = '2026-01-01', enrollment_end_date = '2099-12-31', program_start_date = '2026-09-15', enrollment_grace_days = 30",
+      "UPDATE theme_cohorts SET enrollment_start_date = '2026-01-01', enrollment_end_date = '2099-12-31', program_start_date = '2026-09-15', enrollment_grace_days = 36500",
     );
   });
 
