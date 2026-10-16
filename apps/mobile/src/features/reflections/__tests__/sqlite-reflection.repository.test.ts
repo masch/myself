@@ -615,9 +615,13 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       const cohorts = await repo.getOpenCohorts();
       const cohort = cohorts[0];
 
-      // Set cohort program start date to 2026-09-15
+      // Set cohort program start date to 2026-09-15.
+      // enrollment_grace_days is a sentinel (100 years) so enrollment stays open
+      // while this test asserts the step-lock rule: the deadline is
+      // min(enrollmentEndDate, programStartDate + graceDays), so a finite grace
+      // window would close enrollment on a fixed calendar date.
       await db.runAsync(
-        "UPDATE theme_cohorts SET program_start_date = '2026-09-15', enrollment_grace_days = 30 WHERE id = ?",
+        "UPDATE theme_cohorts SET program_start_date = '2026-09-15', enrollment_grace_days = 36500 WHERE id = ?",
         [cohort.id],
       );
 
