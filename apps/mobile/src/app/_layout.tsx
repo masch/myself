@@ -75,6 +75,24 @@ function AppNavigation() {
                 headerTitle: "Design System",
               }}
             />
+            <Stack.Screen
+              name="barter"
+              options={{
+                headerTitle: "Góndola Trueque P2P",
+              }}
+            />
+            <Stack.Screen
+              name="barter-inbox"
+              options={{
+                headerTitle: "Bandeja de Trueques",
+              }}
+            />
+            <Stack.Screen
+              name="barter-trade/[id]"
+              options={{
+                headerTitle: "Entrega de Trueque",
+              }}
+            />
           </Stack>
         </ToastProvider>
       </ThemeProvider>
