@@ -58,8 +58,10 @@ export default function BarterInboxScreen() {
   };
 
   const handleReject = (matchId: string) => {
+    if (!activeProducer) return;
+
     try {
-      rejectTradeMatch(matchId);
+      rejectTradeMatch(matchId, activeProducer.id);
       toast.success("Propuesta rechazada.");
     } catch (err) {
       toast.error(
