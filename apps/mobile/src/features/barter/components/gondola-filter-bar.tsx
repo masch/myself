@@ -40,6 +40,7 @@ export function GondolaFilterBar({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.row}
+        testID="gondola-filter-row"
       >
         {TYPE_OPTIONS.map((opt) => (
           <ChipButton
