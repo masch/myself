@@ -90,6 +90,7 @@ export function CounterOfferModal({
                     ]}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: isSelected }}
+                    aria-checked={isSelected}
                     accessibilityLabel={`Seleccionar ${pkg.title}`}
                   >
                     <View style={styles.radioRow}>

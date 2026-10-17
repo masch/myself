@@ -105,6 +105,7 @@ export function TradeProposalModal({
                     ]}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: isSelected }}
+                    aria-checked={isSelected}
                     accessibilityLabel={`Seleccionar ${ownPkg.title}`}
                   >
                     <View style={styles.radioRow}>

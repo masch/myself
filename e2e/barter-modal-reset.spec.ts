@@ -10,12 +10,12 @@ import { test, expect } from "@playwright/test";
  * until the operator picks a package again. The call site keys the modal on the
  * producer and the target it is showing, so the selection resets with them.
  *
- * The modal's offers are ARIA radios, but react-native-web 0.21 dropped the
- * `accessibilityState` mapping: the radios carry no `aria-checked`, so the
- * accessibility tree cannot report which one is selected. The checked state is
- * therefore asserted through the consequence the bug report names: `canSubmit`
- * enables "Enviar Match" exactly when the preselected id matches one of the
- * listed packages.
+ * The modal's offers are ARIA radios, and the checked state is asserted two
+ * ways: through `aria-checked`, which react-native-web 0.21 exposes only when
+ * the component passes the `aria-checked` prop (`accessibilityState` alone is
+ * dropped, so assistive tech reported no selection), and through the
+ * consequence the bug report names: `canSubmit` enables "Enviar Match" exactly
+ * when the preselected id matches one of the listed packages.
  */
 test.describe("E2E barter proposal modal reset on producer switch", () => {
   test("preselects one package again after switching producer in-app", async ({
@@ -30,6 +30,7 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
     );
 
     const proposalRadios = page.getByRole("radio");
+    const checkedRadio = page.getByRole("radio", { checked: true });
     const submitProposal = page.getByRole("button", { name: "Enviar Match" });
 
     // First open, as Vermut Sabado, for a package owned by Naturaleza Viva:
@@ -41,6 +42,7 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
       })
       .click();
     await expect(proposalRadios).toHaveCount(2);
+    await expect(checkedRadio).toHaveCount(1);
     await expect(submitProposal).toBeEnabled();
 
     await page.getByRole("button", { name: "Cancelar" }).click();
@@ -64,6 +66,7 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
       })
       .click();
     await expect(proposalRadios).toHaveCount(2);
+    await expect(checkedRadio).toHaveCount(1);
     await expect(submitProposal).toBeEnabled();
   });
 });
