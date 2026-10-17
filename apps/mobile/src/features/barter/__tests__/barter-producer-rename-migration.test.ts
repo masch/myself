@@ -172,14 +172,15 @@ describe("external payload validation", () => {
       store.confirmDelivery("match-malformed", PRODUCER_IDS.VERMUT),
     ).toThrow("Match match-malformed not found");
 
-    // The seed catalog replaces the stored slices, so the malformed match never
-    // reaches the state at all.
+    // Only the malformed match is dropped: the package stored next to it is
+    // valid, so the catalog survives instead of falling back to the seeds.
     expect(store.getState().matches).toEqual([]);
-    expect(store.getState().packages).toHaveLength(SEED_PACKAGES.length);
+    expect(store.getState().packages).toHaveLength(1);
+    expect(store.getState().packages[0].id).toBe("pkg-legacy");
     expect(store.getState().packages[0].producerId).toBe(PRODUCER_IDS.VERMUT);
   });
 
-  it("drops a broadcast payload that does not match the trade schema", () => {
+  it("applies the readable slices of a broadcast whose match is unusable", () => {
     const store = createBarterStore({});
     const peer = peers.at(-1)!;
     const before = store.getState();
@@ -200,9 +201,11 @@ describe("external payload validation", () => {
       },
     });
 
-    // The message is dropped before it reaches the state, and it is never
-    // echoed back to the peer.
-    expect(store.getState().packages).toEqual(before.packages);
+    // The package in the message parses (and migrates), so it is applied; the
+    // match stored next to it does not parse and only that one is dropped. A
+    // synced message is never echoed back to the peer.
+    expect(store.getState().packages).toHaveLength(1);
+    expect(store.getState().packages[0].producerId).toBe(PRODUCER_IDS.QUESO);
     expect(store.getState().matches).toEqual(before.matches);
     expect(peer.posted).toHaveLength(0);
   });

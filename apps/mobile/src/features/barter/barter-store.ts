@@ -167,20 +167,65 @@ export function migratePersistedState(
 ): Partial<BarterState> {
   return {
     ...state,
-    producers: state.producers?.map((producer) => ({
+    producers: asList<Producer>(state.producers)?.map((producer) => ({
       ...producer,
       id: migrateProducerId(producer.id),
     })),
-    packages: state.packages?.map((pkg) => ({
+    packages: asList<ProductPackage>(state.packages)?.map((pkg) => ({
       ...pkg,
       producerId: migrateProducerId(pkg.producerId),
     })),
-    matches: state.matches?.map((match) => ({
+    matches: asList<TradeMatch>(state.matches)?.map((match) => ({
       ...match,
       requesterId: migrateProducerId(match.requesterId),
       targetProducerId: migrateProducerId(match.targetProducerId),
     })),
   };
+}
+
+/**
+ * Reads one slice of an external payload as a list, or `undefined` when the
+ * value is not one.
+ *
+ * The types say `ProductPackage[]`, but the bytes come from another build,
+ * another tab, or devtools, so the runtime value may be anything: `{ packages:
+ * 42 }` used to throw inside `migratePersistedState`, and a slice that is not a
+ * list has to read as absent so the caller keeps the slice it already has.
+ */
+function asList<T>(value: unknown): T[] | undefined {
+  return Array.isArray(value) ? (value as T[]) : undefined;
+}
+
+/**
+ * Parses a list entry by entry, keeping the entries the schema accepts.
+ *
+ * Returns `undefined` when the value is not a list, and also when it is one but
+ * no entry inside it survives. Both read as "this payload carries nothing
+ * usable for that slice", which is what lets the caller keep the list it
+ * already has (broadcast) or fall back to the seeds (load): a state written
+ * before a key existed, a slice sent as something else, and a slice where every
+ * entry is unusable all land here, and none of them may empty a catalog.
+ */
+function parseExternalList<T>(
+  schema: {
+    safeParse: (
+      value: unknown,
+    ) => { success: true; data: T } | { success: false };
+  },
+  value: unknown,
+): T[] | undefined {
+  const entries = asList(value);
+
+  if (!entries) {
+    return undefined;
+  }
+
+  const survivors = entries.flatMap((entry) => {
+    const parsed = schema.safeParse(entry);
+    return parsed.success ? [parsed.data] : [];
+  });
+
+  return survivors.length > 0 ? survivors : undefined;
 }
 
 /**
@@ -190,20 +235,26 @@ export function migratePersistedState(
  * tab, or a user with devtools open, so neither reaches the state before it
  * parses against the shared schemas: a stored match without
  * `deliveryConfirmation` used to pass the load path and then crash inside
- * `confirmDelivery`. Returns `null` when either list fails, so the caller
- * falls back to the seed catalog (load) or drops the message (broadcast).
+ * `confirmDelivery`.
+ *
+ * An entry the schema rejects is dropped on its own. A live tab persists and
+ * broadcasts the whole state, so a single unusable match used to take every
+ * valid package down with it and reset the producer to the seed catalog. The
+ * return is `null` only when neither slice is a list, which is what the caller
+ * needs to tell a message to keep its own state (broadcast) from a load that
+ * falls back to the seeds.
  */
 function parseExternalState(
   state: Partial<BarterState>,
 ): Partial<BarterState> | null {
-  const packages = productPackageSchema.array().safeParse(state.packages);
-  const matches = tradeMatchSchema.array().safeParse(state.matches);
+  const packages = parseExternalList(productPackageSchema, state.packages);
+  const matches = parseExternalList(tradeMatchSchema, state.matches);
 
-  if (!packages.success || !matches.success) {
+  if (packages === undefined && matches === undefined) {
     return null;
   }
 
-  return { ...state, packages: packages.data, matches: matches.data };
+  return { ...state, packages, matches };
 }
 
 /**
@@ -407,8 +458,9 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
         });
         const validated = parseExternalState(synced);
 
-        // A message that does not parse is dropped before it reaches the state
-        // (and it is never echoed back to the peer).
+        // A message where neither slice carries anything readable is dropped
+        // before it reaches the state (and it is never echoed back to the
+        // peer).
         if (!validated) {
           return;
         }
