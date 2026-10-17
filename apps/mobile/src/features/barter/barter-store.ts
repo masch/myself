@@ -224,6 +224,28 @@ function assertProposalNotExpired(match: TradeMatch): void {
 }
 
 /**
+ * Refuses a command on a match from a producer that is not one of its two
+ * parties, and reports which side the caller is.
+ *
+ * Every transition that closes a match or moves stock is party-only. Each
+ * caller used to carry its own copy of this check, which is how `reject` ended
+ * up without one; the copies now share it.
+ */
+function assertProducerIsParty(
+  match: TradeMatch,
+  producerId: string,
+): { isRequester: boolean; isTarget: boolean } {
+  const isRequester = producerId === match.requesterId;
+  const isTarget = producerId === match.targetProducerId;
+
+  if (!isRequester && !isTarget) {
+    throw new Error("Producer not party to this trade");
+  }
+
+  return { isRequester, isTarget };
+}
+
+/**
  * Resolves a `?producerId=` / `?producer=` value to a producer id.
  *
  * The value may be either the producer id or its display name. Names are
@@ -592,12 +614,13 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       return acceptedMatch;
     },
 
-    rejectTradeMatch: (matchId: string): TradeMatch => {
+    rejectTradeMatch: (matchId: string, producerId: string): TradeMatch => {
       const match = state.matches.find((m) => m.id === matchId);
       if (!match) throw new Error(`Match ${matchId} not found`);
 
       assertValidTransition(match.status, "REJECTED");
       assertProposalNotExpired(match);
+      assertProducerIsParty(match, producerId);
 
       const updated: TradeMatch = {
         ...match,
@@ -684,12 +707,10 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
         );
       }
 
-      const isRequester = producerId === match.requesterId;
-      const isTarget = producerId === match.targetProducerId;
-
-      if (!isRequester && !isTarget) {
-        throw new Error("Producer not party to this trade");
-      }
+      const { isRequester, isTarget } = assertProducerIsParty(
+        match,
+        producerId,
+      );
 
       const nextConfirmation = {
         confirmedByRequester: isRequester
@@ -728,12 +749,7 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       assertValidTransition(match.status, "CANCELLED_BY_PRODUCER");
 
       // Cancelling rolls back stock, so only the two parties may do it.
-      const isRequester = producerId === match.requesterId;
-      const isTarget = producerId === match.targetProducerId;
-
-      if (!isRequester && !isTarget) {
-        throw new Error("Producer not party to this trade");
-      }
+      assertProducerIsParty(match, producerId);
 
       // Rollback stock if previously deducted
       let nextPackages = state.packages;

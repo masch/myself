@@ -243,6 +243,57 @@ describe("Barter store: actor & ownership guards", () => {
     expect(writes).toBe(0);
     expect(peer.posted.length).toBe(broadcastsBefore);
   });
+
+  it("rejects a rejection from a producer that is not party to the trade", () => {
+    const { store, peer } = seedStore();
+    const match = store.createTradeProposal({
+      requesterId: PRODUCER_IDS.VERMUT,
+      targetProducerId: PRODUCER_IDS.QUESO,
+      offeredPackageId: "pkg-vermut-pack4",
+      targetPackageId: "pkg-queso-gouda",
+    });
+    const pending = store.getState().matches[0];
+    writes = 0;
+    const broadcastsBefore = peer.posted.length;
+
+    expect(() => store.rejectTradeMatch(match.id, PRODUCER_IDS.MIEL)).toThrow(
+      "Producer not party to this trade",
+    );
+
+    expect(store.getState().matches[0]).toEqual(pending);
+    expect(store.getState().packages).toEqual(SEED_PACKAGES);
+    expect(writes).toBe(0);
+    expect(peer.posted.length).toBe(broadcastsBefore);
+  });
+
+  it("still lets either party reject a pending proposal", () => {
+    const { store } = seedStore();
+
+    // The requester rejects the proposal it sent...
+    const asRequester = store.createTradeProposal({
+      requesterId: PRODUCER_IDS.VERMUT,
+      targetProducerId: PRODUCER_IDS.QUESO,
+      offeredPackageId: "pkg-vermut-pack4",
+      targetPackageId: "pkg-queso-gouda",
+    });
+    // ...and the target rejects the one it received. The store guard is
+    // party-only: it is broader than the inbox's role/status matrix in
+    // `inbox-utils`, which only offers the action on the party's turn, so the
+    // fix must not narrow rejection to a single side.
+    const asTarget = store.createTradeProposal({
+      requesterId: PRODUCER_IDS.QUESO,
+      targetProducerId: PRODUCER_IDS.VERMUT,
+      offeredPackageId: "pkg-queso-gouda",
+      targetPackageId: "pkg-vermut-pack4",
+    });
+
+    expect(
+      store.rejectTradeMatch(asRequester.id, PRODUCER_IDS.VERMUT).status,
+    ).toBe("REJECTED");
+    expect(
+      store.rejectTradeMatch(asTarget.id, PRODUCER_IDS.VERMUT).status,
+    ).toBe("REJECTED");
+  });
 });
 
 describe("Barter store: the 1:1 PAP rule", () => {
@@ -326,7 +377,9 @@ describe("Barter store: TTL on the transition", () => {
         counterOfferedPackageId: "pkg-vermut-miel",
       }),
     ).toThrow(message);
-    expect(() => store.rejectTradeMatch(expired.id)).toThrow(message);
+    expect(() =>
+      store.rejectTradeMatch(expired.id, PRODUCER_IDS.VERMUT),
+    ).toThrow(message);
 
     expect(store.getState().matches[0]).toEqual(expired);
     expect(store.getState().packages).toEqual(SEED_PACKAGES);
