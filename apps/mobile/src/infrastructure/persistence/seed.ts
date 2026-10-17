@@ -10,6 +10,7 @@ import {
   SEED_THEME_COHORTS,
   SEED_REFLECTION_QUESTIONS,
   SEED_PROGRAM_STEP_CONTENTS,
+  SEED_PROGRAM_STEP_RESOURCES,
   createSeedThemeCohorts,
   type ReadingTranslationInput,
   type AuthorDto,
@@ -20,6 +21,7 @@ import {
   type SeedThemeCohort,
   type SeedReflectionQuestion,
   type SeedProgramStepContent,
+  type SeedProgramStepResource,
 } from "@myself/shared";
 import { type SQLiteDatabase } from "expo-sqlite";
 
@@ -33,6 +35,7 @@ export {
   SEED_THEME_COHORTS,
   SEED_REFLECTION_QUESTIONS,
   SEED_PROGRAM_STEP_CONTENTS,
+  SEED_PROGRAM_STEP_RESOURCES,
 };
 export type {
   ReadingTranslationInput,
@@ -44,6 +47,7 @@ export type {
   SeedThemeCohort,
   SeedReflectionQuestion,
   SeedProgramStepContent,
+  SeedProgramStepResource,
 };
 
 export interface SeedDatabaseOptions {
@@ -258,6 +262,28 @@ export async function seedDatabase(
         content.questionId,
         content.videoUrl ?? null,
         content.preparatoryText ?? null,
+      ],
+    );
+  }
+
+  // 8. Always Sync / Upsert Program Step Resources
+  for (const resource of SEED_PROGRAM_STEP_RESOURCES) {
+    await db.runAsync(
+      `INSERT INTO program_step_resources (id, step_content_id, kind, label, url, order_index, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(id) DO UPDATE SET
+         step_content_id = excluded.step_content_id,
+         kind = excluded.kind,
+         label = excluded.label,
+         url = excluded.url,
+         order_index = excluded.order_index`,
+      [
+        resource.id,
+        resource.stepContentId,
+        resource.kind,
+        resource.label,
+        resource.url,
+        resource.orderIndex,
       ],
     );
   }

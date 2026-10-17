@@ -2,6 +2,7 @@ import { DateTime, type EntityId } from "../../primitives";
 import type {
   CohortStatus,
   Periodicity,
+  ProgramStepResourceKind,
   ReflectionQuestionConfig,
   ResponseType,
 } from "./types";
@@ -52,6 +53,16 @@ export interface SeedProgramStepContent {
   questionId: EntityId;
   videoUrl?: string | null;
   preparatoryText?: string | null;
+  createdAt: string;
+}
+
+export interface SeedProgramStepResource {
+  id: EntityId;
+  stepContentId: EntityId;
+  kind: ProgramStepResourceKind;
+  label: string;
+  url: string;
+  orderIndex: number;
   createdAt: string;
 }
 
@@ -551,5 +562,26 @@ No hace falta resolver todos tus conflictos hoy. El desafío consiste en empezar
 
 ¡Buen fin de semana a todos!`,
     createdAt: "2026-09-06T00:00:00.000Z",
+  },
+];
+
+export const SEED_PROGRAM_STEP_RESOURCES: SeedProgramStepResource[] = [
+  {
+    id: "f2000000-0000-4000-8000-000000000001" as EntityId,
+    stepContentId: "d2000000-0000-4000-8000-000000000004" as EntityId,
+    kind: "audio",
+    label: '🎧 Audio: Meditación "Visión desde arriba"',
+    url: "https://drive.google.com/file/d/1NxOoDh5qsLspeujFl5zWChT4y53tRxPq/view?usp=sharing",
+    orderIndex: 1,
+    createdAt: "2026-09-04T00:00:00.000Z",
+  },
+  {
+    id: "f2000000-0000-4000-8000-000000000002" as EntityId,
+    stepContentId: "d2000000-0000-4000-8000-000000000004" as EntityId,
+    kind: "video",
+    label: '🎬 Video: Meditación "Visión desde arriba"',
+    url: "https://www.youtube.com/watch?v=az1IKPZ7N2U",
+    orderIndex: 2,
+    createdAt: "2026-09-04T00:00:00.000Z",
   },
 ];

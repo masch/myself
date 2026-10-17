@@ -13,11 +13,13 @@ import {
   COHORT_STATUSES,
   CYCLE_STATUSES,
   PERIODICITIES,
+  PROGRAM_STEP_RESOURCE_KINDS,
   REFLECTION_STATUSES,
   RESPONSE_TYPES,
   type CohortStatus,
   type CycleStatus,
   type Periodicity,
+  type ProgramStepResourceKind,
   type ReflectionQuestionConfig,
   type ReflectionStatus,
   type ResponseType,
@@ -226,3 +228,27 @@ export const programStepContents = sqliteTable(
 );
 
 export type ProgramStepContentRecord = typeof programStepContents.$inferSelect;
+
+export const programStepResources = sqliteTable(
+  "program_step_resources",
+  {
+    id: text("id").$type<EntityId>().primaryKey(),
+    stepContentId: text("step_content_id")
+      .$type<EntityId>()
+      .notNull()
+      .references(() => programStepContents.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: PROGRAM_STEP_RESOURCE_KINDS })
+      .$type<ProgramStepResourceKind>()
+      .notNull(),
+    label: text("label").notNull(),
+    url: text("url").notNull(),
+    orderIndex: integer("order_index").notNull().default(0),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("program_step_resources_step_content_idx").on(table.stepContentId),
+  ],
+);
+
+export type ProgramStepResourceRecord =
+  typeof programStepResources.$inferSelect;

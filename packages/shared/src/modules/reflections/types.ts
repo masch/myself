@@ -247,3 +247,19 @@ export const programStepContentSchema = z.object({
   createdAt: z.string(),
 });
 export type ProgramStepContent = z.infer<typeof programStepContentSchema>;
+
+// 11. Program Step Resource Schema (extra multimedia resources carried by a step)
+export const PROGRAM_STEP_RESOURCE_KINDS = ["video", "audio", "link"] as const;
+export type ProgramStepResourceKind =
+  (typeof PROGRAM_STEP_RESOURCE_KINDS)[number];
+
+export const programStepResourceSchema = z.object({
+  id: entityIdSchema,
+  stepContentId: entityIdSchema,
+  kind: z.enum(PROGRAM_STEP_RESOURCE_KINDS),
+  label: z.string().trim().min(1),
+  url: z.string().trim().check(z.url("Invalid resource URL")),
+  orderIndex: z.number().int().nonnegative().default(0),
+  createdAt: z.string(),
+});
+export type ProgramStepResource = z.infer<typeof programStepResourceSchema>;

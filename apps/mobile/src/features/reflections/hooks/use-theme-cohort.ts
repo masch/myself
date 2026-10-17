@@ -5,6 +5,7 @@ import {
   DateTime,
   type EntityId,
   type ProgramStepContent,
+  type ProgramStepResource,
   type ReflectionQuestion,
   type ReflectionTheme,
   type ThemeCohort,
@@ -35,6 +36,9 @@ export function useThemeCohort() {
   const [cohortStepContents, setCohortStepContents] = useState<
     Record<string, ProgramStepContent | null>
   >({});
+  const [cohortStepResources, setCohortStepResources] = useState<
+    Record<string, ProgramStepResource[]>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,6 +53,7 @@ export function useThemeCohort() {
       setCycleReflections({});
       setCohortQuestions({});
       setCohortStepContents({});
+      setCohortStepResources({});
       setIsLoading(false);
       return;
     }
@@ -71,6 +76,7 @@ export function useThemeCohort() {
       const reflectionsMap: Record<string, UserReflection[]> = {};
       const questionsMap: Record<string, ReflectionQuestion[]> = {};
       const stepContentsMap: Record<string, ProgramStepContent | null> = {};
+      const stepResourcesMap: Record<string, ProgramStepResource[]> = {};
       await Promise.all(
         active.map(async (progress) => {
           const [refs, questions] = await Promise.all([
@@ -90,6 +96,8 @@ export function useThemeCohort() {
                 stepContentsMap[q.id] =
                   await repository.getProgramStepContentForQuestion(q.id);
               }
+              stepResourcesMap[q.id] =
+                await repository.getStepResourcesForQuestion(q.id);
             }),
           );
         }),
@@ -100,6 +108,7 @@ export function useThemeCohort() {
       setCycleReflections(reflectionsMap);
       setCohortQuestions(questionsMap);
       setCohortStepContents(stepContentsMap);
+      setCohortStepResources(stepResourcesMap);
     } catch (error) {
       if (activeUserIdRef.current === currentUserId) {
         console.error("Failed to load theme cohorts:", error);
@@ -266,6 +275,7 @@ export function useThemeCohort() {
     cycleReflections,
     cohortQuestions,
     cohortStepContents,
+    cohortStepResources,
     isLoading,
     isSubmitting,
     refresh,

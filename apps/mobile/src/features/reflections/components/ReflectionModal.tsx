@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView } from "react-native";
 import {
   type EntityId,
   type ProgramStepContent,
+  type ProgramStepResource,
   type ReflectionQuestion,
   generateEntityId,
 } from "@myself/shared";
@@ -24,12 +25,15 @@ import {
   type ItemListInputHandle,
 } from "./ItemListInput";
 import { ScaleSelector1To10 } from "./ScaleSelector1To10";
+import { StepResources } from "./StepResources";
 
 interface ReflectionModalProps {
   visible: boolean;
   question: ReflectionQuestion | null;
   /** Whole step content of the question, so the modal can replay the lesson. */
   stepContent?: ProgramStepContent | null;
+  /** Extra multimedia resources of the question's step content. */
+  resources?: ProgramStepResource[] | null;
   preparatoryText?: string | null;
   initialContent?: string;
   initialNumericValue?: number;
@@ -46,6 +50,7 @@ interface ReflectionModalProps {
 export function ReflectionModalContent({
   question,
   stepContent,
+  resources,
   preparatoryText,
   initialContent = "",
   initialNumericValue = null,
@@ -56,6 +61,7 @@ export function ReflectionModalContent({
 }: {
   question: ReflectionQuestion;
   stepContent?: ProgramStepContent | null;
+  resources?: ProgramStepResource[] | null;
   preparatoryText?: string | null;
   initialContent?: string;
   initialNumericValue?: number | null;
@@ -152,6 +158,12 @@ export function ReflectionModalContent({
               title={`Video del Paso ${question.orderIndex}`}
               testID={`reflection-modal-video-${question.id}`}
             />
+          </View>
+        ) : null}
+
+        {resources && resources.length > 0 ? (
+          <View style={styles.resourcesContainer}>
+            <StepResources resources={resources} />
           </View>
         ) : null}
 
@@ -290,6 +302,7 @@ export function ReflectionModal({
   visible,
   question,
   stepContent,
+  resources,
   preparatoryText,
   initialContent,
   initialNumericValue,
@@ -319,6 +332,7 @@ export function ReflectionModal({
         key={key}
         question={question}
         stepContent={stepContent}
+        resources={resources}
         preparatoryText={preparatoryText}
         initialContent={initialContent}
         initialNumericValue={initialNumericValue}
@@ -404,6 +418,9 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   videoContainer: {
+    marginBottom: spacing.md,
+  },
+  resourcesContainer: {
     marginBottom: spacing.md,
   },
   preparatoryHeader: {

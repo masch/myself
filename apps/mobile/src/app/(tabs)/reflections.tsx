@@ -34,6 +34,7 @@ import {
   CycleProgressBadge,
   ReflectionModal,
   SkipReasonSheet,
+  StepResources,
 } from "@/features/reflections/components";
 import {
   isReflectionLocked,
@@ -76,6 +77,7 @@ export default function ReflectionsScreen() {
     cycleReflections,
     cohortQuestions,
     cohortStepContents,
+    cohortStepResources,
     isLoading: isCohortLoading,
     refresh: refreshCohorts,
     enroll,
@@ -906,6 +908,19 @@ export default function ReflectionsScreen() {
                                 </Card>
                               ) : null}
 
+                              {/* Extra multimedia resources for this step */}
+                              {active.currentQuestion &&
+                              cohortStepResources[active.currentQuestion.id] ? (
+                                <StepResources
+                                  resources={
+                                    cohortStepResources[
+                                      active.currentQuestion.id
+                                    ]
+                                  }
+                                  testID={`cohort-step-resources-${active.currentStep}`}
+                                />
+                              ) : null}
+
                               <PromptCard
                                 question={active.currentQuestion}
                                 onAnswer={() =>
@@ -1070,6 +1085,11 @@ export default function ReflectionsScreen() {
               answeringCycleProgress?.currentQuestion?.id
                 ? answeringCycleProgress?.currentStepContent?.preparatoryText
                 : null))
+            : null
+        }
+        resources={
+          answeringQuestion
+            ? (cohortStepResources[answeringQuestion.id] ?? null)
             : null
         }
         initialContent={answeringInitialContent}

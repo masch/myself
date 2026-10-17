@@ -11,7 +11,9 @@ import {
   createSeedThemeCohorts,
   getTodayDateString,
   programStepContentSchema,
+  programStepResourceSchema,
   SEED_PROGRAM_STEP_CONTENTS,
+  SEED_PROGRAM_STEP_RESOURCES,
   SEED_REFLECTION_QUESTIONS,
   SEED_REFLECTION_THEMES,
   SEED_REFLECTION_CATEGORIES,
@@ -628,6 +630,61 @@ describe("Reflections Seed Integrity", () => {
     for (const content of SEED_PROGRAM_STEP_CONTENTS) {
       expect(() => programStepContentSchema.parse(content)).not.toThrow();
     }
+
+    for (const resource of SEED_PROGRAM_STEP_RESOURCES) {
+      expect(() => programStepResourceSchema.parse(resource)).not.toThrow();
+    }
+  });
+
+  it("seeds the day-4 meditation audio and video resources in order", () => {
+    const day4Resources = SEED_PROGRAM_STEP_RESOURCES.filter(
+      (resource) =>
+        resource.stepContentId === "d2000000-0000-4000-8000-000000000004",
+    ).sort((a, b) => a.orderIndex - b.orderIndex);
+
+    expect(SEED_PROGRAM_STEP_RESOURCES.length).toBe(2);
+    expect(day4Resources.map((resource) => resource.kind)).toEqual([
+      "audio",
+      "video",
+    ]);
+    expect(day4Resources.map((resource) => resource.orderIndex)).toEqual([
+      1, 2,
+    ]);
+    expect(day4Resources[0].label).toBe(
+      '🎧 Audio: Meditación "Visión desde arriba"',
+    );
+    expect(day4Resources[0].url).toBe(
+      "https://drive.google.com/file/d/1NxOoDh5qsLspeujFl5zWChT4y53tRxPq/view?usp=sharing",
+    );
+    expect(day4Resources[1].label).toBe(
+      '🎬 Video: Meditación "Visión desde arriba"',
+    );
+    expect(day4Resources[1].url).toBe(
+      "https://www.youtube.com/watch?v=az1IKPZ7N2U",
+    );
+  });
+
+  it("rejects resources with a blank label, bad URL or unknown kind", () => {
+    const base = {
+      id: "f2000000-0000-4000-8000-000000000099",
+      stepContentId: "d2000000-0000-4000-8000-000000000004",
+      kind: "link",
+      label: "Recurso",
+      url: "https://example.com/recurso",
+      orderIndex: 0,
+      createdAt: seedDate,
+    };
+
+    expect(() => programStepResourceSchema.parse(base)).not.toThrow();
+    expect(() =>
+      programStepResourceSchema.parse({ ...base, label: "   " }),
+    ).toThrow();
+    expect(() =>
+      programStepResourceSchema.parse({ ...base, url: "not-a-url" }),
+    ).toThrow();
+    expect(() =>
+      programStepResourceSchema.parse({ ...base, kind: "pdf" }),
+    ).toThrow();
   });
 
   it("has unique ids inside every seeded collection", () => {
@@ -637,6 +694,7 @@ describe("Reflections Seed Integrity", () => {
       cohorts: SEED_THEME_COHORTS,
       questions: SEED_REFLECTION_QUESTIONS,
       stepContents: SEED_PROGRAM_STEP_CONTENTS,
+      stepResources: SEED_PROGRAM_STEP_RESOURCES,
     };
 
     for (const [name, entities] of Object.entries(collections)) {
@@ -652,6 +710,9 @@ describe("Reflections Seed Integrity", () => {
     const categoryIds = new Set(SEED_REFLECTION_CATEGORIES.map((c) => c.id));
     const themeIds = new Set(SEED_REFLECTION_THEMES.map((t) => t.id));
     const questionIds = new Set(SEED_REFLECTION_QUESTIONS.map((q) => q.id));
+    const stepContentIds = new Set(
+      SEED_PROGRAM_STEP_CONTENTS.map((content) => content.id),
+    );
 
     for (const theme of SEED_REFLECTION_THEMES) {
       expect(categoryIds.has(theme.categoryId)).toBe(true);
@@ -670,6 +731,10 @@ describe("Reflections Seed Integrity", () => {
 
     for (const content of SEED_PROGRAM_STEP_CONTENTS) {
       expect(questionIds.has(content.questionId)).toBe(true);
+    }
+
+    for (const resource of SEED_PROGRAM_STEP_RESOURCES) {
+      expect(stepContentIds.has(resource.stepContentId)).toBe(true);
     }
   });
 
