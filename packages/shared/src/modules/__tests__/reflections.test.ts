@@ -14,6 +14,8 @@ import {
   SEED_PROGRAM_STEP_CONTENTS,
   SEED_REFLECTION_QUESTIONS,
   SEED_REFLECTION_THEMES,
+  SEED_REFLECTION_CATEGORIES,
+  SEED_THEME_COHORTS,
 } from "../reflections";
 import { generateEntityId, DateTime, type EntityId } from "../../primitives";
 
@@ -592,5 +594,104 @@ describe("Reflections Module - Zod Validation Schemas", () => {
         }
       }
     });
+  });
+});
+
+describe("Reflections Seed Integrity", () => {
+  const seedDate = "2026-01-01T00:00:00.000Z";
+
+  it("validates every seeded entity against its schema", () => {
+    for (const category of SEED_REFLECTION_CATEGORIES) {
+      expect(() =>
+        reflectionCategorySchema.parse({ ...category, createdAt: seedDate }),
+      ).not.toThrow();
+    }
+
+    for (const theme of SEED_REFLECTION_THEMES) {
+      expect(() =>
+        reflectionThemeSchema.parse({ ...theme, createdAt: seedDate }),
+      ).not.toThrow();
+    }
+
+    for (const cohort of SEED_THEME_COHORTS) {
+      expect(() =>
+        themeCohortSchema.parse({ ...cohort, createdAt: seedDate }),
+      ).not.toThrow();
+    }
+
+    for (const question of SEED_REFLECTION_QUESTIONS) {
+      expect(() =>
+        reflectionQuestionSchema.parse({ ...question, createdAt: seedDate }),
+      ).not.toThrow();
+    }
+
+    for (const content of SEED_PROGRAM_STEP_CONTENTS) {
+      expect(() => programStepContentSchema.parse(content)).not.toThrow();
+    }
+  });
+
+  it("has unique ids inside every seeded collection", () => {
+    const collections = {
+      categories: SEED_REFLECTION_CATEGORIES,
+      themes: SEED_REFLECTION_THEMES,
+      cohorts: SEED_THEME_COHORTS,
+      questions: SEED_REFLECTION_QUESTIONS,
+      stepContents: SEED_PROGRAM_STEP_CONTENTS,
+    };
+
+    for (const [name, entities] of Object.entries(collections)) {
+      const ids = entities.map((entity) => entity.id);
+      expect({ name, unique: new Set(ids).size }).toEqual({
+        name,
+        unique: ids.length,
+      });
+    }
+  });
+
+  it("keeps referential integrity across the seeded collections", () => {
+    const categoryIds = new Set(SEED_REFLECTION_CATEGORIES.map((c) => c.id));
+    const themeIds = new Set(SEED_REFLECTION_THEMES.map((t) => t.id));
+    const questionIds = new Set(SEED_REFLECTION_QUESTIONS.map((q) => q.id));
+
+    for (const theme of SEED_REFLECTION_THEMES) {
+      expect(categoryIds.has(theme.categoryId)).toBe(true);
+    }
+
+    for (const cohort of SEED_THEME_COHORTS) {
+      expect(themeIds.has(cohort.themeId)).toBe(true);
+    }
+
+    for (const question of SEED_REFLECTION_QUESTIONS) {
+      expect(categoryIds.has(question.categoryId)).toBe(true);
+      if (question.themeId !== null && question.themeId !== undefined) {
+        expect(themeIds.has(question.themeId)).toBe(true);
+      }
+    }
+
+    for (const content of SEED_PROGRAM_STEP_CONTENTS) {
+      expect(questionIds.has(content.questionId)).toBe(true);
+    }
+  });
+
+  it("keeps every themed step list contiguous and equal to targetQuestionCount", () => {
+    for (const theme of SEED_REFLECTION_THEMES) {
+      const steps = SEED_REFLECTION_QUESTIONS.filter(
+        (question) => question.themeId === theme.id,
+      ).sort((a, b) => a.orderIndex - b.orderIndex);
+
+      const expectedOrder = Array.from(
+        { length: steps.length },
+        (_, index) => index + 1,
+      );
+
+      expect({
+        theme: theme.title,
+        order: steps.map((s) => s.orderIndex),
+      }).toEqual({ theme: theme.title, order: expectedOrder });
+      expect({
+        theme: theme.title,
+        target: theme.targetQuestionCount,
+      }).toEqual({ theme: theme.title, target: steps.length });
+    }
   });
 });
