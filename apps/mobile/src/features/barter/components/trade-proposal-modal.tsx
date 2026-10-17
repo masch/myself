@@ -7,7 +7,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Card, ThemedText, AppButton, Badge } from "@/components";
-import { colors, spacing, radius } from "@/theme";
+import { colors, fontWeights, layout, spacing, radius } from "@/theme";
 import type { ProductPackage } from "@myself/shared";
 
 interface TradeProposalModalProps {
@@ -105,6 +105,7 @@ export function TradeProposalModal({
                     ]}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: isSelected }}
+                    aria-checked={isSelected}
                     accessibilityLabel={`Seleccionar ${ownPkg.title}`}
                   >
                     <View style={styles.radioRow}>
@@ -194,11 +195,11 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.label,
-    fontWeight: "800",
+    fontWeight: fontWeights.heavy,
   },
   subtitle: {
     color: colors.secondaryLabel,
-    marginTop: 2,
+    marginTop: spacing.xxs,
   },
   targetCard: {
     backgroundColor: colors.secondarySystemBackground,
@@ -208,11 +209,11 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     color: colors.secondaryLabel,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   targetTitle: {
     color: colors.label,
-    marginTop: 2,
+    marginTop: spacing.xxs,
   },
   targetMeta: {
     flexDirection: "row",
@@ -247,9 +248,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   radioButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: layout.iconSize.md,
+    height: layout.iconSize.md,
+    borderRadius: radius.full,
     borderWidth: 2,
     borderColor: colors.separator,
     justifyContent: "center",
@@ -260,16 +261,16 @@ const styles = StyleSheet.create({
     borderColor: colors.systemGreen,
   },
   radioButtonDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: layout.iconSize.xs,
+    height: layout.iconSize.xs,
+    borderRadius: radius.full,
     backgroundColor: colors.systemGreen,
   },
   pkgTextContainer: {
     flex: 1,
   },
   pkgTitle: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     color: colors.label,
   },
   pkgStock: {
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
   },
   balanceText: {
     color: colors.systemGreen,
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     lineHeight: 18,
   },
   actionsRow: {

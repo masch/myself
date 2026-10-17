@@ -166,7 +166,11 @@ export default function BarterInboxScreen() {
         </View>
       )}
 
+      {/* Counter-offer modal. Same one-time preselection as the proposal
+          modal, so it is keyed on the match it is showing and resets when a
+          different match opens it. */}
       <CounterOfferModal
+        key={counterOfferMatch?.id ?? "none"}
         visible={!!counterOfferMatch}
         match={counterOfferMatch}
         currentOfferedPackage={

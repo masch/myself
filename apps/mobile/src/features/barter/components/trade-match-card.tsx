@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Card, ThemedText, AppButton, Badge } from "@/components";
-import { colors, spacing, radius } from "@/theme";
+import { colors, fontWeights, spacing, radius } from "@/theme";
 import type {
   Producer,
   ProductPackage,
@@ -229,11 +229,11 @@ const styles = StyleSheet.create({
   },
   exchangeLabel: {
     color: colors.secondaryLabel,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   exchangeTitle: {
     color: colors.label,
-    marginTop: 2,
+    marginTop: spacing.xxs,
   },
   exchangeArrow: {
     color: colors.secondaryLabel,

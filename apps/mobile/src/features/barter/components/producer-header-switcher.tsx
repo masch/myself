@@ -8,7 +8,7 @@ import {
   IconButton,
   useToast,
 } from "@/components";
-import { colors, spacing, radius } from "@/theme";
+import { colors, fontWeights, spacing, radius } from "@/theme";
 import type { Producer } from "@myself/shared";
 import { buildProducerLink } from "../barter-store";
 
@@ -63,7 +63,7 @@ export function ProducerHeaderSwitcher({
           </ThemedText>
         </View>
 
-        <View style={styles.badgeColumn}>
+        <View style={styles.badgeColumn} testID="producer-badge-column">
           {onResetSeed && (
             <ChipButton
               title="↺ Reiniciar Datos"
@@ -96,6 +96,7 @@ export function ProducerHeaderSwitcher({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.switchRow}
+        testID="producer-switch-row"
       >
         {producers.map((prod) => {
           const isSelected = prod.id === activeProducer?.id;
@@ -145,24 +146,24 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.secondaryLabel,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
     letterSpacing: 0.5,
   },
   producerName: {
     color: colors.label,
-    fontWeight: "800",
-    marginTop: 2,
+    fontWeight: fontWeights.heavy,
+    marginTop: spacing.xxs,
   },
   locationText: {
     color: colors.secondaryLabel,
-    marginTop: 2,
+    marginTop: spacing.xxs,
   },
   badgeColumn: {
     alignItems: "flex-end",
-    gap: 4,
+    gap: spacing.xs,
   },
   typeBadge: {
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   switchLabel: {
     color: colors.secondaryLabel,
@@ -172,12 +173,12 @@ const styles = StyleSheet.create({
   switchRow: {
     flexDirection: "row",
     gap: spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: spacing.xxs,
   },
   chipGroup: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: spacing.xxs,
     marginRight: spacing.xs,
   },
   resetChip: {

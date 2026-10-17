@@ -44,7 +44,7 @@ export function ChipButton({
     switch (variant) {
       case "success":
         return {
-          bg: "rgba(52, 199, 89, 0.15)",
+          bg: colors.systemGreenSubdued,
           text: colors.systemGreen,
           iconColor: colors.systemGreen,
         };

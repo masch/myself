@@ -40,6 +40,7 @@ export function GondolaFilterBar({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.row}
+        testID="gondola-filter-row"
       >
         {TYPE_OPTIONS.map((opt) => (
           <ChipButton
@@ -83,12 +84,12 @@ const styles = StyleSheet.create({
     color: colors.secondaryLabel,
     fontSize: 11,
     marginTop: spacing.xs,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   row: {
     flexDirection: "row",
     gap: spacing.xs,
-    paddingBottom: 2,
+    paddingBottom: spacing.xxs,
   },
   chip: {
     marginRight: spacing.xs,

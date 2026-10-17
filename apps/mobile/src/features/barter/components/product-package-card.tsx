@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Card, ThemedText, AppButton, Badge } from "@/components";
-import { colors, spacing, radius } from "@/theme";
+import { colors, fontWeights, spacing, radius } from "@/theme";
 import type { Producer, ProductPackage } from "@myself/shared";
 
 interface ProductPackageCardProps {
@@ -106,11 +106,11 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.label,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   producerName: {
     color: colors.secondaryLabel,
-    marginTop: 2,
+    marginTop: spacing.xxs,
   },
   papBadgeContainer: {
     alignItems: "flex-end",
@@ -137,6 +137,6 @@ const styles = StyleSheet.create({
   },
   priceArs: {
     color: colors.label,
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
 });

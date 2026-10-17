@@ -8,7 +8,7 @@ import {
   AppButton,
   useToast,
 } from "@/components";
-import { colors, spacing } from "@/theme";
+import { colors, fontWeights, spacing } from "@/theme";
 import {
   useBarter,
   ProducerHeaderSwitcher,
@@ -145,8 +145,12 @@ export default function BarterScreen() {
         })
       )}
 
-      {/* Proposal initiation modal */}
+      {/* Proposal initiation modal. The modal keeps its preselection in state
+          initialized once, so it is keyed on the identity it belongs to: a new
+          active producer or a new target package remounts it and preselection
+          resets, instead of keeping the previous producer's package id. */}
       <TradeProposalModal
+        key={`${activeProducer?.id ?? "none"}:${selectedTargetPackage?.id ?? "none"}`}
         visible={!!selectedTargetPackage}
         targetPackage={selectedTargetPackage}
         targetProducerName={targetProducer?.name}
@@ -173,11 +177,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.label,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   sectionSubtitle: {
     color: colors.secondaryLabel,
-    marginTop: 2,
+    marginTop: spacing.xxs,
   },
   emptyState: {
     marginVertical: spacing.xl,

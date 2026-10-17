@@ -1,8 +1,10 @@
 /**
- * 4-point spacing scale for mobile layouts.
+ * Spacing scale for mobile layouts. Built on 4-point steps, with a single 2px
+ * minimum step (`xxs`) for hairline gaps.
  * Use with flexbox `gap` and container padding.
  */
 export const spacing = {
+  xxs: 2,
   xs: 4,
   sm: 8,
   compact: 12,
