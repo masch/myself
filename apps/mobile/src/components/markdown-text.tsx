@@ -4,6 +4,7 @@ import {
   View,
   StyleSheet,
   Platform,
+  Linking,
   type TextProps,
   type StyleProp,
   type TextStyle,
@@ -17,13 +18,41 @@ export interface InlineSpan {
   italic?: boolean;
   strikethrough?: boolean;
   code?: boolean;
+  /** When present the span is a tappable link and `text` is its label. */
+  link?: string;
+}
+
+/** `[label](https://…)` links, or a bare `https://…` URL. */
+const inlineLinkRegex =
+  /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/\S+)/g;
+
+/**
+ * Splits trailing punctuation out of a bare URL so the link itself stays valid.
+ */
+function splitTrailingPunctuation(rawUrl: string): {
+  url: string;
+  trailing: string;
+} {
+  let url = rawUrl;
+  let trailing = "";
+
+  while (url.length > 0) {
+    const lastChar = url[url.length - 1];
+    const isTrailingPunctuation = ".,;:!?".includes(lastChar);
+    const isUnbalancedParen = lastChar === ")" && !url.includes("(");
+    if (!isTrailingPunctuation && !isUnbalancedParen) break;
+    trailing = lastChar + trailing;
+    url = url.slice(0, -1);
+  }
+
+  return { url, trailing };
 }
 
 /**
- * Parses inline Markdown tokens (*italic*, **bold**, ***bold italic***, ~strikethrough~, `code`)
- * into a structured list of styled spans.
+ * Parses the formatting tokens (*italic*, **bold**, ***bold italic***, ~strikethrough~, `code`)
+ * into styled spans, leaving links to the caller.
  */
-export function parseInlineSpans(rawText: string): InlineSpan[] {
+function parseFormattingSpans(rawText: string): InlineSpan[] {
   const spans: InlineSpan[] = [];
   // Tokenizer regex matching bold+italic (*** or ___), bold (** or __), italic (* or _), strikethrough (~ or ~~), and code (`)
   const tokenRegex =
@@ -63,6 +92,74 @@ export function parseInlineSpans(rawText: string): InlineSpan[] {
   }
 
   return spans.length > 0 ? spans : [{ text: rawText }];
+}
+
+/**
+ * Merges adjacent spans that share styling and link target, so autolink handling
+ * does not split plain text into several text nodes.
+ */
+function coalesceSpans(spans: InlineSpan[]): InlineSpan[] {
+  const merged: InlineSpan[] = [];
+
+  for (const span of spans) {
+    const previous = merged[merged.length - 1];
+    const isSameStyle =
+      previous !== undefined &&
+      previous.bold === span.bold &&
+      previous.italic === span.italic &&
+      previous.strikethrough === span.strikethrough &&
+      previous.code === span.code &&
+      previous.link === span.link;
+
+    if (isSameStyle) {
+      previous.text += span.text;
+    } else {
+      merged.push({ ...span });
+    }
+  }
+
+  return merged;
+}
+
+/**
+ * Parses inline Markdown into styled spans, resolving `[label](url)` links and bare URLs
+ * into tappable `link` spans that open with `Linking.openURL`.
+ *
+ * Links are resolved before formatting, so emphasis markers wrapping a whole link
+ * stay literal instead of hiding it.
+ */
+export function parseInlineSpans(rawText: string): InlineSpan[] {
+  const spans: InlineSpan[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  inlineLinkRegex.lastIndex = 0;
+
+  while ((match = inlineLinkRegex.exec(rawText)) !== null) {
+    if (match.index > lastIndex) {
+      spans.push(
+        ...parseFormattingSpans(rawText.substring(lastIndex, match.index)),
+      );
+    }
+
+    if (match[1] !== undefined) {
+      spans.push({ text: match[1], link: match[2] });
+    } else {
+      const { url, trailing } = splitTrailingPunctuation(match[3]);
+      spans.push({ text: url, link: url });
+      if (trailing.length > 0) {
+        spans.push({ text: trailing });
+      }
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < rawText.length) {
+    spans.push(...parseFormattingSpans(rawText.substring(lastIndex)));
+  }
+
+  return spans.length > 0 ? coalesceSpans(spans) : [{ text: rawText }];
 }
 
 export interface AppMarkdownTextProps extends TextProps {
@@ -111,11 +208,20 @@ export function AppMarkdownText({
       {spans.map((span, index) => (
         <Text
           key={index}
+          accessibilityRole={span.link ? "link" : undefined}
+          onPress={
+            span.link
+              ? () => {
+                  void Linking.openURL(span.link as string);
+                }
+              : undefined
+          }
           style={[
             span.bold && [styles.bold, boldStyle],
             span.italic && [styles.italic, italicStyle],
             span.strikethrough && styles.strikethrough,
             span.code && [styles.code, codeStyle],
+            span.link && styles.link,
           ]}
         >
           {span.text}
@@ -359,6 +465,10 @@ const styles = StyleSheet.create({
     color: colors.label,
     marginTop: spacing.sm + 2,
     marginBottom: spacing.xs,
+  },
+  link: {
+    color: colors.systemBlue,
+    textDecorationLine: "underline",
   },
   blockquote: {
     borderLeftWidth: 3,

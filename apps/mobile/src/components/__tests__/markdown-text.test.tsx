@@ -5,6 +5,7 @@ import {
   AppMarkdownText,
   AppMarkdown,
   parseMarkdownBlocks,
+  parseInlineSpans,
 } from "../markdown-text";
 
 describe("AppMarkdownText component", () => {
@@ -44,6 +45,55 @@ describe("AppMarkdownText component", () => {
     );
     expect(html).toContain("Pregunta con");
     expect(html).toContain("formato");
+  });
+});
+
+describe("AppMarkdownText links", () => {
+  it("parses a markdown link into a link span with its label", () => {
+    const spans = parseInlineSpans(
+      "Mirá [la meditación](https://youtu.be/az1IKPZ7N2U) completa",
+    );
+    expect(spans).toEqual([
+      { text: "Mirá " },
+      { text: "la meditación", link: "https://youtu.be/az1IKPZ7N2U" },
+      { text: " completa" },
+    ]);
+  });
+
+  it("autolinks a bare url and keeps trailing punctuation outside the link", () => {
+    const spans = parseInlineSpans(
+      "Audio: https://drive.google.com/file/d/1NxOoDh5qsFl5/view?usp=sharing, después seguimos",
+    );
+    expect(spans).toEqual([
+      { text: "Audio: " },
+      {
+        text: "https://drive.google.com/file/d/1NxOoDh5qsFl5/view?usp=sharing",
+        link: "https://drive.google.com/file/d/1NxOoDh5qsFl5/view?usp=sharing",
+      },
+      { text: ", después seguimos" },
+    ]);
+  });
+
+  it("keeps the surrounding formatting tokens working around a link", () => {
+    const spans = parseInlineSpans("**Ver** [video](https://youtu.be/abc)");
+    expect(spans).toEqual([
+      { text: "Ver", bold: true },
+      { text: " " },
+      { text: "video", link: "https://youtu.be/abc" },
+    ]);
+  });
+
+  it("does not autolink text without a url scheme", () => {
+    const spans = parseInlineSpans("Dominio suelto drive.google.com/file");
+    expect(spans).toEqual([{ text: "Dominio suelto drive.google.com/file" }]);
+  });
+
+  it("renders a link span with the link accessibility role and its label", () => {
+    const html = renderToString(
+      <AppMarkdownText content="Meditación: [Ver video](https://youtu.be/abc)" />,
+    );
+    expect(html).toContain("Ver video");
+    expect(html).toContain('role="link"');
   });
 });
 
