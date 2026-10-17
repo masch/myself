@@ -1054,6 +1054,15 @@ export default function ReflectionsScreen() {
       <ReflectionModal
         visible={answeringQuestion !== null}
         question={answeringQuestion}
+        stepContent={
+          answeringQuestion
+            ? (cohortStepContents[answeringQuestion.id] ??
+              (answeringQuestion.id ===
+              answeringCycleProgress?.currentQuestion?.id
+                ? (answeringCycleProgress?.currentStepContent ?? null)
+                : null))
+            : null
+        }
         preparatoryText={
           answeringQuestion
             ? (cohortStepContents[answeringQuestion.id]?.preparatoryText ??

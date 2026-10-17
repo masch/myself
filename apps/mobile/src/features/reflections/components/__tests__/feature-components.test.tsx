@@ -134,6 +134,25 @@ describe("Reflections Feature Components", () => {
     expect(modalWithPrep).toContain("Consigna del día");
     expect(modalWithPrep).toContain("Consigna preparatoria");
 
+    const modalWithStepContent = renderToString(
+      <ReflectionModalContent
+        question={mockQuestion}
+        stepContent={{
+          id: mockId("a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c55"),
+          questionId: mockQuestion.id,
+          videoUrl: "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
+          preparatoryText: "Consigna del paso con video",
+          createdAt: "2026-10-12T00:00:00.000Z",
+        }}
+        onSave={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(modalWithStepContent).toContain("Consigna del paso con video");
+    expect(modalWithStepContent).toContain(
+      `reflection-modal-video-${mockQuestion.id}`,
+    );
+
     const sheetHtml = renderToString(
       <BottomSheetModalContent
         onClose={() => {}}
