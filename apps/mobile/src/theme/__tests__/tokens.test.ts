@@ -101,6 +101,7 @@ describe("Design System Tokens", () => {
     });
 
     it("should expose the subdued system green at its exact values", () => {
+      expect(colors.systemGreenSubdued).toBe("rgba(52, 199, 89, 0.15)");
       expect(colors.systemGreen8).toBe("rgba(52, 199, 89, 0.08)");
       expect(colors.systemGreen12).toBe("rgba(52, 199, 89, 0.12)");
     });

@@ -63,7 +63,7 @@ export function ProducerHeaderSwitcher({
           </ThemedText>
         </View>
 
-        <View style={styles.badgeColumn}>
+        <View style={styles.badgeColumn} testID="producer-badge-column">
           {onResetSeed && (
             <ChipButton
               title="↺ Reiniciar Datos"
@@ -96,6 +96,7 @@ export function ProducerHeaderSwitcher({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.switchRow}
+        testID="producer-switch-row"
       >
         {producers.map((prod) => {
           const isSelected = prod.id === activeProducer?.id;

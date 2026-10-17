@@ -82,6 +82,8 @@ export const colors = {
   systemPurpleSubdued: "rgba(175, 82, 222, 0.15)" as const,
   /** Subdued systemBlue at 15% opacity — used for blue chip backgrounds. */
   systemBlueSubdued: "rgba(0, 122, 255, 0.15)" as const,
+  /** Subdued systemGreen at 15% opacity — used for the positive (success) chip background. */
+  systemGreenSubdued: "rgba(52, 199, 89, 0.15)" as const,
   /** Subdued systemGreen at 12% opacity — used for positive chip and notice-banner backgrounds. */
   systemGreen12: "rgba(52, 199, 89, 0.12)" as const,
   /** Subdued systemGreen at 8% opacity — used for selected-option and balance-banner backgrounds. */
