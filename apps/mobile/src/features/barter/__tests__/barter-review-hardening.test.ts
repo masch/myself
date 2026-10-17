@@ -276,8 +276,10 @@ describe("Barter store: actor & ownership guards", () => {
       offeredPackageId: "pkg-vermut-pack4",
       targetPackageId: "pkg-queso-gouda",
     });
-    // ...and the target rejects the one it received. Both are allowed by
-    // `canReject` in inbox-utils, so the guard must not narrow it further.
+    // ...and the target rejects the one it received. The store guard is
+    // party-only: it is broader than the inbox's role/status matrix in
+    // `inbox-utils`, which only offers the action on the party's turn, so the
+    // fix must not narrow rejection to a single side.
     const asTarget = store.createTradeProposal({
       requesterId: PRODUCER_IDS.QUESO,
       targetProducerId: PRODUCER_IDS.VERMUT,
