@@ -211,4 +211,32 @@ describe("Barter store: granularity of the external state", () => {
     // ...while the readable matches are applied.
     expect(store.getState().matches).toHaveLength(1);
   });
+
+  it("drops a match with a fractional totalPap on its own", () => {
+    const raw = JSON.stringify({
+      packages: MARKED,
+      matches: [{ ...MATCH, totalPap: 0.5 }],
+      papConfigArs: 50000,
+    });
+
+    const { store } = boot(raw);
+
+    expect(stockOf(store, "pkg-vermut-pack4")).toBe(2);
+    expect(store.getState().packages).toHaveLength(MARKED.length);
+    expect(store.getState().matches).toEqual([]);
+  });
+
+  it("drops a match whose status is outside the schema on its own", () => {
+    const raw = JSON.stringify({
+      packages: MARKED,
+      matches: [{ ...MATCH, status: "BOGUS" }],
+      papConfigArs: 50000,
+    });
+
+    const { store } = boot(raw);
+
+    expect(stockOf(store, "pkg-vermut-pack4")).toBe(2);
+    expect(store.getState().packages).toHaveLength(MARKED.length);
+    expect(store.getState().matches).toEqual([]);
+  });
 });
