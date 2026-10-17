@@ -20,9 +20,9 @@ Extend the "Dicotomía del Control Estoico" program from 1 to 6 daily steps and 
 - [x] **T1** (S1-S6) Seed days 2-6 of the program with their step contents — commit `46e01ae`.
 - [x] **T2** (S7) Seed integrity guardrails — commit `4f67b76` (guardrail proven to fail on perturbed `targetQuestionCount` and unknown step `questionId`).
 - [x] **T3** (S8) Tappable links — commit `e368128`.
-- [x] **T4** (S9) Full step context in the answer modal — video player plus consigna rendered inside `ReflectionModalContent`.
-- [ ] **T5** (S10) Per-step resources — shared schema + migration `0005_program_step_resources`, seeding, repository port, `StepResources` UI in card and modal.
-- [ ] **T6** Quality gates and evidence — `make check` per slice plus the recorded commits.
+- [x] **T4** (S9) Full step context in the answer modal — commit `053569d`; video player plus consigna rendered inside `ReflectionModalContent`.
+- [x] **T5** (S10) Per-step resources — commit `18ed99e`; shared schema + migration `0005_program_step_resources`, seeding, repository port, `StepResources` UI in card and modal (delegated to `gentle-ai-worker`, verified by the parent: 88/106/427 tests, typecheck, lint and format green).
+- [x] **T6** Quality gates and evidence — see Evidence & Verification below.
 
 ## Log
 
@@ -32,3 +32,15 @@ Extend the "Dicotomía del Control Estoico" program from 1 to 6 daily steps and 
 - **L4** — Follow-up requests for days 5 and 6 with videos `https://youtu.be/e1IoKJjF4vc?si=6k8yO902AYAFyw8O` and `https://youtu.be/UKfUL6xGHpo?si=7lXiCqxFrSHSXpid`, including the Day 5 fill-in template and the Day 6 four-step empathy challenge. Specs S5, S6.
 - **L5** — Question: "que se podria mejorar el contorl que lee las relfxiones para soportar los temas que mencionaste?" Diagnosis delivered read-only: dead links, single media resource, `__` eaten as bold, modal losing the video, N+1 reads, missing program versioning, single-element seed test.
 - **L6** — Authorization: the user selected slices 7 (seed guardrails), 1 (tappable links), 4 (modal with full context) and 2 (multiple resources). Program versioning (slice 6) was not selected and is out of scope.
+- **L7** — Work units on branch `feat/reflection-program-reader`: `46e01ae` days 2-6 (T1), `4f67b76` seed guardrails (T2), `e368128` tappable links (T3), `053569d` modal step context (T4), `18ed99e` step resources (T5), plus the closing document commit (T6). Delivery strategy for this feature: one reviewable commit per slice; push, PR and merge remain the user's decision.
+
+## Evidence & Verification
+
+- `@myself/shared` 88 pass / 0 fail, `@myself/api` 106 pass / 0 fail, `@myself/mobile` 427 pass / 0 fail (before this feature the mobile suite had 419 tests on this branch point).
+- `make check-format`: clean. `make check-lint`: 3/3 tasks, no errors. `make check-types`: 3/3 tasks, no errors. `make check`: green, including `check-odd` and `check-doctor` (20/20).
+- `make check-e2e-web`: 17 passed (1.7m), covering the cohort video step and the personal reflections flow in a real browser.
+- T2 guardrail proven to bite: with `targetQuestionCount` perturbed to 7 the integrity test fails, and with an unknown step `questionId` the referential check fails; the seed was restored afterwards.
+- T5 red/green: before the implementation the shared suite failed with `Export named 'SEED_PROGRAM_STEP_RESOURCES' not found`; after it, all suites pass.
+- Known pre-existing noise (not introduced here): the web SQLite worker logs `Error finalizing statement` at app boot. It appears in `apps/mobile/.expo/dev/logs/start.log` since 2026-09-01, before the reflections migrations (2026-09-12), with 653 occurrences, and every e2e spec still passes.
+- Not covered: no automated check runs the app against a database already migrated to `0004` and then applies `0005`; the migrator's additive path is exercised only by the fresh-database test runs. The migration is `CREATE TABLE IF NOT EXISTS` plus `CREATE INDEX IF NOT EXISTS`, so a re-run is a no-op.
+- **Completion & Delivery**: all six tasks are implemented and verified on branch `feat/reflection-program-reader`; the program now carries six daily steps and the reader resolves links, keeps the lesson video inside the answer modal and renders per-step resources. Push, pull request and merge are pending the user's decision.
