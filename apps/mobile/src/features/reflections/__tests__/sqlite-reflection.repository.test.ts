@@ -113,6 +113,109 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
     });
   });
 
+  describe("Program Preview Bulk Reads", () => {
+    const dichotomyThemeId = "e2000000-0000-4000-8000-000000000001" as EntityId;
+    const resilienceThemeId =
+      "e1000000-0000-4000-8000-000000000001" as EntityId;
+
+    it("returns only the requested theme's step contents in question order", async () => {
+      const contents =
+        await repo.getProgramStepContentsForTheme(dichotomyThemeId);
+      const questions = await repo.getQuestionsForTheme(dichotomyThemeId);
+
+      expect(contents.map((content) => content.questionId)).toEqual(
+        questions.map((question) => question.id),
+      );
+
+      // Another theme with no step contents returns none, even though the
+      // database holds contents for the requested theme.
+      expect(
+        await repo.getProgramStepContentsForTheme(resilienceThemeId),
+      ).toEqual([]);
+    });
+
+    it("returns only the requested theme's step resources ordered by order_index", async () => {
+      const resources = await repo.getStepResourcesForTheme(dichotomyThemeId);
+
+      expect(resources.map((resource) => resource.orderIndex)).toEqual([1, 2]);
+      expect(resources.map((resource) => resource.label)).toEqual([
+        'Audio: Meditación "Visión desde arriba"',
+        'Video: Meditación "Visión desde arriba"',
+      ]);
+      expect(await repo.getStepResourcesForTheme(resilienceThemeId)).toEqual(
+        [],
+      );
+    });
+
+    it("breaks order_index ties deterministically by resource id within a theme", async () => {
+      await db.runAsync(
+        "INSERT INTO program_step_contents (id, question_id, created_at) VALUES (?, ?, ?)",
+        [
+          "dc-resilience-preview",
+          "b1000000-0000-4000-8000-000000000001",
+          "2026-01-01T00:00:00.000Z",
+        ],
+      );
+      await db.runAsync(
+        `INSERT INTO program_step_resources (id, step_content_id, kind, label, url, order_index, created_at)
+         VALUES (?, ?, 'link', 'Segundo', 'https://example.com/2', 1, '2026-01-01T00:00:00.000Z')`,
+        ["fz-resilience-preview", "dc-resilience-preview"],
+      );
+      await db.runAsync(
+        `INSERT INTO program_step_resources (id, step_content_id, kind, label, url, order_index, created_at)
+         VALUES (?, ?, 'link', 'Primero', 'https://example.com/1', 1, '2026-01-01T00:00:00.000Z')`,
+        ["fa-resilience-preview", "dc-resilience-preview"],
+      );
+
+      const resources = await repo.getStepResourcesForTheme(resilienceThemeId);
+      expect(resources.map((resource) => String(resource.id))).toEqual([
+        "fa-resilience-preview",
+        "fz-resilience-preview",
+      ]);
+    });
+
+    it("issues one bulk query per theme read (no per-question round trip)", async () => {
+      const originalGetAllAsync = db.getAllAsync.bind(db);
+      let callCount = 0;
+      db.getAllAsync = async (...args: any[]) => {
+        callCount += 1;
+        return originalGetAllAsync(...args);
+      };
+
+      try {
+        callCount = 0;
+        await repo.getProgramStepContentsForTheme(dichotomyThemeId);
+        expect(callCount).toBe(1);
+
+        callCount = 0;
+        await repo.getStepResourcesForTheme(dichotomyThemeId);
+        expect(callCount).toBe(1);
+      } finally {
+        db.getAllAsync = originalGetAllAsync;
+      }
+    });
+
+    it("reads a theme without creating user_theme_progress for a non-enrolled user", async () => {
+      const countProgress = async () => {
+        const row = rawDb
+          .query(
+            "SELECT COUNT(*) AS count FROM user_theme_progress WHERE user_id = ?",
+          )
+          .get(testUserId) as { count: number } | undefined;
+        return row?.count ?? 0;
+      };
+
+      const before = await countProgress();
+
+      await repo.getQuestionsForTheme(dichotomyThemeId);
+      await repo.getProgramStepContentsForTheme(dichotomyThemeId);
+      await repo.getStepResourcesForTheme(dichotomyThemeId);
+
+      expect(await countProgress()).toBe(before);
+      expect(await countProgress()).toBe(0);
+    });
+  });
+
   describe("Cohort Enrollment & Progression", () => {
     it("enrolls user into an open cohort idempotently", async () => {
       const cohorts = await repo.getOpenCohorts();

@@ -13,6 +13,8 @@ interface CohortEnrollmentCardProps {
   theme?: ReflectionTheme | null;
   isEnrolled?: boolean;
   onEnroll: () => void;
+  /** Opens the read-only program preview before enrolling. */
+  onPreview?: () => void;
   isSubmitting?: boolean;
   currentDate?: DateTime;
   testID?: string;
@@ -23,6 +25,7 @@ export function CohortEnrollmentCard({
   theme,
   isEnrolled = false,
   onEnroll,
+  onPreview,
   isSubmitting = false,
   currentDate,
   testID,
@@ -113,20 +116,31 @@ export function CohortEnrollmentCard({
         </ThemedText>
       </View>
 
-      <AppButton
-        title={
-          isEnrolled
-            ? "Inscripto ✓"
-            : !isOpen
-              ? "Inscripción cerrada"
-              : isSubmitting
-                ? "Inscribiendo..."
-                : "Sumarme a la convocatoria"
-        }
-        variant={isEnrolled || !isOpen ? "secondary" : "purple"}
-        onPress={onEnroll}
-        disabled={isEnrolled || isSubmitting || !isOpen}
-      />
+      <View style={styles.actions}>
+        <AppButton
+          title={
+            isEnrolled
+              ? "Inscripto ✓"
+              : !isOpen
+                ? "Inscripción cerrada"
+                : isSubmitting
+                  ? "Inscribiendo..."
+                  : "Sumarme a la convocatoria"
+          }
+          variant={isEnrolled || !isOpen ? "secondary" : "purple"}
+          onPress={onEnroll}
+          disabled={isEnrolled || isSubmitting || !isOpen}
+        />
+
+        {onPreview ? (
+          <AppButton
+            title="Ver qué vas a reflexionar"
+            variant="secondary"
+            accessibilityLabel="Ver qué vas a reflexionar"
+            onPress={onPreview}
+          />
+        ) : null}
+      </View>
     </Card>
   );
 }
@@ -161,5 +175,8 @@ const styles = StyleSheet.create({
   },
   detailItem: {
     lineHeight: 18,
+  },
+  actions: {
+    gap: spacing.sm,
   },
 });

@@ -3,6 +3,7 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import {
   DateTime,
+  type ProgramStepContent,
   type ProgramStepResource,
   type ReflectionQuestion,
   type ThemeCohort,
@@ -17,9 +18,14 @@ import { ScaleSelector1To10 } from "../ScaleSelector1To10";
 import { ReflectionModalContent } from "../ReflectionModal";
 import { ItemListInput } from "../ItemListInput";
 import { StepResources } from "../StepResources";
+import { ProgramPreviewContent } from "../ProgramPreviewSheet";
 import { BottomSheetModalContent } from "@/components";
 
 const mockId = (id: string) => id as EntityId;
+
+/** react-dom/server separates text from interpolations with HTML comments. */
+const stripSsrInterpolations = (html: string) =>
+  html.replace(/<!--[^>]*-->/g, "");
 
 const mockQuestion: ReflectionQuestion = {
   id: mockId("a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c51"),
@@ -376,5 +382,163 @@ describe("Reflections Feature Components", () => {
       'data-testid="keyboard-next-button"',
     );
     expect(activeItemListKeyboardHtml).toContain("Siguiente ↓");
+  });
+
+  it("renders the program preview step list with prompts and type labels but no answer action", () => {
+    const steps: ReflectionQuestion[] = [
+      {
+        ...mockQuestion,
+        id: mockId("b5000000-0000-4000-8000-000000000001"),
+        prompt: "¿Qué te hizo sonreír hoy?",
+        responseType: "text",
+        orderIndex: 1,
+      },
+      {
+        ...mockQuestion,
+        id: mockId("b5000000-0000-4000-8000-000000000002"),
+        prompt: "¿Cuánta calma sentís ahora?",
+        responseType: "scale_1_10",
+        orderIndex: 2,
+      },
+      {
+        ...mockQuestion,
+        id: mockId("b5000000-0000-4000-8000-000000000003"),
+        prompt: "Anotá tres momentos que agradecés",
+        responseType: "item_list",
+        orderIndex: 3,
+      },
+    ];
+
+    const html = stripSsrInterpolations(
+      renderToString(
+        <ProgramPreviewContent
+          cohort={mockCohort}
+          theme={mockTheme}
+          steps={steps}
+          currentDate={DateTime.from("2026-09-25")}
+          onClose={() => {}}
+        />,
+      ),
+    );
+
+    expect(html).toContain("Paso 1");
+    expect(html).toContain("Paso 2");
+    expect(html).toContain("Paso 3");
+    expect(html).toContain("Texto libre");
+    expect(html).toContain("Escala 1-10");
+    expect(html).toContain("Lista de momentos");
+    expect(html).toContain("¿Qué te hizo sonreír hoy?");
+    expect(html).toContain("¿Cuánta calma sentís ahora?");
+    expect(html).toContain("Anotá tres momentos que agradecés");
+    expect(html).not.toContain("Responder");
+    expect(html).not.toContain("Omitir");
+  });
+
+  it("shows the unlock date for a step that is still locked in the cohort", () => {
+    const steps: ReflectionQuestion[] = [
+      { ...mockQuestion, orderIndex: 1 },
+      {
+        ...mockQuestion,
+        id: mockId("b5000000-0000-4000-8000-000000000002"),
+        prompt: "Segunda pregunta del programa",
+        orderIndex: 2,
+      },
+    ];
+
+    const html = stripSsrInterpolations(
+      renderToString(
+        <ProgramPreviewContent
+          cohort={mockCohort}
+          theme={mockTheme}
+          steps={steps}
+          currentDate={DateTime.from("2026-10-01")}
+          onClose={() => {}}
+        />,
+      ),
+    );
+
+    expect(html).toContain("Se desbloquea el 02/10");
+    expect(html).not.toContain("Se desbloquea el 01/10");
+  });
+
+  it("keeps the step detail collapsed until the user expands it", () => {
+    const stepContent: ProgramStepContent = {
+      id: mockId("d2000000-0000-4000-8000-000000000004"),
+      questionId: mockQuestion.id,
+      videoUrl: "https://youtu.be/uqN5Z9tsacg?si=u_4PfZ_71SlJni8r",
+      preparatoryText: "Consigna preparatoria del paso",
+      createdAt: "2026-09-04T00:00:00.000Z",
+    };
+
+    const collapsedHtml = renderToString(
+      <ProgramPreviewContent
+        cohort={mockCohort}
+        theme={mockTheme}
+        steps={[mockQuestion]}
+        contents={[stepContent]}
+        resources={mockResources}
+        currentDate={DateTime.from("2026-10-01")}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(collapsedHtml).toContain("Ver el detalle del paso");
+    expect(collapsedHtml).not.toContain("Consigna preparatoria del paso");
+    expect(collapsedHtml).not.toContain("Recursos del paso");
+  });
+
+  it("reveals the lesson video, the consigna and the step resources when the detail is expanded", () => {
+    const stepContent: ProgramStepContent = {
+      id: mockId("d2000000-0000-4000-8000-000000000004"),
+      questionId: mockQuestion.id,
+      videoUrl: "https://youtu.be/uqN5Z9tsacg?si=u_4PfZ_71SlJni8r",
+      preparatoryText: "Consigna preparatoria del paso",
+      createdAt: "2026-09-04T00:00:00.000Z",
+    };
+
+    const expandedHtml = renderToString(
+      <ProgramPreviewContent
+        cohort={mockCohort}
+        theme={mockTheme}
+        steps={[mockQuestion]}
+        contents={[stepContent]}
+        resources={mockResources}
+        initiallyExpandedStepId={mockQuestion.id}
+        currentDate={DateTime.from("2026-10-01")}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(expandedHtml).toContain("📖 Consigna del día");
+    expect(expandedHtml).toContain("Consigna preparatoria del paso");
+    expect(expandedHtml).toContain("📎 Recursos del paso");
+    expect(expandedHtml).toContain("Audio: Meditación desde arriba");
+    expect(expandedHtml).toContain(`program-preview-video-${mockQuestion.id}`);
+    expect(expandedHtml).not.toContain("Responder");
+    expect(expandedHtml).not.toContain("Omitir");
+  });
+
+  it("renders the program preview button only when onPreview is provided", () => {
+    const withoutPreview = renderToString(
+      <CohortEnrollmentCard
+        cohort={mockCohort}
+        theme={mockTheme}
+        onEnroll={() => {}}
+        currentDate={DateTime.from("2026-09-25")}
+      />,
+    );
+    expect(withoutPreview).not.toContain("Ver qué vas a reflexionar");
+
+    const withPreview = renderToString(
+      <CohortEnrollmentCard
+        cohort={mockCohort}
+        theme={mockTheme}
+        onEnroll={() => {}}
+        onPreview={() => {}}
+        currentDate={DateTime.from("2026-09-25")}
+      />,
+    );
+    expect(withPreview).toContain("Ver qué vas a reflexionar");
+    expect(withPreview).toContain('aria-label="Ver qué vas a reflexionar"');
   });
 });

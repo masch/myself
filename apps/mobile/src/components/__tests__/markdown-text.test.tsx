@@ -245,3 +245,158 @@ describe("backtick-quoted template urls stay code (S2)", () => {
     ]);
   });
 });
+
+describe("bare urls whose delimiter chars are not word-adjacent stay whole links", () => {
+  it("keeps an underscore pair between non-word characters inside the url", () => {
+    const spans = parseInlineSpans("Ver https://example.com?si=_abc_ fin");
+    expect(spans).toEqual([
+      { text: "Ver " },
+      {
+        text: "https://example.com?si=_abc_",
+        link: "https://example.com?si=_abc_",
+      },
+      { text: " fin" },
+    ]);
+  });
+
+  it("keeps an underscore path segment inside the url", () => {
+    const spans = parseInlineSpans("Ver https://example.com/_a_/b fin");
+    expect(spans).toEqual([
+      { text: "Ver " },
+      { text: "https://example.com/_a_/b", link: "https://example.com/_a_/b" },
+      { text: " fin" },
+    ]);
+  });
+
+  it("keeps a single tilde path segment inside the url", () => {
+    const spans = parseInlineSpans("Ver https://example.com/~user~ fin");
+    expect(spans).toEqual([
+      { text: "Ver " },
+      {
+        text: "https://example.com/~user~",
+        link: "https://example.com/~user~",
+      },
+      { text: " fin" },
+    ]);
+  });
+});
+
+describe("a delimiter pair is literal when either delimiter is inside a url", () => {
+  it("keeps a single tilde that opens outside a url but closes inside it from cutting the link", () => {
+    const spans = parseInlineSpans("aprox. ~10 min https://x.com/~user/");
+    expect(spans).toEqual([
+      { text: "aprox. ~10 min " },
+      { text: "https://x.com/~user/", link: "https://x.com/~user/" },
+    ]);
+  });
+
+  it("keeps a single asterisk that opens outside a url but closes inside it from cutting the link", () => {
+    const spans = parseInlineSpans("x *y https://x.com/a*/b");
+    expect(spans).toEqual([
+      { text: "x *y " },
+      { text: "https://x.com/a*/b", link: "https://x.com/a*/b" },
+    ]);
+  });
+
+  it("keeps a single underscore that opens outside a url but closes inside it from cutting the link", () => {
+    const spans = parseInlineSpans("x _y https://x.com/a_/b");
+    expect(spans).toEqual([
+      { text: "x _y " },
+      { text: "https://x.com/a_/b", link: "https://x.com/a_/b" },
+    ]);
+  });
+
+  it("still renders doubled tildes as strikethrough", () => {
+    expect(parseInlineSpans("~~doubled~~")).toEqual([
+      { text: "doubled", strikethrough: true },
+    ]);
+  });
+
+  it("still renders doubled asterisks as bold", () => {
+    expect(parseInlineSpans("**bold**")).toEqual([
+      { text: "bold", bold: true },
+    ]);
+  });
+
+  it("still renders a single tilde pair at word boundaries as strikethrough", () => {
+    expect(parseInlineSpans("hola ~chau~ fin")).toEqual([
+      { text: "hola " },
+      { text: "chau", strikethrough: true },
+      { text: " fin" },
+    ]);
+  });
+});
+
+describe("formatting delimiters pair across an explicit link", () => {
+  it("keeps a fully bold-wrapped link as a single bold link span", () => {
+    expect(parseInlineSpans("**[x](https://example.com)**")).toEqual([
+      { text: "x", bold: true, link: "https://example.com" },
+    ]);
+  });
+
+  it("pairs bold delimiters opened before a link and closed after it", () => {
+    expect(
+      parseInlineSpans("**Ver el video [aqui](https://example.com) completo**"),
+    ).toEqual([
+      { text: "Ver el video ", bold: true },
+      { text: "aqui", bold: true, link: "https://example.com" },
+      { text: " completo", bold: true },
+    ]);
+  });
+
+  it("pairs italic delimiters opened before a link and closed after it", () => {
+    expect(parseInlineSpans("*ver [aqui](https://example.com)*")).toEqual([
+      { text: "ver ", italic: true },
+      { text: "aqui", italic: true, link: "https://example.com" },
+    ]);
+  });
+
+  it("pairs strikethrough delimiters opened before a link and closed after it", () => {
+    expect(parseInlineSpans("~~old [aqui](https://example.com)~~")).toEqual([
+      { text: "old ", strikethrough: true },
+      { text: "aqui", strikethrough: true, link: "https://example.com" },
+    ]);
+  });
+
+  it("keeps a backtick-wrapped bare link as one literal code span", () => {
+    expect(parseInlineSpans("`[x](https://example.com)`")).toEqual([
+      { text: "[x](https://example.com)", code: true },
+    ]);
+  });
+
+  it("keeps a backtick-wrapped link with surrounding text as one code span", () => {
+    expect(parseInlineSpans("`ver [aqui](https://example.com)`")).toEqual([
+      { text: "ver [aqui](https://example.com)", code: true },
+    ]);
+  });
+});
+
+describe("bare url immediately before an explicit link", () => {
+  it("keeps the bare url tappable before a link with no separating space", () => {
+    expect(
+      parseInlineSpans("https://example.com[x](https://other.com)"),
+    ).toEqual([
+      { text: "https://example.com", link: "https://example.com" },
+      { text: "x", link: "https://other.com" },
+    ]);
+  });
+
+  it("keeps a bare url followed by a space and an explicit link working", () => {
+    expect(
+      parseInlineSpans("https://example.com [x](https://other.com)"),
+    ).toEqual([
+      { text: "https://example.com", link: "https://example.com" },
+      { text: " " },
+      { text: "x", link: "https://other.com" },
+    ]);
+  });
+
+  it("keeps both the bold and the links on a bold-wrapped bare url before a link", () => {
+    expect(
+      parseInlineSpans("**https://example.com**[x](https://other.com)"),
+    ).toEqual([
+      { text: "https://example.com", bold: true, link: "https://example.com" },
+      { text: "x", link: "https://other.com" },
+    ]);
+  });
+});
