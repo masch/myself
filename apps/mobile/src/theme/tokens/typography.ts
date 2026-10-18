@@ -60,5 +60,14 @@ export const fontWeights = {
   heavy: "800",
 } as const;
 
+/**
+ * Shared letter-spacing scale so component styles reference tokens instead of
+ * repeating literals. `caption` tracks the uppercase micro headers used above
+ * card and section titles.
+ */
+export const letterSpacings = {
+  caption: 0.5,
+} as const;
+
 export type Typography = typeof typography;
 export type TypographyVariant = keyof typeof typography;

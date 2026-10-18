@@ -687,6 +687,37 @@ describe("Reflections Seed Integrity", () => {
     ).toThrow();
   });
 
+  it("accepts only http and https resource URLs", () => {
+    const base = {
+      id: "f2000000-0000-4000-8000-000000000098",
+      stepContentId: "d2000000-0000-4000-8000-000000000004",
+      kind: "link",
+      label: "Recurso",
+      url: "https://example.com/recurso",
+      orderIndex: 0,
+      createdAt: seedDate,
+    };
+
+    expect(() => programStepResourceSchema.parse(base)).not.toThrow();
+    expect(() =>
+      programStepResourceSchema.parse({
+        ...base,
+        url: "http://example.com/recurso",
+      }),
+    ).not.toThrow();
+
+    for (const url of [
+      "javascript:alert(1)",
+      "data:text/html,x",
+      "ftp://example.com",
+      "intent://scan",
+    ]) {
+      expect(() => programStepResourceSchema.parse({ ...base, url })).toThrow(
+        "Invalid resource URL",
+      );
+    }
+  });
+
   it("has unique ids inside every seeded collection", () => {
     const collections = {
       categories: SEED_REFLECTION_CATEGORIES,
