@@ -120,6 +120,10 @@ check-format-staged: ## Check code formatting on staged files using prettier
 check-odd: ## Verify all ODD task documents are completed and closed
 	@./scripts/check-odd.sh
 
+.PHONY: check-odd-doc
+check-odd-doc: ## Verify that a change above the threshold carries an ODD task document
+	@./scripts/check-odd-doc.sh
+
 
 .PHONY: check-doctor
 check-doctor: ## Run Expo Doctor to verify project health (skips remote dependency version check)
@@ -153,7 +157,7 @@ check-shared: ## Run all checks for Shared workspace
 	bun turbo run lint typecheck test --filter=@myself/shared
 
 .PHONY: check
-check: check-format check-odd ## Run full quality check suite via unified Turborepo pipeline
+check: check-format check-odd check-odd-doc ## Run full quality check suite via unified Turborepo pipeline
 	bun turbo run lint typecheck test
 	$(MAKE) check-doctor
 

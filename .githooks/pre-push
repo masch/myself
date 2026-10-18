@@ -12,4 +12,14 @@ else
   exit 1
 fi
 
+printf "  ✓ check-odd-doc... "
+if make check-odd-doc > /dev/null 2>&1; then
+  printf "ok\n"
+else
+  printf "FAILED\n\n"
+  make check-odd-doc
+  printf "\n❌ Push aborted: a change above the ODD document threshold must add or modify a document in odd/tasks/, or set ODD_DOC_SKIP=1 and state the exemption in the pull request.\n"
+  exit 1
+fi
+
 exit 0
