@@ -9,7 +9,14 @@ import type {
   ReflectionTheme,
   ThemeCohort,
 } from "@myself/shared";
-import { colors, radius, spacing } from "@/theme";
+import {
+  colors,
+  fontWeights,
+  letterSpacings,
+  radius,
+  spacing,
+  typography,
+} from "@/theme";
 import {
   Accordion,
   AppBottomSheetModal,
@@ -297,7 +304,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm + 2,
   },
   title: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   subtitle: {
     marginBottom: spacing.xs,
@@ -318,21 +325,20 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   stepTitle: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   promptText: {
-    fontSize: 16,
-    fontWeight: "600",
-    lineHeight: 22,
+    ...typography.callout,
+    fontWeight: fontWeights.semibold,
   },
   lockedInfo: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
   detailItem: {
     borderBottomWidth: 0,
   },
   detailTriggerText: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
   detailContent: {
     gap: spacing.sm,
@@ -348,9 +354,9 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   preparatoryHeader: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacings.caption,
   },
   footer: {
     width: "100%",

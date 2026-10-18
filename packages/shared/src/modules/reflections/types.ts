@@ -258,7 +258,10 @@ export const programStepResourceSchema = z.object({
   stepContentId: entityIdSchema,
   kind: z.enum(PROGRAM_STEP_RESOURCE_KINDS),
   label: z.string().trim().min(1),
-  url: z.string().trim().check(z.url("Invalid resource URL")),
+  url: z
+    .string()
+    .trim()
+    .check(z.url({ protocol: /^https?$/, error: "Invalid resource URL" })),
   orderIndex: z.number().int().nonnegative().default(0),
   createdAt: z.string(),
 });

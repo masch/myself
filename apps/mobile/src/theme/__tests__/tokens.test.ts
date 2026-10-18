@@ -3,6 +3,8 @@ import {
   colors,
   fontWeights,
   layout,
+  letterSpacings,
+  opacities,
   radius,
   shadows,
   spacing,
@@ -69,6 +71,16 @@ describe("Design System Tokens", () => {
       expect(fontWeights.semibold).toBe("600");
       expect(fontWeights.bold).toBe("700");
       expect(fontWeights.heavy).toBe("800");
+    });
+
+    it("should expose the shared letter-spacing scale", () => {
+      expect(letterSpacings.caption).toBe(0.5);
+    });
+  });
+
+  describe("opacity tokens", () => {
+    it("should expose the pressed-state opacity", () => {
+      expect(opacities.pressed).toBe(0.6);
     });
   });
 

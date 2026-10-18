@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import React from "react";
 import { renderToString } from "react-dom/server";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   DateTime,
   type ProgramStepContent,
@@ -540,5 +542,28 @@ describe("Reflections Feature Components", () => {
     );
     expect(withPreview).toContain("Ver qué vas a reflexionar");
     expect(withPreview).toContain('aria-label="Ver qué vas a reflexionar"');
+  });
+
+  it("pins the resource card to a borderless card", () => {
+    const html = renderToString(<StepResources resources={mockResources} />);
+    // react-native-web compiles the static styles into atomic classes, so the
+    // card that keeps a border renders an `r-borderWidth-*` class here even
+    // though the border color never resolves for the subdued variant.
+    const cardClasses = /^<div class="([^"]*)"/.exec(html)?.[1] ?? "";
+    expect(cardClasses).not.toContain("r-borderWidth-");
+  });
+
+  it("keeps the reflection component styles on @/theme tokens", () => {
+    const literalPattern =
+      /\b(letterSpacing|opacity|fontSize|fontWeight):\s*("[^"]*"|[0-9.]+)/;
+
+    for (const file of [
+      "StepResources.tsx",
+      "ProgramPreviewSheet.tsx",
+      "ReflectionModal.tsx",
+    ]) {
+      const source = readFileSync(join(import.meta.dir, "..", file), "utf8");
+      expect(source.match(literalPattern)?.[0]).toBeUndefined();
+    }
   });
 });

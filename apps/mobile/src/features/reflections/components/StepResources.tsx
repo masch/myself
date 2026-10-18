@@ -3,7 +3,14 @@ import type {
   ProgramStepResource,
   ProgramStepResourceKind,
 } from "@myself/shared";
-import { colors, radius, spacing } from "@/theme";
+import {
+  colors,
+  fontWeights,
+  letterSpacings,
+  opacities,
+  radius,
+  spacing,
+} from "@/theme";
 import { Card, ThemedText } from "@/components";
 import { openExternalUrl } from "@/components/open-external-url";
 
@@ -52,7 +59,7 @@ export function StepResources({ resources, testID }: StepResourcesProps) {
             onPress={() => handleOpen(resource.url)}
             style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           >
-            <ThemedText variant="body" style={styles.icon}>
+            <ThemedText variant="callout">
               {KIND_ICONS[resource.kind]}
             </ThemedText>
             <ThemedText
@@ -72,13 +79,12 @@ export function StepResources({ resources, testID }: StepResourcesProps) {
 const styles = StyleSheet.create({
   container: {
     borderRadius: radius.md,
-    borderWidth: 1,
     gap: spacing.sm,
   },
   header: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacings.caption,
   },
   list: {
     gap: spacing.xs,
@@ -90,13 +96,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   rowPressed: {
-    opacity: 0.6,
-  },
-  icon: {
-    fontSize: 16,
+    opacity: opacities.pressed,
   },
   label: {
     flex: 1,
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
 });

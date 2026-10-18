@@ -7,7 +7,14 @@ import {
   type ReflectionQuestion,
   generateEntityId,
 } from "@myself/shared";
-import { colors, radius, spacing, typography } from "@/theme";
+import {
+  colors,
+  fontWeights,
+  letterSpacings,
+  radius,
+  spacing,
+  typography,
+} from "@/theme";
 import {
   AppButton,
   AppBottomSheetModal,
@@ -371,9 +378,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   promptText: {
-    fontSize: 18,
-    fontWeight: "700",
-    lineHeight: 24,
+    ...typography.headline,
+    fontWeight: fontWeights.bold,
     marginBottom: spacing.md,
   },
   inputContainer: {
@@ -424,9 +430,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   preparatoryHeader: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacings.caption,
   },
   preparatoryText: {
     ...typography.callout,
