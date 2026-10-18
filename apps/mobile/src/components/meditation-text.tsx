@@ -6,7 +6,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { colors } from "@/theme";
+import { colors, letterSpacings } from "@/theme";
 import {
   AppMarkdownText,
   parseInlineSpans,
@@ -209,6 +209,6 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   baseText: {
-    letterSpacing: 0.2,
+    letterSpacing: letterSpacings.body,
   },
 });

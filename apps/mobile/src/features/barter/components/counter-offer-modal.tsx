@@ -7,7 +7,14 @@ import {
   ScrollView,
 } from "react-native";
 import { Card, ThemedText, AppButton, Badge } from "@/components";
-import { colors, fontWeights, layout, spacing, radius } from "@/theme";
+import {
+  colors,
+  fontWeights,
+  layout,
+  lineHeights,
+  spacing,
+  radius,
+} from "@/theme";
 import type { ProductPackage, TradeMatch } from "@myself/shared";
 
 interface CounterOfferModalProps {
@@ -259,7 +266,7 @@ const styles = StyleSheet.create({
   noticeText: {
     color: colors.systemGreen,
     fontWeight: fontWeights.semibold,
-    lineHeight: 18,
+    lineHeight: lineHeights.xs,
   },
   actionsRow: {
     flexDirection: "row",

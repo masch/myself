@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet } from "react-native";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
-import { colors, spacing } from "@/theme";
+import { colors, opacities, spacing } from "@/theme";
 
 export type AccordionProps = AccordionPrimitive.RootProps;
 
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   triggerPressed: {
-    opacity: 0.7,
+    opacity: opacities.pressedSoft,
   },
   content: {
     overflow: "hidden",

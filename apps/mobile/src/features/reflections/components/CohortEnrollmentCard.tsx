@@ -1,6 +1,13 @@
 import { View, StyleSheet } from "react-native";
 import type { DateTime, ThemeCohort, ReflectionTheme } from "@myself/shared";
-import { colors, layout, spacing, radius } from "@/theme";
+import {
+  colors,
+  fontWeights,
+  layout,
+  lineHeights,
+  spacing,
+  radius,
+} from "@/theme";
 import { AppButton, Badge, Card, ThemedText } from "@/components";
 import {
   isCohortEnrollmentOpen,
@@ -160,7 +167,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm + 2,
   },
   title: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
     marginBottom: spacing.xs + 2,
   },
   description: {
@@ -174,7 +181,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   detailItem: {
-    lineHeight: 18,
+    lineHeight: lineHeights.xs,
   },
   actions: {
     gap: spacing.sm,

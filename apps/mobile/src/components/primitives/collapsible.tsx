@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet } from "react-native";
 
 import * as CollapsiblePrimitive from "@rn-primitives/collapsible";
-import { spacing } from "@/theme";
+import { opacities, spacing } from "@/theme";
 
 export type CollapsibleProps = CollapsiblePrimitive.RootProps;
 
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   triggerPressed: {
-    opacity: 0.7,
+    opacity: opacities.pressedSoft,
   },
   content: {
     overflow: "hidden",

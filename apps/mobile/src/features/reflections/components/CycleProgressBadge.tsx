@@ -1,6 +1,6 @@
 import { View, StyleSheet } from "react-native";
 import { type CycleStatus } from "@myself/shared";
-import { colors, layout, spacing, radius } from "@/theme";
+import { colors, fontWeights, layout, radius, spacing } from "@/theme";
 import { Badge, Card, ThemedText } from "@/components";
 
 interface CycleProgressBadgeProps {
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm + 2,
   },
   stepText: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   track: {
     height: spacing.sm,
@@ -114,6 +114,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   statLabel: {
-    fontWeight: "500",
+    fontWeight: fontWeights.medium,
   },
 });

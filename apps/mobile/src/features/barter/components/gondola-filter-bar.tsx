@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { ThemedText, ChipButton } from "@/components";
-import { colors, spacing } from "@/theme";
+import { colors, fontSizes, spacing } from "@/theme";
 import type { ProductionType } from "@myself/shared";
 
 interface GondolaFilterBarProps {
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   filterTitle: {
     color: colors.secondaryLabel,
-    fontSize: 11,
+    fontSize: fontSizes.xs,
     marginTop: spacing.xs,
     marginBottom: spacing.xs,
   },

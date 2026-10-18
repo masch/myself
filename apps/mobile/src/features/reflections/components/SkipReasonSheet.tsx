@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { View, StyleSheet } from "react-native";
-import { colors, spacing } from "@/theme";
+import { colors, fontWeights, lineHeights, spacing } from "@/theme";
 import {
   AppButton,
   AppBottomSheetModal,
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   title: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
     marginBottom: spacing.sm,
   },
   promptPreview: {
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm + 2,
   },
   infoNote: {
-    lineHeight: 18,
+    lineHeight: lineHeights.xs,
     marginBottom: spacing.md,
   },
   chipsRow: {

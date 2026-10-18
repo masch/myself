@@ -8,7 +8,7 @@ import {
   type TextStyle,
   type ColorValue,
 } from "react-native";
-import { colors, radius } from "@/theme";
+import { colors, fontWeights, radius } from "@/theme";
 import { AppIcon } from "./app-icon";
 import { ThemedText, type ThemedTextProps } from "./themed-text";
 
@@ -197,6 +197,6 @@ const styles = StyleSheet.create({
     borderColor: colors.separator,
   },
   text: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
 });

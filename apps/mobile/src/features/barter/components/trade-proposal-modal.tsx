@@ -7,7 +7,15 @@ import {
   ScrollView,
 } from "react-native";
 import { Card, ThemedText, AppButton, Badge } from "@/components";
-import { colors, fontWeights, layout, spacing, radius } from "@/theme";
+import {
+  colors,
+  fontWeights,
+  layout,
+  lineHeights,
+  opacities,
+  spacing,
+  radius,
+} from "@/theme";
 import type { ProductPackage } from "@myself/shared";
 
 interface TradeProposalModalProps {
@@ -241,7 +249,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.systemGreen8,
   },
   packageOptionDisabled: {
-    opacity: 0.4,
+    opacity: opacities.disabled,
   },
   radioRow: {
     flexDirection: "row",
@@ -293,7 +301,7 @@ const styles = StyleSheet.create({
   balanceText: {
     color: colors.systemGreen,
     fontWeight: fontWeights.semibold,
-    lineHeight: 18,
+    lineHeight: lineHeights.xs,
   },
   actionsRow: {
     flexDirection: "row",
