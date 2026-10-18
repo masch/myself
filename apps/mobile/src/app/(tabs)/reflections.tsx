@@ -1132,7 +1132,9 @@ export default function ReflectionsScreen() {
           steps={programPreview.steps}
           contents={programPreview.contents}
           resources={programPreview.resources}
+          error={programPreview.error}
           isLoading={programPreview.isLoading}
+          onRetry={programPreview.retry}
           currentDate={currentLocalDate}
           onClose={() => setPreviewCohort(null)}
         />

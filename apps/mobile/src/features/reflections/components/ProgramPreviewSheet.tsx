@@ -47,7 +47,41 @@ export interface ProgramPreviewContentProps {
   currentDate?: DateTime;
   /** Opens one step detail on first render; every step starts collapsed without it. */
   initiallyExpandedStepId?: EntityId;
+  /** Set when a preview read rejected, so the degraded state is explained. */
+  error?: Error | null;
+  /** Re-reads the preview after a degraded load; the loader never caches one. */
+  onRetry?: () => void;
   onClose: () => void;
+}
+
+export interface ProgramPreviewDegradedStateProps {
+  onRetry: () => void;
+}
+
+/**
+ * Explains a degraded preview load and offers the retry that asks the loader
+ * again for the same theme, keeping the partial program visible underneath.
+ */
+export function ProgramPreviewDegradedState({
+  onRetry,
+}: ProgramPreviewDegradedStateProps) {
+  return (
+    <View style={styles.degradedBox} testID="program-preview-degraded">
+      <ThemedText variant="callout" color={colors.label}>
+        No pudimos cargar todo el programa.
+      </ThemedText>
+      <ThemedText variant="caption1" color={colors.secondaryLabel}>
+        Revisá tu conexión y reintentá para ver la vista previa completa.
+      </ThemedText>
+      <AppButton
+        title="Reintentar"
+        variant="secondary"
+        testID="program-preview-retry"
+        accessibilityLabel="Reintentar cargar la vista previa"
+        onPress={onRetry}
+      />
+    </View>
+  );
 }
 
 /**
@@ -65,6 +99,8 @@ export function ProgramPreviewContent({
   isLoading = false,
   currentDate,
   initiallyExpandedStepId,
+  error,
+  onRetry,
   onClose,
 }: ProgramPreviewContentProps) {
   const [expandedStepId, setExpandedStepId] = useState<EntityId | undefined>(
@@ -107,6 +143,10 @@ export function ProgramPreviewContent({
             label="Cargando vista previa..."
             style={styles.loadingBox}
           />
+        ) : null}
+
+        {error ? (
+          <ProgramPreviewDegradedState onRetry={() => onRetry?.()} />
         ) : null}
 
         {orderedSteps.map((step) => {
@@ -311,6 +351,12 @@ const styles = StyleSheet.create({
   },
   loadingBox: {
     paddingVertical: spacing.md,
+  },
+  degradedBox: {
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.systemGray15,
+    gap: spacing.sm,
   },
   stepCard: {
     borderRadius: radius.md,

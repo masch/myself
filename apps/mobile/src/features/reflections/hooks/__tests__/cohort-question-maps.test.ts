@@ -73,6 +73,7 @@ const orphanResource = makeResource(
 function createStubRepository(options: {
   contents: ProgramStepContent[];
   resources?: ProgramStepResource[];
+  failContents?: boolean;
   failResources?: boolean;
 }) {
   const calls = {
@@ -84,6 +85,7 @@ function createStubRepository(options: {
     calls,
     async getProgramStepContentsForTheme(id: EntityId) {
       calls.contents.push(id);
+      if (options.failContents) throw new Error("contents read failed");
       return options.contents;
     },
     async getStepResourcesForTheme(id: EntityId) {
@@ -146,6 +148,33 @@ describe("loadCohortQuestionMaps", () => {
     expect(stepContentsMap[question1.id]).toEqual(content1);
     expect(stepContentsMap[question3.id]).toEqual(content3);
     expect(stepResourcesMap[question1.id]).toEqual([]);
+    expect(stepResourcesMap[question2.id]).toEqual([]);
+    expect(stepResourcesMap[question3.id]).toEqual([]);
+    expect(errorSpy).toHaveBeenCalled();
+
+    errorSpy.mockRestore();
+  });
+
+  it("degrades contents to null but still resolves the resources read when the contents read rejects", async () => {
+    const errorSpy = spyOn(console, "error").mockImplementation(() => {});
+    const repository = createStubRepository({
+      contents: [],
+      resources: [resource1, resource3],
+      failContents: true,
+    });
+
+    const { stepContentsMap, stepResourcesMap } = await loadCohortQuestionMaps(
+      repository,
+      themeId,
+      [question1, question2, question3],
+      { currentQuestionId: question1.id, currentStepContent: content1 },
+    );
+
+    expect(stepContentsMap[question1.id]).toEqual(content1);
+    expect(stepContentsMap[question2.id]).toBeNull();
+    expect(stepContentsMap[question3.id]).toBeNull();
+    expect(repository.calls.resources).toEqual([themeId]);
+    expect(stepResourcesMap[question1.id]).toEqual([resource1]);
     expect(stepResourcesMap[question2.id]).toEqual([]);
     expect(stepResourcesMap[question3.id]).toEqual([]);
     expect(errorSpy).toHaveBeenCalled();

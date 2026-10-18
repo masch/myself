@@ -89,7 +89,7 @@ function isIndexInsideUrl(text: string, index: number): boolean {
   while (tokenEnd < text.length && !/\s/.test(text[tokenEnd])) tokenEnd += 1;
 
   const token = text.slice(tokenStart, tokenEnd);
-  const urlMatch = /https?:\/\/\S*/.exec(token);
+  const urlMatch = /https?:\/\/[^\s\u0000]*/.exec(token);
   if (!urlMatch) return false;
 
   const urlStart = tokenStart + urlMatch.index;

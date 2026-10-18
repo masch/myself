@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import type {
   EntityId,
@@ -108,6 +108,8 @@ export function createProgramPreviewLoader(
 
 export interface ProgramPreviewState extends ProgramPreviewResult {
   isLoading: boolean;
+  /** Re-reads the open preview; the loader never caches a degraded result. */
+  retry: () => void;
 }
 
 interface LoadedProgramPreview extends ProgramPreviewResult {
@@ -131,6 +133,14 @@ export function useProgramPreview(
   // Loading is derived from the loaded theme id instead of set synchronously in
   // the effect, so switching themes recomputes it during render.
   const [loaded, setLoaded] = useState<LoadedProgramPreview | null>(null);
+  // Bumped by `retry` so the effect re-runs and asks the loader again for the
+  // same theme, which never cached the degraded result.
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const retry = useCallback(() => {
+    setLoaded(null);
+    setReloadToken((token) => token + 1);
+  }, []);
 
   useEffect(() => {
     if (!themeId) return;
@@ -144,10 +154,15 @@ export function useProgramPreview(
     return () => {
       isCurrentTheme = false;
     };
-  }, [themeId, loadPreview]);
+  }, [themeId, loadPreview, reloadToken]);
 
   if (!themeId) {
-    return { ...EMPTY_PROGRAM_PREVIEW_DATA, error: null, isLoading: false };
+    return {
+      ...EMPTY_PROGRAM_PREVIEW_DATA,
+      error: null,
+      isLoading: false,
+      retry,
+    };
   }
 
   if (loaded?.themeId === themeId) {
@@ -157,8 +172,14 @@ export function useProgramPreview(
       resources: loaded.resources,
       error: loaded.error,
       isLoading: false,
+      retry,
     };
   }
 
-  return { ...EMPTY_PROGRAM_PREVIEW_DATA, error: null, isLoading: true };
+  return {
+    ...EMPTY_PROGRAM_PREVIEW_DATA,
+    error: null,
+    isLoading: true,
+    retry,
+  };
 }
