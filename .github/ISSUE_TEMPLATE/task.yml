@@ -1,0 +1,51 @@
+name: Task or change request
+description: Propose a bounded change with the repository evidence behind it.
+title: "chore: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keep it evidence-first: counts, `path:line` references, and how to reproduce the current state.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One sentence describing the change and why it matters.
+      placeholder: Replace console logging with a single in-repo logger.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Repository evidence for the current state - counts, `path:line` references, reproduction steps.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The change to evaluate or implement, including the alternatives considered.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What must be true when this is done, expressed as observable checks.
+    validations:
+      required: false
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: Related work this issue deliberately does not cover.
+    validations:
+      required: false
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: No open or closed issue in this repository already covers this request.
+          required: true
