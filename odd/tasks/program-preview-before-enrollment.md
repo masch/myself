@@ -26,6 +26,7 @@ Let a user browse the steps of an open thematic cohort before joining it, so the
 - **L2** — Product decision, user selected: how much the preview reveals — "Todo, con detalle colapsado": question and type always visible, video, consigna and resources behind "Ver el detalle del paso".
 - **L3** — Branch `feat/program-preview-before-enrollment`, stacked on the closed `feat/reflection-program-reader` branch so this feature stays its own reviewable slice.
 - **L4** — User report with a phone screenshot: the preview sheet shows the steps but the questions cannot be scrolled, so the expanded detail is clipped. Confirmed as a real defect: with `scrollable={false}` the shared sheet puts its children in a view with no bounded height (`maxHeight: 90%` plus `overflow: hidden` on the sheet), and a web flex child never shrinks below its content height without an explicit `minHeight: 0`, so the body was clipped instead of scrolling. The first e2e run passed only because it asserted content presence, never scrollability.
+- **L5** — Work unit: `cb40df8` holds T1-T4 and the scroll fix, plus the e2e that pins it.
 
 ## Evidence & Verification
 
