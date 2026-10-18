@@ -27,6 +27,7 @@ import {
 
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
 import { useThemeCohort } from "@/features/reflections/hooks/use-theme-cohort";
+import { useProgramPreview } from "@/features/reflections/hooks/use-program-preview";
 import { type ActiveCohortProgressDetail } from "@/features/reflections/domain/ports/reflection.repository.port";
 import {
   PromptCard,
@@ -35,6 +36,7 @@ import {
   ReflectionModal,
   SkipReasonSheet,
   StepResources,
+  ProgramPreviewSheet,
 } from "@/features/reflections/components";
 import {
   isReflectionLocked,
@@ -155,6 +157,13 @@ export default function ReflectionsScreen() {
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Read-only program preview opened from the open-cohort cards.
+  const [previewCohort, setPreviewCohort] = useState<ThemeCohort | null>(null);
+  const previewTheme = previewCohort
+    ? (themes.find((t) => t.id === previewCohort.themeId) ?? null)
+    : null;
+  const programPreview = useProgramPreview(previewTheme?.id ?? null);
 
   // Handle answering
   const handleOpenAnswer = (
@@ -1065,6 +1074,7 @@ export default function ReflectionsScreen() {
                     theme={theme}
                     isEnrolled={isAlreadyEnrolled}
                     onEnroll={() => void handleEnroll(cohort)}
+                    onPreview={() => setPreviewCohort(cohort)}
                     isSubmitting={isSubmitting}
                     currentDate={currentLocalDate}
                   />
@@ -1112,6 +1122,21 @@ export default function ReflectionsScreen() {
         }}
         isSubmitting={isSubmitting}
       />
+
+      {/* Read-only Program Preview (no answer, skip or enrollment) */}
+      {previewCohort ? (
+        <ProgramPreviewSheet
+          visible
+          cohort={previewCohort}
+          theme={previewTheme}
+          steps={programPreview.steps}
+          contents={programPreview.contents}
+          resources={programPreview.resources}
+          isLoading={programPreview.isLoading}
+          currentDate={currentLocalDate}
+          onClose={() => setPreviewCohort(null)}
+        />
+      ) : null}
     </ScreenContainer.Tab>
   );
 }

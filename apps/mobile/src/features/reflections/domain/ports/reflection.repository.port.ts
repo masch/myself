@@ -33,6 +33,10 @@ export interface ReflectionRepositoryPort {
   getStepResourcesForQuestion(
     questionId: EntityId,
   ): Promise<ProgramStepResource[]>;
+  getProgramStepContentsForTheme(
+    themeId: EntityId,
+  ): Promise<ProgramStepContent[]>;
+  getStepResourcesForTheme(themeId: EntityId): Promise<ProgramStepResource[]>;
   getAdHocQuestions(): Promise<ReflectionQuestion[]>;
   getDailyRoutineQuestions(userId: EntityId): Promise<ReflectionQuestion[]>;
   getOptedOutRoutineQuestions(userId: EntityId): Promise<ReflectionQuestion[]>;
