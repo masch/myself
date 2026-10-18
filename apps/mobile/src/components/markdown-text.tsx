@@ -25,9 +25,10 @@ export interface InlineSpan {
 /** `[label](https://…)` links. Explicit links are resolved after formatting. */
 const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
 
-/** `[label](https://…)` links, or a bare `https://…` URL. */
+/** `[label](https://…)` links, or a bare `https://…` URL. A bare URL stops at a
+ * NUL placeholder byte so an explicit link's placeholder is never swallowed. */
 const inlineLinkRegex =
-  /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/\S+)/g;
+  /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s\u0000]+)/g;
 
 /**
  * Inert stand-in for an explicit link while formatting runs. NUL bytes fence the
@@ -271,6 +272,9 @@ function substituteLinkPlaceholders(
   }
 
   const formatting = formattingOf(span);
+  // A span that is itself a link must keep its target on every split fragment,
+  // so extracting a placeholder never drops tappability from the rest.
+  const spanLink = span.link !== undefined ? { link: span.link } : {};
   const spans: InlineSpan[] = [];
   const placeholderRegex = /\u0000(\d+)\u0000/g;
   let lastIndex = 0;
@@ -281,19 +285,24 @@ function substituteLinkPlaceholders(
       spans.push({
         text: span.text.substring(lastIndex, match.index),
         ...formatting,
+        ...spanLink,
       });
     }
 
     const link = links[Number(match[1])];
     for (const labelSpan of formatLinkLabel(link.label, link.url)) {
-      spans.push({ ...labelSpan, ...formatting });
+      spans.push({ ...spanLink, ...labelSpan, ...formatting });
     }
 
     lastIndex = match.index + match[0].length;
   }
 
   if (lastIndex < span.text.length) {
-    spans.push({ text: span.text.substring(lastIndex), ...formatting });
+    spans.push({
+      text: span.text.substring(lastIndex),
+      ...formatting,
+      ...spanLink,
+    });
   }
 
   return spans.length > 0 ? spans : [span];

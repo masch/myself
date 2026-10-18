@@ -324,3 +324,33 @@ describe("formatting delimiters pair across an explicit link", () => {
     ]);
   });
 });
+
+describe("bare url immediately before an explicit link", () => {
+  it("keeps the bare url tappable before a link with no separating space", () => {
+    expect(
+      parseInlineSpans("https://example.com[x](https://other.com)"),
+    ).toEqual([
+      { text: "https://example.com", link: "https://example.com" },
+      { text: "x", link: "https://other.com" },
+    ]);
+  });
+
+  it("keeps a bare url followed by a space and an explicit link working", () => {
+    expect(
+      parseInlineSpans("https://example.com [x](https://other.com)"),
+    ).toEqual([
+      { text: "https://example.com", link: "https://example.com" },
+      { text: " " },
+      { text: "x", link: "https://other.com" },
+    ]);
+  });
+
+  it("keeps both the bold and the links on a bold-wrapped bare url before a link", () => {
+    expect(
+      parseInlineSpans("**https://example.com**[x](https://other.com)"),
+    ).toEqual([
+      { text: "https://example.com", bold: true, link: "https://example.com" },
+      { text: "x", link: "https://other.com" },
+    ]);
+  });
+});
