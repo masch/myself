@@ -3,6 +3,7 @@ import type {
   DateTime,
   EntityId,
   ProgramStepContent,
+  ProgramStepResource,
   ReflectionCategory,
   ReflectionQuestion,
   ReflectionTheme,
@@ -29,6 +30,9 @@ export interface ReflectionRepositoryPort {
   getProgramStepContentForQuestion(
     questionId: EntityId,
   ): Promise<ProgramStepContent | null>;
+  getStepResourcesForQuestion(
+    questionId: EntityId,
+  ): Promise<ProgramStepResource[]>;
   getAdHocQuestions(): Promise<ReflectionQuestion[]>;
   getDailyRoutineQuestions(userId: EntityId): Promise<ReflectionQuestion[]>;
   getOptedOutRoutineQuestions(userId: EntityId): Promise<ReflectionQuestion[]>;

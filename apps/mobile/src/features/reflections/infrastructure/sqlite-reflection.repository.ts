@@ -8,6 +8,8 @@ import {
   type EntityId,
   type Periodicity,
   type ProgramStepContent,
+  type ProgramStepResource,
+  type ProgramStepResourceKind,
   type ReflectionCategory,
   type ReflectionQuestion,
   type ReflectionQuestionConfig,
@@ -88,6 +90,16 @@ interface RawProgramStepContent {
   question_id: EntityId;
   video_url: string | null;
   preparatory_text: string | null;
+  created_at: string;
+}
+
+interface RawProgramStepResource {
+  id: EntityId;
+  step_content_id: EntityId;
+  kind: ProgramStepResourceKind;
+  label: string;
+  url: string;
+  order_index: number;
   created_at: string;
 }
 
@@ -986,5 +998,33 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       [questionId],
     );
     return row ? this.mapProgramStepContent(row) : null;
+  }
+
+  private mapProgramStepResource(
+    r: RawProgramStepResource,
+  ): ProgramStepResource {
+    return {
+      id: r.id,
+      stepContentId: r.step_content_id,
+      kind: r.kind,
+      label: r.label,
+      url: r.url,
+      orderIndex: r.order_index,
+      createdAt: r.created_at,
+    };
+  }
+
+  async getStepResourcesForQuestion(
+    questionId: EntityId,
+  ): Promise<ProgramStepResource[]> {
+    const rows = await this.db.getAllAsync<RawProgramStepResource>(
+      `SELECT r.id, r.step_content_id, r.kind, r.label, r.url, r.order_index, r.created_at
+       FROM program_step_resources r
+       INNER JOIN program_step_contents c ON c.id = r.step_content_id
+       WHERE c.question_id = ?
+       ORDER BY r.order_index ASC, r.id ASC`,
+      [questionId],
+    );
+    return rows.map((row) => this.mapProgramStepResource(row));
   }
 }

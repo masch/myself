@@ -11,7 +11,13 @@ import {
   createSeedThemeCohorts,
   getTodayDateString,
   programStepContentSchema,
+  programStepResourceSchema,
   SEED_PROGRAM_STEP_CONTENTS,
+  SEED_PROGRAM_STEP_RESOURCES,
+  SEED_REFLECTION_QUESTIONS,
+  SEED_REFLECTION_THEMES,
+  SEED_REFLECTION_CATEGORIES,
+  SEED_THEME_COHORTS,
 } from "../reflections";
 import { generateEntityId, DateTime, type EntityId } from "../../primitives";
 
@@ -465,5 +471,292 @@ describe("Reflections Module - Zod Validation Schemas", () => {
         "b4000000-0000-4000-8000-000000000001" as EntityId,
       );
     });
+
+    it("should seed every step of the Stoic Dichotomy program with its video and challenge text", () => {
+      const dichotomyThemeId =
+        "e2000000-0000-4000-8000-000000000001" as EntityId;
+      const theme = SEED_REFLECTION_THEMES.find(
+        (t) => t.id === dichotomyThemeId,
+      );
+      expect(theme?.targetQuestionCount).toBe(6);
+
+      const steps = SEED_REFLECTION_QUESTIONS.filter(
+        (q) => q.themeId === dichotomyThemeId,
+      ).sort((a, b) => a.orderIndex - b.orderIndex);
+      expect(steps.map((q) => q.orderIndex)).toEqual([1, 2, 3, 4, 5, 6]);
+
+      const expectedSteps = [
+        {
+          orderIndex: 1,
+          videoUrl: "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
+          snippets: ["Ejercicio Práctico", "¿Esto depende de mí o no?"],
+        },
+        {
+          orderIndex: 2,
+          videoUrl: "https://youtu.be/nHsUMRcjBiU?si=CQZYkFaWkiD4NlJa",
+          snippets: [
+            "Día 2",
+            "El desafío de hoy es el siguiente",
+            "¿Qué parte de esta situación estaba bajo tu control y qué parte no lo estaba?",
+            "no es el hecho, sino mi interpretación lo que me causa sufrimiento",
+            "¿Qué virtud te estaba pidiendo practicar este momento?",
+            "Añade la cláusula de reserva estoica",
+            "Haré todo lo que esté en mi mano para lograr _, si nada lo impide.",
+          ],
+        },
+        {
+          orderIndex: 3,
+          videoUrl: "https://youtu.be/N9aBAJ61xSk?si=WTZ8mZ7by6KD4ZfS",
+          snippets: [
+            "Día 3",
+            "La Vida en Sociedad",
+            "Actividad Práctica del Día",
+            "círculos de Hierocles",
+            "En el centro estás tú.",
+            "Y finalmente, toda la humanidad.",
+            "Elegí un gesto de acercamiento",
+            "Escuchar con atención a alguien que normalmente ignorás.",
+            "Ayudar a un compañero sin esperar nada a cambio.",
+            "Ser paciente con alguien que te cuesta.",
+            "Agradecer o reconocer a alguien en tu entorno.",
+            "Se come la vid que produce uvas, y una vez hecho, no busca nada más, sino que pasa a la siguiente",
+            "Marco Aurelio",
+          ],
+        },
+        {
+          orderIndex: 4,
+          videoUrl: "https://youtu.be/uqN5Z9tsacg?si=u_4PfZ_71SlJni8r",
+          snippets: [
+            "Día 4",
+            "La Conexión con la Naturaleza",
+            "Visión desde arriba",
+            "https://drive.google.com/file/d/1NxOoDh5qsLspeujFl5zWChT4y53tRxPq/view?usp=sharing",
+            "https://www.youtube.com/watch?v=az1IKPZ7N2U",
+            "¿Qué cambia al mirar tu problema desde esa distancia?",
+            "¿Qué podrías hacer hoy para vivir más en armonía con la naturaleza o el orden del universo?",
+            "compartí con nosotros algo de tu reflexión",
+            "Compromiso (opcional)",
+            "una acción concreta y sencilla para hoy que exprese tu conexión con la naturaleza",
+            "caminar al aire libre, agradecer el agua al beberla, evitar un desperdicio",
+          ],
+        },
+        {
+          orderIndex: 5,
+          videoUrl: "https://youtu.be/e1IoKJjF4vc?si=6k8yO902AYAFyw8O",
+          snippets: [
+            "Día 5",
+            "Deber Estoico y Amor a la Humanidad",
+            "Actividad del día",
+            "Hoy el obstáculo es __, y lo usaré para practicar __",
+            "El Obstáculo es el Camino",
+            "Ryan Holiday",
+            "¿Cómo encontrar la calma en medio del caos?",
+            "Santuario de la Mente",
+            "Prosoché",
+            "Matriz de Obstáculos",
+            "No son las cosas las que nos perturban, sino las opiniones que tenemos sobre ellas",
+          ],
+        },
+        {
+          orderIndex: 6,
+          videoUrl: "https://youtu.be/UKfUL6xGHpo?si=7lXiCqxFrSHSXpid",
+          snippets: [
+            "Día 6",
+            "Estoicismo y Relaciones Sociales",
+            "Desafío estoico: comprender antes de reaccionar",
+            "Paso 1. Identificá",
+            "«Sentí que un amigo no me tenía en cuenta porque no me respondió un mensaje»",
+            "Paso 2. Cuestioná tu interpretación",
+            "¿Qué hechos conozco realmente y qué cosas estoy suponiendo?",
+            "¿Estoy interpretando sus acciones desde mis expectativas o desde lo que realmente ocurrió?",
+            "Paso 3. Practicá la empatía estoica",
+            "¿Qué podría estar viviendo o sintiendo la otra persona que yo desconozco?",
+            "¿Cómo puedo expresar lo que siento sin atacar, juzgar ni dejar de respetarme?",
+            "Paso 4. Llevalo a la práctica",
+            "¿Qué puedo hacer diferente la próxima vez que surja un malentendido?",
+            "¡Buen fin de semana a todos!",
+          ],
+        },
+      ];
+
+      for (const expected of expectedSteps) {
+        const question = steps.find(
+          (q) => q.orderIndex === expected.orderIndex,
+        );
+        expect(question).toBeDefined();
+        expect(question?.responseType).toBe("text");
+        expect(question?.periodicity).toBe("daily");
+
+        const content = SEED_PROGRAM_STEP_CONTENTS.find(
+          (c) => c.questionId === question!.id,
+        );
+        expect(content?.videoUrl).toBe(expected.videoUrl);
+        for (const snippet of expected.snippets) {
+          expect(content?.preparatoryText).toContain(snippet);
+        }
+      }
+    });
+  });
+});
+
+describe("Reflections Seed Integrity", () => {
+  const seedDate = "2026-01-01T00:00:00.000Z";
+
+  it("validates every seeded entity against its schema", () => {
+    for (const category of SEED_REFLECTION_CATEGORIES) {
+      expect(() =>
+        reflectionCategorySchema.parse({ ...category, createdAt: seedDate }),
+      ).not.toThrow();
+    }
+
+    for (const theme of SEED_REFLECTION_THEMES) {
+      expect(() =>
+        reflectionThemeSchema.parse({ ...theme, createdAt: seedDate }),
+      ).not.toThrow();
+    }
+
+    for (const cohort of SEED_THEME_COHORTS) {
+      expect(() =>
+        themeCohortSchema.parse({ ...cohort, createdAt: seedDate }),
+      ).not.toThrow();
+    }
+
+    for (const question of SEED_REFLECTION_QUESTIONS) {
+      expect(() =>
+        reflectionQuestionSchema.parse({ ...question, createdAt: seedDate }),
+      ).not.toThrow();
+    }
+
+    for (const content of SEED_PROGRAM_STEP_CONTENTS) {
+      expect(() => programStepContentSchema.parse(content)).not.toThrow();
+    }
+
+    for (const resource of SEED_PROGRAM_STEP_RESOURCES) {
+      expect(() => programStepResourceSchema.parse(resource)).not.toThrow();
+    }
+  });
+
+  it("seeds the day-4 meditation audio and video resources in order", () => {
+    const day4Resources = SEED_PROGRAM_STEP_RESOURCES.filter(
+      (resource) =>
+        resource.stepContentId === "d2000000-0000-4000-8000-000000000004",
+    ).sort((a, b) => a.orderIndex - b.orderIndex);
+
+    expect(SEED_PROGRAM_STEP_RESOURCES.length).toBe(2);
+    expect(day4Resources.map((resource) => resource.kind)).toEqual([
+      "audio",
+      "video",
+    ]);
+    expect(day4Resources.map((resource) => resource.orderIndex)).toEqual([
+      1, 2,
+    ]);
+    expect(day4Resources[0].label).toBe(
+      'Audio: Meditación "Visión desde arriba"',
+    );
+    expect(day4Resources[0].url).toBe(
+      "https://drive.google.com/file/d/1NxOoDh5qsLspeujFl5zWChT4y53tRxPq/view?usp=sharing",
+    );
+    expect(day4Resources[1].label).toBe(
+      'Video: Meditación "Visión desde arriba"',
+    );
+    expect(day4Resources[1].url).toBe(
+      "https://www.youtube.com/watch?v=az1IKPZ7N2U",
+    );
+  });
+
+  it("rejects resources with a blank label, bad URL or unknown kind", () => {
+    const base = {
+      id: "f2000000-0000-4000-8000-000000000099",
+      stepContentId: "d2000000-0000-4000-8000-000000000004",
+      kind: "link",
+      label: "Recurso",
+      url: "https://example.com/recurso",
+      orderIndex: 0,
+      createdAt: seedDate,
+    };
+
+    expect(() => programStepResourceSchema.parse(base)).not.toThrow();
+    expect(() =>
+      programStepResourceSchema.parse({ ...base, label: "   " }),
+    ).toThrow();
+    expect(() =>
+      programStepResourceSchema.parse({ ...base, url: "not-a-url" }),
+    ).toThrow();
+    expect(() =>
+      programStepResourceSchema.parse({ ...base, kind: "pdf" }),
+    ).toThrow();
+  });
+
+  it("has unique ids inside every seeded collection", () => {
+    const collections = {
+      categories: SEED_REFLECTION_CATEGORIES,
+      themes: SEED_REFLECTION_THEMES,
+      cohorts: SEED_THEME_COHORTS,
+      questions: SEED_REFLECTION_QUESTIONS,
+      stepContents: SEED_PROGRAM_STEP_CONTENTS,
+      stepResources: SEED_PROGRAM_STEP_RESOURCES,
+    };
+
+    for (const [name, entities] of Object.entries(collections)) {
+      const ids = entities.map((entity) => entity.id);
+      expect({ name, unique: new Set(ids).size }).toEqual({
+        name,
+        unique: ids.length,
+      });
+    }
+  });
+
+  it("keeps referential integrity across the seeded collections", () => {
+    const categoryIds = new Set(SEED_REFLECTION_CATEGORIES.map((c) => c.id));
+    const themeIds = new Set(SEED_REFLECTION_THEMES.map((t) => t.id));
+    const questionIds = new Set(SEED_REFLECTION_QUESTIONS.map((q) => q.id));
+    const stepContentIds = new Set(
+      SEED_PROGRAM_STEP_CONTENTS.map((content) => content.id),
+    );
+
+    for (const theme of SEED_REFLECTION_THEMES) {
+      expect(categoryIds.has(theme.categoryId)).toBe(true);
+    }
+
+    for (const cohort of SEED_THEME_COHORTS) {
+      expect(themeIds.has(cohort.themeId)).toBe(true);
+    }
+
+    for (const question of SEED_REFLECTION_QUESTIONS) {
+      expect(categoryIds.has(question.categoryId)).toBe(true);
+      if (question.themeId !== null && question.themeId !== undefined) {
+        expect(themeIds.has(question.themeId)).toBe(true);
+      }
+    }
+
+    for (const content of SEED_PROGRAM_STEP_CONTENTS) {
+      expect(questionIds.has(content.questionId)).toBe(true);
+    }
+
+    for (const resource of SEED_PROGRAM_STEP_RESOURCES) {
+      expect(stepContentIds.has(resource.stepContentId)).toBe(true);
+    }
+  });
+
+  it("keeps every themed step list contiguous and equal to targetQuestionCount", () => {
+    for (const theme of SEED_REFLECTION_THEMES) {
+      const steps = SEED_REFLECTION_QUESTIONS.filter(
+        (question) => question.themeId === theme.id,
+      ).sort((a, b) => a.orderIndex - b.orderIndex);
+
+      const expectedOrder = Array.from(
+        { length: steps.length },
+        (_, index) => index + 1,
+      );
+
+      expect({
+        theme: theme.title,
+        order: steps.map((s) => s.orderIndex),
+      }).toEqual({ theme: theme.title, order: expectedOrder });
+      expect({
+        theme: theme.title,
+        target: theme.targetQuestionCount,
+      }).toEqual({ theme: theme.title, target: steps.length });
+    }
   });
 });

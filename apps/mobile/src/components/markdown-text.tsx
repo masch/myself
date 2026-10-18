@@ -10,6 +10,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { colors, radius, spacing, typography } from "@/theme";
+import { openExternalUrl } from "./open-external-url";
 
 export interface InlineSpan {
   text: string;
@@ -17,15 +18,52 @@ export interface InlineSpan {
   italic?: boolean;
   strikethrough?: boolean;
   code?: boolean;
+  /** When present the span is a tappable link and `text` is its label. */
+  link?: string;
+}
+
+/** `[label](https://…)` links. Explicit links are resolved before formatting. */
+const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+
+/** `[label](https://…)` links, or a bare `https://…` URL. */
+const inlineLinkRegex =
+  /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/\S+)/g;
+
+/**
+ * Splits trailing punctuation out of a bare URL so the link itself stays valid.
+ *
+ * A closing `)` only leaves the URL when the URL contains no opening `(` at all:
+ * that usually means the paren belongs to the surrounding prose, as in
+ * "ver (https://example.com)", instead of to the URL. A paren the URL itself
+ * opened stays part of the link.
+ */
+function splitTrailingPunctuation(rawUrl: string): {
+  url: string;
+  trailing: string;
+} {
+  let url = rawUrl;
+  let trailing = "";
+
+  while (url.length > 0) {
+    const lastChar = url[url.length - 1];
+    const isTrailingPunctuation = ".,;:!?".includes(lastChar);
+    const isClosingParenWithoutMatch = lastChar === ")" && !url.includes("(");
+    if (!isTrailingPunctuation && !isClosingParenWithoutMatch) break;
+    trailing = lastChar + trailing;
+    url = url.slice(0, -1);
+  }
+
+  return { url, trailing };
 }
 
 /**
- * Parses inline Markdown tokens (*italic*, **bold**, ***bold italic***, ~strikethrough~, `code`)
- * into a structured list of styled spans.
+ * Parses the formatting tokens (*italic*, **bold**, ***bold italic***, ~strikethrough~, `code`)
+ * into styled spans, leaving links to the caller.
  */
-export function parseInlineSpans(rawText: string): InlineSpan[] {
+function parseFormattingSpans(rawText: string): InlineSpan[] {
   const spans: InlineSpan[] = [];
-  // Tokenizer regex matching bold+italic (*** or ___), bold (** or __), italic (* or _), strikethrough (~ or ~~), and code (`)
+  // Tokenizer regex matching bold+italic (*** or ___), bold (** or __), italic (* or _),
+  // strikethrough (~ or ~~), and code (`).
   const tokenRegex =
     /(\*\*\*|___)(.*?)\1|(\*\*|__)(.*?)\3|(\*|_)(.*?)\5|(~~|~)(.*?)\7|(`)(.*?)\9/g;
 
@@ -45,8 +83,16 @@ export function parseInlineSpans(rawText: string): InlineSpan[] {
       // **bold**
       spans.push({ text: match[4], bold: true });
     } else if (match[5]) {
-      // *italic*
-      spans.push({ text: match[6], italic: true });
+      // *italic*: single-character emphasis must sit on a word boundary, so an
+      // underscore inside a bare URL ("...?si=u_4PfZ_71") stays literal text.
+      const before = matchStart === 0 ? "" : rawText[matchStart - 1];
+      const afterIndex = matchStart + match[0].length;
+      const after = afterIndex >= rawText.length ? "" : rawText[afterIndex];
+      if (/\w/.test(before) || /\w/.test(after)) {
+        spans.push({ text: match[0] });
+      } else {
+        spans.push({ text: match[6], italic: true });
+      }
     } else if (match[7]) {
       // ~strikethrough~
       spans.push({ text: match[8], strikethrough: true });
@@ -63,6 +109,155 @@ export function parseInlineSpans(rawText: string): InlineSpan[] {
   }
 
   return spans.length > 0 ? spans : [{ text: rawText }];
+}
+
+/**
+ * Merges adjacent spans that share styling and link target, so autolink handling
+ * does not split plain text into several text nodes.
+ */
+function coalesceSpans(spans: InlineSpan[]): InlineSpan[] {
+  const merged: InlineSpan[] = [];
+
+  for (const span of spans) {
+    const previous = merged[merged.length - 1];
+    const isSameStyle =
+      previous !== undefined &&
+      previous.bold === span.bold &&
+      previous.italic === span.italic &&
+      previous.strikethrough === span.strikethrough &&
+      previous.code === span.code &&
+      previous.link === span.link;
+
+    if (isSameStyle) {
+      previous.text += span.text;
+    } else {
+      merged.push({ ...span });
+    }
+  }
+
+  return merged;
+}
+
+/**
+ * Resolves `[label](url)` links and bare URLs inside a single formatting span,
+ * carrying the span's bold/italic/strikethrough styling onto the link so a URL
+ * wrapped in `**…**` or `~~…~~` stays a link instead of turning its markers into
+ * part of the URL.
+ */
+function resolveLinksInText(
+  text: string,
+  formatting: Pick<InlineSpan, "bold" | "italic" | "strikethrough">,
+): InlineSpan[] {
+  const spans: InlineSpan[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  inlineLinkRegex.lastIndex = 0;
+
+  while ((match = inlineLinkRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      spans.push({
+        text: text.substring(lastIndex, match.index),
+        ...formatting,
+      });
+    }
+
+    if (match[1] !== undefined) {
+      spans.push({ text: match[1], link: match[2], ...formatting });
+    } else {
+      const { url, trailing } = splitTrailingPunctuation(match[3]);
+      spans.push({ text: url, link: url, ...formatting });
+      if (trailing.length > 0) {
+        spans.push({ text: trailing, ...formatting });
+      }
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    spans.push({ text: text.substring(lastIndex), ...formatting });
+  }
+
+  return spans.length > 0 ? spans : [{ text, ...formatting }];
+}
+
+/**
+ * Formats the label of an explicit markdown link and attaches the link target to
+ * every resulting span, so `[**bold**](url)` becomes one styled link span instead
+ * of literal markers next to a link.
+ */
+function formatLinkLabel(label: string, url: string): InlineSpan[] {
+  return coalesceSpans(parseFormattingSpans(label)).map((span) => ({
+    ...span,
+    link: url,
+  }));
+}
+
+/**
+ * Parses a segment that holds no explicit markdown links: formatting first, then
+ * bare URLs inside each formatting span. `code` spans stay literal.
+ */
+function parseFormattingAndAutolinks(rawText: string): InlineSpan[] {
+  const spans: InlineSpan[] = [];
+
+  // Merge adjacent formatting spans first so a URL split by an intra-word
+  // underscore is resolved as one link instead of three fragments.
+  for (const span of coalesceSpans(parseFormattingSpans(rawText))) {
+    if (span.code) {
+      // A URL inside `code` is literal text, not a link.
+      spans.push(span);
+      continue;
+    }
+
+    const formatting: Pick<InlineSpan, "bold" | "italic" | "strikethrough"> =
+      {};
+    if (span.bold) formatting.bold = true;
+    if (span.italic) formatting.italic = true;
+    if (span.strikethrough) formatting.strikethrough = true;
+
+    spans.push(...resolveLinksInText(span.text, formatting));
+  }
+
+  return spans.length > 0 ? spans : [{ text: rawText }];
+}
+
+/**
+ * Parses inline Markdown into styled spans, resolving `[label](url)` links and bare URLs
+ * into tappable `link` spans that open with `openExternalUrl`.
+ *
+ * Explicit `[label](url)` links win over formatting: the label is parsed for its
+ * own styling and every label span becomes the link, so `[**bold**](url)` keeps
+ * both its styling and its target. The surrounding segments resolve formatting
+ * first and then bare URLs, so delimiters around a URL (`**…**`, `~~…~~`,
+ * `` `…` ``) are consumed as formatting and never become part of the link, and a
+ * URL inside backticks stays literal `code`.
+ */
+export function parseInlineSpans(rawText: string): InlineSpan[] {
+  const spans: InlineSpan[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  markdownLinkRegex.lastIndex = 0;
+
+  while ((match = markdownLinkRegex.exec(rawText)) !== null) {
+    if (match.index > lastIndex) {
+      spans.push(
+        ...parseFormattingAndAutolinks(
+          rawText.substring(lastIndex, match.index),
+        ),
+      );
+    }
+
+    spans.push(...formatLinkLabel(match[1], match[2]));
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < rawText.length) {
+    spans.push(...parseFormattingAndAutolinks(rawText.substring(lastIndex)));
+  }
+
+  return spans.length > 0 ? coalesceSpans(spans) : [{ text: rawText }];
 }
 
 export interface AppMarkdownTextProps extends TextProps {
@@ -111,11 +306,20 @@ export function AppMarkdownText({
       {spans.map((span, index) => (
         <Text
           key={index}
+          accessibilityRole={span.link ? "link" : undefined}
+          onPress={
+            span.link
+              ? () => {
+                  void openExternalUrl(span.link as string);
+                }
+              : undefined
+          }
           style={[
             span.bold && [styles.bold, boldStyle],
             span.italic && [styles.italic, italicStyle],
             span.strikethrough && styles.strikethrough,
             span.code && [styles.code, codeStyle],
+            span.link && styles.link,
           ]}
         >
           {span.text}
@@ -359,6 +563,10 @@ const styles = StyleSheet.create({
     color: colors.label,
     marginTop: spacing.sm + 2,
     marginBottom: spacing.xs,
+  },
+  link: {
+    color: colors.systemBlue,
+    textDecorationLine: "underline",
   },
   blockquote: {
     borderLeftWidth: 3,

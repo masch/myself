@@ -34,6 +34,7 @@ import {
   CycleProgressBadge,
   ReflectionModal,
   SkipReasonSheet,
+  StepResources,
 } from "@/features/reflections/components";
 import {
   isReflectionLocked,
@@ -76,6 +77,7 @@ export default function ReflectionsScreen() {
     cycleReflections,
     cohortQuestions,
     cohortStepContents,
+    cohortStepResources,
     isLoading: isCohortLoading,
     refresh: refreshCohorts,
     enroll,
@@ -373,6 +375,16 @@ export default function ReflectionsScreen() {
     adHocQuestions,
     todayReflections,
   ]);
+
+  // Single source of the step content shown in the answer modal: the loaded map
+  // entry when present, otherwise the active cycle's current step content.
+  const answeringStepContent =
+    answeringQuestion === null
+      ? null
+      : (cohortStepContents[answeringQuestion.id] ??
+        (answeringQuestion.id === answeringCycleProgress?.currentQuestion?.id
+          ? (answeringCycleProgress?.currentStepContent ?? null)
+          : null));
 
   return (
     <ScreenContainer.Tab>
@@ -906,6 +918,19 @@ export default function ReflectionsScreen() {
                                 </Card>
                               ) : null}
 
+                              {/* Extra multimedia resources for this step */}
+                              {active.currentQuestion &&
+                              cohortStepResources[active.currentQuestion.id] ? (
+                                <StepResources
+                                  resources={
+                                    cohortStepResources[
+                                      active.currentQuestion.id
+                                    ]
+                                  }
+                                  testID={`cohort-step-resources-${active.currentStep}`}
+                                />
+                              ) : null}
+
                               <PromptCard
                                 question={active.currentQuestion}
                                 onAnswer={() =>
@@ -1054,13 +1079,10 @@ export default function ReflectionsScreen() {
       <ReflectionModal
         visible={answeringQuestion !== null}
         question={answeringQuestion}
-        preparatoryText={
+        stepContent={answeringStepContent}
+        resources={
           answeringQuestion
-            ? (cohortStepContents[answeringQuestion.id]?.preparatoryText ??
-              (answeringQuestion.id ===
-              answeringCycleProgress?.currentQuestion?.id
-                ? answeringCycleProgress?.currentStepContent?.preparatoryText
-                : null))
+            ? (cohortStepResources[answeringQuestion.id] ?? null)
             : null
         }
         initialContent={answeringInitialContent}

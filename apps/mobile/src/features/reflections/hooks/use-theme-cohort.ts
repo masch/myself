@@ -5,14 +5,39 @@ import {
   DateTime,
   type EntityId,
   type ProgramStepContent,
+  type ProgramStepResource,
   type ReflectionQuestion,
   type ReflectionTheme,
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { type ActiveCohortProgressDetail } from "../domain/ports/reflection.repository.port";
+import {
+  type ActiveCohortProgressDetail,
+  type ReflectionRepositoryPort,
+} from "../domain/ports/reflection.repository.port";
 import { SqliteReflectionRepository } from "../infrastructure/sqlite-reflection.repository";
 import { isCohortStarted } from "../domain/time-lock";
+
+/**
+ * Loads the extra multimedia resources of a question without letting a failure
+ * take down the whole cohort load. This is secondary data, so it degrades to an
+ * empty list; the failure stays observable in the console.
+ */
+export async function loadStepResourcesForQuestion(
+  repository: Pick<ReflectionRepositoryPort, "getStepResourcesForQuestion">,
+  questionId: EntityId,
+): Promise<ProgramStepResource[]> {
+  try {
+    return await repository.getStepResourcesForQuestion(questionId);
+  } catch (error) {
+    console.error(
+      "Failed to load step resources for question:",
+      questionId,
+      error,
+    );
+    return [];
+  }
+}
 
 export function useThemeCohort() {
   const db = useSQLiteContext();
@@ -35,6 +60,9 @@ export function useThemeCohort() {
   const [cohortStepContents, setCohortStepContents] = useState<
     Record<string, ProgramStepContent | null>
   >({});
+  const [cohortStepResources, setCohortStepResources] = useState<
+    Record<string, ProgramStepResource[]>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,6 +77,7 @@ export function useThemeCohort() {
       setCycleReflections({});
       setCohortQuestions({});
       setCohortStepContents({});
+      setCohortStepResources({});
       setIsLoading(false);
       return;
     }
@@ -71,6 +100,7 @@ export function useThemeCohort() {
       const reflectionsMap: Record<string, UserReflection[]> = {};
       const questionsMap: Record<string, ReflectionQuestion[]> = {};
       const stepContentsMap: Record<string, ProgramStepContent | null> = {};
+      const stepResourcesMap: Record<string, ProgramStepResource[]> = {};
       await Promise.all(
         active.map(async (progress) => {
           const [refs, questions] = await Promise.all([
@@ -90,6 +120,10 @@ export function useThemeCohort() {
                 stepContentsMap[q.id] =
                   await repository.getProgramStepContentForQuestion(q.id);
               }
+              stepResourcesMap[q.id] = await loadStepResourcesForQuestion(
+                repository,
+                q.id,
+              );
             }),
           );
         }),
@@ -100,6 +134,7 @@ export function useThemeCohort() {
       setCycleReflections(reflectionsMap);
       setCohortQuestions(questionsMap);
       setCohortStepContents(stepContentsMap);
+      setCohortStepResources(stepResourcesMap);
     } catch (error) {
       if (activeUserIdRef.current === currentUserId) {
         console.error("Failed to load theme cohorts:", error);
@@ -266,6 +301,7 @@ export function useThemeCohort() {
     cycleReflections,
     cohortQuestions,
     cohortStepContents,
+    cohortStepResources,
     isLoading,
     isSubmitting,
     refresh,

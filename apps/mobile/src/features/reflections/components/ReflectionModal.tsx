@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import {
   type EntityId,
+  type ProgramStepContent,
+  type ProgramStepResource,
   type ReflectionQuestion,
   generateEntityId,
 } from "@myself/shared";
@@ -14,6 +16,7 @@ import {
   Badge,
   ThemedText,
   ThemedTextInput,
+  YouTubePlayer,
   useBottomSheetModalKeyboard,
 } from "@/components";
 import {
@@ -22,10 +25,15 @@ import {
   type ItemListInputHandle,
 } from "./ItemListInput";
 import { ScaleSelector1To10 } from "./ScaleSelector1To10";
+import { StepResources } from "./StepResources";
 
 interface ReflectionModalProps {
   visible: boolean;
   question: ReflectionQuestion | null;
+  /** Whole step content of the question, so the modal can replay the lesson. */
+  stepContent?: ProgramStepContent | null;
+  /** Extra multimedia resources of the question's step content. */
+  resources?: ProgramStepResource[] | null;
   preparatoryText?: string | null;
   initialContent?: string;
   initialNumericValue?: number;
@@ -41,6 +49,8 @@ interface ReflectionModalProps {
 
 export function ReflectionModalContent({
   question,
+  stepContent,
+  resources,
   preparatoryText,
   initialContent = "",
   initialNumericValue = null,
@@ -50,6 +60,8 @@ export function ReflectionModalContent({
   isSubmitting = false,
 }: {
   question: ReflectionQuestion;
+  stepContent?: ProgramStepContent | null;
+  resources?: ProgramStepResource[] | null;
   preparatoryText?: string | null;
   initialContent?: string;
   initialNumericValue?: number | null;
@@ -123,6 +135,9 @@ export function ReflectionModalContent({
       ? "Puntaje 1 al 10"
       : "Lista de Momentos";
 
+  const stepPreparatoryText =
+    stepContent?.preparatoryText ?? preparatoryText ?? null;
+
   return (
     <View style={styles.content}>
       <ScrollView
@@ -136,7 +151,23 @@ export function ReflectionModalContent({
           <Badge variant="neutral" label={badgeLabel} />
         </View>
 
-        {preparatoryText ? (
+        {stepContent?.videoUrl ? (
+          <View style={styles.videoContainer}>
+            <YouTubePlayer
+              url={stepContent.videoUrl}
+              title={`Video del Paso ${question.orderIndex}`}
+              testID={`reflection-modal-video-${question.id}`}
+            />
+          </View>
+        ) : null}
+
+        {resources && resources.length > 0 ? (
+          <View style={styles.resourcesContainer}>
+            <StepResources resources={resources} />
+          </View>
+        ) : null}
+
+        {stepPreparatoryText ? (
           <View style={styles.preparatoryContainer}>
             <ThemedText
               variant="caption2"
@@ -145,7 +176,7 @@ export function ReflectionModalContent({
             >
               📖 Consigna del día
             </ThemedText>
-            <AppMarkdown>{preparatoryText}</AppMarkdown>
+            <AppMarkdown>{stepPreparatoryText}</AppMarkdown>
           </View>
         ) : null}
 
@@ -270,6 +301,8 @@ export function ReflectionModalContent({
 export function ReflectionModal({
   visible,
   question,
+  stepContent,
+  resources,
   preparatoryText,
   initialContent,
   initialNumericValue,
@@ -298,6 +331,8 @@ export function ReflectionModal({
       <ReflectionModalContent
         key={key}
         question={question}
+        stepContent={stepContent}
+        resources={resources}
         preparatoryText={preparatoryText}
         initialContent={initialContent}
         initialNumericValue={initialNumericValue}
@@ -381,6 +416,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.systemGray15,
     marginBottom: spacing.md,
     gap: spacing.xs,
+  },
+  videoContainer: {
+    marginBottom: spacing.md,
+  },
+  resourcesContainer: {
+    marginBottom: spacing.md,
   },
   preparatoryHeader: {
     fontWeight: "600",

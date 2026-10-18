@@ -5,3 +5,4 @@ export * from "./ReflectionModal";
 export * from "./PromptCard";
 export * from "./CohortEnrollmentCard";
 export * from "./ItemListInput";
+export * from "./StepResources";

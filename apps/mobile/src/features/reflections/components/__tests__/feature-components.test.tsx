@@ -3,6 +3,7 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import {
   DateTime,
+  type ProgramStepResource,
   type ReflectionQuestion,
   type ThemeCohort,
   type ReflectionTheme,
@@ -15,6 +16,7 @@ import { CycleProgressBadge } from "../CycleProgressBadge";
 import { ScaleSelector1To10 } from "../ScaleSelector1To10";
 import { ReflectionModalContent } from "../ReflectionModal";
 import { ItemListInput } from "../ItemListInput";
+import { StepResources } from "../StepResources";
 import { BottomSheetModalContent } from "@/components";
 
 const mockId = (id: string) => id as EntityId;
@@ -53,6 +55,27 @@ const mockTheme: ReflectionTheme = {
   editWindowDays: 3,
   createdAt: "2026-09-01",
 };
+
+const mockResources: ProgramStepResource[] = [
+  {
+    id: mockId("f2000000-0000-4000-8000-000000000001"),
+    stepContentId: mockId("d2000000-0000-4000-8000-000000000004"),
+    kind: "audio",
+    label: "Audio: Meditación desde arriba",
+    url: "https://drive.google.com/file/d/mock-audio/view",
+    orderIndex: 1,
+    createdAt: "2026-09-04T00:00:00.000Z",
+  },
+  {
+    id: mockId("f2000000-0000-4000-8000-000000000002"),
+    stepContentId: mockId("d2000000-0000-4000-8000-000000000004"),
+    kind: "video",
+    label: "Video: Meditación desde arriba",
+    url: "https://www.youtube.com/watch?v=az1IKPZ7N2U",
+    orderIndex: 2,
+    createdAt: "2026-09-04T00:00:00.000Z",
+  },
+];
 
 describe("Reflections Feature Components", () => {
   it("renders PromptCard with question prompt and action buttons", () => {
@@ -133,6 +156,38 @@ describe("Reflections Feature Components", () => {
     );
     expect(modalWithPrep).toContain("Consigna del día");
     expect(modalWithPrep).toContain("Consigna preparatoria");
+
+    const modalWithStepContent = renderToString(
+      <ReflectionModalContent
+        question={mockQuestion}
+        stepContent={{
+          id: mockId("a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c55"),
+          questionId: mockQuestion.id,
+          videoUrl: "https://youtu.be/6jolZrkdsOw?si=JttIr2THqvgmWE0X",
+          preparatoryText: "Consigna del paso con video",
+          createdAt: "2026-10-12T00:00:00.000Z",
+        }}
+        onSave={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(modalWithStepContent).toContain("Consigna del paso con video");
+    expect(modalWithStepContent).toContain(
+      `reflection-modal-video-${mockQuestion.id}`,
+    );
+    expect(modalWithStepContent).not.toContain("Recursos del paso");
+
+    const modalWithResources = renderToString(
+      <ReflectionModalContent
+        question={mockQuestion}
+        resources={mockResources}
+        onSave={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(modalWithResources).toContain("Recursos del paso");
+    expect(modalWithResources).toContain("Audio: Meditación desde arriba");
+    expect(modalWithResources).toContain("Video: Meditación desde arriba");
 
     const sheetHtml = renderToString(
       <BottomSheetModalContent
@@ -255,6 +310,19 @@ describe("Reflections Feature Components", () => {
     expect(modalHtml).toContain("1.");
     expect(modalHtml).toContain("2.");
     expect(modalHtml).toContain("3.");
+  });
+
+  it("renders StepResources labels as links and nothing for an empty list", () => {
+    const html = renderToString(<StepResources resources={mockResources} />);
+    expect(html).toContain("📎 Recursos del paso");
+    expect(html.match(/🎧/g)?.length).toBe(1);
+    expect(html.match(/🎬/g)?.length).toBe(1);
+    expect(html).toContain("Audio: Meditación desde arriba");
+    expect(html).toContain("Video: Meditación desde arriba");
+    expect(html.match(/role="link"/g)?.length).toBe(2);
+
+    const emptyHtml = renderToString(<StepResources resources={[]} />);
+    expect(emptyHtml).toBe("");
   });
 
   it("renders desktop shortcut hint and floating keyboard accessory bar when keyboard is active", () => {
