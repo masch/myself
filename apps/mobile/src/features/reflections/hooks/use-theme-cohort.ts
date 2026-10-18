@@ -18,25 +18,74 @@ import {
 import { SqliteReflectionRepository } from "../infrastructure/sqlite-reflection.repository";
 import { isCohortStarted } from "../domain/time-lock";
 
+type CohortQuestionMapsRepository = Pick<
+  ReflectionRepositoryPort,
+  "getProgramStepContentsForTheme" | "getStepResourcesForTheme"
+>;
+
+/** Per-question step content and resources, keyed by question id. */
+export interface CohortQuestionMaps {
+  stepContentsMap: Record<string, ProgramStepContent | null>;
+  stepResourcesMap: Record<string, ProgramStepResource[]>;
+}
+
+export interface CohortQuestionMapsOptions {
+  /** The active cycle's current question, when its content is already loaded. */
+  currentQuestionId?: EntityId | null;
+  /**
+   * Content already loaded for the current question. When defined it wins over
+   * the bulk read, matching the previous per-question behavior.
+   */
+  currentStepContent?: ProgramStepContent | null;
+}
+
 /**
- * Loads the extra multimedia resources of a question without letting a failure
- * take down the whole cohort load. This is secondary data, so it degrades to an
- * empty list; the failure stays observable in the console.
+ * Builds the per-question step content and resource maps with one bulk read per
+ * theme instead of one read per question. Resources resolve through their
+ * `stepContentId` and are keyed by question id, the shape the reflections
+ * screen reads. A resource read failure degrades to empty lists for that theme
+ * and stays observable in the console.
  */
-export async function loadStepResourcesForQuestion(
-  repository: Pick<ReflectionRepositoryPort, "getStepResourcesForQuestion">,
-  questionId: EntityId,
-): Promise<ProgramStepResource[]> {
-  try {
-    return await repository.getStepResourcesForQuestion(questionId);
-  } catch (error) {
-    console.error(
-      "Failed to load step resources for question:",
-      questionId,
-      error,
-    );
-    return [];
+export async function loadCohortQuestionMaps(
+  repository: CohortQuestionMapsRepository,
+  themeId: EntityId,
+  questions: ReflectionQuestion[],
+  options: CohortQuestionMapsOptions = {},
+): Promise<CohortQuestionMaps> {
+  const contents = await repository.getProgramStepContentsForTheme(themeId);
+  const contentsByQuestionId = new Map<EntityId, ProgramStepContent>();
+  for (const content of contents) {
+    contentsByQuestionId.set(content.questionId, content);
   }
+
+  let resources: ProgramStepResource[];
+  try {
+    resources = await repository.getStepResourcesForTheme(themeId);
+  } catch (error) {
+    console.error("Failed to load step resources for theme:", themeId, error);
+    resources = [];
+  }
+
+  const hasCurrentOverride =
+    options.currentQuestionId != null &&
+    options.currentStepContent !== undefined;
+
+  const stepContentsMap: Record<string, ProgramStepContent | null> = {};
+  const stepResourcesMap: Record<string, ProgramStepResource[]> = {};
+  for (const question of questions) {
+    const stepContent =
+      hasCurrentOverride && options.currentQuestionId === question.id
+        ? (options.currentStepContent ?? null)
+        : (contentsByQuestionId.get(question.id) ?? null);
+    stepContentsMap[question.id] = stepContent;
+    stepResourcesMap[question.id] = stepContent
+      ? resources.filter(
+          (resource) => resource.stepContentId === stepContent.id,
+        )
+      : [];
+  }
+
+  return { stepContentsMap, stepResourcesMap };
 }
 
 export function useThemeCohort() {
@@ -109,23 +158,20 @@ export function useThemeCohort() {
           ]);
           reflectionsMap[progress.id] = refs;
           questionsMap[progress.id] = questions;
-          await Promise.all(
-            questions.map(async (q) => {
-              if (
-                progress.currentQuestion?.id === q.id &&
-                progress.currentStepContent !== undefined
-              ) {
-                stepContentsMap[q.id] = progress.currentStepContent;
-              } else {
-                stepContentsMap[q.id] =
-                  await repository.getProgramStepContentForQuestion(q.id);
-              }
-              stepResourcesMap[q.id] = await loadStepResourcesForQuestion(
-                repository,
-                q.id,
-              );
-            }),
+          const {
+            stepContentsMap: contentsMap,
+            stepResourcesMap: resourcesMap,
+          } = await loadCohortQuestionMaps(
+            repository,
+            progress.themeId,
+            questions,
+            {
+              currentQuestionId: progress.currentQuestion?.id ?? null,
+              currentStepContent: progress.currentStepContent,
+            },
           );
+          Object.assign(stepContentsMap, contentsMap);
+          Object.assign(stepResourcesMap, resourcesMap);
         }),
       );
 

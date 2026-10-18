@@ -7,7 +7,6 @@ import type {
   ProgramStepResource,
   ReflectionQuestion,
   ReflectionTheme,
-  ResponseType,
   ThemeCohort,
 } from "@myself/shared";
 import { colors, radius, spacing } from "@/theme";
@@ -24,18 +23,12 @@ import {
   YouTubePlayer,
 } from "@/components";
 import { StepResources } from "./StepResources";
+import { getResponseTypeLabel } from "../domain/response-type-label";
 import {
   formatDateDDMM,
   getCohortStepUnlockDate,
   isCohortStepUnlocked,
 } from "../domain/time-lock";
-
-/** Response type labels shared with `PromptCard`, so both describe steps alike. */
-const RESPONSE_TYPE_LABELS: Record<ResponseType, string> = {
-  text: "Texto libre",
-  scale_1_10: "Escala 1-10",
-  item_list: "Lista de momentos",
-};
 
 export interface ProgramPreviewContentProps {
   cohort: ThemeCohort;
@@ -155,7 +148,7 @@ export function ProgramPreviewContent({
                 <Badge
                   variant="neutral"
                   size="sm"
-                  label={RESPONSE_TYPE_LABELS[step.responseType]}
+                  label={getResponseTypeLabel(step.responseType)}
                 />
               </View>
 

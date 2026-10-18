@@ -37,34 +37,54 @@ export type ProgramPreviewRepository = Pick<
 /**
  * Reads every visible piece of a program in one bulk query per data kind.
  *
- * The preview is optional data: a failed read degrades to the empty preview and
- * stays observable in the console, so opening it can never fail the reflections
- * screen. This mirrors `loadStepResourcesForQuestion`.
+ * The preview is optional data: each read degrades on its own, so one failing
+ * query keeps the two results that resolved instead of throwing away the whole
+ * preview. The failure stays observable in the console and in `error`, so
+ * opening the preview can never fail the reflections screen.
  */
 export async function loadProgramPreview(
   repository: ProgramPreviewRepository,
   themeId: EntityId,
 ): Promise<ProgramPreviewResult> {
-  try {
-    const [steps, contents, resources] = await Promise.all([
+  const [stepsResult, contentsResult, resourcesResult] =
+    await Promise.allSettled([
       repository.getQuestionsForTheme(themeId),
       repository.getProgramStepContentsForTheme(themeId),
       repository.getStepResourcesForTheme(themeId),
     ]);
-    return { steps, contents, resources, error: null };
-  } catch (error) {
-    console.error("Failed to load program preview for theme:", themeId, error);
-    return {
-      ...EMPTY_PROGRAM_PREVIEW_DATA,
-      error: error instanceof Error ? error : new Error(String(error)),
-    };
+
+  const failure = [stepsResult, contentsResult, resourcesResult].find(
+    (result): result is PromiseRejectedResult => result.status === "rejected",
+  );
+
+  if (failure) {
+    console.error(
+      "Failed to load program preview for theme:",
+      themeId,
+      failure.reason,
+    );
   }
+
+  return {
+    steps: stepsResult.status === "fulfilled" ? stepsResult.value : [],
+    contents: contentsResult.status === "fulfilled" ? contentsResult.value : [],
+    resources:
+      resourcesResult.status === "fulfilled" ? resourcesResult.value : [],
+    error: failure
+      ? failure.reason instanceof Error
+        ? failure.reason
+        : new Error(String(failure.reason))
+      : null,
+  };
 }
 
 /**
- * Builds a per-theme preview loader. Each theme is read at most once per loader
- * lifetime, and concurrent requests for the same theme share one read, so
- * reopening the same preview inside a session never refetches it.
+ * Builds a per-theme preview loader. Each successful theme read is cached for
+ * the loader lifetime, and concurrent requests for the same theme share one
+ * read, so reopening the same preview inside a session never refetches it.
+ *
+ * A degraded result is never cached: a transient failure must not stick for the
+ * loader lifetime, so a later call for the same theme retries the reads.
  */
 export function createProgramPreviewLoader(
   repository: ProgramPreviewRepository,
@@ -75,7 +95,12 @@ export function createProgramPreviewLoader(
     const cached = cache.get(themeId);
     if (cached) return cached;
 
-    const pending = loadProgramPreview(repository, themeId);
+    const pending = loadProgramPreview(repository, themeId).then((result) => {
+      if (result.error) {
+        cache.delete(themeId);
+      }
+      return result;
+    });
     cache.set(themeId, pending);
     return pending;
   };
