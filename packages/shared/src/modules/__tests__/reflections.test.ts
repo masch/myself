@@ -651,13 +651,13 @@ describe("Reflections Seed Integrity", () => {
       1, 2,
     ]);
     expect(day4Resources[0].label).toBe(
-      '🎧 Audio: Meditación "Visión desde arriba"',
+      'Audio: Meditación "Visión desde arriba"',
     );
     expect(day4Resources[0].url).toBe(
       "https://drive.google.com/file/d/1NxOoDh5qsLspeujFl5zWChT4y53tRxPq/view?usp=sharing",
     );
     expect(day4Resources[1].label).toBe(
-      '🎬 Video: Meditación "Visión desde arriba"',
+      'Video: Meditación "Visión desde arriba"',
     );
     expect(day4Resources[1].url).toBe(
       "https://www.youtube.com/watch?v=az1IKPZ7N2U",

@@ -95,6 +95,61 @@ describe("AppMarkdownText links", () => {
     expect(html).toContain("Ver video");
     expect(html).toContain('role="link"');
   });
+
+  it("keeps a backtick-quoted url as a single code span without a link", () => {
+    const spans = parseInlineSpans("Código `https://example.com` aqui");
+    expect(spans).toEqual([
+      { text: "Código " },
+      { text: "https://example.com", code: true },
+      { text: " aqui" },
+    ]);
+  });
+
+  it("autolinks a url wrapped in bold without including the bold markers", () => {
+    const spans = parseInlineSpans("**https://example.com**");
+    expect(spans).toEqual([
+      {
+        text: "https://example.com",
+        bold: true,
+        link: "https://example.com",
+      },
+    ]);
+  });
+
+  it("autolinks a url wrapped in strikethrough without including the markers", () => {
+    const spans = parseInlineSpans("~~https://example.com~~");
+    expect(spans).toEqual([
+      {
+        text: "https://example.com",
+        strikethrough: true,
+        link: "https://example.com",
+      },
+    ]);
+  });
+
+  it("still autolinks a plain bare url", () => {
+    const spans = parseInlineSpans("Ver https://example.com para más");
+    expect(spans).toEqual([
+      { text: "Ver " },
+      { text: "https://example.com", link: "https://example.com" },
+      { text: " para más" },
+    ]);
+  });
+
+  it("keeps a bare url with underscores intact as a single link span", () => {
+    const url = "https://youtu.be/uqN5Z9tsacg?si=u_4PfZ_71SlJni8r";
+    const spans = parseInlineSpans(`Video: ${url}`);
+    expect(spans).toEqual([{ text: "Video: " }, { text: url, link: url }]);
+  });
+
+  it("drops the closing paren when the bare url sits inside prose parentheses", () => {
+    const spans = parseInlineSpans("Ver (https://example.com)");
+    expect(spans).toEqual([
+      { text: "Ver (" },
+      { text: "https://example.com", link: "https://example.com" },
+      { text: ")" },
+    ]);
+  });
 });
 
 describe("AppMarkdown block component and parser", () => {
@@ -150,5 +205,43 @@ Durante el dia hace una pausa.
     expect(html).toContain("Durante el dia");
     expect(html).toContain("•");
     expect(html).toContain("¿Esto depende de mi o no?");
+  });
+});
+
+describe("markdown link labels with inline formatting (regression)", () => {
+  it("keeps a bold-formatted link label as a single link span", () => {
+    expect(parseInlineSpans("[**bold**](https://example.com)")).toEqual([
+      { text: "bold", bold: true, link: "https://example.com" },
+    ]);
+  });
+  it("keeps a strikethrough-formatted link label as a single link span", () => {
+    expect(parseInlineSpans("[~~old~~](https://example.com)")).toEqual([
+      { text: "old", strikethrough: true, link: "https://example.com" },
+    ]);
+  });
+  it("keeps a code-formatted link label as a single link span", () => {
+    expect(parseInlineSpans("[`code`](https://example.com)")).toEqual([
+      { text: "code", code: true, link: "https://example.com" },
+    ]);
+  });
+  it("keeps a mixed-formatting link label linked across its styled spans", () => {
+    expect(parseInlineSpans("[a *b* c](https://example.com)")).toEqual([
+      { text: "a ", link: "https://example.com" },
+      { text: "b", italic: true, link: "https://example.com" },
+      { text: " c", link: "https://example.com" },
+    ]);
+  });
+});
+
+describe("backtick-quoted template urls stay code (S2)", () => {
+  it("keeps an underscore-bearing url in backticks as a single code span", () => {
+    const spans = parseInlineSpans(
+      "Ver `https://youtu.be/uqN5Z9tsacg?si=u_4PfZ_71SlJni8r` fin",
+    );
+    expect(spans).toEqual([
+      { text: "Ver " },
+      { text: "https://youtu.be/uqN5Z9tsacg?si=u_4PfZ_71SlJni8r", code: true },
+      { text: " fin" },
+    ]);
   });
 });

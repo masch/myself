@@ -11,9 +11,33 @@ import {
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { type ActiveCohortProgressDetail } from "../domain/ports/reflection.repository.port";
+import {
+  type ActiveCohortProgressDetail,
+  type ReflectionRepositoryPort,
+} from "../domain/ports/reflection.repository.port";
 import { SqliteReflectionRepository } from "../infrastructure/sqlite-reflection.repository";
 import { isCohortStarted } from "../domain/time-lock";
+
+/**
+ * Loads the extra multimedia resources of a question without letting a failure
+ * take down the whole cohort load. This is secondary data, so it degrades to an
+ * empty list; the failure stays observable in the console.
+ */
+export async function loadStepResourcesForQuestion(
+  repository: Pick<ReflectionRepositoryPort, "getStepResourcesForQuestion">,
+  questionId: EntityId,
+): Promise<ProgramStepResource[]> {
+  try {
+    return await repository.getStepResourcesForQuestion(questionId);
+  } catch (error) {
+    console.error(
+      "Failed to load step resources for question:",
+      questionId,
+      error,
+    );
+    return [];
+  }
+}
 
 export function useThemeCohort() {
   const db = useSQLiteContext();
@@ -96,8 +120,10 @@ export function useThemeCohort() {
                 stepContentsMap[q.id] =
                   await repository.getProgramStepContentForQuestion(q.id);
               }
-              stepResourcesMap[q.id] =
-                await repository.getStepResourcesForQuestion(q.id);
+              stepResourcesMap[q.id] = await loadStepResourcesForQuestion(
+                repository,
+                q.id,
+              );
             }),
           );
         }),

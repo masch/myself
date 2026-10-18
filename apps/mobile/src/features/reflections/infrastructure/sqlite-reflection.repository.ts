@@ -1022,7 +1022,7 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
        FROM program_step_resources r
        INNER JOIN program_step_contents c ON c.id = r.step_content_id
        WHERE c.question_id = ?
-       ORDER BY r.order_index ASC`,
+       ORDER BY r.order_index ASC, r.id ASC`,
       [questionId],
     );
     return rows.map((row) => this.mapProgramStepResource(row));

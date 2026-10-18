@@ -315,8 +315,8 @@ describe("Reflections Feature Components", () => {
   it("renders StepResources labels as links and nothing for an empty list", () => {
     const html = renderToString(<StepResources resources={mockResources} />);
     expect(html).toContain("📎 Recursos del paso");
-    expect(html).toContain("🎧");
-    expect(html).toContain("🎬");
+    expect(html.match(/🎧/g)?.length).toBe(1);
+    expect(html.match(/🎬/g)?.length).toBe(1);
     expect(html).toContain("Audio: Meditación desde arriba");
     expect(html).toContain("Video: Meditación desde arriba");
     expect(html.match(/role="link"/g)?.length).toBe(2);

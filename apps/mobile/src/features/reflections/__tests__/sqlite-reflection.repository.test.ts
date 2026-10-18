@@ -580,10 +580,14 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
 
     it("returns the day-4 program step resources ordered by order_index", async () => {
       const cohorts = await repo.getOpenCohorts();
-      const cohort =
-        cohorts.find(
-          (c) => c.themeId === "e2000000-0000-4000-8000-000000000001",
-        ) ?? cohorts[0];
+      const cohort = cohorts.find(
+        (c) => c.themeId === "e2000000-0000-4000-8000-000000000001",
+      );
+      if (!cohort) {
+        throw new Error(
+          "Expected the Dicotomía del Control cohort to be seeded",
+        );
+      }
       await repo.enrollInCohort(testUserId, cohort.themeId, cohort.id);
 
       const resources = await repo.getStepResourcesForQuestion(
@@ -596,8 +600,8 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       ]);
       expect(resources.map((resource) => resource.orderIndex)).toEqual([1, 2]);
       expect(resources.map((resource) => resource.label)).toEqual([
-        '🎧 Audio: Meditación "Visión desde arriba"',
-        '🎬 Video: Meditación "Visión desde arriba"',
+        'Audio: Meditación "Visión desde arriba"',
+        'Video: Meditación "Visión desde arriba"',
       ]);
       expect(resources[0].stepContentId).toBe(
         "d2000000-0000-4000-8000-000000000004" as EntityId,
@@ -608,6 +612,31 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       expect(resources[1].url).toBe(
         "https://www.youtube.com/watch?v=az1IKPZ7N2U",
       );
+    });
+
+    it("breaks order_index ties deterministically by resource id", async () => {
+      await db.runAsync(
+        "INSERT INTO program_step_contents (id, question_id, created_at) VALUES (?, ?, ?)",
+        ["dc-tie-test", "bq-tie-test", "2026-01-01T00:00:00.000Z"],
+      );
+      await db.runAsync(
+        `INSERT INTO program_step_resources (id, step_content_id, kind, label, url, order_index, created_at)
+         VALUES (?, ?, 'link', 'Segundo', 'https://example.com/2', 1, '2026-01-01T00:00:00.000Z')`,
+        ["fz-tie-test", "dc-tie-test"],
+      );
+      await db.runAsync(
+        `INSERT INTO program_step_resources (id, step_content_id, kind, label, url, order_index, created_at)
+         VALUES (?, ?, 'link', 'Primero', 'https://example.com/1', 1, '2026-01-01T00:00:00.000Z')`,
+        ["fa-tie-test", "dc-tie-test"],
+      );
+
+      const resources = await repo.getStepResourcesForQuestion(
+        "bq-tie-test" as EntityId,
+      );
+      expect(resources.map((resource) => String(resource.id))).toEqual([
+        "fa-tie-test",
+        "fz-tie-test",
+      ]);
     });
 
     it("returns no program step resources for a question without them", async () => {

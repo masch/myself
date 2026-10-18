@@ -376,6 +376,16 @@ export default function ReflectionsScreen() {
     todayReflections,
   ]);
 
+  // Single source of the step content shown in the answer modal: the loaded map
+  // entry when present, otherwise the active cycle's current step content.
+  const answeringStepContent =
+    answeringQuestion === null
+      ? null
+      : (cohortStepContents[answeringQuestion.id] ??
+        (answeringQuestion.id === answeringCycleProgress?.currentQuestion?.id
+          ? (answeringCycleProgress?.currentStepContent ?? null)
+          : null));
+
   return (
     <ScreenContainer.Tab>
       <Stack.Screen
@@ -1069,24 +1079,7 @@ export default function ReflectionsScreen() {
       <ReflectionModal
         visible={answeringQuestion !== null}
         question={answeringQuestion}
-        stepContent={
-          answeringQuestion
-            ? (cohortStepContents[answeringQuestion.id] ??
-              (answeringQuestion.id ===
-              answeringCycleProgress?.currentQuestion?.id
-                ? (answeringCycleProgress?.currentStepContent ?? null)
-                : null))
-            : null
-        }
-        preparatoryText={
-          answeringQuestion
-            ? (cohortStepContents[answeringQuestion.id]?.preparatoryText ??
-              (answeringQuestion.id ===
-              answeringCycleProgress?.currentQuestion?.id
-                ? answeringCycleProgress?.currentStepContent?.preparatoryText
-                : null))
-            : null
-        }
+        stepContent={answeringStepContent}
         resources={
           answeringQuestion
             ? (cohortStepResources[answeringQuestion.id] ?? null)

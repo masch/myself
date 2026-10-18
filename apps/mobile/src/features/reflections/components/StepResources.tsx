@@ -1,10 +1,11 @@
-import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import type {
   ProgramStepResource,
   ProgramStepResourceKind,
 } from "@myself/shared";
 import { colors, radius, spacing } from "@/theme";
 import { Card, ThemedText } from "@/components";
+import { openExternalUrl } from "@/components/open-external-url";
 
 const KIND_ICONS: Record<ProgramStepResourceKind, string> = {
   video: "🎬",
@@ -25,7 +26,7 @@ export function StepResources({ resources, testID }: StepResourcesProps) {
   if (resources.length === 0) return null;
 
   const handleOpen = (url: string) => {
-    void Linking.openURL(url);
+    void openExternalUrl(url);
   };
 
   return (
