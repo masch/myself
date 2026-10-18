@@ -281,6 +281,52 @@ describe("bare urls whose delimiter chars are not word-adjacent stay whole links
   });
 });
 
+describe("a delimiter pair is literal when either delimiter is inside a url", () => {
+  it("keeps a single tilde that opens outside a url but closes inside it from cutting the link", () => {
+    const spans = parseInlineSpans("aprox. ~10 min https://x.com/~user/");
+    expect(spans).toEqual([
+      { text: "aprox. ~10 min " },
+      { text: "https://x.com/~user/", link: "https://x.com/~user/" },
+    ]);
+  });
+
+  it("keeps a single asterisk that opens outside a url but closes inside it from cutting the link", () => {
+    const spans = parseInlineSpans("x *y https://x.com/a*/b");
+    expect(spans).toEqual([
+      { text: "x *y " },
+      { text: "https://x.com/a*/b", link: "https://x.com/a*/b" },
+    ]);
+  });
+
+  it("keeps a single underscore that opens outside a url but closes inside it from cutting the link", () => {
+    const spans = parseInlineSpans("x _y https://x.com/a_/b");
+    expect(spans).toEqual([
+      { text: "x _y " },
+      { text: "https://x.com/a_/b", link: "https://x.com/a_/b" },
+    ]);
+  });
+
+  it("still renders doubled tildes as strikethrough", () => {
+    expect(parseInlineSpans("~~doubled~~")).toEqual([
+      { text: "doubled", strikethrough: true },
+    ]);
+  });
+
+  it("still renders doubled asterisks as bold", () => {
+    expect(parseInlineSpans("**bold**")).toEqual([
+      { text: "bold", bold: true },
+    ]);
+  });
+
+  it("still renders a single tilde pair at word boundaries as strikethrough", () => {
+    expect(parseInlineSpans("hola ~chau~ fin")).toEqual([
+      { text: "hola " },
+      { text: "chau", strikethrough: true },
+      { text: " fin" },
+    ]);
+  });
+});
+
 describe("formatting delimiters pair across an explicit link", () => {
   it("keeps a fully bold-wrapped link as a single bold link span", () => {
     expect(parseInlineSpans("**[x](https://example.com)**")).toEqual([

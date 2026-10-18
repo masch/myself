@@ -61,6 +61,26 @@ describe("openExternalUrl", () => {
     expect(notified).toEqual(["https://example.com/bad"]);
   });
 
+  it("resolves false and never rejects when the injected notifier throws", async () => {
+    (Linking as { openURL: typeof Linking.openURL }).openURL = async () => {
+      throw new Error("cannot open url");
+    };
+
+    let result: boolean | undefined;
+    let rejected = false;
+
+    try {
+      result = await openExternalUrl("https://example.com/bad", () => {
+        throw new Error("notifier boom");
+      });
+    } catch {
+      rejected = true;
+    }
+
+    expect(rejected).toBe(false);
+    expect(result).toBe(false);
+  });
+
   it("surfaces the default user-visible notice when opening fails", async () => {
     (Linking as { openURL: typeof Linking.openURL }).openURL = async () => {
       throw new Error("cannot open url");

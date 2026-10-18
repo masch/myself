@@ -21,7 +21,8 @@ export function notifyExternalUrlFailure(url: string): void {
  *
  * Opening a link is a non-critical side effect: a failure is reported to the
  * console, surfaced to the user through `notifyFailure`, and swallowed, keeping
- * a bad link from crashing or blanking a screen.
+ * a bad link from crashing or blanking a screen. A `notifyFailure` that itself
+ * throws is swallowed too, so the resolved-`false` contract always holds.
  */
 export async function openExternalUrl(
   url: string,
@@ -32,7 +33,15 @@ export async function openExternalUrl(
     return true;
   } catch (error) {
     console.warn("[openExternalUrl] Failed to open URL:", url, error);
-    notifyFailure(url);
+    try {
+      notifyFailure(url);
+    } catch (notifyError) {
+      console.warn(
+        "[openExternalUrl] Failure notifier threw:",
+        url,
+        notifyError,
+      );
+    }
     return false;
   }
 }

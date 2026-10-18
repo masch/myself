@@ -74,7 +74,7 @@ function splitTrailingPunctuation(rawUrl: string): {
  * `https://example.com?si=_a_` or `https://example.com/~user~` keeps its
  * characters instead of turning part of the URL into a styled span.
  */
-function isDelimiterInsideUrl(text: string, index: number): boolean {
+function isIndexInsideUrl(text: string, index: number): boolean {
   let tokenStart = index;
   while (tokenStart > 0 && !/\s/.test(text[tokenStart - 1])) tokenStart -= 1;
   let tokenEnd = index;
@@ -87,6 +87,22 @@ function isDelimiterInsideUrl(text: string, index: number): boolean {
   const urlStart = tokenStart + urlMatch.index;
   const urlEnd = urlStart + urlMatch[0].length;
   return index > urlStart && index < urlEnd;
+}
+
+/**
+ * Reports whether a delimiter pair touches a bare `http(s)` URL. Both the
+ * opening and the closing delimiter are checked, so a pair that opens outside a
+ * URL but closes inside one (as in `aprox. ~10 min https://x.com/~user/`) stays
+ * literal instead of cutting the URL with a styled span.
+ */
+function isDelimiterInsideUrl(
+  text: string,
+  openIndex: number,
+  closeIndex: number,
+): boolean {
+  return (
+    isIndexInsideUrl(text, openIndex) || isIndexInsideUrl(text, closeIndex)
+  );
 }
 
 /**
@@ -117,15 +133,20 @@ function parseFormattingSpans(rawText: string): InlineSpan[] {
       spans.push({ text: match[4], bold: true });
     } else if (match[5]) {
       // *italic*: single-character emphasis must sit on a word boundary and
-      // never inside a bare URL, so an underscore in "...?si=u_4PfZ_71" or
+      // never touch a bare URL, so an underscore in "...?si=u_4PfZ_71" or
       // "...?si=_abc_" stays literal text.
       const before = matchStart === 0 ? "" : rawText[matchStart - 1];
       const afterIndex = matchStart + match[0].length;
       const after = afterIndex >= rawText.length ? "" : rawText[afterIndex];
+      const delimiterLength = match[5].length;
       if (
         /\w/.test(before) ||
         /\w/.test(after) ||
-        isDelimiterInsideUrl(rawText, matchStart)
+        isDelimiterInsideUrl(
+          rawText,
+          matchStart,
+          matchStart + match[0].length - delimiterLength,
+        )
       ) {
         spans.push({ text: match[0] });
       } else {
@@ -134,7 +155,14 @@ function parseFormattingSpans(rawText: string): InlineSpan[] {
     } else if (match[7]) {
       // ~strikethrough~: a single `~` inside a bare URL stays literal too, while
       // a doubled `~~` keeps working as a delimiter around a URL.
-      if (match[7].length === 1 && isDelimiterInsideUrl(rawText, matchStart)) {
+      if (
+        match[7].length === 1 &&
+        isDelimiterInsideUrl(
+          rawText,
+          matchStart,
+          matchStart + match[0].length - match[7].length,
+        )
+      ) {
         spans.push({ text: match[0] });
       } else {
         spans.push({ text: match[8], strikethrough: true });
