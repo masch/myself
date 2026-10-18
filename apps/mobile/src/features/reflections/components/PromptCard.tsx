@@ -11,6 +11,7 @@ import {
   IconButton,
   ThemedText,
 } from "@/components";
+import { getResponseTypeLabel } from "../domain/response-type-label";
 
 interface PromptCardProps {
   question: ReflectionQuestion;
@@ -94,11 +95,7 @@ export function PromptCard({
               color={colors.white}
               style={styles.typePillText}
             >
-              {isScale
-                ? "Escala 1-10"
-                : isItemList
-                  ? "Lista de momentos"
-                  : "Texto libre"}
+              {getResponseTypeLabel(question.responseType)}
             </ThemedText>
           </View>
 

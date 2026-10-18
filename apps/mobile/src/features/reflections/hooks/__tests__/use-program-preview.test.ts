@@ -12,7 +12,8 @@ mock.module("expo-sqlite", () => ({
   useSQLiteContext: () => ({}),
 }));
 
-const { createProgramPreviewLoader } = await import("../use-program-preview");
+const { createProgramPreviewLoader, loadProgramPreview } =
+  await import("../use-program-preview");
 
 const dichotomyThemeId = "e2000000-0000-4000-8000-000000000001" as EntityId;
 const resilienceThemeId = "e1000000-0000-4000-8000-000000000001" as EntityId;
@@ -145,6 +146,70 @@ describe("createProgramPreviewLoader", () => {
     expect(result.resources).toEqual([]);
     expect(result.error?.message).toBe("preview read failed");
     expect(errorSpy).toHaveBeenCalled();
+
+    errorSpy.mockRestore();
+  });
+
+  it("keeps the reads that resolved when only one bulk read rejects", async () => {
+    const errorSpy = spyOn(console, "error").mockImplementation(() => {});
+    const repository = {
+      async getQuestionsForTheme(): Promise<ReflectionQuestion[]> {
+        return [question];
+      },
+      async getProgramStepContentsForTheme(): Promise<ProgramStepContent[]> {
+        throw new Error("contents read failed");
+      },
+      async getStepResourcesForTheme(): Promise<ProgramStepResource[]> {
+        return [resource];
+      },
+    };
+
+    const result = await loadProgramPreview(repository, dichotomyThemeId);
+
+    expect(result.steps).toEqual([question]);
+    expect(result.contents).toEqual([]);
+    expect(result.resources).toEqual([resource]);
+    expect(result.error?.message).toBe("contents read failed");
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+
+    errorSpy.mockRestore();
+  });
+
+  it("retries a degraded theme instead of caching the failure, and caches the success", async () => {
+    const errorSpy = spyOn(console, "error").mockImplementation(() => {});
+    const calls = { resources: 0 };
+    let failResources = true;
+    const repository = {
+      async getQuestionsForTheme(): Promise<ReflectionQuestion[]> {
+        return [question];
+      },
+      async getProgramStepContentsForTheme(): Promise<ProgramStepContent[]> {
+        return [content];
+      },
+      async getStepResourcesForTheme(): Promise<ProgramStepResource[]> {
+        calls.resources += 1;
+        if (failResources) throw new Error("resources read failed");
+        return [resource];
+      },
+    };
+    const load = createProgramPreviewLoader(repository);
+
+    const degraded = await load(dichotomyThemeId);
+    expect(degraded.error?.message).toBe("resources read failed");
+    expect(degraded.resources).toEqual([]);
+    expect(degraded.steps).toEqual([question]);
+    expect(degraded.contents).toEqual([content]);
+
+    failResources = false;
+    const recovered = await load(dichotomyThemeId);
+    expect(recovered.error).toBeNull();
+    expect(recovered.steps).toEqual([question]);
+    expect(recovered.contents).toEqual([content]);
+    expect(recovered.resources).toEqual([resource]);
+
+    const cached = await load(dichotomyThemeId);
+    expect(cached).toBe(recovered);
+    expect(calls.resources).toBe(2);
 
     errorSpy.mockRestore();
   });

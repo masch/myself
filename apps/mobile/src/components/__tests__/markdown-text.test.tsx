@@ -245,3 +245,38 @@ describe("backtick-quoted template urls stay code (S2)", () => {
     ]);
   });
 });
+
+describe("bare urls whose delimiter chars are not word-adjacent stay whole links", () => {
+  it("keeps an underscore pair between non-word characters inside the url", () => {
+    const spans = parseInlineSpans("Ver https://example.com?si=_abc_ fin");
+    expect(spans).toEqual([
+      { text: "Ver " },
+      {
+        text: "https://example.com?si=_abc_",
+        link: "https://example.com?si=_abc_",
+      },
+      { text: " fin" },
+    ]);
+  });
+
+  it("keeps an underscore path segment inside the url", () => {
+    const spans = parseInlineSpans("Ver https://example.com/_a_/b fin");
+    expect(spans).toEqual([
+      { text: "Ver " },
+      { text: "https://example.com/_a_/b", link: "https://example.com/_a_/b" },
+      { text: " fin" },
+    ]);
+  });
+
+  it("keeps a single tilde path segment inside the url", () => {
+    const spans = parseInlineSpans("Ver https://example.com/~user~ fin");
+    expect(spans).toEqual([
+      { text: "Ver " },
+      {
+        text: "https://example.com/~user~",
+        link: "https://example.com/~user~",
+      },
+      { text: " fin" },
+    ]);
+  });
+});
