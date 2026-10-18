@@ -401,6 +401,11 @@ const styles = StyleSheet.create({
   nonScrollContent: {
     paddingHorizontal: spacing.lg - 4,
     paddingBottom: 0,
+    // A sheet capped by `maxHeight` must let its content shrink below its own
+    // content height, otherwise the child overflows and is clipped instead of
+    // scrolling (web needs the explicit zero minimum for that to happen).
+    flexShrink: 1,
+    minHeight: 0,
   },
   scrollFooter: {
     paddingHorizontal: spacing.lg - 4,

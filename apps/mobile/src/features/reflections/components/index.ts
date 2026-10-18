@@ -4,5 +4,6 @@ export * from "./SkipReasonSheet";
 export * from "./ReflectionModal";
 export * from "./PromptCard";
 export * from "./CohortEnrollmentCard";
+export * from "./ProgramPreviewSheet";
 export * from "./ItemListInput";
 export * from "./StepResources";

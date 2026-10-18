@@ -1027,4 +1027,33 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
     );
     return rows.map((row) => this.mapProgramStepResource(row));
   }
+
+  async getProgramStepContentsForTheme(
+    themeId: EntityId,
+  ): Promise<ProgramStepContent[]> {
+    const rows = await this.db.getAllAsync<RawProgramStepContent>(
+      `SELECT c.id, c.question_id, c.video_url, c.preparatory_text, c.created_at
+       FROM program_step_contents c
+       INNER JOIN reflection_questions q ON q.id = c.question_id
+       WHERE q.theme_id = ?
+       ORDER BY q.order_index ASC, q.id ASC`,
+      [themeId],
+    );
+    return rows.map((row) => this.mapProgramStepContent(row));
+  }
+
+  async getStepResourcesForTheme(
+    themeId: EntityId,
+  ): Promise<ProgramStepResource[]> {
+    const rows = await this.db.getAllAsync<RawProgramStepResource>(
+      `SELECT r.id, r.step_content_id, r.kind, r.label, r.url, r.order_index, r.created_at
+       FROM program_step_resources r
+       INNER JOIN program_step_contents c ON c.id = r.step_content_id
+       INNER JOIN reflection_questions q ON q.id = c.question_id
+       WHERE q.theme_id = ?
+       ORDER BY r.order_index ASC, r.id ASC`,
+      [themeId],
+    );
+    return rows.map((row) => this.mapProgramStepResource(row));
+  }
 }
