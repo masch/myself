@@ -9,7 +9,15 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { colors, radius, spacing, typography } from "@/theme";
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  lineHeights,
+  radius,
+  spacing,
+  typography,
+} from "@/theme";
 import { openExternalUrl } from "./open-external-url";
 
 export interface InlineSpan {
@@ -679,22 +687,22 @@ const styles = StyleSheet.create({
   },
   h2: {
     ...typography.headline,
-    fontSize: 19,
-    lineHeight: 25,
+    fontSize: fontSizes.lg,
+    lineHeight: lineHeights.xl,
     color: colors.label,
     marginTop: spacing.compact,
     marginBottom: spacing.xs + 2,
   },
   h3: {
     ...typography.headline,
-    fontSize: 16,
+    fontSize: fontSizes.md,
     color: colors.label,
     marginTop: spacing.compact,
     marginBottom: spacing.xs,
   },
   h4: {
     ...typography.callout,
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     color: colors.label,
     marginTop: spacing.sm + 2,
     marginBottom: spacing.xs,
@@ -714,8 +722,8 @@ const styles = StyleSheet.create({
   },
   blockquoteText: {
     ...typography.caption1,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.md,
     color: colors.secondaryLabel,
     fontStyle: "italic",
   },
@@ -725,16 +733,16 @@ const styles = StyleSheet.create({
     marginVertical: 3,
   },
   bulletMarker: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.lg,
     color: colors.systemBlue,
     marginRight: spacing.sm,
     width: 14,
     textAlign: "center",
   },
   orderedMarker: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: fontSizes.sm,
+    lineHeight: lineHeights.lg,
     color: colors.secondaryLabel,
     marginRight: spacing.sm,
     minWidth: 18,
@@ -746,7 +754,7 @@ const styles = StyleSheet.create({
     color: colors.label,
   },
   bold: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   italic: {
     fontStyle: "italic",

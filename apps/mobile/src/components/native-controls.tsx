@@ -9,7 +9,13 @@ import {
   type SwitchProps,
 } from "react-native";
 
-import { colors, spacing } from "@/theme";
+import {
+  colors,
+  fontWeights,
+  letterSpacings,
+  opacities,
+  spacing,
+} from "@/theme";
 import { ThemedText } from "./themed-text";
 import { Card } from "./surface";
 import { SegmentedControl } from "./segmented-control";
@@ -221,8 +227,8 @@ const styles = StyleSheet.create({
   sectionHeader: {
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.xs,
-    letterSpacing: 0.5,
-    fontWeight: "600",
+    letterSpacing: letterSpacings.caption,
+    fontWeight: fontWeights.semibold,
   },
   cardContainer: {
     overflow: "hidden",
@@ -260,7 +266,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   itemPressed: {
-    opacity: 0.7,
+    opacity: opacities.pressedSoft,
   },
   leadingContainer: {
     marginRight: spacing.sm + 4,
@@ -272,7 +278,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   itemTitle: {
-    fontWeight: "400",
+    fontWeight: fontWeights.regular,
   },
   supportingText: {
     marginTop: 2,

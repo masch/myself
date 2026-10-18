@@ -8,7 +8,13 @@ import {
   Card,
   ThemedText,
 } from "@/components";
-import { colors, spacing } from "@/theme";
+import {
+  colors,
+  fontWeights,
+  letterSpacings,
+  opacities,
+  spacing,
+} from "@/theme";
 import { DateTime, type MeditationReadingWithAuthor } from "@myself/shared";
 
 export interface ReadingCardProps {
@@ -146,7 +152,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm + 4,
   },
   cardCompleted: {
-    opacity: 0.9,
+    opacity: opacities.completed,
   },
   cardHeader: {
     flexDirection: "row",
@@ -169,8 +175,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   readingCardTitle: {
-    fontWeight: "700",
-    letterSpacing: 0.3,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.title,
   },
   cardFooter: {
     flexDirection: "row",
@@ -190,6 +196,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   timestampTextRead: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
 });

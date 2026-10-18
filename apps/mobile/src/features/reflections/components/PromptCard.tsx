@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
 import { type ReflectionQuestion, type UserReflection } from "@myself/shared";
-import { colors, layout, spacing, radius } from "@/theme";
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  layout,
+  lineHeights,
+  spacing,
+  radius,
+} from "@/theme";
 import {
   AppButton,
   AppMarkdownText,
@@ -197,7 +205,10 @@ export function PromptCard({
               style={styles.resultContent}
             >
               Puntaje:{" "}
-              <ThemedText variant="caption1" style={{ fontWeight: "700" }}>
+              <ThemedText
+                variant="caption1"
+                style={{ fontWeight: fontWeights.bold }}
+              >
                 {reflection?.numericValue}/10
               </ThemedText>
             </ThemedText>
@@ -207,7 +218,7 @@ export function PromptCard({
                 <ThemedText
                   variant="caption1"
                   color={colors.label}
-                  style={{ fontWeight: "600" }}
+                  style={{ fontWeight: fontWeights.semibold }}
                 >
                   {`${reflection?.items?.length ?? 0} momento${(reflection?.items?.length ?? 0) === 1 ? "" : "s"} anotado${(reflection?.items?.length ?? 0) === 1 ? "" : "s"}`}
                 </ThemedText>
@@ -355,7 +366,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   typePillText: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
   timePill: {
     paddingHorizontal: spacing.sm,
@@ -363,7 +374,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   timePillText: {
-    fontWeight: "500",
+    fontWeight: fontWeights.medium,
   },
   topActions: {
     flexDirection: "row",
@@ -371,9 +382,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   promptText: {
-    fontSize: 16,
-    fontWeight: "600",
-    lineHeight: 22,
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
+    lineHeight: lineHeights.lg,
     marginBottom: spacing.md - 4,
   },
   resultBox: {

@@ -8,7 +8,7 @@ import {
   type PressableProps,
   type ColorValue,
 } from "react-native";
-import { colors, spacing, radius } from "@/theme";
+import { colors, fontWeights, spacing, radius } from "@/theme";
 import { AppIcon } from "./app-icon";
 import { ThemedText } from "./themed-text";
 
@@ -126,6 +126,6 @@ const styles = StyleSheet.create({
     gap: spacing.xs + 2, // 6px
   },
   text: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
 });

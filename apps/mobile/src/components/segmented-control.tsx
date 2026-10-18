@@ -6,7 +6,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { colors, spacing, radius, shadows } from "@/theme";
+import { colors, fontWeights, spacing, radius, shadows } from "@/theme";
 import { ThemedText } from "./themed-text";
 
 export interface SegmentedControlItem<T extends string = string> {
@@ -135,6 +135,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   badgeText: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
 });

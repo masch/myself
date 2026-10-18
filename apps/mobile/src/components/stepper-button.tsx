@@ -6,7 +6,7 @@ import {
   type ViewStyle,
   type PressableProps,
 } from "react-native";
-import { colors, radius, spacing } from "@/theme";
+import { colors, fontWeights, radius, spacing } from "@/theme";
 import { ThemedText } from "./themed-text";
 
 export interface StepperButtonProps extends Omit<
@@ -67,6 +67,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   arrow: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
 });

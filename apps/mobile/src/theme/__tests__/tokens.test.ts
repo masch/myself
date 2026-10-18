@@ -1,9 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
   colors,
+  fontSizes,
   fontWeights,
   layout,
   letterSpacings,
+  lineHeights,
   opacities,
   radius,
   shadows,
@@ -73,14 +75,37 @@ describe("Design System Tokens", () => {
       expect(fontWeights.heavy).toBe("800");
     });
 
+    it("should expose the shared font-size scale", () => {
+      expect(fontSizes.xs).toBe(11);
+      expect(fontSizes.sm).toBe(14);
+      expect(fontSizes.md).toBe(16);
+      expect(fontSizes.lg).toBe(19);
+    });
+
+    it("should expose the shared line-height scale", () => {
+      expect(lineHeights.xs).toBe(18);
+      expect(lineHeights.sm).toBe(20);
+      expect(lineHeights.md).toBe(21);
+      expect(lineHeights.lg).toBe(22);
+      expect(lineHeights.xl).toBe(25);
+    });
+
     it("should expose the shared letter-spacing scale", () => {
       expect(letterSpacings.caption).toBe(0.5);
+      expect(letterSpacings.title).toBe(0.3);
+      expect(letterSpacings.body).toBe(0.2);
     });
   });
 
   describe("opacity tokens", () => {
     it("should expose the pressed-state opacity", () => {
       expect(opacities.pressed).toBe(0.6);
+    });
+
+    it("should expose the interaction opacity scale", () => {
+      expect(opacities.pressedSoft).toBe(0.7);
+      expect(opacities.completed).toBe(0.9);
+      expect(opacities.disabled).toBe(0.4);
     });
   });
 

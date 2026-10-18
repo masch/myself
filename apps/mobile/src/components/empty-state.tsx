@@ -9,7 +9,7 @@ import {
   type ImageStyle,
   type ColorValue,
 } from "react-native";
-import { colors, spacing, type SpacingKey } from "@/theme";
+import { colors, lineHeights, spacing, type SpacingKey } from "@/theme";
 import { AppIcon } from "./app-icon";
 import { Card, type SurfaceVariant } from "./surface";
 import { ThemedText, type ThemedTextProps } from "./themed-text";
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   description: {
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: lineHeights.sm,
   },
   action: {
     alignItems: "center",

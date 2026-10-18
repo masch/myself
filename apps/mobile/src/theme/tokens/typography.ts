@@ -61,12 +61,40 @@ export const fontWeights = {
 } as const;
 
 /**
+ * Shared numeric font-size scale for component styles that need a size outside
+ * the typography variants. Keep each value equal to the pixel size it replaces.
+ */
+export const fontSizes = {
+  xs: 11,
+  sm: 14,
+  md: 16,
+  lg: 19,
+} as const;
+
+/**
+ * Shared line-height scale paired with `fontSizes` for component styles that
+ * override a variant's leading. Keep each value equal to the point size it
+ * replaces.
+ */
+export const lineHeights = {
+  xs: 18,
+  sm: 20,
+  md: 21,
+  lg: 22,
+  xl: 25,
+} as const;
+
+/**
  * Shared letter-spacing scale so component styles reference tokens instead of
  * repeating literals. `caption` tracks the uppercase micro headers used above
  * card and section titles.
  */
 export const letterSpacings = {
   caption: 0.5,
+  /** Emphasized card titles. */
+  title: 0.3,
+  /** Long-form verse and prose. */
+  body: 0.2,
 } as const;
 
 export type Typography = typeof typography;

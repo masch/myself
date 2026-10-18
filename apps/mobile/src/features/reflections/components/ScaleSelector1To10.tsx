@@ -1,5 +1,5 @@
 import { View, StyleSheet, Pressable } from "react-native";
-import { colors, spacing, radius } from "@/theme";
+import { colors, fontWeights, spacing, radius } from "@/theme";
 import { ThemedText } from "@/components";
 
 interface ScaleSelectorProps {
@@ -108,6 +108,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   guideLabel: {
-    fontWeight: "500",
+    fontWeight: fontWeights.medium,
   },
 });

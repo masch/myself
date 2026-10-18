@@ -8,7 +8,14 @@ import {
   IconButton,
   useToast,
 } from "@/components";
-import { colors, fontWeights, spacing, radius } from "@/theme";
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  letterSpacings,
+  spacing,
+  radius,
+} from "@/theme";
 import type { Producer } from "@myself/shared";
 import { buildProducerLink } from "../barter-store";
 
@@ -147,7 +154,7 @@ const styles = StyleSheet.create({
   label: {
     color: colors.secondaryLabel,
     fontWeight: fontWeights.bold,
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacings.caption,
   },
   producerName: {
     color: colors.label,
@@ -167,7 +174,7 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     color: colors.secondaryLabel,
-    fontSize: 11,
+    fontSize: fontSizes.xs,
     marginBottom: spacing.xs,
   },
   switchRow: {

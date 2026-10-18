@@ -14,7 +14,7 @@ import {
   type TextInputContentSizeChangeEvent,
 } from "react-native";
 import { generateEntityId } from "@myself/shared";
-import { colors, spacing, radius, layout } from "@/theme";
+import { colors, fontWeights, spacing, radius, layout } from "@/theme";
 import {
   ThemedText,
   ThemedTextInput,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   indexLabel: {
     width: 24,
     textAlign: "right",
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     paddingTop: layout.rowLabelTopOffset,
   },
   input: {
