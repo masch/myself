@@ -22,12 +22,22 @@ export interface InlineSpan {
   link?: string;
 }
 
-/** `[label](https://…)` links. Explicit links are resolved before formatting. */
+/** `[label](https://…)` links. Explicit links are resolved after formatting. */
 const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
 
 /** `[label](https://…)` links, or a bare `https://…` URL. */
 const inlineLinkRegex =
   /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/\S+)/g;
+
+/**
+ * Inert stand-in for an explicit link while formatting runs. NUL bytes fence the
+ * index, so no surrounding character is a word char, `http`, or a delimiter.
+ */
+function linkPlaceholder(index: number): string {
+  return `\u0000${index}\u0000`;
+}
+
+const linkPlaceholderRegex = /\u0000(\d+)\u0000/g;
 
 /**
  * Splits trailing punctuation out of a bare URL so the link itself stays valid.
@@ -226,6 +236,69 @@ function formatLinkLabel(label: string, url: string): InlineSpan[] {
   }));
 }
 
+/** Copies a span's styling so it can be carried onto a link or split fragment. */
+function formattingOf(
+  span: InlineSpan,
+): Pick<InlineSpan, "bold" | "italic" | "strikethrough"> {
+  const formatting: Pick<InlineSpan, "bold" | "italic" | "strikethrough"> = {};
+  if (span.bold) formatting.bold = true;
+  if (span.italic) formatting.italic = true;
+  if (span.strikethrough) formatting.strikethrough = true;
+  return formatting;
+}
+
+/**
+ * Turns one span's placeholders back into links, splitting the span and giving
+ * each link the span's own styling. Inside `code` a placeholder becomes the
+ * literal `[label](url)` text, so backticks never create a link.
+ */
+function substituteLinkPlaceholders(
+  span: InlineSpan,
+  links: readonly { raw: string; label: string; url: string }[],
+): InlineSpan[] {
+  if (!span.text.includes("\u0000")) return [span];
+
+  if (span.code) {
+    return [
+      {
+        ...span,
+        text: span.text.replace(
+          linkPlaceholderRegex,
+          (_placeholder, index: string) => links[Number(index)].raw,
+        ),
+      },
+    ];
+  }
+
+  const formatting = formattingOf(span);
+  const spans: InlineSpan[] = [];
+  const placeholderRegex = /\u0000(\d+)\u0000/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = placeholderRegex.exec(span.text)) !== null) {
+    if (match.index > lastIndex) {
+      spans.push({
+        text: span.text.substring(lastIndex, match.index),
+        ...formatting,
+      });
+    }
+
+    const link = links[Number(match[1])];
+    for (const labelSpan of formatLinkLabel(link.label, link.url)) {
+      spans.push({ ...labelSpan, ...formatting });
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < span.text.length) {
+    spans.push({ text: span.text.substring(lastIndex), ...formatting });
+  }
+
+  return spans.length > 0 ? spans : [span];
+}
+
 /**
  * Parses a segment that holds no explicit markdown links: formatting first, then
  * bare URLs inside each formatting span. `code` spans stay literal.
@@ -258,35 +331,28 @@ function parseFormattingAndAutolinks(rawText: string): InlineSpan[] {
  * Parses inline Markdown into styled spans, resolving `[label](url)` links and bare URLs
  * into tappable `link` spans that open with `openExternalUrl`.
  *
- * Explicit `[label](url)` links win over formatting: the label is parsed for its
- * own styling and every label span becomes the link, so `[**bold**](url)` keeps
- * both its styling and its target. The surrounding segments resolve formatting
- * first and then bare URLs, so delimiters around a URL (`**…**`, `~~…~~`,
- * `` `…` ``) are consumed as formatting and never become part of the link, and a
- * URL inside backticks stays literal `code`.
+ * Explicit `[label](url)` links are swapped for inert placeholders before the
+ * formatting pipeline runs, so a delimiter pair opening before a link closes after
+ * it and the whole run stays one bold/italic/code span. Each placeholder is then
+ * restored as a link inheriting the enclosing span's styling, while the label keeps
+ * its own formatting. Bare URLs still resolve inside each span, and a URL inside
+ * backticks stays literal `code`.
  */
 export function parseInlineSpans(rawText: string): InlineSpan[] {
-  const spans: InlineSpan[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
+  const links: { raw: string; label: string; url: string }[] = [];
   markdownLinkRegex.lastIndex = 0;
+  const placeholderText = rawText.replace(
+    markdownLinkRegex,
+    (raw: string, label: string, url: string) => {
+      links.push({ raw, label, url });
+      return linkPlaceholder(links.length - 1);
+    },
+  );
 
-  while ((match = markdownLinkRegex.exec(rawText)) !== null) {
-    if (match.index > lastIndex) {
-      spans.push(
-        ...parseFormattingAndAutolinks(
-          rawText.substring(lastIndex, match.index),
-        ),
-      );
-    }
+  const spans: InlineSpan[] = [];
 
-    spans.push(...formatLinkLabel(match[1], match[2]));
-    lastIndex = match.index + match[0].length;
-  }
-
-  if (lastIndex < rawText.length) {
-    spans.push(...parseFormattingAndAutolinks(rawText.substring(lastIndex)));
+  for (const span of parseFormattingAndAutolinks(placeholderText)) {
+    spans.push(...substituteLinkPlaceholders(span, links));
   }
 
   return spans.length > 0 ? coalesceSpans(spans) : [{ text: rawText }];
