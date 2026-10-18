@@ -3,7 +3,7 @@ import type { ResponseType } from "@myself/shared";
 /** Spanish label used when a response type has no dedicated copy. */
 const DEFAULT_RESPONSE_TYPE_LABEL = "Texto libre";
 
-const RESPONSE_TYPE_LABELS: Record<string, string> = {
+export const RESPONSE_TYPE_LABELS: Record<ResponseType, string> = {
   text: DEFAULT_RESPONSE_TYPE_LABEL,
   scale_1_10: "Escala 1-10",
   item_list: "Lista de momentos",

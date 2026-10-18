@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import React from "react";
 import { renderToString } from "react-dom/server";
 import { readFileSync } from "node:fs";
@@ -20,7 +20,10 @@ import { ScaleSelector1To10 } from "../ScaleSelector1To10";
 import { ReflectionModalContent } from "../ReflectionModal";
 import { ItemListInput } from "../ItemListInput";
 import { StepResources } from "../StepResources";
-import { ProgramPreviewContent } from "../ProgramPreviewSheet";
+import {
+  ProgramPreviewContent,
+  ProgramPreviewDegradedState,
+} from "../ProgramPreviewSheet";
 import { BottomSheetModalContent } from "@/components";
 
 const mockId = (id: string) => id as EntityId;
@@ -28,6 +31,27 @@ const mockId = (id: string) => id as EntityId;
 /** react-dom/server separates text from interpolations with HTML comments. */
 const stripSsrInterpolations = (html: string) =>
   html.replace(/<!--[^>]*-->/g, "");
+
+/**
+ * Walks a rendered React element tree looking for a `testID`. Used to reach a
+ * hook-free component's retry control and invoke its `onPress` without a DOM
+ * renderer, which this suite does not have.
+ */
+function findElementByTestID(
+  node: React.ReactNode,
+  testID: string,
+): React.ReactElement<{ onPress?: () => void }> | null {
+  if (!React.isValidElement(node)) return null;
+  const props = node.props as { testID?: string; children?: React.ReactNode };
+  if (props.testID === testID) {
+    return node as React.ReactElement<{ onPress?: () => void }>;
+  }
+  for (const child of React.Children.toArray(props.children)) {
+    const found = findElementByTestID(child, testID);
+    if (found) return found;
+  }
+  return null;
+}
 
 const mockQuestion: ReflectionQuestion = {
   id: mockId("a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c51"),
@@ -461,6 +485,71 @@ describe("Reflections Feature Components", () => {
 
     expect(html).toContain("Se desbloquea el 02/10");
     expect(html).not.toContain("Se desbloquea el 01/10");
+  });
+
+  it("shows a degraded message with a retry when the preview load reports an error", () => {
+    const html = stripSsrInterpolations(
+      renderToString(
+        <ProgramPreviewContent
+          cohort={mockCohort}
+          theme={mockTheme}
+          steps={[]}
+          error={new Error("contents read failed")}
+          onRetry={() => {}}
+          currentDate={DateTime.from("2026-09-25")}
+          onClose={() => {}}
+        />,
+      ),
+    );
+
+    expect(html).toContain("No pudimos cargar todo el programa");
+    expect(html).toContain("Reintentar");
+  });
+
+  it("keeps the resolved steps visible under the degraded message", () => {
+    const html = stripSsrInterpolations(
+      renderToString(
+        <ProgramPreviewContent
+          cohort={mockCohort}
+          theme={mockTheme}
+          steps={[mockQuestion]}
+          error={new Error("contents read failed")}
+          onRetry={() => {}}
+          currentDate={DateTime.from("2026-09-25")}
+          onClose={() => {}}
+        />,
+      ),
+    );
+
+    expect(html).toContain("No pudimos cargar todo el programa");
+    expect(html).toContain("Paso 1");
+  });
+
+  it("does not show the degraded message when the preview load succeeded", () => {
+    const html = stripSsrInterpolations(
+      renderToString(
+        <ProgramPreviewContent
+          cohort={mockCohort}
+          theme={mockTheme}
+          steps={[mockQuestion]}
+          currentDate={DateTime.from("2026-09-25")}
+          onClose={() => {}}
+        />,
+      ),
+    );
+
+    expect(html).not.toContain("No pudimos cargar todo el programa");
+    expect(html).not.toContain("Reintentar");
+  });
+
+  it("invokes the retry callback from the degraded state's retry control", () => {
+    const retry = mock(() => {});
+    const tree = ProgramPreviewDegradedState({ onRetry: retry });
+    const button = findElementByTestID(tree, "program-preview-retry");
+
+    expect(button).not.toBeNull();
+    button?.props.onPress?.();
+    expect(retry).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the step detail collapsed until the user expands it", () => {

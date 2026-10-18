@@ -381,6 +381,28 @@ describe("bare url immediately before an explicit link", () => {
     ]);
   });
 
+  it("italicizes an underscore pair that follows an explicit link after a bare url", () => {
+    expect(
+      parseInlineSpans("https://example.com[a](https://other.com)_hola_"),
+    ).toEqual([
+      { text: "https://example.com", link: "https://example.com" },
+      { text: "a", link: "https://other.com" },
+      { text: "hola", italic: true },
+    ]);
+  });
+
+  it("still keeps an underscore pair inside a bare url that precedes a link literal", () => {
+    expect(
+      parseInlineSpans("https://example.com/-_a_[x](https://other.com)"),
+    ).toEqual([
+      {
+        text: "https://example.com/-_a_",
+        link: "https://example.com/-_a_",
+      },
+      { text: "x", link: "https://other.com" },
+    ]);
+  });
+
   it("keeps a bare url followed by a space and an explicit link working", () => {
     expect(
       parseInlineSpans("https://example.com [x](https://other.com)"),

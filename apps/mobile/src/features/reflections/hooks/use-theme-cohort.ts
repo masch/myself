@@ -43,8 +43,9 @@ export interface CohortQuestionMapsOptions {
  * Builds the per-question step content and resource maps with one bulk read per
  * theme instead of one read per question. Resources resolve through their
  * `stepContentId` and are keyed by question id, the shape the reflections
- * screen reads. A resource read failure degrades to empty lists for that theme
- * and stays observable in the console.
+ * screen reads. A contents or resource read failure degrades to empty data for
+ * that theme and stays observable in the console instead of rejecting the
+ * whole loader.
  */
 export async function loadCohortQuestionMaps(
   repository: CohortQuestionMapsRepository,
@@ -52,7 +53,14 @@ export async function loadCohortQuestionMaps(
   questions: ReflectionQuestion[],
   options: CohortQuestionMapsOptions = {},
 ): Promise<CohortQuestionMaps> {
-  const contents = await repository.getProgramStepContentsForTheme(themeId);
+  let contents: ProgramStepContent[];
+  try {
+    contents = await repository.getProgramStepContentsForTheme(themeId);
+  } catch (error) {
+    console.error("Failed to load step contents for theme:", themeId, error);
+    contents = [];
+  }
+
   const contentsByQuestionId = new Map<EntityId, ProgramStepContent>();
   for (const content of contents) {
     contentsByQuestionId.set(content.questionId, content);
