@@ -280,3 +280,47 @@ describe("bare urls whose delimiter chars are not word-adjacent stay whole links
     ]);
   });
 });
+
+describe("formatting delimiters pair across an explicit link", () => {
+  it("keeps a fully bold-wrapped link as a single bold link span", () => {
+    expect(parseInlineSpans("**[x](https://example.com)**")).toEqual([
+      { text: "x", bold: true, link: "https://example.com" },
+    ]);
+  });
+
+  it("pairs bold delimiters opened before a link and closed after it", () => {
+    expect(
+      parseInlineSpans("**Ver el video [aqui](https://example.com) completo**"),
+    ).toEqual([
+      { text: "Ver el video ", bold: true },
+      { text: "aqui", bold: true, link: "https://example.com" },
+      { text: " completo", bold: true },
+    ]);
+  });
+
+  it("pairs italic delimiters opened before a link and closed after it", () => {
+    expect(parseInlineSpans("*ver [aqui](https://example.com)*")).toEqual([
+      { text: "ver ", italic: true },
+      { text: "aqui", italic: true, link: "https://example.com" },
+    ]);
+  });
+
+  it("pairs strikethrough delimiters opened before a link and closed after it", () => {
+    expect(parseInlineSpans("~~old [aqui](https://example.com)~~")).toEqual([
+      { text: "old ", strikethrough: true },
+      { text: "aqui", strikethrough: true, link: "https://example.com" },
+    ]);
+  });
+
+  it("keeps a backtick-wrapped bare link as one literal code span", () => {
+    expect(parseInlineSpans("`[x](https://example.com)`")).toEqual([
+      { text: "[x](https://example.com)", code: true },
+    ]);
+  });
+
+  it("keeps a backtick-wrapped link with surrounding text as one code span", () => {
+    expect(parseInlineSpans("`ver [aqui](https://example.com)`")).toEqual([
+      { text: "ver [aqui](https://example.com)", code: true },
+    ]);
+  });
+});
