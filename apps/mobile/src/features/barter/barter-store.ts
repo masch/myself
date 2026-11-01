@@ -10,6 +10,7 @@ import {
   type ProductPackage,
   type TradeMatch,
 } from "@myself/shared";
+import { catalogPackages } from "./catalog-packages";
 import { PRIMAVERA_2026_PRODUCERS } from "./producer-catalog";
 
 /**
@@ -39,6 +40,19 @@ export const PRODUCER_IDS = {
  */
 export const SEED_PRODUCERS: Producer[] = [...PRIMAVERA_2026_PRODUCERS];
 
+/**
+ * The packages the app seeds: the four POC packages the user already traded,
+ * then every product the Primavera 2026 catalog prints.
+ *
+ * The four POC packages stay (S8): they are a persisted contract — stored
+ * matches point at their ids — and the catalog does not print them as such (it
+ * prints `Vermut Rosso x 750 ml`, not the pack of four). They are the only
+ * packages here that are not derived from a printed row.
+ *
+ * The catalog packages follow in printed order, each holding what is worth 1 PAP
+ * (see `catalog-packages.ts`), so a stored install and an injected test store
+ * run the same catalog.
+ */
 export const SEED_PACKAGES: ProductPackage[] = [
   {
     id: "pkg-vermut-pack4",
@@ -76,6 +90,7 @@ export const SEED_PACKAGES: ProductPackage[] = [
     papValue: 1,
     stockUnits: 3,
   },
+  ...catalogPackages(),
 ];
 
 export interface BarterState {
@@ -151,6 +166,30 @@ export function mergeCatalogProducers(persisted?: Producer[]): Producer[] {
   return onlyPersisted.length === 0
     ? SEED_PRODUCERS
     : [...SEED_PRODUCERS, ...onlyPersisted];
+}
+
+/**
+ * Packages this store runs with.
+ *
+ * `SEED_PACKAGES` is the base and a persisted list is merged into it the same way
+ * `mergeCatalogProducers` merges the producers: a state written by a build with a
+ * shorter catalog must still receive the products this build ships. The catalog
+ * is appended, never substituted, so the stored package always wins on a shared
+ * id — a package whose stock a real trade consumed is never resurrected with
+ * seed stock. A persisted package the catalog does not carry stays in the list,
+ * because a stored package or match may already point at it.
+ */
+export function mergeCatalogPackages(
+  persisted?: ProductPackage[],
+): ProductPackage[] {
+  if (!persisted?.length) {
+    return SEED_PACKAGES;
+  }
+
+  const persistedIds = new Set(persisted.map((pkg) => pkg.id));
+  const missing = SEED_PACKAGES.filter((pkg) => !persistedIds.has(pkg.id));
+
+  return missing.length === 0 ? persisted : [...persisted, ...missing];
 }
 
 /**
@@ -415,7 +454,7 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
   let state: BarterState = {
     producers,
     packages:
-      options.initialPackages ?? persistedState.packages ?? SEED_PACKAGES,
+      options.initialPackages ?? mergeCatalogPackages(persistedState.packages),
     matches: options.initialMatches ?? persistedState.matches ?? [],
     activeProducerId: initialActiveId,
     papConfigArs: persistedState.papConfigArs ?? DEFAULT_PAP_VALUE_ARS,
