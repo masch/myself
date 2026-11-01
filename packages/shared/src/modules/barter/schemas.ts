@@ -25,6 +25,39 @@ export const producerSchema = geoLocationSchema.extend({
   phone: z.string().min(6),
 });
 
+/**
+ * The measures a product package can be expressed in: a printed product is
+ * weighed, poured or counted.
+ */
+export const PRODUCT_MEASURES = ["kg", "litro", "unidad"] as const;
+
+export const productMeasureSchema = z.enum(PRODUCT_MEASURES);
+
+/**
+ * What a catalog package hands over, as the printed catalog prints it.
+ *
+ * A package whose quantity is derived from a printed price has to disclose the
+ * price it started from, or the user cannot compare the price the catalog loaded
+ * with the price this app gives it: `listPriceArs` and `listPriceBasis` are what
+ * the PDF prints, `quantity` + `measure` is what the package hands over,
+ * `presentationCount` × `presentationSize` is how that quantity is packaged,
+ * `realPriceArs` is what that quantity really costs and `realPapValue` is its
+ * exact value in PAP — the fraction the whole-PAP count cannot express.
+ *
+ * The block is optional because a package that is not derived from a printed row
+ * carries none, and every package stored before this block existed keeps parsing.
+ */
+export const productPackageCatalogSchema = z.object({
+  quantity: z.number().positive(),
+  measure: productMeasureSchema,
+  presentationCount: z.number().int().positive(),
+  presentationSize: z.number().positive(),
+  listPriceArs: z.number().positive(),
+  listPriceBasis: z.string().min(1),
+  realPriceArs: z.number().positive(),
+  realPapValue: z.number().positive(),
+});
+
 export const productPackageSchema = z.object({
   id: z.string().min(1),
   producerId: z.string().min(1),
@@ -33,6 +66,7 @@ export const productPackageSchema = z.object({
   priceArs: z.number().positive(),
   papValue: z.number().int().positive(),
   stockUnits: z.number().int().min(0),
+  catalog: productPackageCatalogSchema.optional(),
 });
 
 export const TRADE_MATCH_STATUSES = [
