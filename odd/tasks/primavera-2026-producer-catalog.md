@@ -163,8 +163,9 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
 2026 producers`, label `enhancement`) and pull request **#105** against `main`, which closes it.
   The PR carries CI: unit + static analysis + CodeQL + Playwright E2E green; the merge gate is
   the repository's human broccoli comment. CodeRabbit's three review comments were addressed in
-  `deddf6b` (see L18), and its `CHANGES_REQUESTED` review state is the bot's to lift on
-  re-review.
+  `deddf6b` (see L18), and its three threads were closed by the bot itself on re-review, one of
+  them after **withdrawing** its own persistence claim (L21). **Merged as `76b830a`** on
+  2026-11-01T19:57:45Z and issue #104 closed as completed.
 
 ## Log
 
@@ -440,3 +441,16 @@ AGROECOLOGICAL"`.
   requirement. One test detail worth keeping: the icon adds a text node, so `toHaveText` on the
   chip started failing with an identical-looking expected and received string; the assertions use
   `toContainText`, which is what an icon-bearing button needs.
+- L21 (2026-10-17) — Post-merge record. PR **#105** merged as squash **`76b830a`**
+  (`feat(barter): seed the 158 printed Primavera 2026 producers and make the switcher usable`)
+  on 2026-11-01T19:57:45Z; issue **#104** closed as completed by the `Closes` reference. The
+  squash tree is byte-identical to the branch tip (`git diff main feat/…` empty), which is the
+  only valid proof of "already in" in this repository: a squash makes `git branch -d` useless as a
+  check. CodeRabbit closed its three threads on re-review, and its reply to the persistence thread
+  is worth keeping in the record, because it is the bot agreeing with the correction: _"My claim
+  that earlier builds persisted `producers` was incorrect… I withdraw the finding as an
+  app-generated persistence bug."_ It also filed a repo-scoped learning for
+  `producer-header-switcher.tsx`, so future reviews of that file check the row label uses
+  `productionTypeLabel` instead of the raw enum — the defect from L18 is now a rule for the next
+  review, not just a fixed line. Merge gate on the way in: all nine checks green, including
+  `Check PR broccoli comment` (a human comment after the last push) and `CI Quality Gate`.
