@@ -494,7 +494,7 @@ Les deseo un buen día a todos 🌿`,
   {
     id: "d2000000-0000-4000-8000-000000000005" as EntityId,
     questionId: "b4000000-0000-4000-8000-000000000005" as EntityId,
-    videoUrl: "https://youtu.be/e1IoKJjF4vc?si=6k8yO902AYAFyw8O",
+    videoUrl: "https://youtu.be/R3uEY4BctAQ?si=9tHaJ8Y3rVa2gtDm",
     preparatoryText: `### Día 5 — Deber Estoico y Amor a la Humanidad
 
 **Actividad del día:** pensá en un obstáculo pequeño que enfrentes hoy (algo que te moleste o te frustre) y escribí una sola frase completando esto:

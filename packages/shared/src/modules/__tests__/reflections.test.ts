@@ -542,7 +542,7 @@ describe("Reflections Module - Zod Validation Schemas", () => {
         },
         {
           orderIndex: 5,
-          videoUrl: "https://youtu.be/e1IoKJjF4vc?si=6k8yO902AYAFyw8O",
+          videoUrl: "https://youtu.be/R3uEY4BctAQ?si=9tHaJ8Y3rVa2gtDm",
           snippets: [
             "Día 5",
             "Deber Estoico y Amor a la Humanidad",
