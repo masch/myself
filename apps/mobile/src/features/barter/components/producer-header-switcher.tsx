@@ -205,18 +205,29 @@ export function ProducerHeaderSwitcher({
         </View>
       </View>
 
-      <ThemedText variant="caption2" style={styles.switchLabel}>
-        Cambiar identidad (simular contraparte en otra pestaña o aquí):
+      {/* The identity control is an action, not a status badge: it says what it
+          does, carries a search glyph, and states the size of the catalog. */}
+      <ThemedText variant="caption1" style={styles.switchLabel}>
+        CAMBIAR DE PRODUCTOR
+      </ThemedText>
+      <ThemedText variant="caption1" style={styles.switchHint}>
+        Buscá por nombre o localidad entre los {producers.length} productores de
+        la red.
       </ThemedText>
 
       {/* One trigger instead of one chip per producer: the catalog is 158 long. */}
       <View style={styles.switchRow} testID="producer-switch-row">
         <ChipButton
           title={activeProducer?.name ?? "Seleccionar productor"}
+          icon="sf:magnifyingglass"
           variant="success"
+          // The decorative glyph otherwise lands in the accessible name as an
+          // empty node (" Vermut Sabado"), so the name is stated explicitly.
+          accessibilityLabel={activeProducer?.name ?? "Seleccionar productor"}
           accessibilityHint="Abre el buscador de productores"
           accessibilityState={{ expanded: isSelectorOpen }}
           onPress={openSelector}
+          testID="producer-switch-trigger"
         />
       </View>
 
@@ -238,6 +249,13 @@ export function ProducerHeaderSwitcher({
             {filteredProducers.length} de {producers.length}
           </ThemedText>
         </View>
+
+        {canCopyLink && (
+          <ThemedText variant="caption1" style={styles.selectorCount}>
+            Copiá el link de un productor y abrilo en otra pestaña para operar
+            como la contraparte.
+          </ThemedText>
+        )}
 
         <ThemedTextInput
           value={query}
@@ -326,6 +344,12 @@ const styles = StyleSheet.create({
   switchLabel: {
     color: colors.secondaryLabel,
     fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.caption,
+    marginBottom: spacing.xxs,
+  },
+  switchHint: {
+    color: colors.secondaryLabel,
     marginBottom: spacing.xs,
   },
   switchRow: {

@@ -192,3 +192,20 @@ for WhatsApp`; (3) `feat(barter): seed the full Primavera 2026 producer catalog`
   (`barter-token-render.spec.ts`) travel with the selector commit, because the selector is what
   invalidated them. If a pull request is opened, the recommendation is stacked review in that
   order; push and PR stay a human decision.
+- L8 (2026-10-17) — Requirement change, verbatim: _"podemos mejorar la UI/UX para que el
+  usuario sepa mejor que puede cambiar de productor?"_ (with two captures of the header). Reading:
+  S6 built the mechanism but not the affordance — the trigger repeated the active producer's name
+  inside a green chip, so it read as a status badge, and the label above it said "Cambiar identidad
+  (simular contraparte en otra pestaña o aquí)", which is the POC's implementation detail rather
+  than an instruction. S6 is refined, not replaced: the switcher is still one searchable selector.
+  What changed in `producer-header-switcher.tsx`: the label is now the instruction `CAMBIAR DE
+PRODUCTOR`, a second line states the size of the catalog ("Buscá por nombre o localidad entre
+  los N productores de la red"), and the trigger carries a search glyph so the chip reads as an
+  action instead of a badge. The two-tab simulation sentence moved into the selector sheet, under
+  the count and only on web, which is the only place it is true.
+  Two things this exposed, both fixed: the decorative glyph landed in the button's accessible name
+  as an empty node (the E2E anchor saw `" Vermut Sabado"`, and `barter-token-render.spec.ts` timed
+  out for two minutes waiting for `"Vermut Sabado"` with `exact: true`), so the trigger states its
+  `accessibilityLabel` explicitly instead of letting a decorative icon shape it; and the accessible
+  name is again exactly the producer name. Verified by re-running that spec alone (2.9s, green) and
+  then the whole `make check-e2e-web` suite.
