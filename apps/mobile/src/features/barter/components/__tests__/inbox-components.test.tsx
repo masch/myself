@@ -140,10 +140,14 @@ describe("Barter Inbox: counter-offer candidates", () => {
   });
 
   it("returns empty when the requester ships no alternative packages", () => {
-    // Most of the 158 printed producers ship no package in this seed, so a
-    // counter-offer has nothing to offer.
+    // Every printed producer owns catalog packages in this seed, so the
+    // requester's packages are filtered out: a producer that ships nothing in
+    // this catalog has nothing to counter-offer with.
+    const packages = SEED_PACKAGES.filter(
+      (pkg) => pkg.producerId !== outsider.id,
+    );
     const match = buildMatch({ requesterId: outsider.id });
-    const candidates = getCounterOfferCandidates(SEED_PACKAGES, match);
+    const candidates = getCounterOfferCandidates(packages, match);
 
     expect(candidates).toEqual([]);
   });
