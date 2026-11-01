@@ -5,6 +5,8 @@ export const DEFAULT_PAP_VALUE_ARS = 50000;
 export const PRODUCTION_TYPES = [
   "ORGANIC",
   "AGROECOLOGICAL",
+  "BIODYNAMIC",
+  "VEGAN",
   "CONVENTIONAL",
 ] as const;
 
@@ -20,7 +22,8 @@ export const producerSchema = geoLocationSchema.extend({
   id: z.string().min(1),
   name: z.string().min(1),
   productionType: productionTypeSchema,
-  phone: z.string().min(6),
+  /** Absent when the catalog prints no contact number for the producer. */
+  phone: z.string().min(6).optional(),
 });
 
 export const productPackageSchema = z.object({

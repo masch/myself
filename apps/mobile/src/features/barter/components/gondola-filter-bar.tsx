@@ -11,12 +11,15 @@ interface GondolaFilterBarProps {
   onSelectMaxDistance: (km?: number) => void;
 }
 
-const TYPE_OPTIONS: { label: string; value: ProductionType | "ALL" }[] = [
-  { label: "Todos", value: "ALL" },
-  { label: "Agroecológico", value: "AGROECOLOGICAL" },
-  { label: "Orgánico", value: "ORGANIC" },
-  { label: "Convencional", value: "CONVENTIONAL" },
-];
+export const TYPE_OPTIONS: { label: string; value: ProductionType | "ALL" }[] =
+  [
+    { label: "Todos", value: "ALL" },
+    { label: "Agroecológico", value: "AGROECOLOGICAL" },
+    { label: "Orgánico", value: "ORGANIC" },
+    { label: "Biodinámico", value: "BIODYNAMIC" },
+    { label: "Vegano", value: "VEGAN" },
+    { label: "Convencional", value: "CONVENTIONAL" },
+  ];
 
 const DISTANCE_OPTIONS: { label: string; value?: number }[] = [
   { label: "Cualquier distancia", value: undefined },

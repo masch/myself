@@ -20,7 +20,7 @@ describe("WhatsApp deep link: buildWhatsAppTradeUrl", () => {
   });
 
   it("builds a complete wa.me URL", () => {
-    const url = buildWhatsAppTradeUrl(vermut.phone, "coordinemos");
+    const url = buildWhatsAppTradeUrl("+5492615551234", "coordinemos");
     expect(url).toBe(
       `https://wa.me/5492615551234?text=${encodeURIComponent("coordinemos")}`,
     );

@@ -30,6 +30,35 @@ describe("Barter Domain Models & Schemas", () => {
     expect(parsed.success).toBe(true);
   });
 
+  it("accepts the biodynamic and vegan production types", () => {
+    for (const productionType of ["BIODYNAMIC", "VEGAN"] as const) {
+      const parsed = producerSchema.safeParse({
+        id: "prod-1",
+        name: "Granja Nova",
+        productionType,
+        address: "Buenos Aires",
+        latitude: -34.61,
+        longitude: -58.42,
+        phone: "+5492615551234",
+      });
+
+      expect(parsed.success).toBe(true);
+    }
+  });
+
+  it("accepts a producer that declares no phone number", () => {
+    const parsed = producerSchema.safeParse({
+      id: "prod-1",
+      name: "Granja Nova",
+      productionType: "BIODYNAMIC",
+      address: "Buenos Aires",
+      latitude: -34.61,
+      longitude: -58.42,
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
   it("rejects invalid Producer data", () => {
     const invalidProducer = {
       id: "prod-1",
