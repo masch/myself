@@ -123,48 +123,105 @@ export function isAwaitingReply(
 }
 
 /**
- * How many answers each producer still owes, keyed by producer id.
+ * What a producer still has on its plate, trade by trade.
  *
- * A producer with no pending answer is absent from the map rather than mapped to
- * zero, so a caller can render "nothing to answer" without special-casing it.
+ * One pass over the matches instead of one filter per question: the selector
+ * shows all of it at once, and separate counters over the same list drift apart
+ * the moment a status is added.
  */
-export function countMatchesAwaitingReply(
-  matches: Pick<TradeMatch, "requesterId" | "targetProducerId" | "status">[],
-): Record<string, number> {
-  const counts: Record<string, number> = {};
+export interface ProducerTradeSummary {
+  /** The FSM offers this producer an action: it has to answer a proposal. */
+  awaitingReply: number;
+  /** Agreed but not handed over yet: both sides still have to arrange it. */
+  toCoordinate: number;
+  /** Delivering, and this producer has not confirmed receiving it. */
+  toConfirm: number;
+  /** Delivered and confirmed by both sides: the trade happened. */
+  completed: number;
+}
 
-  for (const match of matches) {
-    for (const producerId of [match.requesterId, match.targetProducerId]) {
-      if (isAwaitingReply(match, producerId)) {
-        counts[producerId] = (counts[producerId] ?? 0) + 1;
-      }
-    }
-  }
+const EMPTY_SUMMARY: ProducerTradeSummary = {
+  awaitingReply: 0,
+  toCoordinate: 0,
+  toConfirm: 0,
+  completed: 0,
+};
 
-  return counts;
+/**
+ * Whether this producer has already confirmed receiving the trade, which is
+ * what turns "waiting for delivery" into "done" once both sides do it.
+ */
+function hasConfirmedOwnDelivery(
+  match: Pick<TradeMatch, "requesterId" | "deliveryConfirmation">,
+  producerId: string,
+): boolean {
+  return match.requesterId === producerId
+    ? match.deliveryConfirmation.confirmedByRequester
+    : match.deliveryConfirmation.confirmedByTarget;
 }
 
 /**
- * How many trades each producer has actually completed, keyed by producer id.
+ * Per-producer counts of what is outstanding and what is done, keyed by
+ * producer id. A producer with nothing to report is absent from the map rather
+ * than mapped to zeros, so a caller renders badges only when there is something
+ * to say.
  *
- * Only `COMPLETED` counts: `ACCEPTED` and `WAITING_DELIVERY` can still be
- * cancelled or never delivered, so treating them as done would put a number on
- * a producer that overstates what happened. Both parties of a completed trade
- * get the credit, and a producer with none is absent from the map rather than
- * mapped to zero.
+ * Only `COMPLETED` counts as a trade that happened: `ACCEPTED` and
+ * `WAITING_DELIVERY` can still be cancelled or never delivered.
  */
-export function countCompletedTrades(
-  matches: Pick<TradeMatch, "requesterId" | "targetProducerId" | "status">[],
-): Record<string, number> {
-  const counts: Record<string, number> = {};
+export function summarizeProducerTrades(
+  matches: Pick<
+    TradeMatch,
+    "requesterId" | "targetProducerId" | "status" | "deliveryConfirmation"
+  >[],
+): Record<string, ProducerTradeSummary> {
+  const summaries: Record<string, ProducerTradeSummary> = {};
+
+  const summaryFor = (producerId: string): ProducerTradeSummary =>
+    summaries[producerId] ?? { ...EMPTY_SUMMARY };
 
   for (const match of matches) {
-    if (match.status !== "COMPLETED") continue;
-
     for (const producerId of [match.requesterId, match.targetProducerId]) {
-      counts[producerId] = (counts[producerId] ?? 0) + 1;
+      const summary = summaryFor(producerId);
+
+      if (isAwaitingReply(match, producerId)) {
+        summary.awaitingReply += 1;
+      }
+
+      if (match.status === "ACCEPTED") {
+        summary.toCoordinate += 1;
+      }
+
+      if (
+        match.status === "WAITING_DELIVERY" &&
+        !hasConfirmedOwnDelivery(match, producerId)
+      ) {
+        summary.toConfirm += 1;
+      }
+
+      if (match.status === "COMPLETED") {
+        summary.completed += 1;
+      }
+
+      summaries[producerId] = summary;
     }
   }
 
-  return counts;
+  // A party that has nothing outstanding and nothing done is not worth a row in
+  // the map: keeping it would force every caller to distinguish "no entry" from
+  // "zeros", which is the same answer twice.
+  for (const producerId of Object.keys(summaries)) {
+    const summary = summaries[producerId];
+    const total =
+      summary.awaitingReply +
+      summary.toCoordinate +
+      summary.toConfirm +
+      summary.completed;
+
+    if (total === 0) {
+      delete summaries[producerId];
+    }
+  }
+
+  return summaries;
 }

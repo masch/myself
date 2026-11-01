@@ -62,8 +62,16 @@ introduced by a table header of the shape
   `COMPLETED` counts: `ACCEPTED` and `WAITING_DELIVERY` can still be cancelled or never
   delivered, so counting them would put a number on a producer that overstates what happened.
   Both parties of a completed trade get the credit; a producer with none shows no badge. The
-  action badge (amber) sits above the history one (neutral), because what a producer owes
-  matters more than what it has already done.
+  action badge (amber) sits above the history one, because what a producer owes matters more
+  than what it has already done.
+- **S9** — The row answers **what is missing**, not only who owes an answer: one chip per stage,
+  ordered by urgency and rendered only when it applies — `N por responder` (warning, the FSM
+  offers this producer an action), `N por coordinar entrega` (`ACCEPTED`: agreed, handoff still
+  to arrange), `N por confirmar llegada` (`WAITING_DELIVERY` and this producer has not confirmed
+  its own receipt), `N trueques` (success, `COMPLETED`). They are `md` chips rather than small
+  grey badges, because a count nobody notices is a count that does not exist, and each stage has
+  its own colour so the four can be told apart at a glance. All of them come from one pass over
+  the matches (`summarizeProducerTrades`), not one filter per question.
 
 ## Tasks
 
@@ -111,7 +119,7 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   and the re-anchored token assertions.
 
 - **Completion & Delivery**: Feature complete on branch `feat/primavera-2026-producer-catalog` as
-  thirteen work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
+  fourteen work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
   (`POC_DEFAULT_PHONE`), `c7be4eb` (the 158-producer catalog and its pins), `6a67bc2` (the
   searchable identity selector plus the three E2E specs it invalidated), `edb0950` (this
   document's evidence and closure), `1b31b7d` (finding R3-001 of lineage
@@ -308,3 +316,16 @@ found`. The observable proof is a new E2E (`barter-selector-awaiting-reply.spec.
   the row is visible before asserting its badge is absent, re-run green (2.0s). R2-002, the
   concatenated `accessibilityLabel`, is left as recorded follow-up: the label is correct and
   tested, and rewriting it into a helper is cosmetic.
+- L14 (2026-10-17) — Requirement change, verbatim: _"podemos hacerlo más visible como un chip?
+  tambien se podria mostrar un chip de match y que falta el trueque/coordinar entrega?"_. S9 is
+  added above. The two counters from L11/L12 became one pass, `summarizeProducerTrades`, because
+  three filters over the same list drift apart the moment a status is added; `countMatchesAwaiting`
+  and `countCompletedTrades` are gone with it. Each stage got its own chip and colour, and the
+  completed count left the dim `neutral` badge for a `success` chip: that was the user's actual
+  complaint. The seven unit cases were rewritten for the summary and two implementation bugs fell
+  out of them, both fixed in the code and not in the test: the first version left zero-filled
+  entries in the map while its own doc said a producer with nothing is absent, and a caller
+  reading `.toConfirm` on a producer that had already confirmed therefore hit an undefined entry.
+  The E2E grew the two intermediate stages by seeding an `ACCEPTED` and a `WAITING_DELIVERY`
+  match where only the target has not confirmed, and the spec was renamed
+  (`barter-selector-trade-chips.spec.ts`) because "completed trades" no longer described it.

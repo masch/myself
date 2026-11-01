@@ -2,11 +2,10 @@ import { describe, expect, it } from "bun:test";
 import type { ProductPackage, TradeMatch } from "@myself/shared";
 import { SEED_PACKAGES, SEED_PRODUCERS } from "../../barter-store";
 import {
-  countCompletedTrades,
-  countMatchesAwaitingReply,
   getCounterOfferCandidates,
   getMatchActionAvailability,
   getTradeRole,
+  summarizeProducerTrades,
 } from "../../inbox-utils";
 
 const [requester, target, outsider] = SEED_PRODUCERS;
@@ -149,96 +148,82 @@ describe("Barter Inbox: counter-offer candidates", () => {
   });
 });
 
-describe("Barter inbox: who still has to answer", () => {
-  it("counts a pending proposal for its target and not for its requester", () => {
-    const counts = countMatchesAwaitingReply([buildMatch({})]);
+describe("Barter inbox: what each producer still has on its plate", () => {
+  it("counts a proposal as an answer owed by the target only", () => {
+    const summary = summarizeProducerTrades([buildMatch({})]);
 
-    expect(counts[target.id]).toBe(1);
-    expect(counts[requester.id]).toBeUndefined();
+    expect(summary[target.id].awaitingReply).toBe(1);
+    expect(summary[requester.id]).toBeUndefined();
   });
 
-  it("counts a counter-offer for the requester who has to answer it", () => {
-    const counts = countMatchesAwaitingReply([
+  it("counts a counter-offer as an answer owed by the requester", () => {
+    const summary = summarizeProducerTrades([
       buildMatch({ status: "COUNTER_OFFERED" }),
     ]);
 
-    expect(counts[requester.id]).toBe(1);
-    expect(counts[target.id]).toBeUndefined();
+    expect(summary[requester.id].awaitingReply).toBe(1);
+    expect(summary[target.id]).toBeUndefined();
   });
 
-  it("adds both directions for the same producer", () => {
-    const counts = countMatchesAwaitingReply([
-      buildMatch({ id: "m-1" }),
-      buildMatch({ id: "m-2", status: "COUNTER_OFFERED" }),
-      buildMatch({ id: "m-3" }),
+  it("counts an accepted trade as coordination owed by both sides", () => {
+    const summary = summarizeProducerTrades([
+      buildMatch({ status: "ACCEPTED" }),
     ]);
 
-    expect(counts[target.id]).toBe(2);
-    expect(counts[requester.id]).toBe(1);
+    expect(summary[requester.id].toCoordinate).toBe(1);
+    expect(summary[target.id].toCoordinate).toBe(1);
+    expect(summary[requester.id].awaitingReply).toBe(0);
   });
 
-  it("counts nothing once a match leaves the answerable statuses", () => {
-    // Agreed, delivered, or dead: nobody owes an answer in any of these.
+  it("counts a delivery confirmation only for the side that has not given it", () => {
+    const waitingOnTarget = buildMatch({
+      status: "WAITING_DELIVERY",
+      deliveryConfirmation: {
+        confirmedByRequester: true,
+        confirmedByTarget: false,
+      },
+    });
+
+    const summary = summarizeProducerTrades([waitingOnTarget]);
+
+    expect(summary[target.id].toConfirm).toBe(1);
+    // The requester already confirmed, so it has nothing outstanding at all and
+    // no entry — the map only carries producers with something to say.
+    expect(summary[requester.id]).toBeUndefined();
+  });
+
+  it("counts a completed trade for both parties and nothing else", () => {
+    const summary = summarizeProducerTrades([
+      buildMatch({ status: "COMPLETED" }),
+    ]);
+
+    expect(summary[requester.id]).toEqual({
+      awaitingReply: 0,
+      toCoordinate: 0,
+      toConfirm: 0,
+      completed: 1,
+    });
+    expect(summary[target.id].completed).toBe(1);
+  });
+
+  it("counts nothing for a trade that died before delivery", () => {
     for (const status of [
-      "ACCEPTED",
-      "WAITING_DELIVERY",
-      "COMPLETED",
       "REJECTED",
       "EXPIRED",
       "CANCELLED_INSUFFICIENT_STOCK",
       "CANCELLED_BY_PRODUCER",
     ] as const) {
-      expect(countMatchesAwaitingReply([buildMatch({ status })])).toEqual({});
-    }
-  });
-
-  it("never counts a producer that is not a party to the match", () => {
-    const counts = countMatchesAwaitingReply([buildMatch({})]);
-
-    expect(counts[outsider.id]).toBeUndefined();
-    expect(Object.keys(counts)).toHaveLength(1);
-  });
-});
-
-describe("Barter inbox: completed trades per producer", () => {
-  it("counts a completed trade for both parties", () => {
-    const counts = countCompletedTrades([buildMatch({ status: "COMPLETED" })]);
-
-    expect(counts[requester.id]).toBe(1);
-    expect(counts[target.id]).toBe(1);
-  });
-
-  it("adds up every completed trade a producer was part of", () => {
-    const counts = countCompletedTrades([
-      buildMatch({ id: "m-1", status: "COMPLETED" }),
-      buildMatch({ id: "m-2", status: "COMPLETED" }),
-      buildMatch({ id: "m-3", status: "COMPLETED" }),
-    ]);
-
-    expect(counts[requester.id]).toBe(3);
-    expect(counts[target.id]).toBe(3);
-  });
-
-  it("does not count a trade that has not been delivered and confirmed", () => {
-    // Agreed or waiting for delivery can still fall apart: only COMPLETED is a
-    // trade that happened.
-    for (const status of [
-      "PENDING",
-      "COUNTER_OFFERED",
-      "ACCEPTED",
-      "WAITING_DELIVERY",
-      "REJECTED",
-      "EXPIRED",
-      "CANCELLED_INSUFFICIENT_STOCK",
-      "CANCELLED_BY_PRODUCER",
-    ] as const) {
-      expect(countCompletedTrades([buildMatch({ status })])).toEqual({});
+      expect(summarizeProducerTrades([buildMatch({ status })])).toEqual({});
     }
   });
 
   it("never counts a producer that is not a party to the trade", () => {
-    const counts = countCompletedTrades([buildMatch({ status: "COMPLETED" })]);
+    const summary = summarizeProducerTrades([
+      buildMatch({ status: "ACCEPTED" }),
+      buildMatch({ id: "m-2", status: "COMPLETED" }),
+    ]);
 
-    expect(counts[outsider.id]).toBeUndefined();
+    expect(summary[outsider.id]).toBeUndefined();
+    expect(Object.keys(summary)).toHaveLength(2);
   });
 });

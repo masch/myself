@@ -8,13 +8,12 @@ const iso = (offsetHours: number) =>
   new Date(now.getTime() + offsetHours * 3600 * 1000).toISOString();
 
 /**
- * A trade only counts as done once both parties confirmed delivery, so the
- * seeded state carries one COMPLETED match and one that is merely accepted —
- * the second one must not show up in the selector.
+ * Each row says what that producer still has on its plate, stage by stage: an
+ * answer owed, a delivery to coordinate, a receipt to confirm, and the trades
+ * that actually happened. A trade only counts as done once both parties
+ * confirmed delivery, so a merely accepted one must not become a completed one.
  */
-test("the selector shows how many trades each producer has completed", async ({
-  page,
-}) => {
+test("the selector shows each producer's trade chips", async ({ page }) => {
   test.setTimeout(120000);
 
   const baseMatch = {
@@ -58,10 +57,21 @@ test("the selector shows how many trades each producer has completed", async ({
             ...baseMatch,
             id: "match-only-accepted",
             requesterId: "naturaleza-viva",
-            targetProducerId: "sabado",
+            targetProducerId: "granja-nova",
             status: "ACCEPTED",
             deliveryConfirmation: {
               confirmedByRequester: false,
+              confirmedByTarget: false,
+            },
+          },
+          {
+            ...baseMatch,
+            id: "match-waiting-on-target",
+            requesterId: "granja-nova",
+            targetProducerId: "campo-claro",
+            status: "WAITING_DELIVERY",
+            deliveryConfirmation: {
+              confirmedByRequester: true,
               confirmedByTarget: false,
             },
           },
@@ -89,6 +99,21 @@ test("the selector shows how many trades each producer has completed", async ({
   await page.getByTestId("producer-search-input").fill("vermut");
   await expect(page.getByTestId("producer-completed-trades-sabado")).toHaveText(
     "2 trueques",
+  );
+
+  // The stages in between are chips of their own: an agreed trade is not a
+  // completed one, and a delivery waiting on this producer is its own to-do.
+  await page.getByTestId("producer-search-input").fill("granja nova");
+  await expect(
+    page.getByTestId("producer-to-coordinate-granja-nova"),
+  ).toHaveText("1 por coordinar entrega");
+  await expect(
+    page.getByTestId("producer-completed-trades-granja-nova"),
+  ).toHaveCount(0);
+
+  await page.getByTestId("producer-search-input").fill("campo claro");
+  await expect(page.getByTestId("producer-to-confirm-campo-claro")).toHaveText(
+    "1 por confirmar llegada",
   );
 
   // A producer with no completed trade shows nothing at all.

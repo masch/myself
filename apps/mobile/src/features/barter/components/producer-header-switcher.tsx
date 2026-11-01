@@ -22,8 +22,8 @@ import {
 import type { Producer, TradeMatch } from "@myself/shared";
 import { buildProducerLink } from "../barter-store";
 import {
-  countCompletedTrades,
-  countMatchesAwaitingReply,
+  summarizeProducerTrades,
+  type ProducerTradeSummary,
 } from "../inbox-utils";
 
 interface ProducerHeaderSwitcherProps {
@@ -50,6 +50,36 @@ function foldForSearch(value: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+/** "1 por responder" / "2 trueques": the count prefixes the stage it counts. */
+function chipLabel(count: number, singular: string, plural = singular): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+/**
+ * The same facts as a sentence, for the row's accessibility label: a badge is
+ * invisible to a screen reader, so the count has to be said out loud.
+ */
+function describeTradeSummary(summary: ProducerTradeSummary): string {
+  const parts: string[] = [];
+
+  if (summary.awaitingReply > 0) {
+    parts.push(`${summary.awaitingReply} sin responder`);
+  }
+  if (summary.toCoordinate > 0) {
+    parts.push(`${summary.toCoordinate} por coordinar entrega`);
+  }
+  if (summary.toConfirm > 0) {
+    parts.push(`${summary.toConfirm} por confirmar llegada`);
+  }
+  if (summary.completed > 0) {
+    parts.push(
+      chipLabel(summary.completed, "trueque hecho", "trueques hechos"),
+    );
+  }
+
+  return parts.join(", ");
 }
 
 /**
@@ -97,13 +127,8 @@ export function ProducerHeaderSwitcher({
     [producers, query],
   );
 
-  const awaitingReply = useMemo(
-    () => countMatchesAwaitingReply(matches ?? []),
-    [matches],
-  );
-
-  const completedTrades = useMemo(
-    () => countCompletedTrades(matches ?? []),
+  const tradeSummaries = useMemo(
+    () => summarizeProducerTrades(matches ?? []),
     [matches],
   );
 
@@ -135,17 +160,16 @@ export function ProducerHeaderSwitcher({
 
   const renderProducerRow = ({ item: producer }: { item: Producer }) => {
     const isActive = producer.id === activeProducer?.id;
-    const waiting = awaitingReply[producer.id] ?? 0;
-    const completed = completedTrades[producer.id] ?? 0;
+    const summary = tradeSummaries[producer.id];
 
     return (
       <View style={styles.selectorRowWrapper}>
         <Pressable
           accessibilityRole="radio"
           accessibilityState={{ checked: isActive }}
-          accessibilityLabel={`${producer.name}, ${producer.address}, ${producer.productionType}${
-            waiting > 0 ? `, ${waiting} sin responder` : ""
-          }${completed > 0 ? `, ${completed} trueques hechos` : ""}`}
+          accessibilityLabel={`${producer.name}, ${producer.address}, ${
+            producer.productionType
+          }${summary ? `, ${describeTradeSummary(summary)}` : ""}`}
           onPress={() => handleSelectProducer(producer.id)}
           testID={`producer-option-${producer.id}`}
           style={[styles.selectorRow, isActive && styles.selectorRowActive]}
@@ -163,30 +187,45 @@ export function ProducerHeaderSwitcher({
               size="sm"
               style={styles.selectorTypeBadge}
             />
-            {/* Answering a proposal is the reason to switch identity, so the
-                list says who is waiting instead of making the operator check. */}
-            {waiting > 0 && (
-              <Badge
-                label={
-                  waiting === 1 ? "1 por responder" : `${waiting} por responder`
-                }
-                variant="warning"
-                size="sm"
-                style={styles.selectorTypeBadge}
-                testID={`producer-awaiting-reply-${producer.id}`}
-              />
-            )}
-            {/* History stays quiet and below the actionable badge: what a
-                producer owes comes first, what it has already done second. */}
-            {completed > 0 && (
-              <Badge
-                label={completed === 1 ? "1 trueque" : `${completed} trueques`}
-                variant="neutral"
-                size="sm"
-                style={styles.selectorTypeBadge}
-                testID={`producer-completed-trades-${producer.id}`}
-              />
-            )}
+            {/* What this producer still owes, then what it has done. Ordered by
+                urgency, and only rendered when there is something to say. */}
+            <View style={styles.selectorChips}>
+              {summary?.awaitingReply ? (
+                <Badge
+                  label={chipLabel(summary.awaitingReply, "por responder")}
+                  variant="warning"
+                  size="md"
+                  testID={`producer-awaiting-reply-${producer.id}`}
+                />
+              ) : null}
+              {summary?.toCoordinate ? (
+                <Badge
+                  label={chipLabel(
+                    summary.toCoordinate,
+                    "por coordinar entrega",
+                  )}
+                  variant="primary"
+                  size="md"
+                  testID={`producer-to-coordinate-${producer.id}`}
+                />
+              ) : null}
+              {summary?.toConfirm ? (
+                <Badge
+                  label={chipLabel(summary.toConfirm, "por confirmar llegada")}
+                  variant="purple"
+                  size="md"
+                  testID={`producer-to-confirm-${producer.id}`}
+                />
+              ) : null}
+              {summary?.completed ? (
+                <Badge
+                  label={chipLabel(summary.completed, "trueque", "trueques")}
+                  variant="success"
+                  size="md"
+                  testID={`producer-completed-trades-${producer.id}`}
+                />
+              ) : null}
+            </View>
           </View>
 
           {isActive && (
@@ -463,6 +502,12 @@ const styles = StyleSheet.create({
   },
   selectorTypeBadge: {
     alignSelf: "flex-start",
+  },
+  selectorChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: spacing.xs,
   },
   activeFlag: {
     color: colors.systemGreen,
