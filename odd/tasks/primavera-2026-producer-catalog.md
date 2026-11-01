@@ -132,7 +132,7 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   and the re-anchored token assertions.
 
 - **Completion & Delivery**: Feature complete on branch `feat/primavera-2026-producer-catalog` as
-  sixteen work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
+  seventeen work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
   (`POC_DEFAULT_PHONE`), `c7be4eb` (the 158-producer catalog and its pins), `6a67bc2` (the
   searchable identity selector plus the three E2E specs it invalidated), `edb0950` (this
   document's evidence and closure), `1b31b7d` (finding R3-001 of lineage
@@ -151,7 +151,10 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   the last approved tree) reviewed the accumulated delta — the dropped producer plus the two
   selector badges — and was **approved** on the first pass with no correction; its three findings
   are advisory (R2-001 and R3-001 on the same E2E assertion, R2-002 on the row's
-  accessibilityLabel). Push and pull request remain the user's decision.
+  accessibilityLabel). A third lineage (`review-c0b0faec0697a034`, 20 files / 1.022 lines against
+  the same approved base) covered the stage chips, the action filter and the production-type
+  labels: **approved**, with one CRITICAL finding **refuted by the provider's refuter** and six
+  advisory findings. Push and pull request remain the user's decision.
 
 ## Log
 
@@ -366,3 +369,16 @@ found`. The observable proof is a new E2E (`barter-selector-awaiting-reply.spec.
   collide, an E2E anchored to the row that owns the text (`Chacra Monteflore` contains
   `Agroecológico`) plus an app-wide `AGROECOLOGICAL` count of zero — and that E2E bites: reverting
   the row to the enum fails with `Received string: "Chacra Monteflore📍 Santa FeAGROECOLOGICAL"`.
+- L17 (2026-10-17) — Third review, on the delta of the stage chips, the action filter and the
+  type labels (the user chose _"Revisá el delta nuevo"_ after `assess` reported
+  `reviewDue: false`). Lineage `review-c0b0faec0697a034`, 20 files / 1.022 lines against the
+  approved base, tier `medium`, three lenses, group capture clean: **approved**. The provider
+  asked for a refuter, and that step earned its keep: a **CRITICAL** reliability claim on
+  `barter-store.ts:36` (`SEED_PRODUCERS` sharing the catalog array) came back **refuted**, so
+  nothing opened a correction. The other six are advisory: R2-001/R3-002 on the row's built
+  `accessibilityLabel`, R2-002/R3-003 on the empty-state branching, R2-003 on the filter's
+  `TYPE_OPTIONS` derivation, R2-004 on `SEED_PACKAGES`. Follow-up worth keeping in view even
+  though it was refuted: `SEED_PRODUCERS` is the same array instance as
+  `PRIMAVERA_2026_PRODUCERS`, which is safe today because the store never mutates the producer
+  list (it mutates packages and matches, always through new arrays) — a `[...]` copy would remove
+  the sharp edge for a future caller, and is deliberately not smuggled into this change.
