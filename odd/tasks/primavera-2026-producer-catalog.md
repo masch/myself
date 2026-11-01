@@ -155,7 +155,12 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   accessibilityLabel). A third lineage (`review-c0b0faec0697a034`, 20 files / 1.022 lines against
   the same approved base) covered the stage chips, the action filter and the production-type
   labels: **approved**, with one CRITICAL finding **refuted by the provider's refuter** and six
-  advisory findings. Push and pull request remain the user's decision.
+  advisory findings. Delivered as issue **#104** (`feat(barter): seed the 158 printed Primavera
+2026 producers`, label `enhancement`) and pull request **#105** against `main`, which closes it.
+  The PR carries CI: unit + static analysis + CodeQL + Playwright E2E green; the merge gate is
+  the repository's human broccoli comment. CodeRabbit's three review comments were addressed in
+  `deddf6b` (see L18), and its `CHANGES_REQUESTED` review state is the bot's to lift on
+  re-review.
 
 ## Log
 
@@ -411,3 +416,12 @@ found`. The observable proof is a new E2E (`barter-selector-awaiting-reply.spec.
   the row's `aria-label`; it bites, and the first mutation attempt silently failed to apply, which
   is why the pin was re-checked with `Received string: "Chacra Monteflore, Santa Fe,
 AGROECOLOGICAL"`.
+- L19 (2026-10-17) — Closing the loop before merge, on _"arreglamos todo entonces?"_. Two of the
+  outstanding items were mine and are now closed: `SEED_PRODUCERS` is a **copy** of
+  `PRIMAVERA_2026_PRODUCERS` instead of the same array instance (the follow-up the third review's
+  refuted CRITICAL pointed at, and the last item of my own list), pinned by an identity assertion
+  that fails without the spread; and the review comments from L18 are in `deddf6b`. The two items
+  that are **not** mine, stated plainly rather than worked around: the merge gate needs a fresh
+  human broccoli comment _after_ the last push (the gate resets on every push by design, and the
+  workflow never writes the signal itself), and CodeRabbit's `CHANGES_REQUESTED` state is lifted
+  by the bot on re-review, not by the author marking it resolved.

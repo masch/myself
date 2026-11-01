@@ -5,6 +5,7 @@ import {
   SEED_PRODUCERS,
   mergeCatalogProducers,
 } from "../barter-store";
+import { PRIMAVERA_2026_PRODUCERS } from "../producer-catalog";
 
 /**
  * A state persisted by a build with a shorter catalog must never hide the
@@ -79,5 +80,14 @@ describe("mergeCatalogProducers", () => {
     expect(only.name).toBe(curated.name);
     // The stale coordinates lose to the curated entry, not the other way round.
     expect(only.latitude).toBe(curated.latitude);
+  });
+});
+
+describe("Seeded producers", () => {
+  it("seeds a copy, not the catalog constant itself", () => {
+    // The seeded list is what a store mutates; the catalog is what the
+    // transcription pins. Sharing one array let a caller change both.
+    expect(SEED_PRODUCERS).not.toBe(PRIMAVERA_2026_PRODUCERS);
+    expect(SEED_PRODUCERS).toEqual([...PRIMAVERA_2026_PRODUCERS]);
   });
 });

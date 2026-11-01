@@ -32,8 +32,12 @@ export const PRODUCER_IDS = {
 /**
  * The printed catalog and nothing else: every producer the app seeds is one the
  * Primavera 2026 catalog prints.
+ *
+ * A copy, not the catalog's own array: the two constants answer different
+ * questions and a caller that mutates the seeded list must not reach into the
+ * catalog the transcription pins.
  */
-export const SEED_PRODUCERS: Producer[] = PRIMAVERA_2026_PRODUCERS;
+export const SEED_PRODUCERS: Producer[] = [...PRIMAVERA_2026_PRODUCERS];
 
 export const SEED_PACKAGES: ProductPackage[] = [
   {
