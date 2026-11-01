@@ -150,6 +150,31 @@ export function migrateProducerId(producerId: string): string {
 }
 
 /**
+ * Producers this store runs with.
+ *
+ * The printed catalog is always the base, and a producer a persisted state
+ * carries on top of it is appended instead of replacing it. Without that, a
+ * state written by a build with a shorter catalog pins its own list forever and
+ * the catalog this build ships never reaches those installs. The catalog wins on
+ * a shared id, because its entry is the curated one, and the appended extras keep
+ * whatever stored package or match already points at them alive.
+ */
+export function mergeCatalogProducers(persisted?: Producer[]): Producer[] {
+  if (!persisted?.length) {
+    return SEED_PRODUCERS;
+  }
+
+  const catalogIds = new Set(SEED_PRODUCERS.map((producer) => producer.id));
+  const onlyPersisted = persisted.filter(
+    (producer) => !catalogIds.has(producer.id),
+  );
+
+  return onlyPersisted.length === 0
+    ? SEED_PRODUCERS
+    : [...SEED_PRODUCERS, ...onlyPersisted];
+}
+
+/**
  * Rewrites the producer ids inside a state written by a previous build.
  *
  * Every stored package and match carries a producer id, and a persisted state
@@ -369,9 +394,10 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     }
   }
 
-  // Producers this store runs with: explicit options win over persisted state.
+  // Producers this store runs with: explicit options win, and a persisted list is
+  // merged into the catalog instead of replacing it.
   const producers =
-    options.initialProducers ?? persistedState.producers ?? SEED_PRODUCERS;
+    options.initialProducers ?? mergeCatalogProducers(persistedState.producers);
 
   // Initial producer resolution from query params (?producerId=...)
   // The default identity is pinned to the producer the app has always opened
