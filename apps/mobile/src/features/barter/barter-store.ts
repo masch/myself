@@ -10,6 +10,7 @@ import {
   type ProductPackage,
   type TradeMatch,
 } from "@myself/shared";
+import { PRIMAVERA_2026_PRODUCERS } from "./producer-catalog";
 
 /**
  * Canonical producer ids.
@@ -26,38 +27,17 @@ import {
 export const PRODUCER_IDS = {
   VERMUT: "sabado",
   QUESO: "naturaleza-viva",
-  MIEL: "colmenas-del-sol",
 } as const;
 
-export const SEED_PRODUCERS: Producer[] = [
-  {
-    id: PRODUCER_IDS.VERMUT,
-    name: "Vermut Sabado",
-    productionType: "AGROECOLOGICAL",
-    address: "Chacra Alimento, Umepay",
-    latitude: -32.9982,
-    longitude: -68.8789,
-    phone: "+5492615551234",
-  },
-  {
-    id: PRODUCER_IDS.QUESO,
-    name: "Naturaleza Viva",
-    productionType: "ORGANIC",
-    address: "Guadalupe Norte, Santa Fe",
-    latitude: -28.9876,
-    longitude: -59.6543,
-    phone: "+5493482555678",
-  },
-  {
-    id: PRODUCER_IDS.MIEL,
-    name: "Colmenas del Sol",
-    productionType: "AGROECOLOGICAL",
-    address: "Villa Las Rosas, Traslasierra, Córdoba",
-    latitude: -31.9542,
-    longitude: -65.0456,
-    phone: "+5493544555999",
-  },
-];
+/**
+ * The printed catalog and nothing else: every producer the app seeds is one the
+ * Primavera 2026 catalog prints.
+ *
+ * A copy, not the catalog's own array: the two constants answer different
+ * questions and a caller that mutates the seeded list must not reach into the
+ * catalog the transcription pins.
+ */
+export const SEED_PRODUCERS: Producer[] = [...PRIMAVERA_2026_PRODUCERS];
 
 export const SEED_PACKAGES: ProductPackage[] = [
   {
@@ -95,15 +75,6 @@ export const SEED_PACKAGES: ProductPackage[] = [
     priceArs: 50000,
     papValue: 1,
     stockUnits: 3,
-  },
-  {
-    id: "pkg-miel-1kg",
-    producerId: PRODUCER_IDS.MIEL,
-    title: "Caja 3 Frascos Polen & Jalea Real",
-    productionType: "AGROECOLOGICAL",
-    priceArs: 50000,
-    papValue: 1,
-    stockUnits: 5,
   },
 ];
 
@@ -146,12 +117,40 @@ function normalizeProducerReference(value: string): string {
 const RENAMED_PRODUCER_IDS: Record<string, string> = {
   "prod-vermut": PRODUCER_IDS.VERMUT,
   "prod-queso": PRODUCER_IDS.QUESO,
-  "prod-miel": PRODUCER_IDS.MIEL,
+  // The destination is a producer this build no longer ships, so a link or a
+  // stored state naming it resolves to nothing and falls back to the default
+  // identity instead of dangling on an unknown id.
+  "prod-miel": "colmenas-del-sol",
 };
 
 /** Translates the former id of a renamed producer to its current value. */
 export function migrateProducerId(producerId: string): string {
   return RENAMED_PRODUCER_IDS[producerId] ?? producerId;
+}
+
+/**
+ * Producers this store runs with.
+ *
+ * The printed catalog is always the base, and a producer a persisted state
+ * carries on top of it is appended instead of replacing it. Without that, a
+ * state written by a build with a shorter catalog pins its own list forever and
+ * the catalog this build ships never reaches those installs. The catalog wins on
+ * a shared id, because its entry is the curated one, and the appended extras keep
+ * whatever stored package or match already points at them alive.
+ */
+export function mergeCatalogProducers(persisted?: Producer[]): Producer[] {
+  if (!persisted?.length) {
+    return SEED_PRODUCERS;
+  }
+
+  const catalogIds = new Set(SEED_PRODUCERS.map((producer) => producer.id));
+  const onlyPersisted = persisted.filter(
+    (producer) => !catalogIds.has(producer.id),
+  );
+
+  return onlyPersisted.length === 0
+    ? SEED_PRODUCERS
+    : [...SEED_PRODUCERS, ...onlyPersisted];
 }
 
 /**
@@ -374,12 +373,23 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     }
   }
 
-  // Producers this store runs with: explicit options win over persisted state.
+  // Producers this store runs with: explicit options win, and a persisted list is
+  // merged into the catalog instead of replacing it.
   const producers =
-    options.initialProducers ?? persistedState.producers ?? SEED_PRODUCERS;
+    options.initialProducers ?? mergeCatalogProducers(persistedState.producers);
 
   // Initial producer resolution from query params (?producerId=...)
-  let initialActiveId = options.defaultActiveProducerId ?? SEED_PRODUCERS[0].id;
+  // The default identity is pinned to the producer the app has always opened as,
+  // so growing the seed list never silently changes who the screen starts as —
+  // but only while that producer is actually in the list: an injected producer set
+  // that omits it would otherwise start the store pointing at nobody.
+  const defaultActiveId = producers.some(
+    (producer) => producer.id === PRODUCER_IDS.VERMUT,
+  )
+    ? PRODUCER_IDS.VERMUT
+    : producers[0]?.id;
+
+  let initialActiveId = options.defaultActiveProducerId ?? defaultActiveId;
   if (isWeb && typeof window.location !== "undefined") {
     try {
       const params = new URLSearchParams(window.location.search);

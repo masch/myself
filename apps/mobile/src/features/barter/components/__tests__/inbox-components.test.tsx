@@ -5,15 +5,17 @@ import {
   getCounterOfferCandidates,
   getMatchActionAvailability,
   getTradeRole,
+  hasPendingActions,
+  summarizeProducerTrades,
 } from "../../inbox-utils";
 
-const [vermut, queso, miel] = SEED_PRODUCERS;
+const [requester, target, outsider] = SEED_PRODUCERS;
 
 function buildMatch(overrides: Partial<TradeMatch>): TradeMatch {
   return {
     id: "match-test",
-    requesterId: vermut.id,
-    targetProducerId: queso.id,
+    requesterId: requester.id,
+    targetProducerId: target.id,
     offeredPackageId: "pkg-vermut-pack4",
     targetPackageId: "pkg-queso-gouda",
     papSnapshotArs: 50000,
@@ -33,17 +35,17 @@ function buildMatch(overrides: Partial<TradeMatch>): TradeMatch {
 describe("Barter Inbox: role resolution", () => {
   it("resolves the active producer as target of an incoming match", () => {
     const match = buildMatch({});
-    expect(getTradeRole(match, queso.id)).toBe("target");
+    expect(getTradeRole(match, target.id)).toBe("target");
   });
 
   it("resolves the active producer as requester of an outgoing match", () => {
     const match = buildMatch({});
-    expect(getTradeRole(match, vermut.id)).toBe("requester");
+    expect(getTradeRole(match, requester.id)).toBe("requester");
   });
 
   it("returns null when the active producer is not a party", () => {
     const match = buildMatch({});
-    expect(getTradeRole(match, miel.id)).toBeNull();
+    expect(getTradeRole(match, outsider.id)).toBeNull();
   });
 });
 
@@ -137,11 +139,130 @@ describe("Barter Inbox: counter-offer candidates", () => {
     expect(candidates.some((p) => p.id === "pkg-vermut-miel")).toBe(false);
   });
 
-  it("returns empty when the requester has no alternative packages", () => {
-    const match = buildMatch({ requesterId: miel.id });
-    const packages = SEED_PACKAGES.filter((p) => p.id !== "pkg-miel-1kg");
-    const candidates = getCounterOfferCandidates(packages, match);
+  it("returns empty when the requester ships no alternative packages", () => {
+    // Most of the 158 printed producers ship no package in this seed, so a
+    // counter-offer has nothing to offer.
+    const match = buildMatch({ requesterId: outsider.id });
+    const candidates = getCounterOfferCandidates(SEED_PACKAGES, match);
 
     expect(candidates).toEqual([]);
+  });
+});
+
+describe("Barter inbox: what each producer still has on its plate", () => {
+  it("counts a proposal as an answer owed by the target only", () => {
+    const summary = summarizeProducerTrades([buildMatch({})]);
+
+    expect(summary[target.id].awaitingReply).toBe(1);
+    expect(summary[requester.id]).toBeUndefined();
+  });
+
+  it("counts a counter-offer as an answer owed by the requester", () => {
+    const summary = summarizeProducerTrades([
+      buildMatch({ status: "COUNTER_OFFERED" }),
+    ]);
+
+    expect(summary[requester.id].awaitingReply).toBe(1);
+    expect(summary[target.id]).toBeUndefined();
+  });
+
+  it("counts an accepted trade as coordination owed by both sides", () => {
+    const summary = summarizeProducerTrades([
+      buildMatch({ status: "ACCEPTED" }),
+    ]);
+
+    expect(summary[requester.id].toCoordinate).toBe(1);
+    expect(summary[target.id].toCoordinate).toBe(1);
+    expect(summary[requester.id].awaitingReply).toBe(0);
+  });
+
+  it("counts a delivery confirmation only for the side that has not given it", () => {
+    const waitingOnTarget = buildMatch({
+      status: "WAITING_DELIVERY",
+      deliveryConfirmation: {
+        confirmedByRequester: true,
+        confirmedByTarget: false,
+      },
+    });
+
+    const summary = summarizeProducerTrades([waitingOnTarget]);
+
+    expect(summary[target.id].toConfirm).toBe(1);
+    // The requester already confirmed, so it has nothing outstanding at all and
+    // no entry — the map only carries producers with something to say.
+    expect(summary[requester.id]).toBeUndefined();
+  });
+
+  it("counts a completed trade for both parties and nothing else", () => {
+    const summary = summarizeProducerTrades([
+      buildMatch({ status: "COMPLETED" }),
+    ]);
+
+    expect(summary[requester.id]).toEqual({
+      awaitingReply: 0,
+      toCoordinate: 0,
+      toConfirm: 0,
+      completed: 1,
+    });
+    expect(summary[target.id].completed).toBe(1);
+  });
+
+  it("counts nothing for a trade that died before delivery", () => {
+    for (const status of [
+      "REJECTED",
+      "EXPIRED",
+      "CANCELLED_INSUFFICIENT_STOCK",
+      "CANCELLED_BY_PRODUCER",
+    ] as const) {
+      expect(summarizeProducerTrades([buildMatch({ status })])).toEqual({});
+    }
+  });
+
+  it("never counts a producer that is not a party to the trade", () => {
+    const summary = summarizeProducerTrades([
+      buildMatch({ status: "ACCEPTED" }),
+      buildMatch({ id: "m-2", status: "COMPLETED" }),
+    ]);
+
+    expect(summary[outsider.id]).toBeUndefined();
+    expect(Object.keys(summary)).toHaveLength(2);
+  });
+});
+
+describe("Barter inbox: does this producer have something to do?", () => {
+  it("says no when there is no summary at all", () => {
+    // Most of the 158 producers have no trade history and no pending trade.
+    expect(hasPendingActions(undefined)).toBe(false);
+  });
+
+  it("says yes for every stage that still needs this producer", () => {
+    for (const stage of [
+      "awaitingReply",
+      "toCoordinate",
+      "toConfirm",
+    ] as const) {
+      expect(
+        hasPendingActions({
+          awaitingReply: 0,
+          toCoordinate: 0,
+          toConfirm: 0,
+          completed: 0,
+          [stage]: 1,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  it("says no when the only thing left is a finished trade", () => {
+    // History is not an action: a producer with completed trades and nothing
+    // pending has nothing to do.
+    expect(
+      hasPendingActions({
+        awaitingReply: 0,
+        toCoordinate: 0,
+        toConfirm: 0,
+        completed: 3,
+      }),
+    ).toBe(false);
   });
 });

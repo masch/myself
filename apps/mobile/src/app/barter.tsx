@@ -28,6 +28,7 @@ export default function BarterScreen() {
     activeProducerPackages,
     incomingMatches,
     outgoingMatches,
+    matches,
     productionTypeFilter,
     maxDistanceKm,
     setActiveProducer,
@@ -84,6 +85,7 @@ export default function BarterScreen() {
         activeProducer={activeProducer}
         producers={producers}
         papConfigArs={papConfigArs}
+        matches={matches}
         onSelectProducer={setActiveProducer}
         onResetSeed={resetToSeed}
       />

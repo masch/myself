@@ -19,7 +19,7 @@ describe("Barter Store & Concurrency Engine", () => {
       initialProducers: SEED_PRODUCERS,
       initialPackages: SEED_PACKAGES,
       initialMatches: [],
-      defaultActiveProducerId: SEED_PRODUCERS[0].id, // Vermut Sabadao
+      defaultActiveProducerId: PRODUCER_IDS.VERMUT, // Vermut Sabado
       broadcastEnabled: false, // Isolated in unit tests
     });
   });
@@ -43,9 +43,19 @@ describe("Barter Store & Concurrency Engine", () => {
   });
 
   it("calculates geographical distance accurately with Haversine formula", () => {
-    // Mendoza (Vermut) to Santa Fe (Naturaleza Viva) ~ 750-850 km
-    const vermut = SEED_PRODUCERS[0];
-    const queso = SEED_PRODUCERS[1];
+    // Vermut Sabado (Umepay, Calamuchita) to Naturaleza Viva (Guadalupe Norte)
+    // is ~900 km: both producers are selected by id, because the seed list is
+    // the printed catalog and its order is the catalog's, not this test's.
+    const vermut = SEED_PRODUCERS.find(
+      (producer) => producer.id === PRODUCER_IDS.VERMUT,
+    );
+    const queso = SEED_PRODUCERS.find(
+      (producer) => producer.id === PRODUCER_IDS.QUESO,
+    );
+
+    if (!vermut || !queso) {
+      throw new Error("The seeded producers this test measures were not found");
+    }
     const distanceKm = calculateDistanceKm(
       vermut.latitude,
       vermut.longitude,
@@ -122,11 +132,12 @@ describe("Barter Store & Concurrency Engine", () => {
       targetPackageId: "pkg-queso-gouda",
     });
 
-    // Producer C also proposes match 2 for Queso Gouda
+    // A second competing proposal for the same Queso Gouda package, from the
+    // other producer that ships a package in this seed.
     const match2 = store.createTradeProposal({
-      requesterId: PRODUCER_IDS.MIEL,
+      requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-miel-1kg",
+      offeredPackageId: "pkg-vermut-miel",
       targetPackageId: "pkg-queso-gouda",
     });
 
@@ -246,9 +257,18 @@ describe("Producer reference resolution (?producerId=)", () => {
       "naturaleza-viva",
     );
     expect(resolveProducerId(SEED_PRODUCERS, "vermut-sabado")).toBe("sabado");
-    expect(resolveProducerId(SEED_PRODUCERS, "colmenas del sol")).toBe(
-      "colmenas-del-sol",
-    );
+    expect(resolveProducerId(SEED_PRODUCERS, "doña mecha")).toBe("dona-mecha");
+  });
+
+  it("no longer resolves a producer the catalog drops", () => {
+    // Colmenas del Sol shipped before this build and is not printed in the
+    // catalog, so its id and its name resolve to nothing instead of dangling.
+    expect(
+      resolveProducerId(SEED_PRODUCERS, "colmenas del sol"),
+    ).toBeUndefined();
+    expect(
+      resolveProducerId(SEED_PRODUCERS, "colmenas-del-sol"),
+    ).toBeUndefined();
   });
 
   it("returns undefined when the reference matches no producer", () => {
@@ -284,11 +304,14 @@ describe("Renamed producer ids (migration)", () => {
   it("translates a former producer id to its current value", () => {
     expect(migrateProducerId("prod-vermut")).toBe(PRODUCER_IDS.VERMUT);
     expect(migrateProducerId("prod-queso")).toBe(PRODUCER_IDS.QUESO);
+    // Translates to an id this build no longer ships: the alias survives so a
+    // stored state or link written by an older build is readable, and
+    // `resolveProducerId` then reports it as unknown.
     expect(migrateProducerId("prod-miel")).toBe("colmenas-del-sol");
   });
 
   it("leaves a current or unknown id untouched", () => {
-    expect(migrateProducerId(PRODUCER_IDS.MIEL)).toBe(PRODUCER_IDS.MIEL);
+    expect(migrateProducerId(PRODUCER_IDS.VERMUT)).toBe(PRODUCER_IDS.VERMUT);
     expect(migrateProducerId("prod-quinoa")).toBe("prod-quinoa");
   });
 
@@ -335,5 +358,34 @@ describe("Renamed producer ids (migration)", () => {
     expect(resolveProducerId(SEED_PRODUCERS, "prod-vermut")).toBe(
       PRODUCER_IDS.VERMUT,
     );
+  });
+});
+
+describe("Default identity resolution", () => {
+  it("opens as the pinned producer when the list carries it", () => {
+    const store = createBarterStore({
+      initialProducers: SEED_PRODUCERS,
+      initialPackages: SEED_PACKAGES,
+      initialMatches: [],
+      broadcastEnabled: false,
+    });
+
+    expect(store.getState().activeProducerId).toBe(PRODUCER_IDS.VERMUT);
+  });
+
+  it("falls back to the first producer when the list omits the pinned one", () => {
+    // An injected producer set without `sabado` used to leave the store pointing
+    // at a producer that is not there, so the screen had no active identity.
+    const withoutVermut = SEED_PRODUCERS.filter(
+      (producer) => producer.id !== PRODUCER_IDS.VERMUT,
+    );
+    const store = createBarterStore({
+      initialProducers: withoutVermut,
+      initialPackages: SEED_PACKAGES,
+      initialMatches: [],
+      broadcastEnabled: false,
+    });
+
+    expect(store.getState().activeProducerId).toBe(withoutVermut[0].id);
   });
 });

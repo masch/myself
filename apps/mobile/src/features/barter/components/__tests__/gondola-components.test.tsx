@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import { PRODUCTION_TYPES } from "@myself/shared";
 import { SEED_PACKAGES, SEED_PRODUCERS } from "../../barter-store";
+import { TYPE_OPTIONS } from "../gondola-filter-bar";
 
 describe("Barter Gondola Component Logic", () => {
   it("formats PAP conversion badge correctly", () => {
@@ -46,5 +48,13 @@ describe("Barter Gondola Component Logic", () => {
     );
 
     expect(gondola.every((p) => p.producerId !== activeProducerId)).toBe(true);
+  });
+
+  it("offers a gondola filter option for every production type", () => {
+    const offered = TYPE_OPTIONS.map((option) => option.value);
+
+    for (const productionType of PRODUCTION_TYPES) {
+      expect(offered).toContain(productionType);
+    }
   });
 });

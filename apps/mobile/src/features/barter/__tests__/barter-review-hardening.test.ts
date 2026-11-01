@@ -17,6 +17,9 @@ import { getCounterOfferCandidates } from "../inbox-utils";
  * no state, no persisted bytes, no broadcast.
  */
 
+/** A printed producer that is not a party to any match built here. */
+const OUTSIDER_ID = "granja-nova";
+
 let storage: Map<string, string>;
 let writes: number;
 let peers: FakeBroadcastChannel[];
@@ -138,7 +141,7 @@ describe("Barter store: actor & ownership guards", () => {
         requesterId: PRODUCER_IDS.VERMUT,
         targetProducerId: PRODUCER_IDS.QUESO,
         offeredPackageId: "pkg-vermut-pack4",
-        targetPackageId: "pkg-miel-1kg",
+        targetPackageId: "pkg-vermut-miel",
       }),
     ).toThrow("Target package must belong to the target producer");
 
@@ -179,7 +182,7 @@ describe("Barter store: actor & ownership guards", () => {
     expect(() =>
       store.counterOfferTradeMatch({
         matchId: match.id,
-        targetProducerId: PRODUCER_IDS.MIEL,
+        targetProducerId: OUTSIDER_ID,
         counterOfferedPackageId: "pkg-vermut-miel",
       }),
     ).toThrow("Only the target producer of a trade can counter-offer");
@@ -229,7 +232,7 @@ describe("Barter store: actor & ownership guards", () => {
     writes = 0;
     const broadcastsBefore = peer.posted.length;
 
-    expect(() => store.cancelTradeMatch(match.id, PRODUCER_IDS.MIEL)).toThrow(
+    expect(() => store.cancelTradeMatch(match.id, OUTSIDER_ID)).toThrow(
       "Producer not party to this trade",
     );
 
@@ -256,7 +259,7 @@ describe("Barter store: actor & ownership guards", () => {
     writes = 0;
     const broadcastsBefore = peer.posted.length;
 
-    expect(() => store.rejectTradeMatch(match.id, PRODUCER_IDS.MIEL)).toThrow(
+    expect(() => store.rejectTradeMatch(match.id, OUTSIDER_ID)).toThrow(
       "Producer not party to this trade",
     );
 

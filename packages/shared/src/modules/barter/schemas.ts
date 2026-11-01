@@ -5,6 +5,8 @@ export const DEFAULT_PAP_VALUE_ARS = 50000;
 export const PRODUCTION_TYPES = [
   "ORGANIC",
   "AGROECOLOGICAL",
+  "BIODYNAMIC",
+  "VEGAN",
   "CONVENTIONAL",
 ] as const;
 

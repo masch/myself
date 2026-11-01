@@ -3,6 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { Card, ThemedText, AppButton, Badge } from "@/components";
 import { colors, fontWeights, spacing, radius } from "@/theme";
 import type { Producer, ProductPackage } from "@myself/shared";
+import { productionTypeLabel } from "../production-type-labels";
 
 interface ProductPackageCardProps {
   packageItem: ProductPackage & {
@@ -47,7 +48,11 @@ export function ProductPackageCard({
           variant="outline"
           size="sm"
         />
-        <Badge label={packageItem.productionType} variant="outline" size="sm" />
+        <Badge
+          label={productionTypeLabel(packageItem.productionType)}
+          variant="outline"
+          size="sm"
+        />
         <Badge
           label={
             isOutOfStock

@@ -26,6 +26,7 @@ export default function BarterInboxScreen() {
     papConfigArs,
     incomingMatches,
     outgoingMatches,
+    matches,
     setActiveProducer,
     acceptTradeMatch,
     rejectTradeMatch,
@@ -106,6 +107,7 @@ export default function BarterInboxScreen() {
         activeProducer={activeProducer}
         producers={producers}
         papConfigArs={papConfigArs}
+        matches={matches}
         onSelectProducer={setActiveProducer}
         onResetSeed={resetToSeed}
       />

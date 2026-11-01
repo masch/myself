@@ -50,18 +50,19 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
 
     // The operator becomes Naturaleza Viva from the header switcher, without
     // reloading: a reload rebuilds the screen and hides the stale selection.
-    await page
-      .getByRole("button", { name: "Naturaleza Viva", exact: true })
-      .click();
+    // The switcher is a searchable selector because the catalog is 158 long.
+    await page.getByTestId("producer-switch-row").getByRole("button").click();
+    await page.getByTestId("producer-search-input").fill("naturaleza");
+    await page.getByTestId("producer-option-naturaleza-viva").click();
     await expect(page.getByTestId("active-producer-name")).toHaveText(
       "Naturaleza Viva",
     );
 
-    // Second open, now for a package of a third producer: the offers are the
+    // Second open, now for a package of the other producer: the offers are the
     // new producer's two packages, and the first one is preselected again.
     await page
       .getByRole("button", {
-        name: "Pedir match por Caja 3 Frascos Polen & Jalea Real",
+        name: "Pedir match por Pack 4 Botellas Vermut Rosso 750ml",
         exact: true,
       })
       .click();

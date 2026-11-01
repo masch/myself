@@ -23,6 +23,10 @@ test.describe("E2E barter producer link copy", () => {
 
     const origin = new URL(page.url()).origin;
 
+    // The catalog holds 158 producers, so the affordance lives inside the
+    // searchable identity selector instead of in a chip row.
+    await page.getByTestId("producer-switch-row").getByRole("button").click();
+    await page.getByTestId("producer-search-input").fill("naturaleza");
     await page.getByTestId("copy-link-naturaleza-viva").click();
 
     await expect(

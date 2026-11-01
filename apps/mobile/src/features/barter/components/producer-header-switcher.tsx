@@ -1,11 +1,14 @@
-import React from "react";
-import { View, StyleSheet, ScrollView, Platform } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, StyleSheet, FlatList, Pressable, Platform } from "react-native";
 import {
-  Card,
-  ThemedText,
-  ChipButton,
+  AppBottomSheetModal,
+  AppButton,
   Badge,
+  Card,
+  ChipButton,
   IconButton,
+  ThemedText,
+  ThemedTextInput,
   useToast,
 } from "@/components";
 import {
@@ -13,11 +16,17 @@ import {
   fontSizes,
   fontWeights,
   letterSpacings,
-  spacing,
   radius,
+  spacing,
 } from "@/theme";
-import type { Producer } from "@myself/shared";
+import type { Producer, TradeMatch } from "@myself/shared";
 import { buildProducerLink } from "../barter-store";
+import { productionTypeLabel } from "../production-type-labels";
+import {
+  hasPendingActions,
+  summarizeProducerTrades,
+  type ProducerTradeSummary,
+} from "../inbox-utils";
 
 interface ProducerHeaderSwitcherProps {
   activeProducer?: Producer;
@@ -25,6 +34,76 @@ interface ProducerHeaderSwitcherProps {
   papConfigArs: number;
   onSelectProducer: (id: string) => void;
   onResetSeed?: () => void;
+  /**
+   * Every match, not only the active producer's: the selector answers "who still
+   * owes an answer", which is a question about the other producers too.
+   */
+  matches?: TradeMatch[];
+}
+
+/**
+ * Lowercase and accent-folded form of a producer field.
+ *
+ * Searching is how an operator reaches one of 158 producers, and nobody types
+ * the tilde into a search box: "dona mecha" has to find "Doña Mecha".
+ */
+function foldForSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+/** "1 por responder" / "2 trueques": the count prefixes the stage it counts. */
+function chipLabel(count: number, singular: string, plural = singular): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+/**
+ * The same facts as a sentence, for the row's accessibility label: a badge is
+ * invisible to a screen reader, so the count has to be said out loud.
+ */
+function describeTradeSummary(summary: ProducerTradeSummary): string {
+  const parts: string[] = [];
+
+  if (summary.awaitingReply > 0) {
+    parts.push(chipLabel(summary.awaitingReply, "por responder"));
+  }
+  if (summary.toCoordinate > 0) {
+    parts.push(`${summary.toCoordinate} por coordinar entrega`);
+  }
+  if (summary.toConfirm > 0) {
+    parts.push(`${summary.toConfirm} por confirmar llegada`);
+  }
+  if (summary.completed > 0) {
+    parts.push(chipLabel(summary.completed, "trueque", "trueques"));
+  }
+
+  return parts.join(", ");
+}
+
+/**
+ * Matches the query against the producer name and the place it is printed
+ * under, because an operator remembers one or the other ("Doña Mecha" or
+ * "Arroyo Leyes"), and the catalog is far too long to browse.
+ *
+ * Exported so the rule is testable without rendering: this repo has no
+ * component renderer.
+ */
+export function filterProducers(
+  producers: Producer[],
+  query: string,
+): Producer[] {
+  const trimmed = query.trim();
+  if (!trimmed) return producers;
+
+  const needle = foldForSearch(trimmed);
+
+  return producers.filter(
+    (producer) =>
+      foldForSearch(producer.name).includes(needle) ||
+      foldForSearch(producer.address).includes(needle),
+  );
 }
 
 export function ProducerHeaderSwitcher({
@@ -33,12 +112,57 @@ export function ProducerHeaderSwitcher({
   papConfigArs,
   onSelectProducer,
   onResetSeed,
+  matches,
 }: ProducerHeaderSwitcherProps) {
   const toast = useToast();
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [onlyWithActions, setOnlyWithActions] = useState(false);
 
   // A simulation link only means something in a browser: the simulation is two
   // same-origin tabs, so on native the affordance is not rendered at all.
   const canCopyLink = Platform.OS === "web";
+
+  const tradeSummaries = useMemo(
+    () => summarizeProducerTrades(matches ?? []),
+    [matches],
+  );
+
+  const producersWithActions = useMemo(
+    () =>
+      producers.filter((producer) =>
+        hasPendingActions(tradeSummaries[producer.id]),
+      ).length,
+    [producers, tradeSummaries],
+  );
+
+  // The search and the action filter compose: both narrow the same list.
+  const filteredProducers = useMemo(() => {
+    const matching = filterProducers(producers, query);
+
+    return onlyWithActions
+      ? matching.filter((producer) =>
+          hasPendingActions(tradeSummaries[producer.id]),
+        )
+      : matching;
+  }, [producers, query, onlyWithActions, tradeSummaries]);
+
+  const closeSelector = () => {
+    setIsSelectorOpen(false);
+    setQuery("");
+    setOnlyWithActions(false);
+  };
+
+  const openSelector = () => {
+    setQuery("");
+    setOnlyWithActions(false);
+    setIsSelectorOpen(true);
+  };
+
+  const handleSelectProducer = (id: string) => {
+    onSelectProducer(id);
+    closeSelector();
+  };
 
   const handleCopyProducerLink = async (producer: Producer) => {
     const link = buildProducerLink(window.location.origin, producer.id);
@@ -49,6 +173,96 @@ export function ProducerHeaderSwitcher({
     } catch {
       toast.error(`No se pudo copiar. Link: ${link}`);
     }
+  };
+
+  const renderProducerRow = ({ item: producer }: { item: Producer }) => {
+    const isActive = producer.id === activeProducer?.id;
+    const summary = tradeSummaries[producer.id];
+
+    return (
+      <View style={styles.selectorRowWrapper}>
+        <Pressable
+          accessibilityRole="radio"
+          accessibilityState={{ checked: isActive }}
+          accessibilityLabel={`${producer.name}, ${producer.address}, ${productionTypeLabel(
+            producer.productionType,
+          )}${summary ? `, ${describeTradeSummary(summary)}` : ""}`}
+          onPress={() => handleSelectProducer(producer.id)}
+          testID={`producer-option-${producer.id}`}
+          style={[styles.selectorRow, isActive && styles.selectorRowActive]}
+        >
+          <View style={styles.selectorRowText}>
+            <ThemedText variant="body" style={styles.selectorName}>
+              {producer.name}
+            </ThemedText>
+            <ThemedText variant="caption1" style={styles.selectorAddress}>
+              📍 {producer.address}
+            </ThemedText>
+            <Badge
+              label={productionTypeLabel(producer.productionType)}
+              variant={isActive ? "success" : "outline"}
+              size="sm"
+              style={styles.selectorTypeBadge}
+            />
+            {/* What this producer still owes, then what it has done. Ordered by
+                urgency, and only rendered when there is something to say. */}
+            <View style={styles.selectorChips}>
+              {summary?.awaitingReply ? (
+                <Badge
+                  label={chipLabel(summary.awaitingReply, "por responder")}
+                  variant="warning"
+                  size="md"
+                  testID={`producer-awaiting-reply-${producer.id}`}
+                />
+              ) : null}
+              {summary?.toCoordinate ? (
+                <Badge
+                  label={chipLabel(
+                    summary.toCoordinate,
+                    "por coordinar entrega",
+                  )}
+                  variant="primary"
+                  size="md"
+                  testID={`producer-to-coordinate-${producer.id}`}
+                />
+              ) : null}
+              {summary?.toConfirm ? (
+                <Badge
+                  label={chipLabel(summary.toConfirm, "por confirmar llegada")}
+                  variant="purple"
+                  size="md"
+                  testID={`producer-to-confirm-${producer.id}`}
+                />
+              ) : null}
+              {summary?.completed ? (
+                <Badge
+                  label={chipLabel(summary.completed, "trueque", "trueques")}
+                  variant="success"
+                  size="md"
+                  testID={`producer-completed-trades-${producer.id}`}
+                />
+              ) : null}
+            </View>
+          </View>
+
+          {isActive && (
+            <ThemedText variant="caption2" style={styles.activeFlag}>
+              EN USO
+            </ThemedText>
+          )}
+        </Pressable>
+
+        {canCopyLink && (
+          <IconButton
+            icon="sf:link"
+            size="small"
+            accessibilityLabel={`Copiar link de ${producer.name}`}
+            testID={`copy-link-${producer.id}`}
+            onPress={() => void handleCopyProducerLink(producer)}
+          />
+        )}
+      </View>
+    );
   };
 
   return (
@@ -86,7 +300,7 @@ export function ProducerHeaderSwitcher({
           />
           {activeProducer?.productionType && (
             <Badge
-              label={activeProducer.productionType}
+              label={productionTypeLabel(activeProducer.productionType)}
               variant="outline"
               size="sm"
               style={styles.typeBadge}
@@ -95,38 +309,120 @@ export function ProducerHeaderSwitcher({
         </View>
       </View>
 
-      <ThemedText variant="caption2" style={styles.switchLabel}>
-        Cambiar identidad (simular contraparte en otra pestaña o aquí):
+      {/* The identity control is an action, not a status badge: it says what it
+          does, carries a search glyph, and states the size of the catalog. */}
+      <ThemedText variant="caption1" style={styles.switchLabel}>
+        CAMBIAR DE PRODUCTOR
+      </ThemedText>
+      <ThemedText variant="caption1" style={styles.switchHint}>
+        Buscá por nombre o localidad entre los {producers.length} productores de
+        la red.
       </ThemedText>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.switchRow}
-        testID="producer-switch-row"
+      {/* One trigger instead of one chip per producer: the catalog is 158 long. */}
+      <View style={styles.switchRow} testID="producer-switch-row">
+        <ChipButton
+          title={activeProducer?.name ?? "Seleccionar productor"}
+          icon="sf:magnifyingglass"
+          variant="success"
+          // The decorative glyph otherwise lands in the accessible name as an
+          // empty node (" Vermut Sabado"), so the name is stated explicitly.
+          accessibilityLabel={activeProducer?.name ?? "Seleccionar productor"}
+          accessibilityHint="Abre el buscador de productores"
+          accessibilityState={{ expanded: isSelectorOpen }}
+          onPress={openSelector}
+          testID="producer-switch-trigger"
+        />
+      </View>
+
+      <AppBottomSheetModal
+        visible={isSelectorOpen}
+        onClose={closeSelector}
+        scrollable={false}
+        testID="producer-selector-modal"
       >
-        {producers.map((prod) => {
-          const isSelected = prod.id === activeProducer?.id;
-          return (
-            <View key={prod.id} style={styles.chipGroup}>
-              <ChipButton
-                title={prod.name}
-                variant={isSelected ? "success" : "default"}
-                onPress={() => onSelectProducer(prod.id)}
-              />
-              {canCopyLink && (
-                <IconButton
-                  icon="sf:link"
-                  size="small"
-                  accessibilityLabel={`Copiar link de ${prod.name}`}
-                  testID={`copy-link-${prod.id}`}
-                  onPress={() => void handleCopyProducerLink(prod)}
-                />
-              )}
-            </View>
-          );
-        })}
-      </ScrollView>
+        <View style={styles.selectorHeader}>
+          <ThemedText variant="headline" style={styles.selectorTitle}>
+            Elegir productor
+          </ThemedText>
+          <ThemedText
+            variant="caption1"
+            style={styles.selectorCount}
+            testID="producer-selector-count"
+          >
+            {filteredProducers.length} de {producers.length}
+          </ThemedText>
+        </View>
+
+        {canCopyLink && (
+          <ThemedText variant="caption1" style={styles.selectorCount}>
+            Copiá el link de un productor y abrilo en otra pestaña para operar
+            como la contraparte.
+          </ThemedText>
+        )}
+
+        <ThemedTextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Buscar por nombre o localidad"
+          accessibilityLabel="Buscar productor por nombre o localidad"
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          autoFocus
+          testID="producer-search-input"
+        />
+
+        {/* Answering something is the reason to switch identity, so the list can
+            be narrowed to the producers that actually have something to do.
+            It reads as a filter rather than a caption: a label, a chip with a
+            body, a state glyph and the count behind it. */}
+        <View style={styles.selectorFilters}>
+          <ThemedText variant="caption2" style={styles.selectorFilterLabel}>
+            FILTRAR:
+          </ThemedText>
+          <ChipButton
+            title={`${onlyWithActions ? "Con" : "Sólo con"} acciones (${
+              producersWithActions
+            })`}
+            icon={onlyWithActions ? "sf:checkmark.circle.fill" : "sf:circle"}
+            variant={onlyWithActions ? "success" : "secondary"}
+            accessibilityState={{ selected: onlyWithActions }}
+            accessibilityHint="Muestra sólo los productores con algo pendiente"
+            onPress={() => setOnlyWithActions((current) => !current)}
+            testID="producer-filter-actions"
+          />
+        </View>
+
+        <FlatList
+          data={filteredProducers}
+          keyExtractor={(producer) => producer.id}
+          renderItem={renderProducerRow}
+          style={styles.selectorList}
+          contentContainerStyle={styles.selectorListContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <ThemedText
+              variant="body"
+              style={styles.emptyText}
+              testID="producer-selector-empty"
+            >
+              {onlyWithActions
+                ? "Ningún productor tiene algo pendiente."
+                : `Ningún productor coincide con “${query.trim()}”.`}
+            </ThemedText>
+          }
+        />
+
+        <View style={styles.selectorFooter}>
+          <AppButton
+            title="Cancelar"
+            variant="secondary"
+            onPress={closeSelector}
+          />
+        </View>
+      </AppBottomSheetModal>
     </Card>
   );
 }
@@ -175,6 +471,12 @@ const styles = StyleSheet.create({
   switchLabel: {
     color: colors.secondaryLabel,
     fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.caption,
+    marginBottom: spacing.xxs,
+  },
+  switchHint: {
+    color: colors.secondaryLabel,
     marginBottom: spacing.xs,
   },
   switchRow: {
@@ -182,11 +484,93 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingVertical: spacing.xxs,
   },
-  chipGroup: {
+  selectorHeader: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  selectorTitle: {
+    color: colors.label,
+    fontWeight: fontWeights.heavy,
+  },
+  selectorCount: {
+    color: colors.secondaryLabel,
+  },
+  selectorFilters: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  selectorFilterLabel: {
+    color: colors.secondaryLabel,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.caption,
+  },
+  selectorList: {
+    flexGrow: 0,
+    flexShrink: 1,
+    marginTop: spacing.sm,
+  },
+  selectorListContent: {
+    gap: spacing.xs,
+  },
+  selectorRowWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  selectorRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.compact,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    borderCurve: "continuous",
+    borderWidth: 1,
+    borderColor: colors.separator,
+    backgroundColor: colors.systemBackground,
+  },
+  selectorRowActive: {
+    borderColor: colors.systemGreen,
+    backgroundColor: colors.systemGreenSubdued,
+  },
+  selectorRowText: {
+    flex: 1,
     gap: spacing.xxs,
-    marginRight: spacing.xs,
+  },
+  selectorName: {
+    color: colors.label,
+    fontWeight: fontWeights.semibold,
+  },
+  selectorAddress: {
+    color: colors.secondaryLabel,
+  },
+  selectorTypeBadge: {
+    alignSelf: "flex-start",
+  },
+  selectorChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  activeFlag: {
+    color: colors.systemGreen,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.caption,
+  },
+  emptyText: {
+    color: colors.secondaryLabel,
+    paddingVertical: spacing.md,
+  },
+  selectorFooter: {
+    paddingTop: spacing.sm,
   },
   resetChip: {
     borderColor: colors.systemRed,

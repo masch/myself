@@ -17,6 +17,7 @@ import {
   radius,
 } from "@/theme";
 import type { ProductPackage } from "@myself/shared";
+import { productionTypeLabel } from "../production-type-labels";
 
 interface TradeProposalModalProps {
   visible: boolean;
@@ -79,7 +80,7 @@ export function TradeProposalModal({
                 size="sm"
               />
               <Badge
-                label={targetPackage.productionType}
+                label={productionTypeLabel(targetPackage.productionType)}
                 variant="outline"
                 size="sm"
               />

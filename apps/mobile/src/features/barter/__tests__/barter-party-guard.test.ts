@@ -23,6 +23,12 @@ import {
   SEED_PRODUCERS,
 } from "../barter-store";
 
+/**
+ * A producer the catalog prints but neither party of these matches, so "not a
+ * party" is tested against a real producer instead of a dropped one.
+ */
+const OUTSIDER_ID = "granja-nova";
+
 let storage: Map<string, string>;
 let writes: number;
 let peers: FakeBroadcastChannel[];
@@ -112,7 +118,7 @@ function snapshot(
 
 describe("Barter store: the party guard boundaries", () => {
   it("refuses an unknown, a foreign or an empty producer id without writing", () => {
-    for (const outsider of [PRODUCER_IDS.MIEL, "ghost-producer", ""]) {
+    for (const outsider of [OUTSIDER_ID, "ghost-producer", ""]) {
       const { store, peer } = seedStore();
       const match = propose(store);
       const before = snapshot(store, peer);
@@ -193,7 +199,7 @@ describe("Barter store: the party guard boundaries", () => {
       counterOnce(store, match.id);
       const before = snapshot(store, peer);
 
-      expect(() => store.rejectTradeMatch(match.id, PRODUCER_IDS.MIEL)).toThrow(
+      expect(() => store.rejectTradeMatch(match.id, OUTSIDER_ID)).toThrow(
         "Producer not party to this trade",
       );
 
@@ -208,7 +214,7 @@ describe("Barter store: the party guard boundaries", () => {
     store.acceptTradeMatch(match.id);
     const before = snapshot(store, peer);
 
-    expect(() => store.confirmDelivery(match.id, PRODUCER_IDS.MIEL)).toThrow(
+    expect(() => store.confirmDelivery(match.id, OUTSIDER_ID)).toThrow(
       "Producer not party to this trade",
     );
 
