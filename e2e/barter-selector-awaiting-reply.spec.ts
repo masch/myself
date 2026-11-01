@@ -35,6 +35,11 @@ test("the selector flags the producer that owes an answer", async ({
   await expect(
     page.getByTestId("producer-awaiting-reply-naturaleza-viva"),
   ).toHaveText("1 por responder");
+  // `sabado` is #102 of 158, so the row is only rendered once searched for.
+  // Asserting its badge is absent without rendering it would pass vacuously:
+  // an unrendered row and a row without a badge look the same to `toHaveCount`.
+  await page.getByTestId("producer-search-input").fill("vermut");
+  await expect(page.getByTestId("producer-option-sabado")).toBeVisible();
   await expect(page.getByTestId("producer-awaiting-reply-sabado")).toHaveCount(
     0,
   );
