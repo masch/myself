@@ -89,6 +89,15 @@ test("the selector shows each producer's trade chips", async ({ page }) => {
 
   await page.getByTestId("producer-switch-row").getByRole("button").click();
 
+  // The type badge says what a producer reads, not the value the app stores,
+  // and it is the same word the gondola filter uses.
+  await expect(
+    page.getByTestId("producer-option-chacra-monteflore"),
+  ).toContainText("Agroecológico");
+  await expect(page.getByText("AGROECOLOGICAL", { exact: true })).toHaveCount(
+    0,
+  );
+
   // Two delivered and confirmed trades, counted for both parties; the accepted
   // one that never got delivered does not add to the number. The list is
   // virtualized over 158 producers, so each row is reached by searching.

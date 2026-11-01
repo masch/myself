@@ -78,6 +78,13 @@ introduced by a table header of the shape
   a task, so `completed` never makes a producer actionable. The filter **composes with the
   search** instead of replacing it, both narrow the same list, and the `N de M` counter reflects
   the result so an empty list is never ambiguous.
+- **S11** — A production type is shown as **the word a producer reads**, never as the value the
+  app stores: `PRODUCTION_TYPE_LABELS` is the single owner of that vocabulary
+  (`Agroecológico`, `Orgánico`, `Biodinámico`, `Vegano`, `Convencional`) and every badge and
+  filter takes its text from it — the selector row, the identity header, the gondola package
+  card, the proposal modal and the gondola filter. It is a `Record<ProductionType, string>`, so
+  growing the enum without translating the new value is a type error instead of an English word
+  appearing on screen.
 
 ## Tasks
 
@@ -125,7 +132,7 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   and the re-anchored token assertions.
 
 - **Completion & Delivery**: Feature complete on branch `feat/primavera-2026-producer-catalog` as
-  fifteen work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
+  sixteen work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
   (`POC_DEFAULT_PHONE`), `c7be4eb` (the 158-producer catalog and its pins), `6a67bc2` (the
   searchable identity selector plus the three E2E specs it invalidated), `edb0950` (this
   document's evidence and closure), `1b31b7d` (finding R3-001 of lineage
@@ -346,3 +353,16 @@ found`. The observable proof is a new E2E (`barter-selector-awaiting-reply.spec.
   header reads `3 de 158`), and the "row comes back when the filter is turned off" assertion has
   to keep the same query, because `sabado` is producer #102 and unrendered rows are invisible to
   `toBeVisible` — the same virtualization lesson as L12/L13, now twice bitten.
+- L16 (2026-10-17) — Requirement change, verbatim: _"podemos mejorar que sea mejor los chhips del
+  tipo que es?"_ (with a capture of the selector). S11 is added above. The complaint was fair and
+  pointed at a duplication, not at a colour: **four** call sites rendered the raw enum as a label
+  (`AGROECOLOGICAL` in the selector row, in the identity header, in the gondola package card and
+  in the proposal modal) while the gondola filter hardcoded the Spanish words in its own
+  `TYPE_OPTIONS` array — one label with two sources of truth, and the screen showing the
+  database's spelling to the person using it. `production-type-labels.ts` is now the only owner;
+  the filter kept its own _order_ (agroecological first) as an explicit UI decision while taking
+  every word from the map, and the map is a `Record<ProductionType, string>` so a new type cannot
+  ship untranslated. Pinned three ways: unit cases that no label equals its enum value and none
+  collide, an E2E anchored to the row that owns the text (`Chacra Monteflore` contains
+  `Agroecológico`) plus an app-wide `AGROECOLOGICAL` count of zero — and that E2E bites: reverting
+  the row to the enum fails with `Received string: "Chacra Monteflore📍 Santa FeAGROECOLOGICAL"`.

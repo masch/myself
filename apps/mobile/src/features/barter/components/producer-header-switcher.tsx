@@ -21,6 +21,7 @@ import {
 } from "@/theme";
 import type { Producer, TradeMatch } from "@myself/shared";
 import { buildProducerLink } from "../barter-store";
+import { productionTypeLabel } from "../production-type-labels";
 import {
   hasPendingActions,
   summarizeProducerTrades,
@@ -200,7 +201,7 @@ export function ProducerHeaderSwitcher({
               📍 {producer.address}
             </ThemedText>
             <Badge
-              label={producer.productionType}
+              label={productionTypeLabel(producer.productionType)}
               variant={isActive ? "success" : "outline"}
               size="sm"
               style={styles.selectorTypeBadge}
@@ -301,7 +302,7 @@ export function ProducerHeaderSwitcher({
           />
           {activeProducer?.productionType && (
             <Badge
-              label={activeProducer.productionType}
+              label={productionTypeLabel(activeProducer.productionType)}
               variant="outline"
               size="sm"
               style={styles.typeBadge}
