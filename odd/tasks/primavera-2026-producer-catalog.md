@@ -77,7 +77,11 @@ introduced by a table header of the shape
   answer owed, a delivery to coordinate or a receipt to confirm. A finished trade is history, not
   a task, so `completed` never makes a producer actionable. The filter **composes with the
   search** instead of replacing it, both narrow the same list, and the `N de M` counter reflects
-  the result so an empty list is never ambiguous.
+  the result so an empty list is never ambiguous. It has to **read as a control**: a `FILTRAR:`
+  label, a chip with a body (`secondary` when off, `success` when on) instead of the `default`
+  variant, which painted the same colour as the sheet and left bare text, a state glyph (empty
+  circle / filled check) and the count in both states, so the chip says what it would leave
+  before it is pressed.
 - **S11** — A production type is shown as **the word a producer reads**, never as the value the
   app stores: `PRODUCTION_TYPE_LABELS` is the single owner of that vocabulary
   (`Agroecológico`, `Orgánico`, `Biodinámico`, `Vegano`, `Convencional`) and every badge and
@@ -425,3 +429,14 @@ AGROECOLOGICAL"`.
   human broccoli comment _after_ the last push (the gate resets on every push by design, and the
   workflow never writes the signal itself), and CodeRabbit's `CHANGES_REQUESTED` state is lifted
   by the bot on re-review, not by the author marking it resolved.
+- L20 (2026-10-17) — Requirement change, verbatim: _"podemos mejorar la UI/UX de solo con
+  accoines? no da la impresion que es un filtro seleccionabable"_ (with a capture of the bare
+  label). The capture was the proof: the off state used `ChipButton variant="default"`, whose
+  background is `secondarySystemBackground` — the same colour as the sheet — so the chip had no
+  body at all and only its bold white text survived, which reads as a subtitle. It is now a
+  `FILTRAR:` label plus a chip that carries its own body (`secondary` off, `success` on), a state
+  glyph (`sf:circle` → `sf:checkmark.circle.fill`) and the count in **both** states, so the chip
+  says how many producers it would leave before anyone presses it. S10 was extended with that
+  requirement. One test detail worth keeping: the icon adds a text node, so `toHaveText` on the
+  chip started failing with an identical-looking expected and received string; the assertions use
+  `toContainText`, which is what an icon-bearing button needs.

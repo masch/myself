@@ -138,8 +138,17 @@ test("the selector shows each producer's trade chips", async ({ page }) => {
   // The filter composes with the search, so the query from the step above has
   // to be cleared before it can be read on its own.
   await page.getByTestId("producer-search-input").fill("");
+
+  // The control says how many producers it would leave even while it is off,
+  // so it reads as a filter and not as a caption.
+  // `toContainText`: the chip carries an icon, and its node makes an exact
+  // text match fail on whitespace the user cannot see.
+  await expect(page.getByTestId("producer-filter-actions")).toContainText(
+    "Sólo con acciones (3)",
+  );
+
   await page.getByTestId("producer-filter-actions").click();
-  await expect(page.getByTestId("producer-filter-actions")).toHaveText(
+  await expect(page.getByTestId("producer-filter-actions")).toContainText(
     "Con acciones (3)",
   );
   await expect(

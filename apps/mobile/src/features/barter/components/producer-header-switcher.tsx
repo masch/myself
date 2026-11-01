@@ -374,15 +374,19 @@ export function ProducerHeaderSwitcher({
         />
 
         {/* Answering something is the reason to switch identity, so the list can
-            be narrowed to the producers that actually have something to do. */}
+            be narrowed to the producers that actually have something to do.
+            It reads as a filter rather than a caption: a label, a chip with a
+            body, a state glyph and the count behind it. */}
         <View style={styles.selectorFilters}>
+          <ThemedText variant="caption2" style={styles.selectorFilterLabel}>
+            FILTRAR:
+          </ThemedText>
           <ChipButton
-            title={
-              onlyWithActions
-                ? `Con acciones (${producersWithActions})`
-                : "Sólo con acciones"
-            }
-            variant={onlyWithActions ? "success" : "default"}
+            title={`${onlyWithActions ? "Con" : "Sólo con"} acciones (${
+              producersWithActions
+            })`}
+            icon={onlyWithActions ? "sf:checkmark.circle.fill" : "sf:circle"}
+            variant={onlyWithActions ? "success" : "secondary"}
             accessibilityState={{ selected: onlyWithActions }}
             accessibilityHint="Muestra sólo los productores con algo pendiente"
             onPress={() => setOnlyWithActions((current) => !current)}
@@ -499,6 +503,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.xs,
     marginTop: spacing.sm,
+  },
+  selectorFilterLabel: {
+    color: colors.secondaryLabel,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.caption,
   },
   selectorList: {
     flexGrow: 0,
