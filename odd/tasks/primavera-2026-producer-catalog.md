@@ -29,11 +29,13 @@ introduced by a table header of the shape
   **#1 `NATURALEZA VIVA` stays `naturaleza-viva`**. `colmenas-del-sol` is not in the PDF and
   is kept as it is, so its seeded package is not orphaned.
 - **S4** — The PDF carries no coordinates and no contact directory; the only phone printed
-  anywhere in it is `351-6480335` on #123. Decision (user, 2026-10-17): **`latitude` and
-  `longitude` stay required and take the centroid of the locality, region or province the
-  catalog names; `phone` becomes optional and no phone number is invented.** A producer with
-  no phone keeps working: the WhatsApp affordance disappears instead of opening a made-up
-  number.
+  anywhere in it is `351-6480335` on #123. Decisions (user, 2026-10-17, twice): **`latitude`
+  and `longitude` stay required and take the centroid of the locality, region or province the
+  catalog names**, and **`phone` stays required**: it is what the WhatsApp coordination link
+  needs, so every producer that the PDF prints without a number takes one documented default
+  number — `POC_DEFAULT_PHONE` in `whatsapp-utils.ts`, next to the link builder that consumes
+  it — instead of the catalog carrying 157 invented numbers of its own. A producer with a
+  printed number keeps it: #123 keeps `+543516480335`.
 - **S5** — Decision (user, 2026-10-17): **the production-type contract grows
   `BIODYNAMIC` and `VEGAN`**, so the catalog does not have to lie about what a producer
   declares. Mapping applied to the printed labels:
@@ -51,10 +53,10 @@ introduced by a table header of the shape
 ## Tasks
 
 - [ ] **TASK-1**: Extend the shared barter contract — `PRODUCTION_TYPES` gains `BIODYNAMIC`
-      and `VEGAN`, `producerSchema.phone` becomes optional — plus the filter labels the mobile UI
-      derives from that vocabulary (S5).
-- [ ] **TASK-2**: Make a missing phone a supported state: the trade screen offers WhatsApp
-      only when the counterpart has a number, and no call site invents one (S4).
+      and `VEGAN`, `producerSchema.phone` stays required — plus the filter labels the mobile UI
+      derives from that vocabulary (S5, S4).
+- [ ] **TASK-2**: Give the WhatsApp coordination link one documented default number for
+      producers the catalog prints without one, and keep the trade screen's link on it (S4).
 - [ ] **TASK-3**: Add the Primavera 2026 catalog module (158 entries, unique ids, centroids
       per place, `sabado` and `naturaleza-viva` preserved) and seed the store from it (S2, S3, S4).
 - [ ] **TASK-4**: Replace the identity chip row with a searchable selector (S6).
@@ -91,3 +93,15 @@ introduced by a table header of the shape
   recorded while curating: #123's printed number is a Córdoba landline (`351-6480335`), so it
   is stored as `+543516480335` and the doc keeps saying the deep link needs the `9` mobile
   prefix to actually resolve on WhatsApp — the catalog prints what the fair prints.
+- L4 (2026-10-17) — Requirement change, verbatim: _"si el productor no tiene teleohono para
+  el whstas, le podemos agregar uno por defecto? estamos en POC"_ and then _"es requerido si
+  el productor no tiene telefono para el whatsapp, le podemos agregar uno por defecto? estamos
+  en POC"_. Reading: the phone is required **because** WhatsApp coordination needs it, so the
+  contract does not relax — `producerSchema.phone` goes back to required and the POC fills the
+  gap with one default number. That reverses the part of L2(a) that made the field optional and
+  the TASK-2 behaviour committed in `15ad3ed` (the screen hid the affordance and said the
+  coordination happened outside the app); S4 and both tasks are rewritten above, nothing else
+  moves. `DEFAULT_POC_PHONE` lives in `whatsapp-utils.ts` rather than in the catalog so a single
+  documented constant is the only place the placeholder exists — the alternative, 157 invented
+  numbers inside the catalog data, is the one shape that would survive unnoticed once real
+  numbers arrive.

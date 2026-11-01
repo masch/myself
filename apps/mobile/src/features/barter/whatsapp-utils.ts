@@ -5,6 +5,17 @@
  */
 
 /**
+ * Default number for a producer the printed catalog carries no contact for.
+ *
+ * This is a POC stand-in, not data: the Primavera 2026 catalog prints exactly
+ * one number in its 158 entries, but the coordination link needs one, so this
+ * single documented value fills the gap instead of the catalog inventing a
+ * different fake number per producer. Replace it with the real contacts as
+ * they arrive.
+ */
+export const POC_DEFAULT_PHONE = "+5491100000000";
+
+/**
  * Build a wa.me deep link with a prefilled message. wa.me requires the
  * phone as digits only (country code included, no "+", spaces or dashes).
  */

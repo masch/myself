@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { SEED_PACKAGES, SEED_PRODUCERS } from "../../barter-store";
 import {
+  POC_DEFAULT_PHONE,
   buildTradeCoordinationMessage,
   buildWhatsAppTradeUrl,
 } from "../../whatsapp-utils";
@@ -17,6 +18,13 @@ describe("WhatsApp deep link: buildWhatsAppTradeUrl", () => {
     const url = buildWhatsAppTradeUrl("+5492615551234", "Hola ¿coordinamos?");
     expect(url).toContain(`text=${encodeURIComponent("Hola ¿coordinamos?")}`);
     expect(url).not.toContain("¿");
+  });
+
+  it("exposes a default number the POC can fall back to", () => {
+    const url = buildWhatsAppTradeUrl(POC_DEFAULT_PHONE, "coordinemos");
+
+    // wa.me needs country code plus digits only, or the deep link is a dead end.
+    expect(url).toMatch(/^https:\/\/wa\.me\/\d{10,15}\?text=/);
   });
 
   it("builds a complete wa.me URL", () => {

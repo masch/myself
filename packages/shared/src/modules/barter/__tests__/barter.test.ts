@@ -46,7 +46,9 @@ describe("Barter Domain Models & Schemas", () => {
     }
   });
 
-  it("accepts a producer that declares no phone number", () => {
+  it("rejects a producer that declares no phone number", () => {
+    // The coordination link needs a number, so the POC fills the gap with a
+    // default one at the catalog instead of allowing the field to be absent.
     const parsed = producerSchema.safeParse({
       id: "prod-1",
       name: "Granja Nova",
@@ -56,7 +58,7 @@ describe("Barter Domain Models & Schemas", () => {
       longitude: -58.42,
     });
 
-    expect(parsed.success).toBe(true);
+    expect(parsed.success).toBe(false);
   });
 
   it("rejects invalid Producer data", () => {

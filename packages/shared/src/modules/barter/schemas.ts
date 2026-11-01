@@ -22,8 +22,7 @@ export const producerSchema = geoLocationSchema.extend({
   id: z.string().min(1),
   name: z.string().min(1),
   productionType: productionTypeSchema,
-  /** Absent when the catalog prints no contact number for the producer. */
-  phone: z.string().min(6).optional(),
+  phone: z.string().min(6),
 });
 
 export const productPackageSchema = z.object({

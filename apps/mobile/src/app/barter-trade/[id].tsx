@@ -69,12 +69,9 @@ export default function BarterTradeScreen() {
       : match.deliveryConfirmation.confirmedByRequester;
 
   const handleOpenWhatsApp = async () => {
-    // The catalog prints no contact number for every producer, so a trade can
-    // reach this screen without one: without a number there is no link to open.
-    const phone = counterpart?.phone;
-    if (!counterpart || !phone) return;
+    if (!counterpart) return;
     const url = buildWhatsAppTradeUrl(
-      phone,
+      counterpart.phone,
       buildTradeCoordinationMessage({
         counterpartName: counterpart.name,
         offeredTitle: offeredPackage?.title ?? match.offeredPackageId,
@@ -174,18 +171,11 @@ export default function BarterTradeScreen() {
             Coordiná día, hora y lugar directamente con {counterpart.name} por
             WhatsApp.
           </ThemedText>
-          {counterpart.phone ? (
-            <AppButton
-              title="Abrir WhatsApp"
-              variant="primary"
-              onPress={handleOpenWhatsApp}
-            />
-          ) : (
-            <ThemedText variant="caption1" style={styles.sectionText}>
-              {counterpart.name} no tiene teléfono en el catálogo, así que este
-              trueque se coordina fuera de la app.
-            </ThemedText>
-          )}
+          <AppButton
+            title="Abrir WhatsApp"
+            variant="primary"
+            onPress={handleOpenWhatsApp}
+          />
         </Card>
       ) : null}
 
