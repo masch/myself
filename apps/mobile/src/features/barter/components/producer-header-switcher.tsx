@@ -19,8 +19,9 @@ import {
   radius,
   spacing,
 } from "@/theme";
-import type { Producer } from "@myself/shared";
+import type { Producer, TradeMatch } from "@myself/shared";
 import { buildProducerLink } from "../barter-store";
+import { countMatchesAwaitingReply } from "../inbox-utils";
 
 interface ProducerHeaderSwitcherProps {
   activeProducer?: Producer;
@@ -28,6 +29,11 @@ interface ProducerHeaderSwitcherProps {
   papConfigArs: number;
   onSelectProducer: (id: string) => void;
   onResetSeed?: () => void;
+  /**
+   * Every match, not only the active producer's: the selector answers "who still
+   * owes an answer", which is a question about the other producers too.
+   */
+  matches?: TradeMatch[];
 }
 
 /**
@@ -73,6 +79,7 @@ export function ProducerHeaderSwitcher({
   papConfigArs,
   onSelectProducer,
   onResetSeed,
+  matches,
 }: ProducerHeaderSwitcherProps) {
   const toast = useToast();
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
@@ -85,6 +92,11 @@ export function ProducerHeaderSwitcher({
   const filteredProducers = useMemo(
     () => filterProducers(producers, query),
     [producers, query],
+  );
+
+  const awaitingReply = useMemo(
+    () => countMatchesAwaitingReply(matches ?? []),
+    [matches],
   );
 
   const closeSelector = () => {
@@ -115,13 +127,16 @@ export function ProducerHeaderSwitcher({
 
   const renderProducerRow = ({ item: producer }: { item: Producer }) => {
     const isActive = producer.id === activeProducer?.id;
+    const waiting = awaitingReply[producer.id] ?? 0;
 
     return (
       <View style={styles.selectorRowWrapper}>
         <Pressable
           accessibilityRole="radio"
           accessibilityState={{ checked: isActive }}
-          accessibilityLabel={`${producer.name}, ${producer.address}, ${producer.productionType}`}
+          accessibilityLabel={`${producer.name}, ${producer.address}, ${producer.productionType}${
+            waiting > 0 ? `, ${waiting} sin responder` : ""
+          }`}
           onPress={() => handleSelectProducer(producer.id)}
           testID={`producer-option-${producer.id}`}
           style={[styles.selectorRow, isActive && styles.selectorRowActive]}
@@ -139,6 +154,19 @@ export function ProducerHeaderSwitcher({
               size="sm"
               style={styles.selectorTypeBadge}
             />
+            {/* Answering a proposal is the reason to switch identity, so the
+                list says who is waiting instead of making the operator check. */}
+            {waiting > 0 && (
+              <Badge
+                label={
+                  waiting === 1 ? "1 por responder" : `${waiting} por responder`
+                }
+                variant="warning"
+                size="sm"
+                style={styles.selectorTypeBadge}
+                testID={`producer-awaiting-reply-${producer.id}`}
+              />
+            )}
           </View>
 
           {isActive && (

@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { ProductPackage, TradeMatch } from "@myself/shared";
 import { SEED_PACKAGES, SEED_PRODUCERS } from "../../barter-store";
 import {
+  countMatchesAwaitingReply,
   getCounterOfferCandidates,
   getMatchActionAvailability,
   getTradeRole,
@@ -144,5 +145,56 @@ describe("Barter Inbox: counter-offer candidates", () => {
     const candidates = getCounterOfferCandidates(SEED_PACKAGES, match);
 
     expect(candidates).toEqual([]);
+  });
+});
+
+describe("Barter inbox: who still has to answer", () => {
+  it("counts a pending proposal for its target and not for its requester", () => {
+    const counts = countMatchesAwaitingReply([buildMatch({})]);
+
+    expect(counts[target.id]).toBe(1);
+    expect(counts[requester.id]).toBeUndefined();
+  });
+
+  it("counts a counter-offer for the requester who has to answer it", () => {
+    const counts = countMatchesAwaitingReply([
+      buildMatch({ status: "COUNTER_OFFERED" }),
+    ]);
+
+    expect(counts[requester.id]).toBe(1);
+    expect(counts[target.id]).toBeUndefined();
+  });
+
+  it("adds both directions for the same producer", () => {
+    const counts = countMatchesAwaitingReply([
+      buildMatch({ id: "m-1" }),
+      buildMatch({ id: "m-2", status: "COUNTER_OFFERED" }),
+      buildMatch({ id: "m-3" }),
+    ]);
+
+    expect(counts[target.id]).toBe(2);
+    expect(counts[requester.id]).toBe(1);
+  });
+
+  it("counts nothing once a match leaves the answerable statuses", () => {
+    // Agreed, delivered, or dead: nobody owes an answer in any of these.
+    for (const status of [
+      "ACCEPTED",
+      "WAITING_DELIVERY",
+      "COMPLETED",
+      "REJECTED",
+      "EXPIRED",
+      "CANCELLED_INSUFFICIENT_STOCK",
+      "CANCELLED_BY_PRODUCER",
+    ] as const) {
+      expect(countMatchesAwaitingReply([buildMatch({ status })])).toEqual({});
+    }
+  });
+
+  it("never counts a producer that is not a party to the match", () => {
+    const counts = countMatchesAwaitingReply([buildMatch({})]);
+
+    expect(counts[outsider.id]).toBeUndefined();
+    expect(Object.keys(counts)).toHaveLength(1);
   });
 });

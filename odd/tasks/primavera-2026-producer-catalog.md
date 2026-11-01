@@ -53,6 +53,11 @@ introduced by a table header of the shape
   `producer-header-switcher.tsx` (one chip per producer) is unusable, so **the identity
   switcher becomes a searchable selector** in this same change. Choosing an identity, copying
   a simulation link and the `producer-switch-row` test anchor must keep working.
+- **S7** — The selector says **who still owes an answer**: a producer whose match is waiting on
+  it carries a `N por responder` badge, and a producer with nothing to answer carries none.
+  "Owing an answer" is not re-listed here: it is exactly the condition under which
+  `getMatchActionAvailability` offers that party an action (target of a `PENDING` proposal,
+  requester of a `COUNTER_OFFERED` one), so the list and the inbox buttons cannot disagree.
 
 ## Tasks
 
@@ -100,7 +105,7 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   and the re-anchored token assertions.
 
 - **Completion & Delivery**: Feature complete on branch `feat/primavera-2026-producer-catalog` as
-  ten work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
+  eleven work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
   (`POC_DEFAULT_PHONE`), `c7be4eb` (the 158-producer catalog and its pins), `6a67bc2` (the
   searchable identity selector plus the three E2E specs it invalidated), `edb0950` (this
   document's evidence and closure), `1b31b7d` (finding R3-001 of lineage
@@ -252,3 +257,17 @@ PRODUCTOR`, a second line states the size of the catalog ("Buscá por nombre o l
   `Pack 4 Botellas Vermut Rosso 750ml` for its second open. The `prod-miel` alias stays mapped to
   `colmenas-del-sol` on purpose — it is the id older builds wrote — and a new pin asserts that
   both the id and the display name now resolve to nothing.
+- L11 (2026-10-17) — Requirement change, verbatim: _"se puede hacer que la pantalla de selector
+  de productor indique quien tiene match por responder?"_ (with a capture of the selector). S7 is
+  added above. The rule already existed in one place — `getMatchActionAvailability` decides whose
+  turn it is, and the header's `actionableCount` restates it with its own status list — so the new
+  `isAwaitingReply` / `countMatchesAwaitingReply` in `inbox-utils.ts` derive from that owner
+  instead of adding a third copy of the status table: a party owes an answer exactly when the FSM
+  offers it an action. The switcher gains an optional `matches` prop (all matches, not only the
+  active producer's, because the question is about the others) and both screens pass it; a row
+  with a count renders a `warning` badge and says the count in its `accessibilityLabel`. RED
+  first: the five new cases failed with `SyntaxError: Export named 'countMatchesAwaitingReply' not
+found`. The observable proof is a new E2E (`barter-selector-awaiting-reply.spec.ts`) that
+  proposes a trade as `sabado`, opens the selector and asserts the target carries
+  `1 por responder` while the requester and an uninvolved producer carry none — and it bites:
+  neutering the badge condition makes it fail with `Expected: "1 por responder"`.

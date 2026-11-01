@@ -99,3 +99,47 @@ export function getCounterOfferCandidates(
       pkg.papValue === match.totalPap,
   );
 }
+
+/**
+ * Whether `producerId` still owes an answer on this match.
+ *
+ * Derived from `getMatchActionAvailability` instead of re-listing statuses, so
+ * the inbox buttons and the identity switcher can never disagree about whose
+ * turn it is: a party owes an answer exactly when the FSM offers it an action.
+ */
+export function isAwaitingReply(
+  match: Pick<TradeMatch, "requesterId" | "targetProducerId" | "status">,
+  producerId: string,
+): boolean {
+  const role = getTradeRole(match, producerId);
+  if (!role) return false;
+
+  const availability = getMatchActionAvailability(match.status, role);
+  return (
+    availability.canAccept ||
+    availability.canReject ||
+    availability.canCounterOffer
+  );
+}
+
+/**
+ * How many answers each producer still owes, keyed by producer id.
+ *
+ * A producer with no pending answer is absent from the map rather than mapped to
+ * zero, so a caller can render "nothing to answer" without special-casing it.
+ */
+export function countMatchesAwaitingReply(
+  matches: Pick<TradeMatch, "requesterId" | "targetProducerId" | "status">[],
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+
+  for (const match of matches) {
+    for (const producerId of [match.requesterId, match.targetProducerId]) {
+      if (isAwaitingReply(match, producerId)) {
+        counts[producerId] = (counts[producerId] ?? 0) + 1;
+      }
+    }
+  }
+
+  return counts;
+}
