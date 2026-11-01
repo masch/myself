@@ -24,7 +24,11 @@ test("the checked proposal radio follows the selection", async ({ page }) => {
       exact: true,
     })
     .click();
-  await expect(page.getByRole("radio")).toHaveCount(2);
+  // A printed producer ships up to 77 packages, so the count is not the point:
+  // what matters is that the list offers more than one and exactly one is
+  // checked. The modal's own search is how an operator reaches one of the 77.
+  await expect(page.getByRole("radio").first()).toBeVisible();
+  expect(await page.getByRole("radio").count()).toBeGreaterThan(1);
 
   const checked = page.getByRole("radio", { checked: true });
   const first = page.getByRole("radio").nth(0);
@@ -53,5 +57,7 @@ test("the checked proposal radio follows the selection", async ({ page }) => {
     })),
   );
   expect(raw.filter((r) => r.ariaChecked === "true")).toHaveLength(1);
-  expect(raw.filter((r) => r.ariaChecked === "false")).toHaveLength(1);
+  expect(raw.filter((r) => r.ariaChecked === "false")).toHaveLength(
+    raw.length - 1,
+  );
 });

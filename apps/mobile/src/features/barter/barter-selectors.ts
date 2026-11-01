@@ -97,6 +97,24 @@ export interface GondolaSearchable {
  * Exported so the rule is testable without rendering: this repo has no component
  * renderer.
  */
+/**
+ * Narrows a list of packages to what the operator typed in its title.
+ *
+ * The proposal modal lists the active producer's own inventory (up to 77 printed
+ * products), so it searches the same way the gondola does, without a producer
+ * name to match against.
+ */
+export function filterPackagesByTitle<T extends { title: string }>(
+  packages: T[],
+  query: string,
+): T[] {
+  const trimmed = query.trim();
+  if (!trimmed) return packages;
+
+  const needle = foldForSearch(trimmed);
+  return packages.filter((pkg) => foldForSearch(pkg.title).includes(needle));
+}
+
 export function filterGondolaPackages<T extends GondolaSearchable>(
   packages: T[],
   query: string,
