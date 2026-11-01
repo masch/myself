@@ -360,3 +360,32 @@ describe("Renamed producer ids (migration)", () => {
     );
   });
 });
+
+describe("Default identity resolution", () => {
+  it("opens as the pinned producer when the list carries it", () => {
+    const store = createBarterStore({
+      initialProducers: SEED_PRODUCERS,
+      initialPackages: SEED_PACKAGES,
+      initialMatches: [],
+      broadcastEnabled: false,
+    });
+
+    expect(store.getState().activeProducerId).toBe(PRODUCER_IDS.VERMUT);
+  });
+
+  it("falls back to the first producer when the list omits the pinned one", () => {
+    // An injected producer set without `sabado` used to leave the store pointing
+    // at a producer that is not there, so the screen had no active identity.
+    const withoutVermut = SEED_PRODUCERS.filter(
+      (producer) => producer.id !== PRODUCER_IDS.VERMUT,
+    );
+    const store = createBarterStore({
+      initialProducers: withoutVermut,
+      initialPackages: SEED_PACKAGES,
+      initialMatches: [],
+      broadcastEnabled: false,
+    });
+
+    expect(store.getState().activeProducerId).toBe(withoutVermut[0].id);
+  });
+});

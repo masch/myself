@@ -98,6 +98,13 @@ test("the selector shows each producer's trade chips", async ({ page }) => {
     0,
   );
 
+  // A screen reader gets the same word the badge shows, never the stored enum.
+  const rowLabel = await page
+    .getByTestId("producer-option-chacra-monteflore")
+    .getAttribute("aria-label");
+  expect(rowLabel).toContain("Agroecológico");
+  expect(rowLabel).not.toContain("AGROECOLOGICAL");
+
   // Two delivered and confirmed trades, counted for both parties; the accepted
   // one that never got delivered does not add to the number. The list is
   // virtualized over 158 producers, so each row is reached by searching.

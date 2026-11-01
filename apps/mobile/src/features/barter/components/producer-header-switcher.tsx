@@ -67,7 +67,7 @@ function describeTradeSummary(summary: ProducerTradeSummary): string {
   const parts: string[] = [];
 
   if (summary.awaitingReply > 0) {
-    parts.push(`${summary.awaitingReply} sin responder`);
+    parts.push(chipLabel(summary.awaitingReply, "por responder"));
   }
   if (summary.toCoordinate > 0) {
     parts.push(`${summary.toCoordinate} por coordinar entrega`);
@@ -76,9 +76,7 @@ function describeTradeSummary(summary: ProducerTradeSummary): string {
     parts.push(`${summary.toConfirm} por confirmar llegada`);
   }
   if (summary.completed > 0) {
-    parts.push(
-      chipLabel(summary.completed, "trueque hecho", "trueques hechos"),
-    );
+    parts.push(chipLabel(summary.completed, "trueque", "trueques"));
   }
 
   return parts.join(", ");
@@ -186,9 +184,9 @@ export function ProducerHeaderSwitcher({
         <Pressable
           accessibilityRole="radio"
           accessibilityState={{ checked: isActive }}
-          accessibilityLabel={`${producer.name}, ${producer.address}, ${
-            producer.productionType
-          }${summary ? `, ${describeTradeSummary(summary)}` : ""}`}
+          accessibilityLabel={`${producer.name}, ${producer.address}, ${productionTypeLabel(
+            producer.productionType,
+          )}${summary ? `, ${describeTradeSummary(summary)}` : ""}`}
           onPress={() => handleSelectProducer(producer.id)}
           testID={`producer-option-${producer.id}`}
           style={[styles.selectorRow, isActive && styles.selectorRowActive]}

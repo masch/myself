@@ -375,9 +375,17 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     options.initialProducers ?? mergeCatalogProducers(persistedState.producers);
 
   // Initial producer resolution from query params (?producerId=...)
-  // The default identity is pinned to the producer the app has always opened
-  // as, so growing the seed list never silently changes who the screen starts as.
-  let initialActiveId = options.defaultActiveProducerId ?? PRODUCER_IDS.VERMUT;
+  // The default identity is pinned to the producer the app has always opened as,
+  // so growing the seed list never silently changes who the screen starts as —
+  // but only while that producer is actually in the list: an injected producer set
+  // that omits it would otherwise start the store pointing at nobody.
+  const defaultActiveId = producers.some(
+    (producer) => producer.id === PRODUCER_IDS.VERMUT,
+  )
+    ? PRODUCER_IDS.VERMUT
+    : producers[0]?.id;
+
+  let initialActiveId = options.defaultActiveProducerId ?? defaultActiveId;
   if (isWeb && typeof window.location !== "undefined") {
     try {
       const params = new URLSearchParams(window.location.search);

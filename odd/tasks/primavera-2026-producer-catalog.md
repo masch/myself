@@ -147,7 +147,8 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   warning) and R2-002 (readability, warning). An earlier lineage (`review-b9f535d161a01304`)
   was left in `correction_required` because its correction-plan binding still named the
   pre-correction target after `1b31b7d` advanced the candidate; that finding (R3-001) was fixed
-  and shipped anyway. A second lineage (`review-985f1c8b5d902a16`, 15 files / 590 lines against
+  and shipped anyway — see L18 for the correction: the write path never persisted producers, so
+  the fix is defensive rather than the bug fix it was described as. A second lineage (`review-985f1c8b5d902a16`, 15 files / 590 lines against
   the last approved tree) reviewed the accumulated delta — the dropped producer plus the two
   selector badges — and was **approved** on the first pass with no correction; its three findings
   are advisory (R2-001 and R3-001 on the same E2E assertion, R2-002 on the row's
@@ -382,3 +383,31 @@ found`. The observable proof is a new E2E (`barter-selector-awaiting-reply.spec.
   `PRIMAVERA_2026_PRODUCERS`, which is safe today because the store never mutates the producer
   list (it mutates packages and matches, always through new arrays) — a `[...]` copy would remove
   the sharp edge for a future caller, and is deliberately not smuggled into this change.
+- L18 (2026-10-17) — CodeRabbit's review of PR #105 (three comments, `CHANGES_REQUESTED`) and
+  what they forced me to correct. All three were valid.
+  **Comment 1 (`barter-store.ts:150`) is the important one, because it damages a claim I made
+  earlier.** The bot ran `git log -S'producers: state.producers'` and asked the question I should
+  have asked before writing L6: did any build ever persist `producers`? **It did not.** Both
+  `d68a52b` (#82) and `2d7927f` (#86) write only `packages`, `matches` and `papConfigArs`, and the
+  read path handles `state.producers` defensively without any writer producing it. So the premise
+  of the CRITICAL finding from `review-b9f535d161a01304` — "any install with persisted producers
+  keeps its old list, so the catalog growth was a no-op for those users" — describes a state the
+  app cannot reach on its own. It is reachable only through injected `initialProducers` or a
+  hand-edited `localStorage`. `mergeCatalogProducers` therefore stays as a **defensive** guard on
+  the read path, not as the bug fix `1b31b7d` announced, and the correction is recorded here
+  rather than rewritten in a commit message that is already public. The general lesson is worth
+  more than this PR: a finding the provider's refuter _corroborates_ is still only as good as its
+  premise, and the premise here was a history question one `git log -S` would have answered.
+  **Comment 2 (`barter-store.ts:380`)** is real: pinning the default identity to `sabado` ignored
+  whether an injected producer set actually carries it, so such a caller started with an
+  `activeProducerId` matching nobody and `activeProducer` undefined. It now pins only when the
+  producer is present and otherwise takes the first one; the new test fails without the fix
+  (`falls back to the first producer when the list omits the pinned one`).
+  **Comment 3 (`producer-header-switcher.tsx:191`)** is the one that stings: S11 says a producer
+  never sees the stored value, and I fixed the four visible badges while leaving the raw enum in
+  the row's `accessibilityLabel` — a screen reader still announced `AGROECOLOGICAL`. It now uses
+  `productionTypeLabel`, and `describeTradeSummary` says `por responder` and `N trueques`, the same
+  words the chips show, instead of "sin responder"/"trueques hechos". Pinned in the E2E by reading
+  the row's `aria-label`; it bites, and the first mutation attempt silently failed to apply, which
+  is why the pin was re-checked with `Received string: "Chacra Monteflore, Santa Fe,
+AGROECOLOGICAL"`.
