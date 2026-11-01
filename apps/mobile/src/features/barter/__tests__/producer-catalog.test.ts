@@ -130,17 +130,17 @@ describe("Primavera 2026 catalog transcription", () => {
 });
 
 describe("Catalog seeding", () => {
-  it("seeds the whole catalog plus the one producer outside it", () => {
+  it("seeds exactly the catalog, with no producer outside it", () => {
     const seededIds = SEED_PRODUCERS.map((producer) => producer.id);
 
     for (const producer of PRIMAVERA_2026_PRODUCERS) {
       expect(seededIds).toContain(producer.id);
     }
 
-    // Colmenas del Sol is not printed in the catalog, and its seeded package
-    // would be orphaned without it.
-    expect(seededIds).toContain(PRODUCER_IDS.MIEL);
-    expect(seededIds).toHaveLength(PRINTED_PRODUCERS + 1);
+    // Colmenas del Sol shipped before the catalog and is not printed in it, so
+    // it is gone along with its package: the app shows the network that exists.
+    expect(seededIds).not.toContain("colmenas-del-sol");
+    expect(seededIds).toHaveLength(PRINTED_PRODUCERS);
   });
 
   it("resolves the new producers by id and by display name", () => {

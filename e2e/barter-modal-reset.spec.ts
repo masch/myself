@@ -58,11 +58,11 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
       "Naturaleza Viva",
     );
 
-    // Second open, now for a package of a third producer: the offers are the
+    // Second open, now for a package of the other producer: the offers are the
     // new producer's two packages, and the first one is preselected again.
     await page
       .getByRole("button", {
-        name: "Pedir match por Caja 3 Frascos Polen & Jalea Real",
+        name: "Pedir match por Pack 4 Botellas Vermut Rosso 750ml",
         exact: true,
       })
       .click();

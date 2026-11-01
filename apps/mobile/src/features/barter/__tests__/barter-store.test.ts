@@ -132,11 +132,12 @@ describe("Barter Store & Concurrency Engine", () => {
       targetPackageId: "pkg-queso-gouda",
     });
 
-    // Producer C also proposes match 2 for Queso Gouda
+    // A second competing proposal for the same Queso Gouda package, from the
+    // other producer that ships a package in this seed.
     const match2 = store.createTradeProposal({
-      requesterId: PRODUCER_IDS.MIEL,
+      requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-miel-1kg",
+      offeredPackageId: "pkg-vermut-miel",
       targetPackageId: "pkg-queso-gouda",
     });
 
@@ -256,9 +257,18 @@ describe("Producer reference resolution (?producerId=)", () => {
       "naturaleza-viva",
     );
     expect(resolveProducerId(SEED_PRODUCERS, "vermut-sabado")).toBe("sabado");
-    expect(resolveProducerId(SEED_PRODUCERS, "colmenas del sol")).toBe(
-      "colmenas-del-sol",
-    );
+    expect(resolveProducerId(SEED_PRODUCERS, "doña mecha")).toBe("dona-mecha");
+  });
+
+  it("no longer resolves a producer the catalog drops", () => {
+    // Colmenas del Sol shipped before this build and is not printed in the
+    // catalog, so its id and its name resolve to nothing instead of dangling.
+    expect(
+      resolveProducerId(SEED_PRODUCERS, "colmenas del sol"),
+    ).toBeUndefined();
+    expect(
+      resolveProducerId(SEED_PRODUCERS, "colmenas-del-sol"),
+    ).toBeUndefined();
   });
 
   it("returns undefined when the reference matches no producer", () => {
@@ -294,11 +304,14 @@ describe("Renamed producer ids (migration)", () => {
   it("translates a former producer id to its current value", () => {
     expect(migrateProducerId("prod-vermut")).toBe(PRODUCER_IDS.VERMUT);
     expect(migrateProducerId("prod-queso")).toBe(PRODUCER_IDS.QUESO);
+    // Translates to an id this build no longer ships: the alias survives so a
+    // stored state or link written by an older build is readable, and
+    // `resolveProducerId` then reports it as unknown.
     expect(migrateProducerId("prod-miel")).toBe("colmenas-del-sol");
   });
 
   it("leaves a current or unknown id untouched", () => {
-    expect(migrateProducerId(PRODUCER_IDS.MIEL)).toBe(PRODUCER_IDS.MIEL);
+    expect(migrateProducerId(PRODUCER_IDS.VERMUT)).toBe(PRODUCER_IDS.VERMUT);
     expect(migrateProducerId("prod-quinoa")).toBe("prod-quinoa");
   });
 

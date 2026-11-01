@@ -26,8 +26,12 @@ introduced by a table header of the shape
 - **S3** — The two producers the app already knows keep their current identity, because
   `PRODUCER_IDS` is a persisted contract (every stored package and match carries the id, and
   it is the `?producerId=` link value): **#102 `SABADO Calamuchita` stays `sabado`** and
-  **#1 `NATURALEZA VIVA` stays `naturaleza-viva`**. `colmenas-del-sol` is not in the PDF and
-  is kept as it is, so its seeded package is not orphaned.
+  **#1 `NATURALEZA VIVA` stays `naturaleza-viva`**. **No producer outside the printed catalog is
+  seeded**: `colmenas-del-sol` (Colmenas del Sol, the third POC seed) and its package
+  `pkg-miel-1kg` are removed, so the app shows the 158 producers and 4 packages that exist. The
+  `prod-miel` alias survives in `RENAMED_PRODUCER_IDS` and translates to an id this build no
+  longer ships, so a stored state or a handed-out link written by an older build still reads
+  and then falls back to the default identity instead of dangling.
 - **S4** — The PDF carries no coordinates and no contact directory; the only phone printed
   anywhere in it is `351-6480335` on #123. Decisions (user, 2026-10-17, twice): **`latitude`
   and `longitude` stay required and take the centroid of the locality, region or province the
@@ -81,7 +85,8 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
 - **TASK-3** — `producer-catalog.ts`: 158 entries, 43 places. Cross-checked against the
   extracted text: every number 1…158 exists in the PDF, 5 name differences (all cosmetic or the
   deliberate `Vermut Sabado`), and 157 of 158 place assignments are justified by the printed
-  header itself.
+  header itself. After L10 the seeding pin reads the other way around: `SEED_PRODUCERS` is
+  exactly the catalog (158, no `colmenas-del-sol`) and `SEED_PACKAGES` is 4.
 - **TASK-4** — `producer-header-switcher.tsx`: trigger + sheet + `FlatList` + `filterProducers`.
   RED: `SyntaxError: Export named 'filterProducers' not found`. GREEN: 5 cases, including the
   accent fold I added after review (`dona mecha` → `Doña Mecha`), which was RED before
@@ -95,7 +100,7 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   and the re-anchored token assertions.
 
 - **Completion & Delivery**: Feature complete on branch `feat/primavera-2026-producer-catalog` as
-  seven work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
+  ten work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
   (`POC_DEFAULT_PHONE`), `c7be4eb` (the 158-producer catalog and its pins), `6a67bc2` (the
   searchable identity selector plus the three E2E specs it invalidated), `edb0950` (this
   document's evidence and closure), `1b31b7d` (finding R3-001 of lineage
@@ -234,3 +239,16 @@ PRODUCTOR`, a second line states the size of the catalog ("Buscá por nombre o l
   warning, `producer-header-switcher.tsx:124-137`: the row's `accessibilityLabel` concatenates
   three fields into one string). They are recorded as later work, never as a reason to re-run the
   review on this candidate.
+- L10 (2026-10-17) — Requirement change, verbatim: _"borramos el productor extra y sus
+  productos?"_, confirmed with _"Sí, borralo con su paquete"_. S3 is rewritten above: the
+  catalog-only seed wins over keeping `colmenas-del-sol` for its package. What went with it:
+  `PRODUCER_IDS.MIEL`, `COLMENAS_DEL_SOL`, `pkg-miel-1kg` (5 → 4 seeded packages), and the six
+  pins that used them as a convenient third producer. Each was re-pointed at a real producer
+  instead of being deleted, so the rules they pin still have a subject: the cascading-cancel test
+  now has its second competing proposal come from `sabado`, the "target package belongs to
+  another producer" cases target `pkg-vermut-miel`, the party-guard "outsider" is
+  `granja-nova` (a printed producer that is nobody's party), the inbox "no alternative
+  packages" case uses a producer that ships none, and the E2E modal-reset spec clicks
+  `Pack 4 Botellas Vermut Rosso 750ml` for its second open. The `prod-miel` alias stays mapped to
+  `colmenas-del-sol` on purpose — it is the id older builds wrote — and a new pin asserts that
+  both the id and the display name now resolve to nothing.

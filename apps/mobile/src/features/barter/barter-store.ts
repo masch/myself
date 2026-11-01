@@ -27,32 +27,13 @@ import { PRIMAVERA_2026_PRODUCERS } from "./producer-catalog";
 export const PRODUCER_IDS = {
   VERMUT: "sabado",
   QUESO: "naturaleza-viva",
-  MIEL: "colmenas-del-sol",
 } as const;
 
 /**
- * Colmenas del Sol is not part of the printed Primavera 2026 catalog; it is the
- * seeded producer its package points at, so it stays next to the catalog
- * instead of disappearing with the rest of the old seed list.
+ * The printed catalog and nothing else: every producer the app seeds is one the
+ * Primavera 2026 catalog prints.
  */
-const COLMENAS_DEL_SOL: Producer = {
-  id: PRODUCER_IDS.MIEL,
-  name: "Colmenas del Sol",
-  productionType: "AGROECOLOGICAL",
-  address: "Villa Las Rosas, Traslasierra, Córdoba",
-  latitude: -31.9542,
-  longitude: -65.0456,
-  phone: "+5493544555999",
-};
-
-/**
- * The whole network catalog, in printed order, plus the one seeded producer the
- * printed catalog does not carry.
- */
-export const SEED_PRODUCERS: Producer[] = [
-  ...PRIMAVERA_2026_PRODUCERS,
-  COLMENAS_DEL_SOL,
-];
+export const SEED_PRODUCERS: Producer[] = PRIMAVERA_2026_PRODUCERS;
 
 export const SEED_PACKAGES: ProductPackage[] = [
   {
@@ -90,15 +71,6 @@ export const SEED_PACKAGES: ProductPackage[] = [
     priceArs: 50000,
     papValue: 1,
     stockUnits: 3,
-  },
-  {
-    id: "pkg-miel-1kg",
-    producerId: PRODUCER_IDS.MIEL,
-    title: "Caja 3 Frascos Polen & Jalea Real",
-    productionType: "AGROECOLOGICAL",
-    priceArs: 50000,
-    papValue: 1,
-    stockUnits: 5,
   },
 ];
 
@@ -141,7 +113,10 @@ function normalizeProducerReference(value: string): string {
 const RENAMED_PRODUCER_IDS: Record<string, string> = {
   "prod-vermut": PRODUCER_IDS.VERMUT,
   "prod-queso": PRODUCER_IDS.QUESO,
-  "prod-miel": PRODUCER_IDS.MIEL,
+  // The destination is a producer this build no longer ships, so a link or a
+  // stored state naming it resolves to nothing and falls back to the default
+  // identity instead of dangling on an unknown id.
+  "prod-miel": "colmenas-del-sol",
 };
 
 /** Translates the former id of a renamed producer to its current value. */

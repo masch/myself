@@ -7,13 +7,13 @@ import {
   getTradeRole,
 } from "../../inbox-utils";
 
-const [vermut, queso, miel] = SEED_PRODUCERS;
+const [requester, target, outsider] = SEED_PRODUCERS;
 
 function buildMatch(overrides: Partial<TradeMatch>): TradeMatch {
   return {
     id: "match-test",
-    requesterId: vermut.id,
-    targetProducerId: queso.id,
+    requesterId: requester.id,
+    targetProducerId: target.id,
     offeredPackageId: "pkg-vermut-pack4",
     targetPackageId: "pkg-queso-gouda",
     papSnapshotArs: 50000,
@@ -33,17 +33,17 @@ function buildMatch(overrides: Partial<TradeMatch>): TradeMatch {
 describe("Barter Inbox: role resolution", () => {
   it("resolves the active producer as target of an incoming match", () => {
     const match = buildMatch({});
-    expect(getTradeRole(match, queso.id)).toBe("target");
+    expect(getTradeRole(match, target.id)).toBe("target");
   });
 
   it("resolves the active producer as requester of an outgoing match", () => {
     const match = buildMatch({});
-    expect(getTradeRole(match, vermut.id)).toBe("requester");
+    expect(getTradeRole(match, requester.id)).toBe("requester");
   });
 
   it("returns null when the active producer is not a party", () => {
     const match = buildMatch({});
-    expect(getTradeRole(match, miel.id)).toBeNull();
+    expect(getTradeRole(match, outsider.id)).toBeNull();
   });
 });
 
@@ -137,10 +137,11 @@ describe("Barter Inbox: counter-offer candidates", () => {
     expect(candidates.some((p) => p.id === "pkg-vermut-miel")).toBe(false);
   });
 
-  it("returns empty when the requester has no alternative packages", () => {
-    const match = buildMatch({ requesterId: miel.id });
-    const packages = SEED_PACKAGES.filter((p) => p.id !== "pkg-miel-1kg");
-    const candidates = getCounterOfferCandidates(packages, match);
+  it("returns empty when the requester ships no alternative packages", () => {
+    // Most of the 158 printed producers ship no package in this seed, so a
+    // counter-offer has nothing to offer.
+    const match = buildMatch({ requesterId: outsider.id });
+    const candidates = getCounterOfferCandidates(SEED_PACKAGES, match);
 
     expect(candidates).toEqual([]);
   });

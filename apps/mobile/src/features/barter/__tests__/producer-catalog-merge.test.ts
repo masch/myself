@@ -34,7 +34,7 @@ describe("mergeCatalogProducers", () => {
     const preCatalog = [
       producer(PRODUCER_IDS.VERMUT, "Vermut Sabado"),
       producer(PRODUCER_IDS.QUESO, "Naturaleza Viva"),
-      producer(PRODUCER_IDS.MIEL, "Colmenas del Sol"),
+      producer("granja-nova", "Granja Nova"),
     ];
 
     const merged = mergeCatalogProducers(preCatalog);
@@ -48,7 +48,7 @@ describe("mergeCatalogProducers", () => {
   it("keeps a persisted producer the catalog does not carry, after the catalog", () => {
     const merged = mergeCatalogProducers([
       producer("productor-que-ya-no-esta", "Productor histórico"),
-      producer(PRODUCER_IDS.MIEL, "Colmenas del Sol"),
+      producer(PRODUCER_IDS.QUESO, "Naturaleza Viva"),
     ]);
 
     expect(merged).toHaveLength(SEED_PRODUCERS.length + 1);
