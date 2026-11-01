@@ -5,6 +5,7 @@ import {
   CATALOG_STOCK_UNITS,
   catalogPackages,
   deriveCatalogPackage,
+  formatCatalogQuantity,
   formatCatalogSize,
 } from "../catalog-packages";
 import type {
@@ -333,5 +334,42 @@ describe("what the printed price buys, spelled the way the catalog prints it", (
 
     expect(derived.catalog.quantity).toBeCloseTo(0.048, 4);
     expect(derived.catalog.listPriceBasis).toBe("por 3 g");
+  });
+});
+
+describe("the quantity a package hands over, spelled the way the catalog speaks", () => {
+  it("names a measured quantity with the printed size vocabulary", () => {
+    // The Gouda package is 2,2565 kg of cheese: a screen that prints the raw
+    // divided number would show a floating-point tail nobody can read.
+    expect(formatCatalogQuantity(2.2565, "kg")).toBe("2,26 kg");
+    expect(formatCatalogQuantity(13.94, "kg")).toBe("13,94 kg");
+    expect(formatCatalogQuantity(3, "litro")).toBe("3 litros");
+    expect(formatCatalogQuantity(1, "litro")).toBe("1 litro");
+  });
+
+  it("switches to grams and millilitres below one whole unit", () => {
+    expect(formatCatalogQuantity(0.48, "kg")).toBe("480 g");
+    expect(formatCatalogQuantity(0.048, "kg")).toBe("48 g");
+    expect(formatCatalogQuantity(0.5, "litro")).toBe("500 ml");
+  });
+
+  it("counts whole units, singular included", () => {
+    expect(formatCatalogQuantity(7, "unidad")).toBe("7 unidades");
+    expect(formatCatalogQuantity(1, "unidad")).toBe("1 unidad");
+  });
+
+  it("never publishes a machine-formatted quantity for any printed row", () => {
+    for (const pkg of catalogPackages()) {
+      const text = formatCatalogQuantity(
+        pkg.catalog.quantity,
+        pkg.catalog.measure,
+      );
+
+      expect(text).not.toContain(".");
+      expect(text).not.toMatch(/null|undefined|NaN/);
+      expect(text).toMatch(
+        /^\d+(,\d{1,2})? (kg|g|litro|litros|ml|unidad|unidades)$/,
+      );
+    }
   });
 });
