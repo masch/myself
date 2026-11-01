@@ -19,7 +19,7 @@ describe("Barter Store & Concurrency Engine", () => {
       initialProducers: SEED_PRODUCERS,
       initialPackages: SEED_PACKAGES,
       initialMatches: [],
-      defaultActiveProducerId: SEED_PRODUCERS[0].id, // Vermut Sabadao
+      defaultActiveProducerId: PRODUCER_IDS.VERMUT, // Vermut Sabado
       broadcastEnabled: false, // Isolated in unit tests
     });
   });
@@ -43,9 +43,19 @@ describe("Barter Store & Concurrency Engine", () => {
   });
 
   it("calculates geographical distance accurately with Haversine formula", () => {
-    // Mendoza (Vermut) to Santa Fe (Naturaleza Viva) ~ 750-850 km
-    const vermut = SEED_PRODUCERS[0];
-    const queso = SEED_PRODUCERS[1];
+    // Vermut Sabado (Umepay, Calamuchita) to Naturaleza Viva (Guadalupe Norte)
+    // is ~900 km: both producers are selected by id, because the seed list is
+    // the printed catalog and its order is the catalog's, not this test's.
+    const vermut = SEED_PRODUCERS.find(
+      (producer) => producer.id === PRODUCER_IDS.VERMUT,
+    );
+    const queso = SEED_PRODUCERS.find(
+      (producer) => producer.id === PRODUCER_IDS.QUESO,
+    );
+
+    if (!vermut || !queso) {
+      throw new Error("The seeded producers this test measures were not found");
+    }
     const distanceKm = calculateDistanceKm(
       vermut.latitude,
       vermut.longitude,

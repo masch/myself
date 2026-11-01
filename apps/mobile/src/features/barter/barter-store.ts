@@ -10,6 +10,7 @@ import {
   type ProductPackage,
   type TradeMatch,
 } from "@myself/shared";
+import { PRIMAVERA_2026_PRODUCERS } from "./producer-catalog";
 
 /**
  * Canonical producer ids.
@@ -29,34 +30,28 @@ export const PRODUCER_IDS = {
   MIEL: "colmenas-del-sol",
 } as const;
 
+/**
+ * Colmenas del Sol is not part of the printed Primavera 2026 catalog; it is the
+ * seeded producer its package points at, so it stays next to the catalog
+ * instead of disappearing with the rest of the old seed list.
+ */
+const COLMENAS_DEL_SOL: Producer = {
+  id: PRODUCER_IDS.MIEL,
+  name: "Colmenas del Sol",
+  productionType: "AGROECOLOGICAL",
+  address: "Villa Las Rosas, Traslasierra, Córdoba",
+  latitude: -31.9542,
+  longitude: -65.0456,
+  phone: "+5493544555999",
+};
+
+/**
+ * The whole network catalog, in printed order, plus the one seeded producer the
+ * printed catalog does not carry.
+ */
 export const SEED_PRODUCERS: Producer[] = [
-  {
-    id: PRODUCER_IDS.VERMUT,
-    name: "Vermut Sabado",
-    productionType: "AGROECOLOGICAL",
-    address: "Chacra Alimento, Umepay",
-    latitude: -32.9982,
-    longitude: -68.8789,
-    phone: "+5492615551234",
-  },
-  {
-    id: PRODUCER_IDS.QUESO,
-    name: "Naturaleza Viva",
-    productionType: "ORGANIC",
-    address: "Guadalupe Norte, Santa Fe",
-    latitude: -28.9876,
-    longitude: -59.6543,
-    phone: "+5493482555678",
-  },
-  {
-    id: PRODUCER_IDS.MIEL,
-    name: "Colmenas del Sol",
-    productionType: "AGROECOLOGICAL",
-    address: "Villa Las Rosas, Traslasierra, Córdoba",
-    latitude: -31.9542,
-    longitude: -65.0456,
-    phone: "+5493544555999",
-  },
+  ...PRIMAVERA_2026_PRODUCERS,
+  COLMENAS_DEL_SOL,
 ];
 
 export const SEED_PACKAGES: ProductPackage[] = [
@@ -379,7 +374,9 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     options.initialProducers ?? persistedState.producers ?? SEED_PRODUCERS;
 
   // Initial producer resolution from query params (?producerId=...)
-  let initialActiveId = options.defaultActiveProducerId ?? SEED_PRODUCERS[0].id;
+  // The default identity is pinned to the producer the app has always opened
+  // as, so growing the seed list never silently changes who the screen starts as.
+  let initialActiveId = options.defaultActiveProducerId ?? PRODUCER_IDS.VERMUT;
   if (isWeb && typeof window.location !== "undefined") {
     try {
       const params = new URLSearchParams(window.location.search);
