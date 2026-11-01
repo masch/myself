@@ -103,11 +103,14 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   `be9797a` (the switcher reads as an action). Final evidence: `TURBO_FORCE=true make check`
   EXIT=0 (mobile **524** pass / 0 fail, shared 91 / 0, api 106 / 0; expo-doctor 20/20) and
   `make check-e2e-web` EXIT=0 with **19 passed**. The vendor PDF is not in the repository; the
-  catalog module records its sha256. The native review lifecycle is left in
-  `correction_required`: its correction-plan binding still names the pre-correction target
-  (`sha256:a509afbf…`) after `1b31b7d` advanced the candidate, and the facade rejects that
-  binding rather than any party rebuilding provider tokens — a maintainer decision, reported to
-  the user. Push and pull request remain the user's decision.
+  catalog module records its sha256. Native review of this candidate (lineage
+  `review-df9b3ba69360fd95`, lenses risk/readability/reliability) is **approved** and its
+  authority burned by the exact acknowledgement; its four findings are advisory and none opened
+  a correction: R1-001 (risk, suggestion) and R1-002 (risk, suggestion), R2-001 (readability,
+  warning) and R2-002 (readability, warning). An earlier lineage (`review-b9f535d161a01304`)
+  was left in `correction_required` because its correction-plan binding still named the
+  pre-correction target after `1b31b7d` advanced the candidate; that finding (R3-001) was fixed
+  and shipped anyway. Push and pull request remain the user's decision.
 
 ## Log
 
@@ -217,3 +220,17 @@ PRODUCTOR`, a second line states the size of the catalog ("Buscá por nombre o l
   `accessibilityLabel` explicitly instead of letting a decorative icon shape it; and the accessible
   name is again exactly the producer name. Verified by re-running that spec alone (2.9s, green) and
   then the whole `make check-e2e-web` suite.
+- L9 (2026-10-17) — Native review of the final candidate. Lineage `review-df9b3ba69360fd95`
+  (risk, readability, reliability), target `sha256:618976f4…`, 17 files / 2.456 lines, tier
+  `medium`, consent resolved by the host. The three-lens group capture failed once at the host
+  relay (`review-risk`, `pi-failed`, terminated after 10s), so the slots were run one at a time
+  from fresh STATUS, exactly as the provider instructed instead of replaying the group:
+  **approved**, authority burned by the exact `acknowledge-approved`. Its four findings are
+  advisory and none opened a correction — R1-001 (risk, suggestion, this document line 7: it
+  points at an absolute `/var/home/masch/...` path, so the provenance is not portable),
+  R1-002 (risk, suggestion, `whatsapp-utils.ts:16`: a real-looking placeholder number is
+  committed), R2-001 (readability, warning, `producer-catalog.ts:20-24`: the module header
+  restates what the places table and `POC_DEFAULT_PHONE` already say) and R2-002 (readability,
+  warning, `producer-header-switcher.tsx:124-137`: the row's `accessibilityLabel` concatenates
+  three fields into one string). They are recorded as later work, never as a reason to re-run the
+  review on this candidate.
