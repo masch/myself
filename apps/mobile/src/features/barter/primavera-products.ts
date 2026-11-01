@@ -1,4 +1,4 @@
-import type { CatalogPackageFacts } from "./catalog-package-facts";
+import type { CatalogPackageFacts, CatalogMeasure } from "./catalog-package-facts";
 
 /**
  * The product table printed by the Red de Familias y Productores for Primavera
@@ -708,11 +708,11 @@ export const PRIMAVERA_2026_PRODUCTS: readonly CatalogPackageFacts[] = [
   [676, 69, "Chalitas integrales x 250grs. Romero y Sal Marina", null, 317500, 0.25, "kg"],
   [677, 69, "Chalitas integrales x 250grs. Curcuma", null, 317500, 0.25, "kg"],
   [678, 69, "Saladitos de Queso (estilo Kesitas) x 80 grs", null, 222250, 0.08, "kg"],
-  [679, 70, "Alfajor PISTACHO Y MATCHA x 50/70 grs Gluten free. H coco almendras pistachos matcha manteca vegana y naranja", null, 665500, 0.0007, "kg"],
-  [680, 70, "Alfajor REMOLACHA x 50/70 grs Gluten free avena premezclas rellenos de dulce leche y maracuyá", null, 544500, 0.0007, "kg"],
-  [681, 70, "Alfajor HIGO Y NUEZ x 50/70 grs. H. integral algarroba naranja caramelizada y mas…", null, 544500, 0.0007, "kg"],
-  [682, 70, "Alfajor CHOCOBOMBA x 50/70 grs integral cacao amargo avena café dulce de leche", null, 544500, 0.0007, "kg"],
-  [683, 70, "Alfajor CHOCOLEMMON x 50/70 grs integral cacao avena limón jugo y ralladura Triste época la nuestra, es más fácil desintegrar un átomo que un prejuicio. Einstein", null, 544500, 0.0007, "kg"],
+  [679, 70, "Alfajor PISTACHO Y MATCHA x 50/70 grs Gluten free. H coco almendras pistachos matcha manteca vegana y naranja", null, 665500, 0.07, "kg"],
+  [680, 70, "Alfajor REMOLACHA x 50/70 grs Gluten free avena premezclas rellenos de dulce leche y maracuyá", null, 544500, 0.07, "kg"],
+  [681, 70, "Alfajor HIGO Y NUEZ x 50/70 grs. H. integral algarroba naranja caramelizada y mas…", null, 544500, 0.07, "kg"],
+  [682, 70, "Alfajor CHOCOBOMBA x 50/70 grs integral cacao amargo avena café dulce de leche", null, 544500, 0.07, "kg"],
+  [683, 70, "Alfajor CHOCOLEMMON x 50/70 grs integral cacao avena limón jugo y ralladura Triste época la nuestra, es más fácil desintegrar un átomo que un prejuicio. Einstein", null, 544500, 0.07, "kg"],
   [684, 71, "Galletas integrales de nuez x 100 gr.", null, 228600, 0.1, "kg"],
   [685, 71, "Galletas integrales de algarroba x 100 gr.", null, 228600, 0.1, "kg"],
   [686, 71, "Galletas integrales de chañar x 100 g", null, 228600, 0.1, "kg"],
