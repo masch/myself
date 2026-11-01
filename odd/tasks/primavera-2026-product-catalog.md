@@ -60,20 +60,78 @@ trading equal value instead of equal packaging.
 
 ## Tasks
 
-- [ ] **TASK-1**: Transcribe the printed product table (`primavera-products.ts`, 1527 rows in
+- [x] **TASK-1**: Transcribe the printed product table (`primavera-products.ts`, 1527 rows in
       cents, with the presentation size the PDF's own arithmetic gives) and pin its invariants
       (S1).
-- [ ] **TASK-2**: Derive the 1-PAP package from one printed row in a single owner
+- [x] **TASK-2**: Derive the 1-PAP package from one printed row in a single owner
       (`catalog-packages.ts`) and pin both families, the rounding and the disclosure (S2–S6).
-- [ ] **TASK-3**: Extend the shared package contract with the optional `catalog` block, seed the
+- [x] **TASK-3**: Extend the shared package contract with the optional `catalog` block, seed the
       store with the catalog packages and merge them into a persisted state (S4, S7, S8, S9).
-- [ ] **TASK-4**: Make the gondola navigable at 1531 packages: virtualised list, search field,
+- [x] **TASK-4**: Make the gondola navigable at 1531 packages: virtualised list, search field,
       card and modal copy carrying the printed price and the PAP fraction (S4, S5, S10).
-- [ ] **TASK-5**: Close: full `make check`, `make check-e2e-web`, evidence and delivery notes.
+- [x] **TASK-5**: Close: full `make check`, `make check-e2e-web`, evidence and delivery notes.
 
 ## Evidence & Verification
 
-- Pending.
+- **TASK-1** — `primavera-products.ts` + `catalog-package-facts.ts`. RED observed first: the pin
+  file failed on `Cannot find module '../catalog-package-facts'`; GREEN after the fact tuple
+  existed, 9 pins, 11083 assertions. The pins earned their keep twice during the task: they
+  caught `\bk\b` not matching the printed `x 5k` (the `k` has no word boundary in front of it,
+  so `describe` read six kilos as six units), and the presentation-ratio pin caught the
+  `50/70 grs` range being read as a fraction (`84c03fb`).
+- **TASK-2** — `catalog-packages.ts`, the single owner of the price→PAP math. RED with stubs:
+  `deriveCatalogPackage not implemented (5, undefined)`, `catalogPackages not implemented
+(undefined)`; GREEN 26 pins. Observed values that the spec predicted: #5 Gouda → 2,2565 kg /
+  1,00 PAP; #55 pisingallo → 13,9353 kg; #890 vermut → 4 botellas, $55.880, 1,12 PAP; #1 aceite →
+  9 medios litros, 4,5 litros, 0,97 PAP. Whole table: every `papValue` a positive integer, every
+  `priceArs === papValue × 50.000`, worst disclosed drift 0,329 (#1432), the largest package 10
+  PAP (#1141: the $499.500 dry toilet). The sub-gram pin (#953, 3 g tea bags) forced the quantity
+  to keep four decimals instead of two, which had rounded it to zero and failed the contract.
+- **TASK-3** — shared `catalog` block + `SEED_PACKAGES` (1531) + `mergeCatalogPackages`. RED:
+  `The seeded packages carry no cat-5` and `expect(SEED_PACKAGES).toHaveLength(1531)` receiving
+  4; GREEN 157 pass for `src/features/barter`, shared 91. Three pre-existing assertions encoded
+  the replace-the-seeds behavior this spec removes (a stored 1-package state now loads as the
+  catalog plus that one, and a printed producer no longer ships zero packages); they moved to the
+  merged baseline (`9383867`). The end-to-end pin proposes a `cat-*` package against another and
+  asserts `totalPap === 1`.
+- **TASK-4** — `barter.tsx` (FlatList, header composition, memoized pending-id set),
+  `gondola-search.tsx`, `filterGondolaPackages` (accent fold, product **and** producer name),
+  the card and the modal showing `Precio de lista` + `1 PAP ≈ … · real … PAP`. RED was
+  module-level (`Export named 'filterGondolaPackages' not found`), one assertion-level RED was
+  the fixture's own fault and was fixed rather than the code. GREEN 174 pass. `formatCatalogSize`
+  earned a second consumer, so the basis reads `por 750 ml` and `por 3 g` instead of
+  `por 0.75 litro`.
+- **TASK-5** — `make check-e2e-web`: 21 passed (2.0m). It took three runs, and the first two
+  failed for the reason the change exists: three specs asserted "the modal lists **two**
+  packages", which stopped being true the moment a printed producer owned its catalog. The
+  first run (18 passed / 3 failed) also exposed that the modal had no search, which S10 asked
+  for and TASK-4 had missed; `83b6c46` added it. The second run (20 passed / 1 failed) failed on
+  my own new assertion, not on the app: I searched `horma 2kg gouda` against a title that reads
+  "Horma 2kg **Queso** Gouda", so the filter found nothing. The specs now assert the intent —
+  one checked radio, the offers belonging to the active producer, the previous producer's pack
+  gone after the switch — instead of a package count that grew 38×.
+- **Transcript idempotence** — the table is generated from the PDF text layer, but the generator
+  is a throwaway script (it needs `pdftotext` and a PDF that does not live in the repo), so the
+  committed artefact is the transcription itself plus the invariants that pin it: 1527 numbered
+  rows, producer coverage across all 158, the two price columns split 127/59/1341, and the
+  presentation size equal to `final / unit` wherever both prices print.
+
+- **Closed with**: `TURBO_FORCE=true make check` EXIT=0 — format, the ODD gate (this document
+  closes), `check-odd-doc`, turbo `lint typecheck test` (mobile **596** pass / 0 fail, shared
+  **91** / 0, api **106** / 0) and `expo-doctor` 20/20; `make check-e2e-web` EXIT=0 with **21
+  passed**. The only findings the suite raised were mine and are fixed: prettier reformatted this
+  document, and the transcription's first line still imported a type the regenerated file no
+  longer uses.
+- **Completion & Delivery**: Feature complete on branch `feat/primavera-2026-product-catalog` as
+  seven work-unit commits — `c2e4228` (the 1527-row transcription and its pins), `84c03fb`
+  (the presentation-size fix the pins caught), `a1587cb` (the 1-PAP derivation and the shared
+  `catalog` block), `9383867` (the seed and the merged persisted state), `31a7bd6` (the
+  virtualised, searchable gondola and the card/modal disclosure), `83b6c46` (the modal inventory
+  search and the three specs it made honest), and this document. The transcription dominates the
+  diff (1858 of 3621 authored lines are the printed table itself, one product per line), which is
+  why the slice boundary is worth recording: everything after `c2e4228` is ~1700 lines of
+  derivation, contract, seed, UI and tests. Not committed anywhere: nothing is pushed and no PR
+  is open — push, PR and merge stay the user's decisions.
 
 ## Log
 

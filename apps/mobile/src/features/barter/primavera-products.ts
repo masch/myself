@@ -1,4 +1,4 @@
-import type { CatalogPackageFacts, CatalogMeasure } from "./catalog-package-facts";
+import type { CatalogPackageFacts } from "./catalog-package-facts";
 
 /**
  * The product table printed by the Red de Familias y Productores for Primavera
