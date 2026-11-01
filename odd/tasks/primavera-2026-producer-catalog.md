@@ -95,11 +95,19 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   and the re-anchored token assertions.
 
 - **Completion & Delivery**: Feature complete on branch `feat/primavera-2026-producer-catalog` as
-  four work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
+  seven work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
   (`POC_DEFAULT_PHONE`), `c7be4eb` (the 158-producer catalog and its pins), `6a67bc2` (the
-  searchable identity selector plus the three E2E specs it invalidated). The vendor PDF is not
-  in the repository; the catalog module records its sha256. Push and pull request remain the
-  user's decision.
+  searchable identity selector plus the three E2E specs it invalidated), `edb0950` (this
+  document's evidence and closure), `1b31b7d` (finding R3-001 of lineage
+  `review-b9f535d161a01304`: the catalog is merged into any persisted producer list) and
+  `be9797a` (the switcher reads as an action). Final evidence: `TURBO_FORCE=true make check`
+  EXIT=0 (mobile **524** pass / 0 fail, shared 91 / 0, api 106 / 0; expo-doctor 20/20) and
+  `make check-e2e-web` EXIT=0 with **19 passed**. The vendor PDF is not in the repository; the
+  catalog module records its sha256. The native review lifecycle is left in
+  `correction_required`: its correction-plan binding still names the pre-correction target
+  (`sha256:a509afbf…`) after `1b31b7d` advanced the candidate, and the facade rejects that
+  binding rather than any party rebuilding provider tokens — a maintainer decision, reported to
+  the user. Push and pull request remain the user's decision.
 
 ## Log
 
