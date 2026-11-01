@@ -65,3 +65,50 @@ export function deriveGondolaPackages(state: BarterState): GondolaPackage[] {
       return true;
     });
 }
+
+/**
+ * Lowercase and accent-folded form of a searchable field.
+ *
+ * Searching is how an operator reaches one of 1531 gondola packages, and nobody
+ * types the tilde into a search box: "dona mecha" has to find "Doña Mecha".
+ */
+function foldForSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+/** What the gondola search reads from a row: the product and its producer. */
+export interface GondolaSearchable {
+  title: string;
+  producer: { name: string };
+}
+
+/**
+ * Narrows the gondola to what the operator typed.
+ *
+ * It matches the product title **and** the producer name, because an operator
+ * remembers one or the other ("Vermut Rosso" or "Doña Mecha"), and it folds
+ * case and accents on both sides.
+ *
+ * It takes the list the production-type and distance filters already built, so
+ * the three filters narrow the same list instead of one replacing another.
+ * Exported so the rule is testable without rendering: this repo has no component
+ * renderer.
+ */
+export function filterGondolaPackages<T extends GondolaSearchable>(
+  packages: T[],
+  query: string,
+): T[] {
+  const trimmed = query.trim();
+  if (!trimmed) return packages;
+
+  const needle = foldForSearch(trimmed);
+
+  return packages.filter(
+    (pkg) =>
+      foldForSearch(pkg.title).includes(needle) ||
+      foldForSearch(pkg.producer.name).includes(needle),
+  );
+}

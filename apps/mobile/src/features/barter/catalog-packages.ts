@@ -141,6 +141,67 @@ export function formatCatalogSize(
 }
 
 /**
+ * How much of the product a package hands over, in the unit a producer reads:
+ * `2,26 kg` of cheese, `3 litros` of vermouth, `7 unidades` of tintura.
+ *
+ * Same vocabulary as `formatCatalogSize`, one step further: a quantity below one
+ * whole unit is spelled in grams or millilitres (`480 g`), and the decimal is the
+ * Spanish comma. The measured families keep two decimals, so the disclosed
+ * number is what the screen can carry — `2,2565` kg is printed as `2,26 kg` — and
+ * no printed row ever publishes a floating-point tail or a machine-format period.
+ */
+export function formatCatalogQuantity(
+  quantity: number,
+  measure: CatalogMeasure,
+): string {
+  if (measure === "unidad") {
+    const count = Math.round(quantity);
+    return `${count} ${count === 1 ? "unidad" : "unidades"}`;
+  }
+
+  // Below one whole unit the printed catalog speaks in grams and millilitres,
+  // which is also the only way a sub-kilo quantity stays readable.
+  const small = Math.round(quantity * 1000);
+  if (small < 1000) {
+    return `${small} ${measure === "kg" ? "g" : "ml"}`;
+  }
+
+  const rounded = Math.round(quantity * 100) / 100;
+  const noun = measure === "kg" ? "kg" : "litro";
+  return `${formatNumber(rounded)} ${noun}${
+    noun === "kg" || rounded === 1 ? "" : "s"
+  }`;
+}
+
+/**
+ * `1 PAP ≈ 3 litros (4 × 750 ml) · real 1,12 PAP` — the equivalence the card and
+ * the proposal modal both show: what the package hands over, in which packaging,
+ * and the exact fraction of a PAP that whole count really is (S5).
+ *
+ * The packaging parenthetical is dropped when there is only one presentation or
+ * when the product is counted (`7 unidades`), where `(1 × unidad)` would be
+ * noise.
+ */
+export function formatCatalogEquivalence(
+  papValue: number,
+  catalog: CatalogPackageInfo,
+): string {
+  const packaging =
+    catalog.presentationCount > 1 && catalog.measure !== "unidad"
+      ? ` (${catalog.presentationCount} × ${formatCatalogSize(
+          catalog.presentationSize,
+          catalog.measure,
+        )})`
+      : "";
+  const realPapValue = catalog.realPapValue.toFixed(2).replace(".", ",");
+
+  return `${papValue} PAP ≈ ${formatCatalogQuantity(
+    catalog.quantity,
+    catalog.measure,
+  )}${packaging} · real ${realPapValue} PAP`;
+}
+
+/**
  * Derives one package from one printed row.
  *
  * `papConfigArs` is the ARS value of 1 PAP; it defaults to the shop-wide

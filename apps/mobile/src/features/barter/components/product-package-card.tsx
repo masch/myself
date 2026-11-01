@@ -4,6 +4,10 @@ import { Card, ThemedText, AppButton, Badge } from "@/components";
 import { colors, fontWeights, spacing, radius } from "@/theme";
 import type { Producer, ProductPackage } from "@myself/shared";
 import { productionTypeLabel } from "../production-type-labels";
+import {
+  formatCatalogEquivalence,
+  type CatalogPackageInfo,
+} from "../catalog-packages";
 
 interface ProductPackageCardProps {
   packageItem: ProductPackage & {
@@ -14,12 +18,26 @@ interface ProductPackageCardProps {
   hasPendingProposal?: boolean;
 }
 
+/**
+ * The price the PDF prints, with the cents it prints: `$22.158,20`.
+ *
+ * Rendered beside the paper's own basis (`por kg`, `por 750 ml`) so a user can
+ * compare the price the catalog loaded with the price this app gives the package.
+ */
+function formatPrintedPrice(amountArs: number): string {
+  return `$${amountArs.toLocaleString("es-AR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export function ProductPackageCard({
   packageItem,
   onProposeTrade,
   hasPendingProposal = false,
 }: ProductPackageCardProps) {
   const isOutOfStock = packageItem.stockUnits <= 0;
+  const catalog: CatalogPackageInfo | undefined = packageItem.catalog;
 
   return (
     <Card variant="elevated" style={styles.card}>
@@ -63,6 +81,28 @@ export function ProductPackageCard({
           size="sm"
         />
       </View>
+
+      {/* What the printed catalog charges, then what this package hands over for
+          1 PAP. A package the catalog does not print (the four POC packs) has no
+          `catalog` block and renders neither line. */}
+      {catalog ? (
+        <View style={styles.catalogBlock}>
+          <ThemedText
+            variant="caption1"
+            style={styles.catalogListPrice}
+            testID={`package-list-price-${packageItem.id}`}
+          >{`Precio de lista: ${formatPrintedPrice(
+            catalog.listPriceArs,
+          )} ${catalog.listPriceBasis}`}</ThemedText>
+          <ThemedText
+            variant="caption1"
+            style={styles.catalogEquivalence}
+            testID={`package-pap-equivalence-${packageItem.id}`}
+          >
+            {formatCatalogEquivalence(packageItem.papValue, catalog)}
+          </ThemedText>
+        </View>
+      ) : null}
 
       <ThemedText variant="caption1" style={styles.addressText}>
         Ubicación: {packageItem.producer.address}
@@ -130,6 +170,18 @@ const styles = StyleSheet.create({
   addressText: {
     color: colors.secondaryLabel,
     marginBottom: spacing.sm,
+  },
+  catalogBlock: {
+    gap: spacing.xxs,
+    marginTop: spacing.xxs,
+    marginBottom: spacing.xs,
+  },
+  catalogListPrice: {
+    color: colors.secondaryLabel,
+  },
+  catalogEquivalence: {
+    color: colors.label,
+    fontWeight: fontWeights.semibold,
   },
   footerRow: {
     flexDirection: "row",

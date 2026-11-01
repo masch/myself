@@ -18,6 +18,7 @@ import {
 } from "@/theme";
 import type { ProductPackage } from "@myself/shared";
 import { productionTypeLabel } from "../production-type-labels";
+import { formatCatalogEquivalence } from "../catalog-packages";
 
 interface TradeProposalModalProps {
   visible: boolean;
@@ -26,6 +27,81 @@ interface TradeProposalModalProps {
   availableOwnPackages: ProductPackage[];
   onConfirmProposal: (offeredPackageId: string) => void;
   onClose: () => void;
+}
+
+export interface PackageOfferOptionProps {
+  ownPackage: ProductPackage;
+  isSelected: boolean;
+  onSelect: (packageId: string) => void;
+}
+
+/**
+ * One own package the producer can hand over, with what that package really is:
+ * a catalog package says how much cheese or how many bottles 1 PAP means, so the
+ * producer agrees to a quantity and not to a label. A package the catalog does
+ * not print (the four POC packs) keeps the badge-only copy.
+ *
+ * Exported because the enclosing `Modal` portals its children and renders
+ * nothing on the server, so the copy is pinned by rendering this row.
+ */
+export function PackageOfferOption({
+  ownPackage,
+  isSelected,
+  onSelect,
+}: PackageOfferOptionProps) {
+  const isOutOfStock = ownPackage.stockUnits <= 0;
+
+  return (
+    <TouchableOpacity
+      disabled={isOutOfStock}
+      onPress={() => onSelect(ownPackage.id)}
+      style={[
+        styles.packageOption,
+        isSelected && styles.packageOptionSelected,
+        isOutOfStock && styles.packageOptionDisabled,
+      ]}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: isSelected }}
+      aria-checked={isSelected}
+      accessibilityLabel={`Seleccionar ${ownPackage.title}`}
+    >
+      <View style={styles.radioRow}>
+        <View
+          style={[styles.radioButton, isSelected && styles.radioButtonSelected]}
+        >
+          {isSelected && <View style={styles.radioButtonDot} />}
+        </View>
+
+        <View style={styles.pkgTextContainer}>
+          <ThemedText
+            variant="body"
+            style={[styles.pkgTitle, isOutOfStock && styles.textDisabled]}
+          >
+            {ownPackage.title}
+          </ThemedText>
+          <ThemedText variant="caption1" style={styles.pkgStock}>
+            {isOutOfStock
+              ? "Sin stock"
+              : `${ownPackage.stockUnits} disponible${ownPackage.stockUnits > 1 ? "s" : ""}`}
+          </ThemedText>
+          {ownPackage.catalog ? (
+            <ThemedText variant="caption2" style={styles.pkgCatalog}>
+              {formatCatalogEquivalence(
+                ownPackage.papValue,
+                ownPackage.catalog,
+              )}
+            </ThemedText>
+          ) : null}
+        </View>
+
+        <Badge
+          label={`${ownPackage.papValue} PAP`}
+          variant={isSelected ? "success" : "neutral"}
+          size="sm"
+        />
+      </View>
+    </TouchableOpacity>
+  );
 }
 
 export function TradeProposalModal({
@@ -85,6 +161,15 @@ export function TradeProposalModal({
                 size="sm"
               />
             </View>
+            {/* What the target really means: how much of it 1 PAP buys. */}
+            {targetPackage.catalog ? (
+              <ThemedText variant="caption1" style={styles.targetCatalog}>
+                {formatCatalogEquivalence(
+                  targetPackage.papValue,
+                  targetPackage.catalog,
+                )}
+              </ThemedText>
+            ) : null}
           </Card>
 
           {/* Own packages selection */}
@@ -98,61 +183,14 @@ export function TradeProposalModal({
                 No tenés productos cargados en tu inventario para ofrecer.
               </ThemedText>
             ) : (
-              availableOwnPackages.map((ownPkg) => {
-                const isSelected = ownPkg.id === selectedPackageId;
-                const isOutOfStock = ownPkg.stockUnits <= 0;
-
-                return (
-                  <TouchableOpacity
-                    key={ownPkg.id}
-                    disabled={isOutOfStock}
-                    onPress={() => setSelectedPackageId(ownPkg.id)}
-                    style={[
-                      styles.packageOption,
-                      isSelected && styles.packageOptionSelected,
-                      isOutOfStock && styles.packageOptionDisabled,
-                    ]}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: isSelected }}
-                    aria-checked={isSelected}
-                    accessibilityLabel={`Seleccionar ${ownPkg.title}`}
-                  >
-                    <View style={styles.radioRow}>
-                      <View
-                        style={[
-                          styles.radioButton,
-                          isSelected && styles.radioButtonSelected,
-                        ]}
-                      >
-                        {isSelected && <View style={styles.radioButtonDot} />}
-                      </View>
-
-                      <View style={styles.pkgTextContainer}>
-                        <ThemedText
-                          variant="body"
-                          style={[
-                            styles.pkgTitle,
-                            isOutOfStock && styles.textDisabled,
-                          ]}
-                        >
-                          {ownPkg.title}
-                        </ThemedText>
-                        <ThemedText variant="caption1" style={styles.pkgStock}>
-                          {isOutOfStock
-                            ? "Sin stock"
-                            : `${ownPkg.stockUnits} disponible${ownPkg.stockUnits > 1 ? "s" : ""}`}
-                        </ThemedText>
-                      </View>
-
-                      <Badge
-                        label={`${ownPkg.papValue} PAP`}
-                        variant={isSelected ? "success" : "neutral"}
-                        size="sm"
-                      />
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
+              availableOwnPackages.map((ownPkg) => (
+                <PackageOfferOption
+                  key={ownPkg.id}
+                  ownPackage={ownPkg}
+                  isSelected={ownPkg.id === selectedPackageId}
+                  onSelect={setSelectedPackageId}
+                />
+              ))
             )}
           </ScrollView>
 
@@ -229,6 +267,11 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     marginTop: spacing.xs,
   },
+  targetCatalog: {
+    color: colors.label,
+    fontWeight: fontWeights.semibold,
+    marginTop: spacing.xs,
+  },
   sectionTitle: {
     color: colors.label,
     marginBottom: spacing.xs,
@@ -284,6 +327,10 @@ const styles = StyleSheet.create({
   },
   pkgStock: {
     color: colors.secondaryLabel,
+  },
+  pkgCatalog: {
+    color: colors.label,
+    fontWeight: fontWeights.semibold,
   },
   textDisabled: {
     color: colors.secondaryLabel,

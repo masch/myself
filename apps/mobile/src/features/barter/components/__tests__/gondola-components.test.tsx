@@ -1,7 +1,66 @@
 import { describe, expect, it } from "bun:test";
-import { PRODUCTION_TYPES } from "@myself/shared";
+import React from "react";
+import { renderToString } from "react-dom/server";
+import { PRODUCTION_TYPES, type ProductPackage } from "@myself/shared";
 import { SEED_PACKAGES, SEED_PRODUCERS } from "../../barter-store";
+import { catalogPackages } from "../../catalog-packages";
+import { PRIMAVERA_2026_PRODUCERS } from "../../producer-catalog";
+import { ProductPackageCard } from "../product-package-card";
+import { PackageOfferOption } from "../trade-proposal-modal";
 import { TYPE_OPTIONS } from "../gondola-filter-bar";
+
+/**
+ * The catalog copy the gondola and the proposal modal show is presentational, so
+ * it is pinned through `renderToString` instead of a renderer this repo does not
+ * ship. The `Modal` shell portals its children and renders nothing on the
+ * server, which is why the offer row is its own exported component.
+ */
+
+/** The rendered text of a card, without React's node-boundary comments. */
+function textOf(html: string): string {
+  return html.replace(/<!--[^>]*-->/g, "");
+}
+
+function catalogPackage(id: string): ProductPackage {
+  const found = catalogPackages().find((pkg) => pkg.id === id);
+
+  if (!found) {
+    throw new Error(`The catalog carries no package ${id}`);
+  }
+
+  return found;
+}
+
+function renderCard(pkg: ProductPackage): string {
+  const producer = PRIMAVERA_2026_PRODUCERS.find(
+    (entry) => entry.id === pkg.producerId,
+  );
+
+  if (!producer) {
+    throw new Error(`The seeded producers carry no ${pkg.producerId}`);
+  }
+
+  return textOf(
+    renderToString(
+      <ProductPackageCard
+        packageItem={{ ...pkg, producer, distanceKm: 12 }}
+        onProposeTrade={() => {}}
+      />,
+    ),
+  );
+}
+
+function renderOffer(pkg: ProductPackage): string {
+  return textOf(
+    renderToString(
+      <PackageOfferOption
+        ownPackage={pkg}
+        isSelected={false}
+        onSelect={() => {}}
+      />,
+    ),
+  );
+}
 
 describe("Barter Gondola Component Logic", () => {
   it("formats PAP conversion badge correctly", () => {
@@ -56,5 +115,51 @@ describe("Barter Gondola Component Logic", () => {
     for (const productionType of PRODUCTION_TYPES) {
       expect(offered).toContain(productionType);
     }
+  });
+});
+
+describe("ProductPackageCard carries the printed price and the PAP fraction", () => {
+  it("discloses what the PDF charges for one printed presentation", () => {
+    // #890: Vermut Rosso x 750 ml, $13.970 la botella; four bottles are 1,1176
+    // PAP, so the card says both numbers instead of hiding the fraction.
+    const html = renderCard(catalogPackage("cat-890"));
+
+    expect(html).toContain("Precio de lista: $13.970,00 por 750 ml");
+    expect(html).toContain("1 PAP ≈ 3 litros (4 × 750 ml) · real 1,12 PAP");
+  });
+
+  it("discloses a weighed product without a presentation parenthetical", () => {
+    // #5: Gouda at $22.158,20 por kg — the package is 2,26 kg, exactly 1 PAP.
+    const html = renderCard(catalogPackage("cat-5"));
+
+    expect(html).toContain("Precio de lista: $22.158,20 por kg");
+    expect(html).toContain("1 PAP ≈ 2,26 kg · real 1,00 PAP");
+  });
+
+  it("adds neither line to a package that carries no catalog block", () => {
+    // The four POC packages are a persisted contract and the catalog does not
+    // print them, so they keep exactly the copy they had.
+    const html = renderCard(SEED_PACKAGES[0]);
+
+    expect(html).not.toContain("Precio de lista");
+    expect(html).not.toContain("PAP ≈");
+    expect(html).toContain("Valor: $50.000 ARS");
+  });
+});
+
+describe("PackageOfferOption tells the producer what it hands over", () => {
+  it("shows the quantity and the real PAP of a catalog package on offer", () => {
+    // #1: nine half-litres are 4,5 litros, which is 0,97 PAP.
+    const html = renderOffer(catalogPackage("cat-1"));
+
+    expect(html).toContain("1 PAP ≈ 4,5 litros (9 × 500 ml) · real 0,97 PAP");
+  });
+
+  it("keeps the badge-only copy for a package without a catalog block", () => {
+    const html = renderOffer(SEED_PACKAGES[0]);
+
+    expect(html).toContain("1 PAP");
+    expect(html).not.toContain("PAP ≈");
+    expect(html).not.toContain("real");
   });
 });
