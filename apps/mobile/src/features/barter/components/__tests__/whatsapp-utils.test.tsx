@@ -1,12 +1,24 @@
 import { describe, expect, it } from "bun:test";
-import { SEED_PACKAGES, SEED_PRODUCERS } from "../../barter-store";
+import {
+  PRODUCER_IDS,
+  SEED_PACKAGES,
+  SEED_PRODUCERS,
+} from "../../barter-store";
 import {
   POC_DEFAULT_PHONE,
   buildTradeCoordinationMessage,
   buildWhatsAppTradeUrl,
 } from "../../whatsapp-utils";
 
-const [vermut, queso] = SEED_PRODUCERS;
+// Selected by id: the seed list is the printed catalog, so its order is the
+// catalog's order and not this file's assumption.
+const counterpart = SEED_PRODUCERS.find(
+  (producer) => producer.id === PRODUCER_IDS.QUESO,
+);
+
+if (!counterpart) {
+  throw new Error("The seeded counterpart this suite greets was not found");
+}
 
 describe("WhatsApp deep link: buildWhatsAppTradeUrl", () => {
   it("strips the plus sign and any non-digit characters from the phone", () => {
@@ -38,16 +50,16 @@ describe("WhatsApp deep link: buildWhatsAppTradeUrl", () => {
 describe("WhatsApp deep link: buildTradeCoordinationMessage", () => {
   it("greets the counterpart producer by name", () => {
     const message = buildTradeCoordinationMessage({
-      counterpartName: queso.name,
+      counterpartName: counterpart.name,
       offeredTitle: SEED_PACKAGES[0].title,
       targetTitle: SEED_PACKAGES[2].title,
     });
-    expect(message).toContain(queso.name);
+    expect(message).toContain(counterpart.name);
   });
 
   it("names both packages of the trade", () => {
     const message = buildTradeCoordinationMessage({
-      counterpartName: queso.name,
+      counterpartName: counterpart.name,
       offeredTitle: SEED_PACKAGES[0].title,
       targetTitle: SEED_PACKAGES[2].title,
     });

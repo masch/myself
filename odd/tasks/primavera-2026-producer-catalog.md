@@ -52,12 +52,12 @@ introduced by a table header of the shape
 
 ## Tasks
 
-- [ ] **TASK-1**: Extend the shared barter contract — `PRODUCTION_TYPES` gains `BIODYNAMIC`
+- [x] **TASK-1**: Extend the shared barter contract — `PRODUCTION_TYPES` gains `BIODYNAMIC`
       and `VEGAN`, `producerSchema.phone` stays required — plus the filter labels the mobile UI
       derives from that vocabulary (S5, S4).
-- [ ] **TASK-2**: Give the WhatsApp coordination link one documented default number for
+- [x] **TASK-2**: Give the WhatsApp coordination link one documented default number for
       producers the catalog prints without one, and keep the trade screen's link on it (S4).
-- [ ] **TASK-3**: Add the Primavera 2026 catalog module (158 entries, unique ids, centroids
+- [x] **TASK-3**: Add the Primavera 2026 catalog module (158 entries, unique ids, centroids
       per place, `sabado` and `naturaleza-viva` preserved) and seed the store from it (S2, S3, S4).
 - [ ] **TASK-4**: Replace the identity chip row with a searchable selector (S6).
 - [ ] **TASK-5**: Pin the catalog invariants with tests: 158 entries numbered 1…158, unique
@@ -105,3 +105,54 @@ introduced by a table header of the shape
   documented constant is the only place the placeholder exists — the alternative, 157 invented
   numbers inside the catalog data, is the one shape that would survive unnoticed once real
   numbers arrive.
+- L5 (2026-10-17) — TASK-3, the catalog. Shapes decided while transcribing:
+  `apps/mobile/src/features/barter/producer-catalog.ts` holds `PRIMAVERA_2026_CATALOG` (one
+  line per printed row: number, id, name, place, claim) plus a `PLACES` table of 43 locality,
+  region and province centroids; a producer points at a place instead of repeating numbers, so
+  a wrong centroid is corrected once. Four curation rulings, all leafed through against the
+  printed page: (a) **#1 `naturaleza-viva` and #102 `sabado` keep the address, coordinates and
+  phone they already carried** (Guadalupe Norte and Umepay, both genuinely in Santa Fe and
+  Calamuchita) instead of being degraded to a centroid, and #1 keeps `ORGANIC` even though its
+  header prints "Agroeco", because stored packages are typed `ORGANIC` against it; (b) producers
+  whose header names no recognizable place (`JACTANCIA`, `SACHA PASTAS`, `PRIMITIVA`, …) get the
+  documented `sin-localidad` placeholder and an address that says so, rather than a guessed
+  province; (c) the printed `351-6480335` is stored as `+543516480335` and #123 is the only entry
+  with a real number — its Córdoba place is the single location this catalog infers rather
+  than reads, and it comes from that printed area code; (d) ids are the ASCII slug of the name (`quillen`, `dona-mecha`,
+  `reciclando-utopias`) while display names keep the accents the catalog prints (`Quillén`,
+  `Doña Mecha`, `Mamá Baker`), because the id is the persisted value and the name is what the
+  producer reads on screen. `SEED_PRODUCERS` becomes the catalog plus `COLMENAS_DEL_SOL`
+  (159 entries) and **the default identity is pinned to `PRODUCER_IDS.VERMUT` instead of
+  `SEED_PRODUCERS[0]`**, which is the unrequested behaviour change a reordered seed list would
+  otherwise have slipped in — the screen still opens as Vermut Sabado.
+- L6 (2026-10-17) — TASK-5 pins, and two existing tests re-pointed at intent. The Haversine test
+  in `barter-store.test.ts` read `SEED_PRODUCERS[0]` and `[1]` with the comment "Mendoza (Vermut)
+  to Santa Fe"; the seed list is now the printed catalog, so `[0]`/`[1]` are #1 and #2 (two Santa
+  Fe producers, ~300 km apart). It now selects both producers **by id** and keeps its 600–1000 km
+  band, which still holds because those two kept their coordinates — the test stopped depending on
+  seed order, and no expected distance was relaxed. `producer-catalog.test.ts` pins the
+  transcription: 158 rows numbered 1…158, unique ids and names, `sabado`↔#102 and
+  `naturaleza-viva`↔#1, every row validating against `producerSchema`, every coordinate inside
+  Argentina, the default-phone fallback plus #123's printed number, the claim counts
+  (4 VEGAN, 4 BIODYNAMIC, 10 ORGANIC, 140 AGROECOLOGICAL, 0 CONVENTIONAL), and the seed set
+  (catalog + `colmenas-del-sol`, legacy links still resolving). The pins bite: renumbering #158 to
+  159 and flipping #146 from VEGAN to AGROECOLOGICAL failed exactly the numbering pin and the claim
+  count pin, and both files were restored byte-identical. A second, scripted pass cross-checked
+  the 158 names against the extracted headers (only 5 differ, all cosmetic or the deliberate
+  `Vermut Sabado`) and every place against the header's own place tokens: **157 of 158 places are
+  justified by the printed line**, and the one that is not (#123) is inferred from its printed
+  area code, per L5(c).
+- L7 (2026-10-17) — Delivery strategy, recorded because the change crosses the 400-line review
+  slice (the catalog alone is ~800 authored lines). It ships as **three green work-unit commits
+  on `feat/primavera-2026-producer-catalog`, meant to be reviewed commit by commit** rather than
+  as one diff: (1) `feat(barter): accept biodynamic and vegan producers without a phone` —
+  contract plus the phone decision; (2) `feat(barter): fall back to one documented default phone
+for WhatsApp`; (3) `feat(barter): seed the full Primavera 2026 producer catalog` — the data
+  table and its transcription pins; (4) the selector. The catalog commit is deliberately the
+  big one: it is one row per printed producer, so its review load is a spot check plus the
+  scripted cross-check reported in L6, not 800 lines of logic — and splitting a data table
+  mid-catalog would make it harder to review, not easier. The two E2E specs that clicked the
+  chip row (`barter-copy-link.spec.ts`, `barter-modal-reset.spec.ts`) and the token anchor
+  (`barter-token-render.spec.ts`) travel with the selector commit, because the selector is what
+  invalidated them. If a pull request is opened, the recommendation is stacked review in that
+  order; push and PR stay a human decision.

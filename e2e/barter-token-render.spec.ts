@@ -43,12 +43,12 @@ test("token-replaced styles render their pre-change values", async ({
       .evaluate((el) => getComputedStyle(el).gap),
   ).toBe("4px");
 
-  // The producer chip row: its content container carries the 4px gap and the
-  // 2px vertical padding.
+  // The identity trigger row: it owns the 4px gap and the 2px vertical padding
+  // that the chip row's scroll content container used to carry, so the element
+  // asserted is the row itself instead of its first child.
   expect(
     await page.getByTestId("producer-switch-row").evaluate((el) => {
-      const inner = el.firstElementChild as HTMLElement;
-      const cs = getComputedStyle(inner);
+      const cs = getComputedStyle(el);
       return { gap: cs.gap, paddingTop: cs.paddingTop };
     }),
   ).toEqual({ gap: "4px", paddingTop: "2px" });
