@@ -59,11 +59,47 @@ introduced by a table header of the shape
       producers the catalog prints without one, and keep the trade screen's link on it (S4).
 - [x] **TASK-3**: Add the Primavera 2026 catalog module (158 entries, unique ids, centroids
       per place, `sabado` and `naturaleza-viva` preserved) and seed the store from it (S2, S3, S4).
-- [ ] **TASK-4**: Replace the identity chip row with a searchable selector (S6).
-- [ ] **TASK-5**: Pin the catalog invariants with tests: 158 entries numbered 1…158, unique
+- [x] **TASK-4**: Replace the identity chip row with a searchable selector (S6).
+- [x] **TASK-5**: Pin the catalog invariants with tests: 158 entries numbered 1…158, unique
       ids and names, coordinates inside Argentina, every place key resolvable, `sabado` and
       `naturaleza-viva` resolving to #102 and #1, and the legacy links still resolving (S2–S5).
-- [ ] **TASK-6**: Close: full `make check`, `make check-e2e-web`, evidence and delivery notes.
+- [x] **TASK-6**: Close: full `make check`, `make check-e2e-web`, evidence and delivery notes.
+
+## Evidence & Verification
+
+- **TASK-1** — `packages/shared/src/modules/barter/schemas.ts`: `PRODUCTION_TYPES` gains
+  `BIODYNAMIC` and `VEGAN`. RED observed first: `accepts the biodynamic and vegan production
+types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the change
+  (shared 91 pass / 0 fail). The gondola filter gained one labelled option per type, pinned by
+  `offers a gondola filter option for every production type`, which walks `PRODUCTION_TYPES` —
+  RED was a `SyntaxError: Export named 'TYPE_OPTIONS' not found`, because the rule did not exist.
+- **TASK-2** — `POC_DEFAULT_PHONE` in `whatsapp-utils.ts`, next to the only consumer of a
+  number. RED: `SyntaxError: Export named 'POC_DEFAULT_PHONE' not found` plus the schema test
+  that now requires `phone`. GREEN: `exposes a default number the POC can fall back to` asserts
+  the constant produces a `wa.me/<10-15 digits>` URL, so a placeholder without a country code
+  cannot ship.
+- **TASK-3** — `producer-catalog.ts`: 158 entries, 43 places. Cross-checked against the
+  extracted text: every number 1…158 exists in the PDF, 5 name differences (all cosmetic or the
+  deliberate `Vermut Sabado`), and 157 of 158 place assignments are justified by the printed
+  header itself.
+- **TASK-4** — `producer-header-switcher.tsx`: trigger + sheet + `FlatList` + `filterProducers`.
+  RED: `SyntaxError: Export named 'filterProducers' not found`. GREEN: 5 cases, including the
+  accent fold I added after review (`dona mecha` → `Doña Mecha`), which was RED before
+  `foldForSearch` existed (`Expected 1, Received 0`).
+- **TASK-5** — `producer-catalog.test.ts`, 10 pins. Proven to bite: renumbering #158 to 159 and
+  flipping #146 from `VEGAN` to `AGROECOLOGICAL` failed exactly the numbering pin and the claim
+  count pin; the file was restored byte-identical.
+- **Closed with**: `TURBO_FORCE=true make check` EXIT=0 (mobile **520** pass / 0 fail across 62
+  files, shared **91** pass / 0 fail, api 106 pass / 0 fail) and `make check-e2e-web` EXIT=0
+  with **19 passed** — the barter specs among them, including the two that now open the selector
+  and the re-anchored token assertions.
+
+- **Completion & Delivery**: Feature complete on branch `feat/primavera-2026-producer-catalog` as
+  four work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
+  (`POC_DEFAULT_PHONE`), `c7be4eb` (the 158-producer catalog and its pins), `6a67bc2` (the
+  searchable identity selector plus the three E2E specs it invalidated). The vendor PDF is not
+  in the repository; the catalog module records its sha256. Push and pull request remain the
+  user's decision.
 
 ## Log
 
