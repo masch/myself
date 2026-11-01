@@ -67,7 +67,7 @@ test("token-replaced styles render their pre-change values", async ({
       exact: true,
     })
     .click();
-  await expect(page.getByRole("radio")).toHaveCount(2);
+  await expect(page.getByRole("radio").first()).toBeVisible();
 
   // Modal typography, each read from the element that owns the style.
   expect(

@@ -33,17 +33,21 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
     const checkedRadio = page.getByRole("radio", { checked: true });
     const submitProposal = page.getByRole("button", { name: "Enviar Match" });
 
-    // First open, as Vermut Sabado, for a package owned by Naturaleza Viva:
-    // the modal lists this producer's two packages with one preselected.
+    // First open, as Vermut Sabado, for a package owned by Naturaleza Viva: the
+    // offers are this producer's own inventory (its catalog products plus the
+    // POC packs), with one preselected. The modal searches that inventory,
+    // because a printed producer ships up to 77 packages.
     await page
       .getByRole("button", {
         name: "Pedir match por Horma 2kg Queso Gouda Agroecológico",
         exact: true,
       })
       .click();
-    await expect(proposalRadios).toHaveCount(2);
     await expect(checkedRadio).toHaveCount(1);
     await expect(submitProposal).toBeEnabled();
+    await page.getByTestId("own-package-search").fill("pack 4 botellas");
+    await expect(proposalRadios).toHaveCount(1);
+    await expect(checkedRadio).toHaveCount(1);
 
     await page.getByRole("button", { name: "Cancelar" }).click();
     await expect(proposalRadios).toHaveCount(0);
@@ -59,15 +63,25 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
     );
 
     // Second open, now for a package of the other producer: the offers are the
-    // new producer's two packages, and the first one is preselected again.
+    // new producer's inventory, not the previous one's. The Gouda is Naturaleza
+    // Viva's, and the pack the trade asks for is not on offer any more.
     await page
       .getByRole("button", {
         name: "Pedir match por Pack 4 Botellas Vermut Rosso 750ml",
         exact: true,
       })
       .click();
-    await expect(proposalRadios).toHaveCount(2);
     await expect(checkedRadio).toHaveCount(1);
     await expect(submitProposal).toBeEnabled();
+    // The previous producer's pack is not on offer any more...
+    await page.getByTestId("own-package-search").fill("pack 4 botellas");
+    await expect(proposalRadios).toHaveCount(0);
+    // ...and the new producer's own POC pack is, by its full printed title.
+    await page.getByTestId("own-package-search").fill("horma 2kg queso gouda");
+    await expect(proposalRadios).toHaveCount(1);
+    await expect(checkedRadio).toHaveCount(1);
+    await expect(
+      page.getByRole("radio").filter({ hasText: "Horma 2kg Queso Gouda" }),
+    ).toBeVisible();
   });
 });

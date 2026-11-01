@@ -6,7 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { Card, ThemedText, AppButton, Badge } from "@/components";
+import {
+  Card,
+  ThemedText,
+  ThemedTextInput,
+  AppButton,
+  Badge,
+} from "@/components";
 import {
   colors,
   fontWeights,
@@ -18,6 +24,7 @@ import {
 } from "@/theme";
 import type { ProductPackage } from "@myself/shared";
 import { productionTypeLabel } from "../production-type-labels";
+import { filterPackagesByTitle } from "../barter-selectors";
 import { formatCatalogEquivalence } from "../catalog-packages";
 
 interface TradeProposalModalProps {
@@ -115,6 +122,7 @@ export function TradeProposalModal({
   const [selectedPackageId, setSelectedPackageId] = useState<string>(
     availableOwnPackages[0]?.id ?? "",
   );
+  const [ownQuery, setOwnQuery] = useState("");
 
   if (!targetPackage) return null;
 
@@ -122,6 +130,12 @@ export function TradeProposalModal({
     (p) => p.id === selectedPackageId,
   );
   const canSubmit = !!selectedPackageId && (selectedPkg?.stockUnits ?? 0) > 0;
+
+  // A printed producer carries up to 77 packages, so the offer list is searched
+  // instead of scrolled. Narrowing it moves the selection to the first offer
+  // still visible: keeping a hidden selection would let "Enviar Match" submit a
+  // package the operator can no longer see.
+  const visibleOffers = filterPackagesByTitle(availableOwnPackages, ownQuery);
 
   return (
     <Modal
@@ -177,13 +191,35 @@ export function TradeProposalModal({
             Elegí qué entregás a cambio (1 PAP):
           </ThemedText>
 
+          {availableOwnPackages.length > 0 ? (
+            <ThemedTextInput
+              value={ownQuery}
+              onChangeText={(value) => {
+                setOwnQuery(value);
+                const next = filterPackagesByTitle(availableOwnPackages, value);
+                setSelectedPackageId(next[0]?.id ?? "");
+              }}
+              placeholder="Buscar en tu inventario"
+              accessibilityLabel="Buscar en tu inventario"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+              testID="own-package-search"
+            />
+          ) : null}
+
           <ScrollView style={styles.packageList}>
             {availableOwnPackages.length === 0 ? (
               <ThemedText variant="body" style={styles.emptyText}>
                 No tenés productos cargados en tu inventario para ofrecer.
               </ThemedText>
+            ) : visibleOffers.length === 0 ? (
+              <ThemedText variant="body" style={styles.emptyText}>
+                Ningún producto tuyo coincide con “{ownQuery.trim()}”. Probá con
+                otra palabra o limpiá la búsqueda.
+              </ThemedText>
             ) : (
-              availableOwnPackages.map((ownPkg) => (
+              visibleOffers.map((ownPkg) => (
                 <PackageOfferOption
                   key={ownPkg.id}
                   ownPackage={ownPkg}

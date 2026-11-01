@@ -8,6 +8,7 @@ import {
 import {
   deriveGondolaPackages,
   filterGondolaPackages,
+  filterPackagesByTitle,
 } from "../barter-selectors";
 
 function makeState(overrides: Partial<BarterState> = {}): BarterState {
@@ -130,5 +131,32 @@ describe("filterGondolaPackages", () => {
       "aceite de oliva",
     );
     expect(elsewhere.length).toBeGreaterThan(found.length);
+  });
+});
+
+describe("filterPackagesByTitle", () => {
+  const own = [
+    { id: "a", title: "Pack 4 Botellas Vermut Rosso 750ml" },
+    { id: "b", title: "Miel Multiflora de Chacra 1kg" },
+    { id: "c", title: "Vermut Rosso x 750 ml (muy bueno)" },
+  ];
+
+  it("returns the whole inventory when nothing is typed", () => {
+    expect(filterPackagesByTitle(own, "")).toEqual(own);
+    expect(filterPackagesByTitle(own, "   ")).toEqual(own);
+  });
+
+  it("matches the title folding case and accents", () => {
+    expect(filterPackagesByTitle(own, "VERMUT").map((p) => p.id)).toEqual([
+      "a",
+      "c",
+    ]);
+    expect(
+      filterPackagesByTitle(own, "miel multiflora").map((p) => p.id),
+    ).toEqual(["b"]);
+  });
+
+  it("returns nothing when no title matches", () => {
+    expect(filterPackagesByTitle(own, "queso")).toEqual([]);
   });
 });
