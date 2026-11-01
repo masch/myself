@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { ProductPackage, TradeMatch } from "@myself/shared";
 import { SEED_PACKAGES, SEED_PRODUCERS } from "../../barter-store";
 import {
+  countCompletedTrades,
   countMatchesAwaitingReply,
   getCounterOfferCandidates,
   getMatchActionAvailability,
@@ -196,5 +197,48 @@ describe("Barter inbox: who still has to answer", () => {
 
     expect(counts[outsider.id]).toBeUndefined();
     expect(Object.keys(counts)).toHaveLength(1);
+  });
+});
+
+describe("Barter inbox: completed trades per producer", () => {
+  it("counts a completed trade for both parties", () => {
+    const counts = countCompletedTrades([buildMatch({ status: "COMPLETED" })]);
+
+    expect(counts[requester.id]).toBe(1);
+    expect(counts[target.id]).toBe(1);
+  });
+
+  it("adds up every completed trade a producer was part of", () => {
+    const counts = countCompletedTrades([
+      buildMatch({ id: "m-1", status: "COMPLETED" }),
+      buildMatch({ id: "m-2", status: "COMPLETED" }),
+      buildMatch({ id: "m-3", status: "COMPLETED" }),
+    ]);
+
+    expect(counts[requester.id]).toBe(3);
+    expect(counts[target.id]).toBe(3);
+  });
+
+  it("does not count a trade that has not been delivered and confirmed", () => {
+    // Agreed or waiting for delivery can still fall apart: only COMPLETED is a
+    // trade that happened.
+    for (const status of [
+      "PENDING",
+      "COUNTER_OFFERED",
+      "ACCEPTED",
+      "WAITING_DELIVERY",
+      "REJECTED",
+      "EXPIRED",
+      "CANCELLED_INSUFFICIENT_STOCK",
+      "CANCELLED_BY_PRODUCER",
+    ] as const) {
+      expect(countCompletedTrades([buildMatch({ status })])).toEqual({});
+    }
+  });
+
+  it("never counts a producer that is not a party to the trade", () => {
+    const counts = countCompletedTrades([buildMatch({ status: "COMPLETED" })]);
+
+    expect(counts[outsider.id]).toBeUndefined();
   });
 });

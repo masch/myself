@@ -143,3 +143,28 @@ export function countMatchesAwaitingReply(
 
   return counts;
 }
+
+/**
+ * How many trades each producer has actually completed, keyed by producer id.
+ *
+ * Only `COMPLETED` counts: `ACCEPTED` and `WAITING_DELIVERY` can still be
+ * cancelled or never delivered, so treating them as done would put a number on
+ * a producer that overstates what happened. Both parties of a completed trade
+ * get the credit, and a producer with none is absent from the map rather than
+ * mapped to zero.
+ */
+export function countCompletedTrades(
+  matches: Pick<TradeMatch, "requesterId" | "targetProducerId" | "status">[],
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+
+  for (const match of matches) {
+    if (match.status !== "COMPLETED") continue;
+
+    for (const producerId of [match.requesterId, match.targetProducerId]) {
+      counts[producerId] = (counts[producerId] ?? 0) + 1;
+    }
+  }
+
+  return counts;
+}

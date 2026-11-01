@@ -21,7 +21,10 @@ import {
 } from "@/theme";
 import type { Producer, TradeMatch } from "@myself/shared";
 import { buildProducerLink } from "../barter-store";
-import { countMatchesAwaitingReply } from "../inbox-utils";
+import {
+  countCompletedTrades,
+  countMatchesAwaitingReply,
+} from "../inbox-utils";
 
 interface ProducerHeaderSwitcherProps {
   activeProducer?: Producer;
@@ -99,6 +102,11 @@ export function ProducerHeaderSwitcher({
     [matches],
   );
 
+  const completedTrades = useMemo(
+    () => countCompletedTrades(matches ?? []),
+    [matches],
+  );
+
   const closeSelector = () => {
     setIsSelectorOpen(false);
     setQuery("");
@@ -128,6 +136,7 @@ export function ProducerHeaderSwitcher({
   const renderProducerRow = ({ item: producer }: { item: Producer }) => {
     const isActive = producer.id === activeProducer?.id;
     const waiting = awaitingReply[producer.id] ?? 0;
+    const completed = completedTrades[producer.id] ?? 0;
 
     return (
       <View style={styles.selectorRowWrapper}>
@@ -136,7 +145,7 @@ export function ProducerHeaderSwitcher({
           accessibilityState={{ checked: isActive }}
           accessibilityLabel={`${producer.name}, ${producer.address}, ${producer.productionType}${
             waiting > 0 ? `, ${waiting} sin responder` : ""
-          }`}
+          }${completed > 0 ? `, ${completed} trueques hechos` : ""}`}
           onPress={() => handleSelectProducer(producer.id)}
           testID={`producer-option-${producer.id}`}
           style={[styles.selectorRow, isActive && styles.selectorRowActive]}
@@ -165,6 +174,17 @@ export function ProducerHeaderSwitcher({
                 size="sm"
                 style={styles.selectorTypeBadge}
                 testID={`producer-awaiting-reply-${producer.id}`}
+              />
+            )}
+            {/* History stays quiet and below the actionable badge: what a
+                producer owes comes first, what it has already done second. */}
+            {completed > 0 && (
+              <Badge
+                label={completed === 1 ? "1 trueque" : `${completed} trueques`}
+                variant="neutral"
+                size="sm"
+                style={styles.selectorTypeBadge}
+                testID={`producer-completed-trades-${producer.id}`}
               />
             )}
           </View>

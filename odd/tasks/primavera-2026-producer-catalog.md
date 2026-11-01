@@ -58,6 +58,12 @@ introduced by a table header of the shape
   "Owing an answer" is not re-listed here: it is exactly the condition under which
   `getMatchActionAvailability` offers that party an action (target of a `PENDING` proposal,
   requester of a `COUNTER_OFFERED` one), so the list and the inbox buttons cannot disagree.
+- **S8** — The same rows also show **how many trades that producer has completed**, and only
+  `COMPLETED` counts: `ACCEPTED` and `WAITING_DELIVERY` can still be cancelled or never
+  delivered, so counting them would put a number on a producer that overstates what happened.
+  Both parties of a completed trade get the credit; a producer with none shows no badge. The
+  action badge (amber) sits above the history one (neutral), because what a producer owes
+  matters more than what it has already done.
 
 ## Tasks
 
@@ -105,7 +111,7 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   and the re-anchored token assertions.
 
 - **Completion & Delivery**: Feature complete on branch `feat/primavera-2026-producer-catalog` as
-  eleven work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
+  twelve work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
   (`POC_DEFAULT_PHONE`), `c7be4eb` (the 158-producer catalog and its pins), `6a67bc2` (the
   searchable identity selector plus the three E2E specs it invalidated), `edb0950` (this
   document's evidence and closure), `1b31b7d` (finding R3-001 of lineage
@@ -271,3 +277,16 @@ found`. The observable proof is a new E2E (`barter-selector-awaiting-reply.spec.
   proposes a trade as `sabado`, opens the selector and asserts the target carries
   `1 por responder` while the requester and an uninvolved producer carry none — and it bites:
   neutering the badge condition makes it fail with `Expected: "1 por responder"`.
+- L12 (2026-10-17) — Requirement change, verbatim: _"ese mismo filtro podria mostrar la cantidad
+  trueques hecho?"_. S8 is added above. `countCompletedTrades` joins `countMatchesAwaitingReply`
+  in `inbox-utils.ts`, and the row now carries two badges: amber for what the producer owes,
+  neutral for what it has completed. Four unit cases pin the rule (RED first: `Export named
+'countCompletedTrades' not found`). The E2E (`barter-selector-completed-trades.spec.ts`) seeds
+  a persisted state with two `COMPLETED` matches and one merely `ACCEPTED`, then asserts
+  `2 trueques` for both parties and nothing for an uninvolved producer; it bites — letting
+  `ACCEPTED` count turns the assertion into `Received: "3 trueques"`. Two things this spec
+  taught about the selector itself: the list is virtualized over 158 producers, so a row is only
+  reachable by searching (the first version asserted on `sabado`, producer #102, and failed with
+  `element(s) not found` while the visible top rows already showed the correct badge), and the
+  seeded matches survive `parseExternalState`, so a persisted state is a cheap way to reach a
+  delivered trade without driving the whole propose-accept-confirm dance through the UI.
