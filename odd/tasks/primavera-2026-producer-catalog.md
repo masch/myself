@@ -72,6 +72,12 @@ introduced by a table header of the shape
   grey badges, because a count nobody notices is a count that does not exist, and each stage has
   its own colour so the four can be told apart at a glance. All of them come from one pass over
   the matches (`summarizeProducerTrades`), not one filter per question.
+- **S10** — The sheet can be narrowed to **the producers that have something to do**: one filter
+  chip, `Sólo con acciones` / `Con acciones (N)`, that keeps only rows whose summary has an
+  answer owed, a delivery to coordinate or a receipt to confirm. A finished trade is history, not
+  a task, so `completed` never makes a producer actionable. The filter **composes with the
+  search** instead of replacing it, both narrow the same list, and the `N de M` counter reflects
+  the result so an empty list is never ambiguous.
 
 ## Tasks
 
@@ -119,7 +125,7 @@ types` failed with the enum narrowed (shared 13 pass / 2 fail); GREEN after the 
   and the re-anchored token assertions.
 
 - **Completion & Delivery**: Feature complete on branch `feat/primavera-2026-producer-catalog` as
-  fourteen work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
+  fifteen work-unit commits — `15ad3ed` (contract: biodynamic and vegan types), `fe3fde5`
   (`POC_DEFAULT_PHONE`), `c7be4eb` (the 158-producer catalog and its pins), `6a67bc2` (the
   searchable identity selector plus the three E2E specs it invalidated), `edb0950` (this
   document's evidence and closure), `1b31b7d` (finding R3-001 of lineage
@@ -329,3 +335,14 @@ found`. The observable proof is a new E2E (`barter-selector-awaiting-reply.spec.
   The E2E grew the two intermediate stages by seeding an `ACCEPTED` and a `WAITING_DELIVERY`
   match where only the target has not confirmed, and the spec was renamed
   (`barter-selector-trade-chips.spec.ts`) because "completed trades" no longer described it.
+- L15 (2026-10-17) — Requirement change, verbatim: _"podemos agregar un filtro en esa pantalla que
+  filtre los que tienen alguna accion para hacer?"_. S10 is added above. `hasPendingActions`
+  answers it from the summary the row already builds — no new pass over the matches, and the
+  interesting case is the negative one: completed trades alone must NOT make a producer
+  actionable, which is pinned and is what the E2E mutation check turns red. Three unit cases, then
+  the E2E grew the filter itself. Two mistakes of mine fell out of that E2E and both were test
+  bugs, not product bugs: the filter composes with the search, so the assertion ran against a
+  leftover `"campo claro"` query (the screenshot that confirmed the feature also showed why: the
+  header reads `3 de 158`), and the "row comes back when the filter is turned off" assertion has
+  to keep the same query, because `sabado` is producer #102 and unrendered rows are invisible to
+  `toBeVisible` — the same virtualization lesson as L12/L13, now twice bitten.

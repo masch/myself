@@ -116,6 +116,29 @@ test("the selector shows each producer's trade chips", async ({ page }) => {
     "1 por confirmar llegada",
   );
 
+  // The filter narrows the list to the producers that actually have something
+  // to do: the seeded state leaves `sabado` with two finished trades and
+  // nothing pending, and a producer with history only must drop out.
+  // The filter composes with the search, so the query from the step above has
+  // to be cleared before it can be read on its own.
+  await page.getByTestId("producer-search-input").fill("");
+  await page.getByTestId("producer-filter-actions").click();
+  await expect(page.getByTestId("producer-filter-actions")).toHaveText(
+    "Con acciones (3)",
+  );
+  await expect(
+    page.getByTestId("producer-to-coordinate-granja-nova"),
+  ).toBeVisible();
+
+  // Same query, only the filter differs: a producer whose trades are all
+  // finished has nothing to do, so it drops out while the filter is on.
+  await page.getByTestId("producer-search-input").fill("vermut");
+  await expect(page.getByTestId("producer-option-sabado")).toHaveCount(0);
+  await page.getByTestId("producer-filter-actions").click();
+  await expect(page.getByTestId("producer-option-sabado")).toBeVisible();
+
+  await page.getByTestId("producer-search-input").fill("");
+
   // A producer with no completed trade shows nothing at all.
   await page.getByTestId("producer-search-input").fill("granja nova");
   await expect(page.getByTestId("producer-option-granja-nova")).toBeVisible();

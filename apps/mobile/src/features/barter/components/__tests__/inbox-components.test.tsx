@@ -5,6 +5,7 @@ import {
   getCounterOfferCandidates,
   getMatchActionAvailability,
   getTradeRole,
+  hasPendingActions,
   summarizeProducerTrades,
 } from "../../inbox-utils";
 
@@ -225,5 +226,43 @@ describe("Barter inbox: what each producer still has on its plate", () => {
 
     expect(summary[outsider.id]).toBeUndefined();
     expect(Object.keys(summary)).toHaveLength(2);
+  });
+});
+
+describe("Barter inbox: does this producer have something to do?", () => {
+  it("says no when there is no summary at all", () => {
+    // Most of the 158 producers have no trade history and no pending trade.
+    expect(hasPendingActions(undefined)).toBe(false);
+  });
+
+  it("says yes for every stage that still needs this producer", () => {
+    for (const stage of [
+      "awaitingReply",
+      "toCoordinate",
+      "toConfirm",
+    ] as const) {
+      expect(
+        hasPendingActions({
+          awaitingReply: 0,
+          toCoordinate: 0,
+          toConfirm: 0,
+          completed: 0,
+          [stage]: 1,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  it("says no when the only thing left is a finished trade", () => {
+    // History is not an action: a producer with completed trades and nothing
+    // pending has nothing to do.
+    expect(
+      hasPendingActions({
+        awaitingReply: 0,
+        toCoordinate: 0,
+        toConfirm: 0,
+        completed: 3,
+      }),
+    ).toBe(false);
   });
 });

@@ -22,6 +22,7 @@ import {
 import type { Producer, TradeMatch } from "@myself/shared";
 import { buildProducerLink } from "../barter-store";
 import {
+  hasPendingActions,
   summarizeProducerTrades,
   type ProducerTradeSummary,
 } from "../inbox-utils";
@@ -117,28 +118,45 @@ export function ProducerHeaderSwitcher({
   const toast = useToast();
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [onlyWithActions, setOnlyWithActions] = useState(false);
 
   // A simulation link only means something in a browser: the simulation is two
   // same-origin tabs, so on native the affordance is not rendered at all.
   const canCopyLink = Platform.OS === "web";
-
-  const filteredProducers = useMemo(
-    () => filterProducers(producers, query),
-    [producers, query],
-  );
 
   const tradeSummaries = useMemo(
     () => summarizeProducerTrades(matches ?? []),
     [matches],
   );
 
+  const producersWithActions = useMemo(
+    () =>
+      producers.filter((producer) =>
+        hasPendingActions(tradeSummaries[producer.id]),
+      ).length,
+    [producers, tradeSummaries],
+  );
+
+  // The search and the action filter compose: both narrow the same list.
+  const filteredProducers = useMemo(() => {
+    const matching = filterProducers(producers, query);
+
+    return onlyWithActions
+      ? matching.filter((producer) =>
+          hasPendingActions(tradeSummaries[producer.id]),
+        )
+      : matching;
+  }, [producers, query, onlyWithActions, tradeSummaries]);
+
   const closeSelector = () => {
     setIsSelectorOpen(false);
     setQuery("");
+    setOnlyWithActions(false);
   };
 
   const openSelector = () => {
     setQuery("");
+    setOnlyWithActions(false);
     setIsSelectorOpen(true);
   };
 
@@ -356,6 +374,23 @@ export function ProducerHeaderSwitcher({
           testID="producer-search-input"
         />
 
+        {/* Answering something is the reason to switch identity, so the list can
+            be narrowed to the producers that actually have something to do. */}
+        <View style={styles.selectorFilters}>
+          <ChipButton
+            title={
+              onlyWithActions
+                ? `Con acciones (${producersWithActions})`
+                : "Sólo con acciones"
+            }
+            variant={onlyWithActions ? "success" : "default"}
+            accessibilityState={{ selected: onlyWithActions }}
+            accessibilityHint="Muestra sólo los productores con algo pendiente"
+            onPress={() => setOnlyWithActions((current) => !current)}
+            testID="producer-filter-actions"
+          />
+        </View>
+
         <FlatList
           data={filteredProducers}
           keyExtractor={(producer) => producer.id}
@@ -370,7 +405,9 @@ export function ProducerHeaderSwitcher({
               style={styles.emptyText}
               testID="producer-selector-empty"
             >
-              Ningún productor coincide con “{query.trim()}”.
+              {onlyWithActions
+                ? "Ningún productor tiene algo pendiente."
+                : `Ningún productor coincide con “${query.trim()}”.`}
             </ThemedText>
           }
         />
@@ -457,6 +494,12 @@ const styles = StyleSheet.create({
   },
   selectorCount: {
     color: colors.secondaryLabel,
+  },
+  selectorFilters: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginTop: spacing.sm,
   },
   selectorList: {
     flexGrow: 0,

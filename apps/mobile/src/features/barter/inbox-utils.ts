@@ -225,3 +225,21 @@ export function summarizeProducerTrades(
 
   return summaries;
 }
+
+/**
+ * Whether this producer has something to do right now.
+ *
+ * A finished trade is history, not a task, so `completed` alone does not make a
+ * producer actionable — which is the whole point of the selector's filter.
+ */
+export function hasPendingActions(
+  summary: ProducerTradeSummary | undefined,
+): boolean {
+  if (!summary) return false;
+
+  return (
+    summary.awaitingReply > 0 ||
+    summary.toCoordinate > 0 ||
+    summary.toConfirm > 0
+  );
+}
