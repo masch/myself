@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, StyleSheet } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { View, StyleSheet, FlatList } from "react-native";
 import { router } from "expo-router";
 import {
   ScreenContainer,
@@ -8,15 +8,37 @@ import {
   AppButton,
   useToast,
 } from "@/components";
-import { colors, fontWeights, spacing } from "@/theme";
+import { colors, fontWeights, layout, spacing } from "@/theme";
 import {
   useBarter,
   ProducerHeaderSwitcher,
   ProductPackageCard,
   GondolaFilterBar,
+  GondolaSearch,
   TradeProposalModal,
+  filterGondolaPackages,
+  type GondolaPackage,
 } from "@/features/barter";
 import type { ProductPackage } from "@myself/shared";
+
+/**
+ * How many cards the list draws before the operator scrolls.
+ *
+ * The gondola carries 1531 packages (four POC packs plus every printed product),
+ * so only a screenful is mounted up front and the rest follows while scrolling:
+ * rendering all of them froze the screen and defeated the search.
+ */
+const INITIAL_PACKAGES = 8;
+const PACKAGES_PER_BATCH = 8;
+/**
+ * How many viewports of rows stay mounted, counted from the visible one. Seven
+ * keeps the scroll back and forward immediate without holding a thousand cards
+ * alive, which is what a plain scroll view did.
+ */
+const GONDOLA_WINDOW_SIZE = 7;
+
+/** FlatList asks repeatedly: the package id is the row identity. */
+const gondolaKeyExtractor = (pkg: GondolaPackage) => pkg.id;
 
 export default function BarterScreen() {
   const toast = useToast();
@@ -38,6 +60,7 @@ export default function BarterScreen() {
     resetToSeed,
   } = useBarter();
 
+  const [query, setQuery] = useState("");
   const [selectedTargetPackage, setSelectedTargetPackage] =
     useState<ProductPackage | null>(null);
 
@@ -46,9 +69,30 @@ export default function BarterScreen() {
     incomingMatches.filter((m) => m.status === "PENDING").length +
     outgoingMatches.filter((m) => m.status === "COUNTER_OFFERED").length;
 
-  const handleOpenProposal = (pkg: ProductPackage) => {
+  // The search and the two chip filters narrow the same list, so the header count
+  // and the empty state always describe what is on screen.
+  const visiblePackages = useMemo(
+    () => filterGondolaPackages(gondolaPackages, query),
+    [gondolaPackages, query],
+  );
+
+  // Asked once per render instead of once per row: a thousand cards would
+  // otherwise rescan every outgoing proposal each time they mount.
+  const pendingPackageIds = useMemo(
+    () =>
+      new Set(
+        outgoingMatches
+          .filter(
+            (m) => m.status === "PENDING" || m.status === "COUNTER_OFFERED",
+          )
+          .map((m) => m.targetPackageId),
+      ),
+    [outgoingMatches],
+  );
+
+  const handleOpenProposal = useCallback((pkg: ProductPackage) => {
     setSelectedTargetPackage(pkg);
-  };
+  }, []);
 
   const handleConfirmProposal = (offeredPackageId: string) => {
     if (!selectedTargetPackage || !activeProducer) return;
@@ -74,12 +118,28 @@ export default function BarterScreen() {
     }
   };
 
+  const renderPackage = useCallback(
+    ({ item }: { item: GondolaPackage }) => (
+      <ProductPackageCard
+        packageItem={item}
+        hasPendingProposal={pendingPackageIds.has(item.id)}
+        onProposeTrade={handleOpenProposal}
+      />
+    ),
+    [pendingPackageIds, handleOpenProposal],
+  );
+
   const targetProducer = producers.find(
     (p) => p.id === selectedTargetPackage?.producerId,
   );
 
-  return (
-    <ScreenContainer.Scroll edges={["top", "bottom"]} style={styles.container}>
+  const trimmedQuery = query.trim();
+
+  // Everything above the list is its header, so the producer switcher, the inbox,
+  // the filters and the count scroll with the gondola instead of being a second
+  // scrollable layer on top of it.
+  const listHeader = (
+    <View style={styles.listHeader}>
       {/* Producer identity header and multi-tab switcher */}
       <ProducerHeaderSwitcher
         activeProducer={activeProducer}
@@ -103,7 +163,7 @@ export default function BarterScreen() {
         />
       </View>
 
-      {/* Filter bar */}
+      {/* Filter bar: production type and distance */}
       <GondolaFilterBar
         selectedType={productionTypeFilter}
         onSelectType={setProductionTypeFilter}
@@ -111,41 +171,59 @@ export default function BarterScreen() {
         onSelectMaxDistance={setMaxDistanceKm}
       />
 
+      {/* Search over product and producer name, composing with the chips above */}
+      <View style={styles.searchRow}>
+        <GondolaSearch value={query} onChangeText={setQuery} />
+      </View>
+
       <View style={styles.sectionHeader}>
         <ThemedText variant="title2" style={styles.sectionTitle}>
-          Góndola de Productores ({gondolaPackages.length})
+          Góndola de Productores ({visiblePackages.length})
         </ThemedText>
         <ThemedText variant="caption1" style={styles.sectionSubtitle}>
           Seleccioná un producto para proponer un trueque exacto de 1 PAP
         </ThemedText>
       </View>
+    </View>
+  );
 
-      {/* Products list */}
-      {gondolaPackages.length === 0 ? (
-        <EmptyState
-          icon="sf:cart"
-          title="No hay productos disponibles"
-          description="Intentá cambiar los filtros de distancia o certificación."
-          style={styles.emptyState}
-        />
-      ) : (
-        gondolaPackages.map((pkg) => {
-          const hasPending = outgoingMatches.some(
-            (m) =>
-              m.targetPackageId === pkg.id &&
-              (m.status === "PENDING" || m.status === "COUNTER_OFFERED"),
-          );
-
-          return (
-            <ProductPackageCard
-              key={pkg.id}
-              packageItem={pkg}
-              hasPendingProposal={hasPending}
-              onProposeTrade={handleOpenProposal}
-            />
-          );
-        })
-      )}
+  return (
+    <ScreenContainer edges={["top", "bottom"]} style={styles.container}>
+      {/* Virtualised: 1531 packages cannot be a `map` inside a scroll view. */}
+      <FlatList
+        data={visiblePackages}
+        keyExtractor={gondolaKeyExtractor}
+        renderItem={renderPackage}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={
+          <EmptyState
+            icon="sf:cart"
+            title={
+              trimmedQuery
+                ? "Ningún producto coincide"
+                : "No hay productos disponibles"
+            }
+            description={
+              trimmedQuery
+                ? `No encontramos “${trimmedQuery}” en el nombre de un producto ni en el de un productor. Probá con otra palabra o limpiá la búsqueda.`
+                : "Probá cambiar los filtros de certificación o de distancia para ver productos de otros productores."
+            }
+            style={styles.emptyState}
+          />
+        }
+        style={styles.list}
+        // The screen container owns the safe-area insets; the list keeps the
+        // gutter every other screen gets from the scroll container it replaced,
+        // so the gondola does not sit 12dp wider than the rest of the app.
+        contentContainerStyle={styles.listContent}
+        initialNumToRender={INITIAL_PACKAGES}
+        maxToRenderPerBatch={PACKAGES_PER_BATCH}
+        windowSize={GONDOLA_WINDOW_SIZE}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        testID="gondola-list"
+      />
 
       {/* Proposal initiation modal. The modal keeps its preselection in state
           initialized once, so it is keyed on the identity it belongs to: a new
@@ -160,7 +238,7 @@ export default function BarterScreen() {
         onConfirmProposal={handleConfirmProposal}
         onClose={() => setSelectedTargetPackage(null)}
       />
-    </ScreenContainer.Scroll>
+    </ScreenContainer>
   );
 }
 
@@ -168,14 +246,23 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.systemBackground,
   },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: layout.screenHorizontalPadding,
+  },
+  listHeader: {
+    gap: layout.cardGap,
+  },
   inboxRow: {
     marginHorizontal: spacing.md,
-    marginTop: spacing.xs,
+  },
+  searchRow: {
+    marginHorizontal: spacing.md,
   },
   sectionHeader: {
     marginHorizontal: spacing.md,
-    marginTop: spacing.xs,
-    marginBottom: spacing.sm,
   },
   sectionTitle: {
     color: colors.label,

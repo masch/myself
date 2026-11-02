@@ -1,0 +1,3 @@
+# Transcribed data tables: one printed row per line, so a row can be read and
+# diffed whole. Prettier would explode each tuple into seven lines.
+apps/mobile/src/features/barter/primavera-products.ts
