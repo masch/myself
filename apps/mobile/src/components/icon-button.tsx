@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Platform,
   Pressable,
   StyleSheet,
   type StyleProp,
@@ -36,12 +37,19 @@ export function IconButton({
 }: IconButtonProps) {
   const iconPixelSize = size === "small" ? 16 : size === "large" ? 24 : 18;
 
+  // `hitSlop` is a native affordance only. On the web, react-native-web's
+  // Pressable rejects the press against the hit rect it derives from it, so every
+  // icon button becomes a dead target there: the ✕ of the gondola search, the
+  // settings rows and the reading cards all ignored their taps. Passing it only
+  // where it is honoured is what keeps the component pressable on both platforms.
+  const effectiveHitSlop = Platform.OS === "web" ? undefined : hitSlop;
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       aria-label={accessibilityLabel}
-      hitSlop={hitSlop}
+      hitSlop={effectiveHitSlop}
       style={({ pressed }) => [
         styles.base,
 
