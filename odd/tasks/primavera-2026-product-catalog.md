@@ -148,6 +148,11 @@ trading equal value instead of equal packaging.
   passed**. The only findings the suite raised were mine and are fixed: prettier reformatted this
   document, and the transcription's first line still imported a type the regenerated file no
   longer uses.
+- **Merged**: pull request #114 squashed into `main` as `0b877b1` (2026-11-02), closing issue
+  #107. The merged tree is byte-identical to the reviewed branch tip (`git diff --quiet` against
+  the branch is empty), so the squash changed history, not content. The six stacked PRs
+  (#108-#113) stay closed on the record: their split is why the ODD gate caught the chaining
+  limit, and their trees are identical to this feature's cumulative tree at every boundary.
 - **Completion & Delivery**: Feature complete on branch `feat/primavera-2026-product-catalog` as
   seven work-unit commits — `c2e4228` (the 1527-row transcription and its pins), `84c03fb`
   (the presentation-size fix the pins caught), `a1587cb` (the 1-PAP derivation and the shared
