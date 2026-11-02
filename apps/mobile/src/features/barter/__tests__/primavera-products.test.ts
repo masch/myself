@@ -99,18 +99,27 @@ describe("Primavera 2026 product catalog transcription", () => {
     }
   });
 
-  it("keeps the one bundle the PDF prices both per unit and per box", () => {
-    // Every row that prints both columns is sold by kilo or litro — the first
-    // price is a per-measure price — except #714, whose first price is per unit
-    // and whose presentation is the printed "caja x 18 u". It is sold by count,
-    // so it must not claim a weight it does not have.
-    const byMeasure = PRODUCTS.filter(
-      ([, , , unit, final]) => unit !== null && final !== null,
-    ).filter(([, , , , , , measure]) => measure === "unidad");
+  it("prices a printed bundle by count even when the PDF also prints a unit price", () => {
+    // A row that prints both columns is one the PDF sells by measure — except a
+    // printed bundle, whose first price is per unit and whose presentation is
+    // the box: "12 unid. Mixto X 300grs", "caja x 18 u". Those stay counts; the
+    // ratio of the two prices is the number of items, not a weight.
+    const bundle =
+      /\b(?:\d+\s*(?:unidades?|unid\.?|u|cajas?|paquetes?|bolsas?)|(?:pack|combo|kit))\b/i;
+    const byCount = PRODUCTS.filter(
+      ([, , , unit, final, , measure]) =>
+        unit !== null && final !== null && measure === "unidad",
+    );
 
-    expect(byMeasure).toHaveLength(1);
-    expect(byMeasure[0]?.slice(0, 2)).toEqual([714, 76]);
-    expect(byMeasure[0]?.[5]).toBe(18);
+    expect(byCount.length).toBeGreaterThan(1);
+    for (const [number, , name, , , size] of byCount) {
+      expect(bundle.test(name)).toBe(true);
+      if (!Number.isInteger(size)) {
+        throw new Error(
+          `product ${number} (${name}): non-integer count ${size}`,
+        );
+      }
+    }
   });
 
   it("never calls a loose product a kilo or litro it cannot weigh", () => {
@@ -127,7 +136,49 @@ describe("Primavera 2026 product catalog transcription", () => {
     );
 
     expect(weighable.length + byCount.length).toBe(186);
-    expect(byCount).toHaveLength(60);
+    expect(byCount).toHaveLength(63);
+  });
+
+  it("reads a printed bundle as a count of units, never as kilos", () => {
+    // The PDF prices a bundle and prints its count ("12 unid. Mixto X 300grs",
+    // "caja x 18 u"). Reading the count as the measure size turns twelve packets
+    // into 12 kg, which is what the review caught: the tuple contract says the
+    // size is how much of `measure` one presentation holds.
+    const bundle =
+      /\b\d+\s*(?:unidades?|unid\.?|botellas?|frascos?|latas?|potes?|bolsas?|cajas?|paquetes?|u)\b/i;
+    const bundles = PRODUCTS.filter(([, , name]) => bundle.test(name));
+
+    expect(bundles.length).toBeGreaterThanOrEqual(30);
+    for (const [number, , name, , , size, measure] of bundles) {
+      expect(measure).toBe("unidad");
+      expect(Number.isInteger(size)).toBe(true);
+      if (size < 1)
+        throw new Error(`product ${number} (${name}): size ${size}`);
+    }
+  });
+
+  it("reads the volume spellings the text layer carries", () => {
+    const byNumber = new Map(PRODUCTS.map((row) => [row[0], row]));
+
+    // "x 500c." is half a litre, "x 1 ltr" is one litre and "x 1/2 ltr" is half.
+    expect(byNumber.get(161)?.slice(5)).toEqual([0.5, "litro"]);
+    expect(byNumber.get(1190)?.slice(5)).toEqual([1, "litro"]);
+    expect(byNumber.get(1309)?.slice(5)).toEqual([0.5, "litro"]);
+  });
+
+  it("never mistakes the container a product is for with its own size", () => {
+    // #1426: "X unidad para baldes de 20lts" is one bag for a 20-litre bucket,
+    // not 20 litres of bag.
+    const byNumber = new Map(PRODUCTS.map((row) => [row[0], row]));
+
+    expect(byNumber.get(1426)?.slice(5)).toEqual([1, "unidad"]);
+    expect(byNumber.get(1427)?.slice(5)).toEqual([20, "unidad"]);
+    expect(byNumber.get(111)?.slice(5)).toEqual([12, "unidad"]);
+    // The three abbreviations of the same "doce unidades" box.
+    expect(byNumber.get(669)?.slice(5)).toEqual([12, "unidad"]);
+    expect(byNumber.get(670)?.slice(5)).toEqual([12, "unidad"]);
+    expect(byNumber.get(1401)?.slice(5)).toEqual([12, "unidad"]);
+    expect(byNumber.get(712)?.slice(5)).toEqual([18, "unidad"]);
   });
 
   it("prices the products the app already knew exactly as the PDF prints them", () => {
