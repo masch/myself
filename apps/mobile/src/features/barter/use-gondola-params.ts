@@ -78,12 +78,13 @@ export function useGondolaParams({
     [query, productionType, maxDistanceKm],
   );
 
-  // The screen's own values at mount, so an absent parameter keeps whatever the
-  // persisted gondola already had instead of resetting it.
-  const [initialDefaults] = useState(view);
+  // Parsed against what the screen is *now*: an address that says nothing about
+  // the gondola keeps it, and one that speaks is authoritative for the whole view.
+  // Mount-time defaults made back and forward restore a filter that had already
+  // been cleared, because clearing it removes the parameter.
   const parsed = useMemo(
-    () => parseGondolaParams(params, initialDefaults),
-    [params, initialDefaults],
+    () => parseGondolaParams(params, view),
+    [params, view],
   );
 
   // Derived from the screen, so it belongs to this render: the apply side only
@@ -109,6 +110,9 @@ export function useGondolaParams({
   const lastWrittenKeyRef = useRef<string | null>(null);
   // Set when the URL moved on its own, so the write side does not echo it back.
   const skipNextWriteRef = useRef(false);
+  // Set when the address moved without the router seeing it, so its stale report
+  // is ignored once instead of reverting the user's last action.
+  const skipApplyOnceRef = useRef(false);
   // Whether this search owns a pushed history entry that has to be popped.
   const searchEntryPushedRef = useRef(false);
   // The last query both sides agreed on: tells a search that starts from one that
@@ -121,6 +125,12 @@ export function useGondolaParams({
   // URL to screen: only when the URL itself changed (mount, back, forward, a
   // pasted link).
   useEffect(() => {
+    if (skipApplyOnceRef.current) {
+      skipApplyOnceRef.current = false;
+      lastAppliedUrlKeyRef.current = urlKey;
+      return;
+    }
+
     if (lastAppliedUrlKeyRef.current === urlKey) return;
 
     lastAppliedUrlKeyRef.current = urlKey;
@@ -152,8 +162,6 @@ export function useGondolaParams({
     // address (it fills in the producer), it never adds a history step.
     const isFirstWrite = lastWrittenKeyRef.current === null;
     lastWrittenKeyRef.current = writeKey;
-    // The URL is about to say exactly this; do not treat it as a foreign change.
-    lastAppliedUrlKeyRef.current = screenKey;
 
     const searchStarted =
       previousQueryRef.current.trim() === "" && query.trim() !== "";
@@ -174,6 +182,9 @@ export function useGondolaParams({
         searchEntryPushedRef.current = true;
       }
 
+      // The router reports what it just wrote, so this key must not come back as
+      // a foreign change.
+      lastAppliedUrlKeyRef.current = screenKey;
       router.setParams(nextParams);
       return;
     }
@@ -219,6 +230,7 @@ export function useGondolaParams({
       return;
     }
 
+    lastAppliedUrlKeyRef.current = screenKey;
     router.setParams(nextParams);
   }, [
     navigationReady,

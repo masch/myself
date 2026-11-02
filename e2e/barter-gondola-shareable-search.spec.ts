@@ -129,3 +129,28 @@ test("an unfiltered gondola keeps a clean address", async ({ page }) => {
   await expect(page).not.toHaveURL(/[?&]q=/);
   await expect(searchInput(page)).toHaveValue("");
 });
+
+test("a cleared filter stays cleared while the search keeps being edited", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  // Mount with a persisted filter, then remove it through the address.
+  await page.setViewportSize(PHONE);
+  await page.goto("/barter?producerId=sabado&tipo=ORGANIC");
+  await expect(searchInput(page)).toHaveValue("", { timeout: 30000 });
+  await expect(page).toHaveURL(/[?&]tipo=ORGANIC/);
+
+  // "Todos" writes the absence of `tipo`, through replaceState, which the router
+  // does not observe. The next edit is what exposes a stale read.
+  await filterRow(page).getByText("Todos", { exact: true }).click();
+  await expect(page).not.toHaveURL(/[?&]tipo=/);
+
+  await searchInput(page).fill("queso");
+  await expect(page).toHaveURL(/[?&]q=queso/);
+
+  // The filter must not come back: neither in the address nor in the results.
+  await expect(page).not.toHaveURL(/[?&]tipo=/);
+  await page.getByTestId("gondola-search-clear").click();
+  await expect(page).not.toHaveURL(/[?&]tipo=/);
+  await expect(searchInput(page)).toHaveValue("");
+});

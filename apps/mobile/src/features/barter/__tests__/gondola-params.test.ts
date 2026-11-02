@@ -38,6 +38,21 @@ describe("parseGondolaParams", () => {
     expect(parseGondolaParams({}, persisted)).toEqual(persisted);
   });
 
+  it("treats a certification the URL omits as Todos once the URL speaks about the gondola", () => {
+    // Clearing a filter removes the parameter, so reading absence as "whatever the
+    // screen had at mount" is what made back and forward bring the filter back.
+    expect(
+      parseGondolaParams(
+        { q: "queso" },
+        { query: "", productionType: "ORGANIC", maxDistanceKm: 250 },
+      ),
+    ).toEqual({
+      query: "queso",
+      productionType: "ALL",
+      maxDistanceKm: undefined,
+    });
+  });
+
   it("treats an unknown certification as absent instead of throwing", () => {
     expect(
       parseGondolaParams({ tipo: "ORGANICOO" }, DEFAULTS).productionType,

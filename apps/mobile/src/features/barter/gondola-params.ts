@@ -37,34 +37,50 @@ function single(value: string | string[] | undefined): string | undefined {
   return value;
 }
 
+const GONDOLA_VIEW_PARAMS = [
+  GONDOLA_PARAMS.query,
+  GONDOLA_PARAMS.productionType,
+  GONDOLA_PARAMS.maxDistanceKm,
+] as const;
+
 /**
  * Reads the gondola view out of the URL.
  *
- * Anything missing or unrecognised falls back to `defaults` instead of throwing:
- * a hand-edited or stale link must still open a usable gondola. A distance is
- * accepted for any positive number, not only the chips the screen offers, so a
- * link built by a newer build keeps working.
+ * Two cases, and the difference is load-bearing:
+ *
+ * - The address says nothing about the gondola (no `q`, `tipo` or `km`): the
+ *   screen keeps `defaults`, which is whatever the persisted gondola already had.
+ *   Opening a plain `/barter` must not reset somebody's filter.
+ * - The address says something: it is authoritative for the whole view, so an
+ *   absent `tipo` or `km` means "Todos" and "any distance", **not** the value the
+ *   screen happened to hold at mount. Reading absence as the mount-time value made
+ *   back and forward restore a filter the user had already cleared, because
+ *   clearing it removes the parameter.
+ *
+ * A distance is accepted for any positive number, not only the chips the screen
+ * offers, so a link built by a newer build keeps working.
  */
 export function parseGondolaParams(
   params: RawParams,
   defaults: GondolaViewState,
 ): GondolaViewState {
+  const speaksAboutGondola = GONDOLA_VIEW_PARAMS.some(
+    (key) => single(params[key]) !== undefined,
+  );
+
+  if (!speaksAboutGondola) return defaults;
+
   const rawType = single(params[GONDOLA_PARAMS.productionType]);
-  const productionType =
-    rawType === "ALL"
-      ? "ALL"
-      : PRODUCTION_TYPES.includes(rawType as ProductionType)
-        ? (rawType as ProductionType)
-        : defaults.productionType;
+  const productionType = PRODUCTION_TYPES.includes(rawType as ProductionType)
+    ? (rawType as ProductionType)
+    : "ALL";
 
   const rawDistance = Number(single(params[GONDOLA_PARAMS.maxDistanceKm]));
   const maxDistanceKm =
-    Number.isFinite(rawDistance) && rawDistance > 0
-      ? rawDistance
-      : defaults.maxDistanceKm;
+    Number.isFinite(rawDistance) && rawDistance > 0 ? rawDistance : undefined;
 
   return {
-    query: single(params[GONDOLA_PARAMS.query]) ?? defaults.query,
+    query: single(params[GONDOLA_PARAMS.query]) ?? "",
     productionType,
     maxDistanceKm,
   };
