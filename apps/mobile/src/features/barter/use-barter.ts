@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { globalBarterStore, type BarterState } from "./barter-store";
 import { deriveGondolaPackages, type GondolaPackage } from "./barter-selectors";
 
@@ -34,27 +34,38 @@ export function useBarter(): BarterState & {
     globalBarterStore.getState,
   );
 
-  const activeProducer = state.producers.find(
-    (p) => p.id === state.activeProducerId,
+  // Memoised on the store state: typing in the gondola search re-renders the
+  // screen, and without these the 1531-package derivation (one distance per row)
+  // would run again on every keystroke.
+  const activeProducer = useMemo(
+    () => state.producers.find((p) => p.id === state.activeProducerId),
+    [state.producers, state.activeProducerId],
   );
 
-  const otherProducers = state.producers.filter(
-    (p) => p.id !== state.activeProducerId,
+  const otherProducers = useMemo(
+    () => state.producers.filter((p) => p.id !== state.activeProducerId),
+    [state.producers, state.activeProducerId],
   );
 
-  const activeProducerPackages = state.packages.filter(
-    (p) => p.producerId === state.activeProducerId,
+  const activeProducerPackages = useMemo(
+    () => state.packages.filter((p) => p.producerId === state.activeProducerId),
+    [state.packages, state.activeProducerId],
   );
 
   // Gondola contains only packages from OTHER producers, with distance and filter applied
-  const gondolaPackages = deriveGondolaPackages(state);
+  const gondolaPackages = useMemo(() => deriveGondolaPackages(state), [state]);
 
-  const incomingMatches = state.matches.filter(
-    (m) => m.targetProducerId === state.activeProducerId,
+  const incomingMatches = useMemo(
+    () =>
+      state.matches.filter(
+        (m) => m.targetProducerId === state.activeProducerId,
+      ),
+    [state.matches, state.activeProducerId],
   );
 
-  const outgoingMatches = state.matches.filter(
-    (m) => m.requesterId === state.activeProducerId,
+  const outgoingMatches = useMemo(
+    () => state.matches.filter((m) => m.requesterId === state.activeProducerId),
+    [state.matches, state.activeProducerId],
   );
 
   return {

@@ -124,6 +124,14 @@ trading equal value instead of equal packaging.
   first and left lineage `review-075f141cc41e7167` unusable in `correction_required`; it was
   abandoned with `operator_disposition`, which leaves an auditable reclaim record and quarantines
   its captured lens results.
+- **PR review round** — the pull request's own reviewers found what the native slice review could
+  not see, all of it real and all fixed in the same work unit: a peer tab broadcasting a package
+  list from before the catalog dropped all 1527 `cat-*` packages locally, and the reload restored
+  them with seed stock, resurrecting stock a trade had consumed (`mergePeerPackages`); the offer
+  search moved the operator's pick to the first match on every keystroke (`resolveSelectedOffer`
+  keeps it while it still matches); the gondola re-derived 1531 rows on every keystroke
+  (`useBarter` now memoises the derivation); and CodeQL flagged the test helper that stripped
+  React's node-boundary comments as if it were a sanitizer of untrusted input.
 - **Not reviewed natively**: the code slices (derivation, contract, seed, gondola, modal). A
   candidate has to fit the reviewer context budget, so they need their own chained review
   candidates; the branch as a whole cannot be one. Their verification is the test suite,

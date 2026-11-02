@@ -36,6 +36,22 @@ interface TradeProposalModalProps {
   onClose: () => void;
 }
 
+/**
+ * The offer to keep selected when the inventory search narrows.
+ *
+ * Narrowing must not move the operator's choice while it still matches (they
+ * picked the fifth offer, and typing more should not silently send the first);
+ * it only moves when the choice left the list, and then to the first offer still
+ * visible, so "Enviar Match" can never submit an offer nobody can see.
+ */
+export function resolveSelectedOffer<T extends { id: string }>(
+  visible: T[],
+  selectedId: string,
+): string {
+  if (visible.some((pkg) => pkg.id === selectedId)) return selectedId;
+  return visible[0]?.id ?? "";
+}
+
 export interface PackageOfferOptionProps {
   ownPackage: ProductPackage;
   isSelected: boolean;
@@ -196,8 +212,12 @@ export function TradeProposalModal({
               value={ownQuery}
               onChangeText={(value) => {
                 setOwnQuery(value);
-                const next = filterPackagesByTitle(availableOwnPackages, value);
-                setSelectedPackageId(next[0]?.id ?? "");
+                setSelectedPackageId((current) =>
+                  resolveSelectedOffer(
+                    filterPackagesByTitle(availableOwnPackages, value),
+                    current,
+                  ),
+                );
               }}
               placeholder="Buscar en tu inventario"
               accessibilityLabel="Buscar en tu inventario"

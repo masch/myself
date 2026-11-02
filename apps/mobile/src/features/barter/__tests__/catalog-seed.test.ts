@@ -9,6 +9,7 @@ import {
   SEED_PACKAGES,
   createBarterStore,
   mergeCatalogPackages,
+  mergePeerPackages,
 } from "../barter-store";
 import { catalogPackages } from "../catalog-packages";
 
@@ -176,5 +177,60 @@ describe("the shared package contract", () => {
     });
 
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe("mergePeerPackages", () => {
+  const catalogIds = SEED_PACKAGES.filter((pkg) => pkg.id.startsWith("cat-"));
+
+  it("keeps the catalog a peer tab written by an older bundle does not know", () => {
+    // A tab on the pre-catalog bundle broadcasts the four POC packs only.
+    const peer = SEED_PACKAGES.filter((pkg) => !pkg.id.startsWith("cat-"));
+    const merged = mergePeerPackages(SEED_PACKAGES, peer);
+
+    expect(merged).toHaveLength(SEED_PACKAGES.length);
+    expect(merged.filter((pkg) => pkg.id.startsWith("cat-"))).toHaveLength(
+      catalogIds.length,
+    );
+  });
+
+  it("keeps the stock this tab consumed for an id the peer does not carry", () => {
+    const consumed = SEED_PACKAGES.map((pkg) =>
+      pkg.id === "cat-5" ? { ...pkg, stockUnits: 0 } : pkg,
+    );
+    const peer = SEED_PACKAGES.filter((pkg) => !pkg.id.startsWith("cat-"));
+    const merged = mergePeerPackages(consumed, peer);
+
+    expect(merged.find((pkg) => pkg.id === "cat-5")?.stockUnits).toBe(0);
+  });
+
+  it("takes the peer's version of an id both tabs carry, keeping the local order", () => {
+    const peer = SEED_PACKAGES.map((pkg) =>
+      pkg.id === "cat-5" ? { ...pkg, stockUnits: 7 } : pkg,
+    );
+    const merged = mergePeerPackages(SEED_PACKAGES, peer);
+
+    expect(merged.find((pkg) => pkg.id === "cat-5")?.stockUnits).toBe(7);
+    expect(merged.map((pkg) => pkg.id)).toEqual(
+      SEED_PACKAGES.map((pkg) => pkg.id),
+    );
+  });
+
+  it("appends a package only the peer carries", () => {
+    const foreign: ProductPackage = {
+      ...SEED_PACKAGES[0]!,
+      id: "pkg-del-otro-tab",
+    };
+    const merged = mergePeerPackages(SEED_PACKAGES, [
+      ...SEED_PACKAGES,
+      foreign,
+    ]);
+
+    expect(merged).toHaveLength(SEED_PACKAGES.length + 1);
+    expect(merged.at(-1)?.id).toBe("pkg-del-otro-tab");
+  });
+
+  it("keeps the local list when the peer sends no packages", () => {
+    expect(mergePeerPackages(SEED_PACKAGES, undefined)).toBe(SEED_PACKAGES);
   });
 });

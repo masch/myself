@@ -6,7 +6,10 @@ import { SEED_PACKAGES, SEED_PRODUCERS } from "../../barter-store";
 import { catalogPackages } from "../../catalog-packages";
 import { PRIMAVERA_2026_PRODUCERS } from "../../producer-catalog";
 import { ProductPackageCard } from "../product-package-card";
-import { PackageOfferOption } from "../trade-proposal-modal";
+import {
+  PackageOfferOption,
+  resolveSelectedOffer,
+} from "../trade-proposal-modal";
 import { TYPE_OPTIONS } from "../gondola-filter-bar";
 
 /**
@@ -16,9 +19,16 @@ import { TYPE_OPTIONS } from "../gondola-filter-bar";
  * server, which is why the offer row is its own exported component.
  */
 
-/** The rendered text of a card, without React's node-boundary comments. */
+/**
+ * The rendered text of a card, without React's node-boundary comments.
+ *
+ * The marker is React's own literal (`<!-- -->`), not a general comment: this is
+ * a test helper reading our own component output, never a sanitizer for
+ * untrusted input, and stripping the exact sequence is what keeps the assertion
+ * honest about the text the card renders.
+ */
 function textOf(html: string): string {
-  return html.replace(/<!--[^>]*-->/g, "");
+  return html.replaceAll("<!-- -->", "");
 }
 
 function catalogPackage(id: string): ProductPackage {
@@ -161,5 +171,21 @@ describe("PackageOfferOption tells the producer what it hands over", () => {
     expect(html).toContain("1 PAP");
     expect(html).not.toContain("PAP ≈");
     expect(html).not.toContain("real");
+  });
+});
+
+describe("resolveSelectedOffer", () => {
+  const offers = [{ id: "a" }, { id: "b" }, { id: "c" }];
+
+  it("keeps the offer the operator picked while it still matches", () => {
+    expect(resolveSelectedOffer(offers, "b")).toBe("b");
+  });
+
+  it("moves to the first offer still visible when the pick left the list", () => {
+    expect(resolveSelectedOffer([{ id: "c" }], "b")).toBe("c");
+  });
+
+  it("selects nothing when the query matches nothing", () => {
+    expect(resolveSelectedOffer([], "b")).toBe("");
   });
 });

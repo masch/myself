@@ -153,6 +153,36 @@ export function migrateProducerId(producerId: string): string {
  * a shared id, because its entry is the curated one, and the appended extras keep
  * whatever stored package or match already points at them alive.
  */
+/**
+ * Merges a peer tab's package list into the one this tab already has.
+ *
+ * A tab still running a bundle from before the printed catalog broadcasts the
+ * four POC packages and nothing else; replacing the local list with it would drop
+ * all 1527 catalog packages, persist the shorter list, and let the next reload
+ * re-add them with seed stock — resurrecting stock a real trade had consumed.
+ * So the peer wins for the ids it carries (its stock is at least as fresh) and
+ * this tab keeps every id the peer does not know about.
+ */
+export function mergePeerPackages(
+  current: ProductPackage[],
+  incoming: ProductPackage[] | undefined,
+): ProductPackage[] {
+  if (!incoming) {
+    return current;
+  }
+
+  const incomingById = new Map(incoming.map((pkg) => [pkg.id, pkg]));
+  const currentIds = new Set(current.map((pkg) => pkg.id));
+
+  return [
+    // Same order as this tab: a peer that never saw the catalog updates the four
+    // packs without reshuffling the gondola.
+    ...current.map((pkg) => incomingById.get(pkg.id) ?? pkg),
+    // A package only the peer carries is still a package the user may trade.
+    ...incoming.filter((pkg) => !currentIds.has(pkg.id)),
+  ];
+}
+
 export function mergeCatalogProducers(persisted?: Producer[]): Producer[] {
   if (!persisted?.length) {
     return SEED_PRODUCERS;
@@ -516,7 +546,7 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
 
         state = {
           ...state,
-          packages: validated.packages ?? state.packages,
+          packages: mergePeerPackages(state.packages, validated.packages),
           matches: validated.matches ?? state.matches,
           papConfigArs: validated.papConfigArs ?? state.papConfigArs,
         };

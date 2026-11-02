@@ -192,8 +192,13 @@ describe("external state: empty lists and rejected commands", () => {
       },
     });
 
-    expect(store.getState().packages).toHaveLength(1);
-    expect(store.getState().packages[0].id).toBe("pkg-peer");
+    // The readable half is applied: the peer's package is merged in beside the
+    // local ones instead of replacing them, which is what keeps the catalog's
+    // consumed stock alive across a snapshot from an older tab.
+    expect(
+      store.getState().packages.find((pkg) => pkg.id === "pkg-peer")
+        ?.stockUnits,
+    ).toBe(7);
     expect(store.getState().matches).toHaveLength(1);
     expect(store.getState().matches[0].id).toBe(MATCH.id);
     expect(peer.posted).toHaveLength(0);

@@ -79,7 +79,11 @@ describe("producer rename migration on the paths a user can reach", () => {
     });
 
     const state = store.getState();
-    expect(state.packages[0].producerId).toBe(PRODUCER_IDS.QUESO);
+    // The peer's package is merged in (a peer snapshot never replaces what this
+    // tab already knows, see `mergePeerPackages`), so it is looked up by id.
+    expect(
+      state.packages.find((pkg) => pkg.id === legacyPackage.id)?.producerId,
+    ).toBe(PRODUCER_IDS.QUESO);
     expect(state.matches[0].requesterId).toBe(PRODUCER_IDS.VERMUT);
     expect(state.matches[0].targetProducerId).toBe(PRODUCER_IDS.QUESO);
     // The translation is local: it is never echoed back to the peer.
@@ -206,8 +210,12 @@ describe("external payload validation", () => {
     // The package in the message parses (and migrates), so it is applied; the
     // match stored next to it does not parse and only that one is dropped. A
     // synced message is never echoed back to the peer.
-    expect(store.getState().packages).toHaveLength(1);
-    expect(store.getState().packages[0].producerId).toBe(PRODUCER_IDS.QUESO);
+    // The package in the message is merged into the local list: it is applied,
+    // and the local seeds are not dropped by the shorter peer snapshot.
+    expect(store.getState().packages).toHaveLength(SEED_PACKAGES.length + 1);
+    expect(store.getState().packages.at(-1)?.producerId).toBe(
+      PRODUCER_IDS.QUESO,
+    );
     expect(store.getState().matches).toEqual(before.matches);
     expect(peer.posted).toHaveLength(0);
   });
