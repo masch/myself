@@ -26,7 +26,8 @@ check-e2e-web`"_, accepted as: the document-head change must be revertible on it
   breaks the web drawer. It turned out to be inert (see **Evidence**), so it was reverted instead.
 - **S5** — While the search field owns the keyboard, the gondola shows the field, the filters and
   the results: the producer card, the inbox entry point and the section subtitle step aside and
-  come back on blur.
+  come back on blur. Web only: native already resizes the window with the keyboard, so the native
+  layout stays as it was (S6).
 - **S6** — Native is untouched. `useKeyboardInset` returns `0` outside the web, and the existing
   Android listener keeps driving `scrollInputIntoView` exactly as before.
 
@@ -44,6 +45,9 @@ check-e2e-web`"_, accepted as: the document-head change must be revertible on it
       (S2, S4).
 - [x] **TASK-7**: Close with `make check-tests`, `check-types`, `check-lint`, `check-format` and
       the full `check-e2e-web` (S1).
+- [x] **TASK-8**: Answer the first review round: correct the web coordinate math, restore the
+      input's internal blur handler, keep the compact layout on the web only, and make the inset
+      ignore pinch zoom and follow a panned viewport (S1, S5, S6).
 
 ## Evidence & Verification
 
@@ -86,6 +90,30 @@ check-e2e-web`"_, accepted as: the document-head change must be revertible on it
   existing barter modal specs — the specs that would catch a tap lost to the header collapsing on
   blur while the user reaches for a card. Still unverified by any automated check: the real IME.
   Only an Android Chrome device against the staging build can prove the keyboard behavior.
+- **TASK-8** — Three of the six review findings were real; one cited a policy that does not exist.
+  The coordinate bug was the serious one: `react-native-web`'s `getRect` subtracts every scrollable
+  ancestor's `scrollTop`
+  (`node_modules/react-native-web/dist/exports/UIManager/index.js:15-45`), so `measureLayout`
+  returns **visible-port** coordinates on the web while native returns content coordinates. The
+  first version subtracted `scrollYRef.current` on both, so a field that was already behind the
+  keyboard looked visible and nothing scrolled — the exact symptom being fixed, surviving in the
+  scrolled case. `focus-scroll.ts` now owns that math with 8 pins, including the one that fails
+  against the old code (web input at visible 380..424 with `scrollY` 500 must scroll to 548, not
+  back to 400). The blur regression was mine: `ThemedTextInput` spread `props` after
+  `onBlur={handleBlur}`, so the `onBlur` added to `GondolaSearch` replaced the internal handler and
+  the focus ring never cleared — `onBlur` is now destructured and called like `onFocus`, pinned by
+  a browser spec on the border colour. The compact layout also hid the producer card on native,
+  which contradicted S6; it is now `Platform.OS === "web"` only. Two refinements landed in the
+  hook because they were cheap and testable: pinch zoom reports no inset (`scale !== 1`), since a
+  zoomed viewport is not covered by anything, and the viewport is measured from `offsetTop +
+height` while both `resize` and `scroll` are watched, with duplicate geometries collapsed so one
+  geometry does not re-render every consumer twice. Rejected: the claim that `apps/mobile/**`
+  carries a platform-divergence rule requiring separate strategy files — that `AGENTS.md` does not
+  exist and the root one has no such rule; the single `Platform.OS` guard stays, like
+  `screen-container.tsx:190`. Known limit, recorded rather than hidden: while pinch-zoomed the
+  keyboard inset is not tracked. After the round: `make check-tests` (mobile 625 pass, 0 fail),
+  `check-types`, `check-lint`, `check-format`, `check-odd` and `make check-e2e-web` **27 passed
+  (1.9m)** — the two new browser specs pin the focus ring and the pinch zoom.
 - **Completion & Delivery**: Complete on branch `fix/web-keyboard-inset` as two work-unit commits:
   the fix with its unit and browser tests, and this document. The touched surface is 8 files (~490
   authored lines, of which ~300 are tests and fixtures). That single slice is above the ~400-line
@@ -108,3 +136,4 @@ check-e2e-web`"_, accepted as: the document-head change must be revertible on it
 - **L4** — _"estos arreglas aplica a todos los inputs de la app? a todos los componentes?"_ (the
   fix moved from the gondola screen into the scrolling primitives because of this question).
 - **L5** — _"subimos los cambios? issue y pr?"_ (delivery: branch, issue and pull request).
+- **L6** — _"que opinion tenes de los cmntario de CR?"_ (the review round that produced TASK-8).
