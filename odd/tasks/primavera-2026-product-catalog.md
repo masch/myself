@@ -110,6 +110,24 @@ trading equal value instead of equal packaging.
   "Horma 2kg **Queso** Gouda", so the filter found nothing. The specs now assert the intent —
   one checked radio, the offers belonging to the active producer, the previous producer's pack
   gone after the switch — instead of a package count that grew 38×.
+- **Native review of the transcription slice** — the whole branch (3.679 authored lines) was
+  refused at preflight with `lens_context_budget_exceeded` (twice, with four lenses and with two),
+  so no authority was created and nothing had to be abandoned. The transcription commit was
+  therefore reviewed alone (1.905 lines, five files) in a linked worktree, as lineage
+  `review-22308f81535b1d0f` with the risk and reliability lenses: **approved**, two reviewers plus
+  a refuter plus a targeted validator, authority burned by the exact acknowledgement.
+  It found three things a test could not: a **CRITICAL** deterministic defect (the bundle counts
+  printed as "x 12 un."/"x 12 uni" were read as one unit — `7c6aa4b`), a **BLOCKER that the
+  refuter refuted** (#118, base-only), and two non-blocking observations left as later work
+  (R1-001 on this document, R3-003 at `primavera-products.ts:940`). The correction was one
+  bounded pass of 159 diff lines, planned before it was committed — the first attempt committed
+  first and left lineage `review-075f141cc41e7167` unusable in `correction_required`; it was
+  abandoned with `operator_disposition`, which leaves an auditable reclaim record and quarantines
+  its captured lens results.
+- **Not reviewed natively**: the code slices (derivation, contract, seed, gondola, modal). A
+  candidate has to fit the reviewer context budget, so they need their own chained review
+  candidates; the branch as a whole cannot be one. Their verification is the test suite,
+  `make check` and the Playwright run below.
 - **Transcript idempotence** — the table is generated from the PDF text layer, but the generator
   is a throwaway script (it needs `pdftotext` and a PDF that does not live in the repo), so the
   committed artefact is the transcription itself plus the invariants that pin it: 1527 numbered
@@ -130,7 +148,8 @@ trading equal value instead of equal packaging.
   search and the three specs it made honest), and this document. The transcription dominates the
   diff (1858 of 3621 authored lines are the printed table itself, one product per line), which is
   why the slice boundary is worth recording: everything after `c2e4228` is ~1700 lines of
-  derivation, contract, seed, UI and tests. Not committed anywhere: nothing is pushed and no PR
+  derivation, contract, seed, UI and tests. The review's correction lands as its own commit,
+  `7c6aa4b`, because it is the one work unit a native review took alone. Not committed anywhere: nothing is pushed and no PR
   is open — push, PR and merge stay the user's decisions.
 
 ## Log
