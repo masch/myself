@@ -17,6 +17,7 @@ import {
   GondolaFilterBar,
   GondolaSearch,
   TradeProposalModal,
+  useGondolaParams,
   filterGondolaPackages,
   type GondolaPackage,
 } from "@/features/barter";
@@ -62,9 +63,23 @@ export default function BarterScreen() {
   } = useBarter();
 
   const [query, setQuery] = useState("");
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedTargetPackage, setSelectedTargetPackage] =
     useState<ProductPackage | null>(null);
+
+  // The gondola view lives in the URL: the address reproduces the page and the
+  // browser back button reverts a search, because a search that starts pushes one
+  // history entry instead of hiding in component state.
+  useGondolaParams({
+    query,
+    productionType: productionTypeFilter ?? "ALL",
+    maxDistanceKm,
+    activeProducerId: activeProducer?.id,
+    onApply: (state) => {
+      setQuery(state.query);
+      setProductionTypeFilter(state.productionType);
+      setMaxDistanceKm(state.maxDistanceKm);
+    },
+  });
 
   // The gondola scrolls its own virtualised list instead of using
   // `ScreenContainer.Scroll`, so it reserves the software keyboard itself. On web
@@ -143,13 +158,19 @@ export default function BarterScreen() {
 
   const trimmedQuery = query.trim();
 
-  // While the field owns the keyboard, the producer card and the inbox step aside:
-  // on a phone browser they push the field behind the keyboard, which is exactly
-  // where the results have to appear. Losing focus brings them back.
+  // While a search is active the producer card and the inbox step aside: on a
+  // phone browser they push the field behind the keyboard, which is exactly where
+  // the results have to appear.
   //
-  // Web only on purpose: native resizes the window with the keyboard and the field
-  // is already reachable, so the native screen keeps the layout it had.
-  const isCompactSearch = Platform.OS === "web" && isSearchFocused;
+  // Keyed on the query and not on focus, on purpose. Collapsing on focus made the
+  // layout jump on every blur — including the blur a press on the ✕ causes — and
+  // the button was remounted between pointerdown and pointerup, so its handler
+  // never ran. A stable header while a search exists is worth the one jump on the
+  // first character.
+  //
+  // Web only: native resizes the window with the keyboard and the field is already
+  // reachable, so the native screen keeps the layout it had.
+  const isCompactSearch = Platform.OS === "web" && trimmedQuery.length > 0;
 
   // Everything above the list is its header, so the producer switcher, the inbox,
   // the filters and the count scroll with the gondola instead of being a second
@@ -193,12 +214,7 @@ export default function BarterScreen() {
 
       {/* Search over product and producer name, composing with the chips above */}
       <View style={styles.searchRow}>
-        <GondolaSearch
-          value={query}
-          onChangeText={setQuery}
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
-        />
+        <GondolaSearch value={query} onChangeText={setQuery} />
       </View>
 
       <View style={styles.sectionHeader}>

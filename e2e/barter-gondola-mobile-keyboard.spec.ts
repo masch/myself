@@ -101,7 +101,7 @@ test("with no keyboard over the viewport nothing is reserved", async ({
   expect(listContentPaddingBottom).toBe("0px");
 });
 
-test("focusing the search field steps the producer card and the inbox aside", async ({
+test("a search steps the producer card and the inbox aside, and clearing brings them back", async ({
   page,
 }) => {
   test.setTimeout(120000);
@@ -109,7 +109,7 @@ test("focusing the search field steps the producer card and the inbox aside", as
   await openGondola(page);
 
   const searchInput = page.getByTestId("gondola-search-input");
-  await searchInput.click();
+  await searchInput.fill("queso");
 
   await expect(page.getByTestId("active-producer-name")).toHaveCount(0);
   await expect(
@@ -119,10 +119,14 @@ test("focusing the search field steps the producer card and the inbox aside", as
   await expect(searchInput).toBeVisible();
   await expect(page.getByTestId("gondola-filter-row")).toBeVisible();
 
-  await page.getByTestId("gondola-list").click({ position: { x: 4, y: 4 } });
+  // The ✕ is reachable while the header is compact: the press is not lost to a
+  // layout jump, which is what keying the compact layout on the query fixed.
+  await page.getByTestId("gondola-search-clear").click();
+
   await expect(page.getByTestId("active-producer-name")).toHaveText(
     "Vermut Sabado",
   );
+  await expect(searchInput).toHaveValue("");
 });
 
 test("typing filters the gondola inline and shows the count under the field", async ({
