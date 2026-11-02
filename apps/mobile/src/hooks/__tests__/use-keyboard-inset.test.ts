@@ -23,7 +23,7 @@ describe("keyboardInsetFromViewport", () => {
   });
 
   it("returns zero when the layout viewport already shrank with the keyboard", () => {
-    // `interactive-widget=resizes-content` on Chromium: innerHeight follows the
+    // Chrome with `interactive-widget=resizes-content`: innerHeight follows the
     // visual viewport, so reserving space again would double the padding.
     expect(
       keyboardInsetFromViewport({ layoutHeight: 460, visualHeight: 460 }),
@@ -35,13 +35,41 @@ describe("keyboardInsetFromViewport", () => {
       keyboardInsetFromViewport({ layoutHeight: 460, visualHeight: 800 }),
     ).toBe(0);
   });
+
+  it("measures the obstruction from the bottom of the visual viewport, not from its height alone", () => {
+    // A viewport panned down by 100 leaves its bottom edge at 560, so the
+    // keyboard covers 800 - 560 = 240, not 800 - 460.
+    expect(
+      keyboardInsetFromViewport({
+        layoutHeight: 800,
+        visualHeight: 460,
+        visualOffsetTop: 100,
+      }),
+    ).toBe(240);
+  });
+
+  it("ignores pinch zoom, which shrinks the visual viewport without any keyboard", () => {
+    // Zooming to 2x halves the visual viewport and nothing is covering it;
+    // reserving 400px would lift every sheet and pad every list for no reason.
+    expect(
+      keyboardInsetFromViewport({
+        layoutHeight: 800,
+        visualHeight: 400,
+        visualScale: 2,
+      }),
+    ).toBe(0);
+  });
 });
 
 /**
  * Minimal stand-in for `window` and `window.visualViewport`: the subscription is
  * taken against the object it receives, so it can be driven without a DOM.
  */
-function createFakeWindow(layoutHeight: number, visualHeight: number) {
+function createFakeWindow(
+  layoutHeight: number,
+  visualHeight: number,
+  { scale = 1, offsetTop = 0 } = {},
+) {
   const listeners = new Map<string, Set<() => void>>();
   const target = {
     addEventListener(type: string, listener: () => void) {
@@ -56,6 +84,8 @@ function createFakeWindow(layoutHeight: number, visualHeight: number) {
 
   const visualViewport = {
     height: visualHeight,
+    scale,
+    offsetTop,
     addEventListener: target.addEventListener,
     removeEventListener: target.removeEventListener,
   };
@@ -78,6 +108,11 @@ function createFakeWindow(layoutHeight: number, visualHeight: number) {
     setVisualHeight(height: number) {
       visualViewport.height = height;
       emit("resize");
+    },
+    /** Simulate the browser panning the visual viewport while it scrolls. */
+    scrollVisualViewport(offsetTop: number) {
+      visualViewport.offsetTop = offsetTop;
+      emit("scroll");
     },
   };
 }
@@ -109,7 +144,35 @@ describe("subscribeToKeyboardInset", () => {
     expect(seen).toEqual([0, 340, 0]);
   });
 
-  it("stops emitting once unsubscribed, and releases the viewport listener", () => {
+  it("follows the visual viewport while the browser pans it", () => {
+    const fake = createFakeWindow(800, 460);
+    const seen: number[] = [];
+
+    const unsubscribe = subscribeToKeyboardInset(fake.win, (inset) =>
+      seen.push(inset),
+    );
+    fake.scrollVisualViewport(100);
+    fake.scrollVisualViewport(0);
+    unsubscribe();
+
+    expect(seen).toEqual([340, 240, 340]);
+  });
+
+  it("reports a geometry once even when resize and scroll both fire", () => {
+    const fake = createFakeWindow(800, 800);
+    const seen: number[] = [];
+
+    const unsubscribe = subscribeToKeyboardInset(fake.win, (inset) =>
+      seen.push(inset),
+    );
+    fake.setVisualHeight(460);
+    fake.scrollVisualViewport(0);
+    unsubscribe();
+
+    expect(seen).toEqual([0, 340]);
+  });
+
+  it("stops emitting once unsubscribed, and releases every viewport listener", () => {
     const fake = createFakeWindow(800, 800);
     const seen: number[] = [];
 
@@ -118,8 +181,10 @@ describe("subscribeToKeyboardInset", () => {
     );
     unsubscribe();
     fake.setVisualHeight(460);
+    fake.scrollVisualViewport(50);
 
     expect(seen).toEqual([0]);
     expect(fake.listeners.get("resize")?.size ?? 0).toBe(0);
+    expect(fake.listeners.get("scroll")?.size ?? 0).toBe(0);
   });
 });

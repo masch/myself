@@ -40,6 +40,7 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
       style,
       multiline,
       onFocus,
+      onBlur,
       autoFocus,
       onSubmitShortcut,
       onKeyPress,
@@ -98,7 +99,7 @@ export const ThemedTextInput = forwardRef<TextInput, ThemedTextInputProps>(
 
     const handleBlur = (e: NativeSyntheticEvent<TargetedEvent>) => {
       setIsFocused(false);
-      props.onBlur?.(e as any);
+      onBlur?.(e as any);
     };
 
     const handleKeyPress = (e: TextInputKeyPressEvent) => {

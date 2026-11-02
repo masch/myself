@@ -16,9 +16,13 @@ import { test, expect, type Page } from "@playwright/test";
 const PHONE = { width: 360, height: 740 };
 const KEYBOARD_HEIGHT = 280;
 
-async function stubVisualViewport(page: Page, keyboardOpen: boolean) {
+async function stubVisualViewport(
+  page: Page,
+  keyboardOpen: boolean,
+  { scale = 1 }: { scale?: number } = {},
+) {
   await page.addInitScript(
-    ({ viewportHeight, keyboardHeight, open }) => {
+    ({ viewportHeight, keyboardHeight, open, zoom }) => {
       const visualHeight = open
         ? viewportHeight - keyboardHeight
         : viewportHeight;
@@ -28,7 +32,7 @@ async function stubVisualViewport(page: Page, keyboardOpen: boolean) {
           return visualHeight;
         },
         width: window.innerWidth,
-        scale: 1,
+        scale: zoom,
         offsetTop: 0,
         offsetLeft: 0,
         pageTop: 0,
@@ -49,6 +53,7 @@ async function stubVisualViewport(page: Page, keyboardOpen: boolean) {
       viewportHeight: PHONE.height,
       keyboardHeight: KEYBOARD_HEIGHT,
       open: keyboardOpen,
+      zoom: scale,
     },
   );
 }
@@ -137,4 +142,43 @@ test("typing filters the gondola inline and shows the count under the field", as
     page.getByText(/^Góndola de Productores \(\d+\)$/),
   ).not.toHaveText(total);
   await expect(page.getByText(/Góndola de Productores \(\d+\)/)).toBeVisible();
+});
+
+test("pinch zoom reserves nothing, because nothing is covering the viewport", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  // Zoomed to 2x on a phone: the visual viewport halves and no keyboard is open.
+  await stubVisualViewport(page, true, { scale: 2 });
+  await openGondola(page);
+
+  const listContentPaddingBottom = await page
+    .getByTestId("gondola-list")
+    .evaluate(
+      (el) =>
+        getComputedStyle(el.firstElementChild as HTMLElement).paddingBottom,
+    );
+
+  expect(listContentPaddingBottom).toBe("0px");
+});
+
+test("the search field keeps its focus ring only while it has focus", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await stubVisualViewport(page, true);
+  await openGondola(page);
+
+  const searchInput = page.getByTestId("gondola-search-input");
+  const borderColor = () =>
+    searchInput.evaluate((el) => getComputedStyle(el).borderTopColor);
+
+  const unfocused = await borderColor();
+  await searchInput.click();
+  const focused = await borderColor();
+  expect(focused).not.toBe(unfocused);
+
+  await page.getByTestId("gondola-list").click({ position: { x: 4, y: 4 } });
+
+  await expect.poll(borderColor).toBe(unfocused);
 });

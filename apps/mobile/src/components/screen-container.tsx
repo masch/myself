@@ -25,6 +25,7 @@ import {
 import { useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
 import { colors, layout, spacing } from "@/theme";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { resolveFocusedInputScroll } from "./focus-scroll";
 
 const DEFAULT_EDGES: Edge[] = ["top", "bottom"];
 const DEFAULT_TAB_EDGES: Edge[] = ["top"];
@@ -146,26 +147,25 @@ export function ScrollScreenContainer({
           input.measureLayout(
             scrollViewRef.current,
             (_left: number, top: number, _width: number, height: number) => {
-              const inputHeight = height || 48;
-              const inputBottom = top + inputHeight;
-              const currentScrollY = scrollYRef.current;
-              const viewHeight =
-                scrollViewHeightRef.current || Dimensions.get("window").height;
               // On Android with 3-button navigation or system insets, React Native's
-              // keyboard event reports height above the navigation bar.
-              // We combine the keyboard inset + insets.bottom to accurately clear both
-              // the soft keyboard and the system navigation bar across all device types.
-              const bottomBlocked =
-                keyboardInset + (Platform.OS === "android" ? insets.bottom : 0);
-              const visibleHeight = Math.max(0, viewHeight - bottomBlocked);
-              const targetBottom =
-                visibleHeight - DEFAULT_KEYBOARD_BOTTOM_SPACING;
+              // keyboard event reports height above the navigation bar, so the system
+              // bar is added on top of the keyboard inset. The coordinate system the
+              // measurement arrives in differs per platform: see focus-scroll.ts.
+              const targetY = resolveFocusedInputScroll({
+                top,
+                height: height || 48,
+                scrollY: scrollYRef.current,
+                viewHeight:
+                  scrollViewHeightRef.current ||
+                  Dimensions.get("window").height,
+                keyboardInset,
+                bottomInset: Platform.OS === "android" ? insets.bottom : 0,
+                viewportRelative: Platform.OS === "web",
+                topSpacing: DEFAULT_KEYBOARD_TOP_SPACING,
+                bottomSpacing: DEFAULT_KEYBOARD_BOTTOM_SPACING,
+              });
 
-              if (inputBottom - currentScrollY > targetBottom) {
-                const targetY = Math.max(0, inputBottom - targetBottom);
-                scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
-              } else if (top - currentScrollY < DEFAULT_KEYBOARD_TOP_SPACING) {
-                const targetY = Math.max(0, top - DEFAULT_KEYBOARD_TOP_SPACING);
+              if (targetY !== null) {
                 scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
               }
             },

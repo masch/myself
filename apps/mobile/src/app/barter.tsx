@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { View, StyleSheet, FlatList } from "react-native";
+import { View, StyleSheet, FlatList, Platform } from "react-native";
 import { router } from "expo-router";
 import {
   ScreenContainer,
@@ -144,9 +144,12 @@ export default function BarterScreen() {
   const trimmedQuery = query.trim();
 
   // While the field owns the keyboard, the producer card and the inbox step aside:
-  // on a phone they push the field behind the keyboard, which is exactly where the
-  // results have to appear. Losing focus brings them back.
-  const isCompactSearch = isSearchFocused;
+  // on a phone browser they push the field behind the keyboard, which is exactly
+  // where the results have to appear. Losing focus brings them back.
+  //
+  // Web only on purpose: native resizes the window with the keyboard and the field
+  // is already reachable, so the native screen keeps the layout it had.
+  const isCompactSearch = Platform.OS === "web" && isSearchFocused;
 
   // Everything above the list is its header, so the producer switcher, the inbox,
   // the filters and the count scroll with the gondola instead of being a second
