@@ -24,6 +24,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
 import { colors, layout, spacing } from "@/theme";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 
 const DEFAULT_EDGES: Edge[] = ["top", "bottom"];
 const DEFAULT_TAB_EDGES: Edge[] = ["top"];
@@ -130,9 +131,14 @@ export function ScrollScreenContainer({
   const keyboardHeightRef = useRef(0);
   const activeInputRef = useRef<any>(null);
   const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0);
+  // Web has no keyboard events: react-native-web's Keyboard is a no-op, so the
+  // visual viewport is the only source of truth for the space the OS keyboard takes.
+  const webKeyboardInset = useKeyboardInset();
+  const keyboardInset =
+    Platform.OS === "web" ? webKeyboardInset : androidKeyboardHeight;
 
   const scrollInputIntoView = useCallback(
-    (input: any) => {
+    (input: any, keyboardInset: number) => {
       if (!scrollViewRef.current || !input) return;
 
       if (typeof input.measureLayout === "function") {
@@ -145,13 +151,12 @@ export function ScrollScreenContainer({
               const currentScrollY = scrollYRef.current;
               const viewHeight =
                 scrollViewHeightRef.current || Dimensions.get("window").height;
-              const kbHeight = keyboardHeightRef.current;
               // On Android with 3-button navigation or system insets, React Native's
               // keyboard event reports height above the navigation bar.
-              // We combine kbHeight + insets.bottom to accurately clear both the
-              // soft keyboard and the system navigation bar across all device types.
+              // We combine the keyboard inset + insets.bottom to accurately clear both
+              // the soft keyboard and the system navigation bar across all device types.
               const bottomBlocked =
-                kbHeight + (Platform.OS === "android" ? insets.bottom : 0);
+                keyboardInset + (Platform.OS === "android" ? insets.bottom : 0);
               const visibleHeight = Math.max(0, viewHeight - bottomBlocked);
               const targetBottom =
                 visibleHeight - DEFAULT_KEYBOARD_BOTTOM_SPACING;
@@ -181,8 +186,8 @@ export function ScrollScreenContainer({
 
   const scrollToFocusedInput = (input: any) => {
     activeInputRef.current = input;
-    if (keyboardHeightRef.current > 0) {
-      scrollInputIntoView(input);
+    if (keyboardInset > 0) {
+      scrollInputIntoView(input, keyboardInset);
     }
   };
 
@@ -197,7 +202,7 @@ export function ScrollScreenContainer({
       setTimeout(() => {
         const focused =
           TextInput.State?.currentlyFocusedInput?.() ?? activeInputRef.current;
-        scrollInputIntoView(focused);
+        scrollInputIntoView(focused, kbHeight);
       }, 50);
     });
 
@@ -211,6 +216,22 @@ export function ScrollScreenContainer({
       hideSub.remove();
     };
   }, [scrollInputIntoView]);
+
+  // Web: the inset arrives after the browser shrinks the visual viewport, so the
+  // focused field is brought back into view on the same path the Android listener
+  // uses. Without it the field keeps its place inside a full-height scroll port
+  // and stays behind the keyboard.
+  useEffect(() => {
+    if (Platform.OS !== "web" || webKeyboardInset <= 0) return;
+
+    const timer = setTimeout(() => {
+      const focused =
+        TextInput.State?.currentlyFocusedInput?.() ?? activeInputRef.current;
+      scrollInputIntoView(focused, webKeyboardInset);
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [webKeyboardInset, scrollInputIntoView]);
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollYRef.current = e.nativeEvent.contentOffset.y;
@@ -239,7 +260,7 @@ export function ScrollScreenContainer({
             paddingRight:
               (containerPadding.paddingRight ?? 0) + horizontalPadding,
             paddingBottom:
-              (containerPadding.paddingBottom ?? 0) + androidKeyboardHeight,
+              (containerPadding.paddingBottom ?? 0) + keyboardInset,
             gap,
           },
           contentContainerStyle,

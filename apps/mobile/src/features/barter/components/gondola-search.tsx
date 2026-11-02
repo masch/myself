@@ -6,6 +6,8 @@ import { spacing } from "@/theme";
 interface GondolaSearchProps {
   value: string;
   onChangeText: (value: string) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 /**
@@ -16,12 +18,19 @@ interface GondolaSearchProps {
  * placeholder, which disappears as soon as somebody types, and the clear button
  * has its own label because a glyph is invisible to a screen reader.
  */
-export function GondolaSearch({ value, onChangeText }: GondolaSearchProps) {
+export function GondolaSearch({
+  value,
+  onChangeText,
+  onFocus,
+  onBlur,
+}: GondolaSearchProps) {
   return (
     <View style={styles.row}>
       <ThemedTextInput
         value={value}
         onChangeText={onChangeText}
+        onFocus={onFocus}
+        onBlur={onBlur}
         placeholder="Buscar producto o productor"
         accessibilityLabel="Buscar producto o productor"
         autoCapitalize="none"

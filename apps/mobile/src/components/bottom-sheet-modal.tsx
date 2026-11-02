@@ -13,6 +13,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { colors, spacing, radius } from "@/theme";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export interface ModalLifecycle {
@@ -163,6 +164,10 @@ export function BottomSheetModalContent({
 }: BottomSheetModalContentProps) {
   const { height: windowHeight } = useWindowDimensions();
   const screenHeight = Dimensions.get("screen")?.height ?? 0;
+  // On the web `KeyboardAvoidingView` renders a plain View and never reacts to the
+  // software keyboard, so the visual-viewport inset is what lifts the sheet: the
+  // backdrop is bottom-aligned, and this padding keeps the sheet above the keyboard.
+  const webKeyboardInset = useKeyboardInset();
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
   const isKeyboardByListener = useIsKeyboardVisible();
 
@@ -183,7 +188,7 @@ export function BottomSheetModalContent({
     <KeyboardAvoidingView
       behavior="padding"
       keyboardVerticalOffset={keyboardVerticalOffset}
-      style={styles.backdrop}
+      style={[styles.backdrop, { paddingBottom: webKeyboardInset }]}
       onLayout={(e) => {
         setContainerHeight(e.nativeEvent.layout.height);
       }}

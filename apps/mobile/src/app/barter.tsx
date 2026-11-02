@@ -9,6 +9,7 @@ import {
   useToast,
 } from "@/components";
 import { colors, fontWeights, layout, spacing } from "@/theme";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import {
   useBarter,
   ProducerHeaderSwitcher,
@@ -61,8 +62,15 @@ export default function BarterScreen() {
   } = useBarter();
 
   const [query, setQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedTargetPackage, setSelectedTargetPackage] =
     useState<ProductPackage | null>(null);
+
+  // The gondola scrolls its own virtualised list instead of using
+  // `ScreenContainer.Scroll`, so it reserves the software keyboard itself. On web
+  // nothing else does it: the browser keeps the layout viewport at full height and
+  // the keyboard covers the field plus every result under it.
+  const keyboardInset = useKeyboardInset();
 
   // Proposals waiting on the active producer's decision.
   const actionableCount =
@@ -135,33 +143,42 @@ export default function BarterScreen() {
 
   const trimmedQuery = query.trim();
 
+  // While the field owns the keyboard, the producer card and the inbox step aside:
+  // on a phone they push the field behind the keyboard, which is exactly where the
+  // results have to appear. Losing focus brings them back.
+  const isCompactSearch = isSearchFocused;
+
   // Everything above the list is its header, so the producer switcher, the inbox,
   // the filters and the count scroll with the gondola instead of being a second
   // scrollable layer on top of it.
   const listHeader = (
     <View style={styles.listHeader}>
       {/* Producer identity header and multi-tab switcher */}
-      <ProducerHeaderSwitcher
-        activeProducer={activeProducer}
-        producers={producers}
-        papConfigArs={papConfigArs}
-        matches={matches}
-        onSelectProducer={setActiveProducer}
-        onResetSeed={resetToSeed}
-      />
+      {!isCompactSearch && (
+        <ProducerHeaderSwitcher
+          activeProducer={activeProducer}
+          producers={producers}
+          papConfigArs={papConfigArs}
+          matches={matches}
+          onSelectProducer={setActiveProducer}
+          onResetSeed={resetToSeed}
+        />
+      )}
 
       {/* Inbox entry point */}
-      <View style={styles.inboxRow}>
-        <AppButton
-          title={
-            actionableCount > 0
-              ? `Bandeja de Trueques (${actionableCount})`
-              : "Bandeja de Trueques"
-          }
-          variant="secondary"
-          onPress={() => router.push("/barter-inbox")}
-        />
-      </View>
+      {!isCompactSearch && (
+        <View style={styles.inboxRow}>
+          <AppButton
+            title={
+              actionableCount > 0
+                ? `Bandeja de Trueques (${actionableCount})`
+                : "Bandeja de Trueques"
+            }
+            variant="secondary"
+            onPress={() => router.push("/barter-inbox")}
+          />
+        </View>
+      )}
 
       {/* Filter bar: production type and distance */}
       <GondolaFilterBar
@@ -173,16 +190,23 @@ export default function BarterScreen() {
 
       {/* Search over product and producer name, composing with the chips above */}
       <View style={styles.searchRow}>
-        <GondolaSearch value={query} onChangeText={setQuery} />
+        <GondolaSearch
+          value={query}
+          onChangeText={setQuery}
+          onFocus={() => setIsSearchFocused(true)}
+          onBlur={() => setIsSearchFocused(false)}
+        />
       </View>
 
       <View style={styles.sectionHeader}>
         <ThemedText variant="title2" style={styles.sectionTitle}>
           Góndola de Productores ({visiblePackages.length})
         </ThemedText>
-        <ThemedText variant="caption1" style={styles.sectionSubtitle}>
-          Seleccioná un producto para proponer un trueque exacto de 1 PAP
-        </ThemedText>
+        {!isCompactSearch && (
+          <ThemedText variant="caption1" style={styles.sectionSubtitle}>
+            Seleccioná un producto para proponer un trueque exacto de 1 PAP
+          </ThemedText>
+        )}
       </View>
     </View>
   );
@@ -215,7 +239,10 @@ export default function BarterScreen() {
         // The screen container owns the safe-area insets; the list keeps the
         // gutter every other screen gets from the scroll container it replaced,
         // so the gondola does not sit 12dp wider than the rest of the app.
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: keyboardInset },
+        ]}
         initialNumToRender={INITIAL_PACKAGES}
         maxToRenderPerBatch={PACKAGES_PER_BATCH}
         windowSize={GONDOLA_WINDOW_SIZE}
