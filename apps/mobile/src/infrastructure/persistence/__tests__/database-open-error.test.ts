@@ -17,16 +17,30 @@ describe("isDatabaseInUseError", () => {
   });
 
   it("recognizes the conflict when it arrives as a DOMException", () => {
-    const error = Object.assign(new Error("Failed to execute"), {
-      name: "NoModificationAllowedError",
-    });
+    const error = Object.assign(
+      new Error(
+        "Failed to execute 'createSyncAccessHandle' on 'FileSystemFileHandle'",
+      ),
+      { name: "NoModificationAllowedError" },
+    );
     expect(isDatabaseInUseError(error)).toBe(true);
   });
 
-  it("recognizes a worker whose pool never initialized", () => {
-    // The first failed attempt leaves `_sqlite3` cached and `_vfs` unset, so
-    // every later attempt reports this instead of the original conflict.
-    expect(isDatabaseInUseError(new Error("Invalid VFS state"))).toBe(true);
+  it("leaves a sync access handle rejection for another reason alone", () => {
+    // The same API, a different cause: only the lock has its own error name.
+    expect(
+      isDatabaseInUseError(
+        new Error(
+          "SecurityError: Failed to execute 'createSyncAccessHandle' on 'FileSystemFileHandle'",
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("does not read an uninitialized VFS as proof of another tab", () => {
+    // The worker reports this after any failed initialization, including quota
+    // or corruption, so it must keep reaching the error boundary.
+    expect(isDatabaseInUseError(new Error("Invalid VFS state"))).toBe(false);
   });
 
   it("leaves unrelated database failures to the error boundary", () => {

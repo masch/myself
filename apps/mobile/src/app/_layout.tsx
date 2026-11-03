@@ -88,7 +88,10 @@ function DatabaseGate() {
   const [isInUse, setIsInUse] = useState(false);
 
   const handleOpenError = useCallback((error: Error) => {
-    if (!isDatabaseInUseError(error)) {
+    // The conflict is a web-only failure: it is the text expo-sqlite's web
+    // worker prints when OPFS refuses a second access handle. Answering it on
+    // native would offer a browser reload the platform does not have.
+    if (Platform.OS !== "web" || !isDatabaseInUseError(error)) {
       throw error;
     }
 

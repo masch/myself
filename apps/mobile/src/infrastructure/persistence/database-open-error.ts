@@ -1,6 +1,6 @@
 /**
- * Recognizes the failure of opening the persisted database because another tab
- * of the same origin already owns it.
+ * The two texts that, together, identify the failure of opening the persisted
+ * database because another tab of the same origin already owns it.
  *
  * On web, `expo-sqlite` keeps its persisted database in OPFS, and OPFS allows a
  * single synchronous access handle per file per origin. A second tab therefore
@@ -9,15 +9,16 @@
  * plain `Error` on the main thread, so its name and the API it names survive
  * only as text.
  *
- * The pattern list also covers a database VFS that never finished initializing.
- * The worker caches the SQLite module before it creates the VFS, so when the
- * first attempt fails every later attempt in that same worker reports
- * `Invalid VFS state` instead of repeating the original conflict.
+ * Both are required, and nothing else counts as evidence. The browser raises
+ * `NoModificationAllowedError` from `createSyncAccessHandle` only while another
+ * access handle or writable stream holds the same file, so a rejection for any
+ * other reason stays the real error it is. `Invalid VFS state` is deliberately
+ * not matched: the worker reports it after *any* failed initialization, so it
+ * says nothing about who owns the file.
  */
-const DATABASE_IN_USE_PATTERNS = [
+const ACCESS_HANDLE_CONFLICT = [
   "NoModificationAllowedError",
   "createSyncAccessHandle",
-  "Invalid VFS state",
 ];
 
 function describe(error: unknown): string {
@@ -35,7 +36,5 @@ function describe(error: unknown): string {
 export function isDatabaseInUseError(error: unknown): boolean {
   const description = describe(error);
 
-  return DATABASE_IN_USE_PATTERNS.some((pattern) =>
-    description.includes(pattern),
-  );
+  return ACCESS_HANDLE_CONFLICT.every((part) => description.includes(part));
 }
