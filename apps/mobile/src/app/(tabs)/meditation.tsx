@@ -69,7 +69,7 @@ export default function MeditationScreen() {
     playTripleGong,
   } = useMeditation();
 
-  const { readings, recordRead } = useReadings();
+  const { readings, recordRead, isLoading } = useReadings();
   const [currentReadingOffset, setCurrentReadingOffset] = useState(0);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [showDndNotice, setShowDndNotice] = useState(false);
@@ -90,18 +90,29 @@ export default function MeditationScreen() {
   const unreadReadings = readings.filter((r) => r.times_read === 0);
   const candidateReadings =
     unreadReadings.length > 0 ? unreadReadings : readings;
-  const activeReading =
-    candidateReadings.length > 0
-      ? candidateReadings[currentReadingOffset % candidateReadings.length]
-      : null;
-
   // The reading on screen travels in the address, so "leé esto" is a link. The
   // identity is the id, never the offset: the list is unread-first, so an offset
   // points at a different text as soon as one gets read.
-  const readingsLoadedRef = useRef(false);
-  useEffect(() => {
-    if (readings.length > 0) readingsLoadedRef.current = true;
-  }, [readings.length]);
+  //
+  // A reading that has already been read is not among the unread-first candidates,
+  // and the screen records readings as read on its own — so a shared link would
+  // stop resolving right after the receiver finishes it. The linked reading is
+  // therefore pinned and shown until the arrows move somewhere else.
+  const [pinnedReadingId, setPinnedReadingId] = useState<string | null>(null);
+  const pinnedReading =
+    pinnedReadingId !== null
+      ? (readings.find((reading) => reading.id === pinnedReadingId) ?? null)
+      : null;
+  const activeReading =
+    pinnedReading ??
+    (candidateReadings.length > 0
+      ? candidateReadings[currentReadingOffset % candidateReadings.length]
+      : null);
+
+  const moveReading = useCallback((delta: number) => {
+    setPinnedReadingId(null);
+    setCurrentReadingOffset((previous) => previous + delta);
+  }, []);
 
   const meditationView = useMemo<MeditationViewState>(
     () => ({ readingId: activeReading?.id }),
@@ -112,19 +123,29 @@ export default function MeditationScreen() {
     (next: MeditationViewState) => {
       if (!next.readingId) return true;
 
+      // Anything the device knows can be shown, including a reading that is not in
+      // the unread-first candidates.
+      const known = readings.find((reading) => reading.id === next.readingId);
+      if (!known) {
+        // Nothing loaded yet: ask for the same address again. Once loading is over,
+        // the id does not exist and the address must stop naming it.
+        return isLoading ? false : "rejected";
+      }
+
       const index = candidateReadings.findIndex(
         (reading) => reading.id === next.readingId,
       );
 
-      // A shared link can name a reading before the device has loaded any: ask for
-      // it again instead of dropping it. Once loaded, an id that is not here leaves
-      // the current selection alone.
-      if (index < 0) return readingsLoadedRef.current;
+      if (index < 0) {
+        setPinnedReadingId(next.readingId);
+        return true;
+      }
 
+      setPinnedReadingId(null);
       setCurrentReadingOffset(index);
       return true;
     },
-    [candidateReadings],
+    [readings, candidateReadings, isLoading],
   );
 
   useUrlViewState({
@@ -393,7 +414,7 @@ export default function MeditationScreen() {
                     title="Elegir otra"
                     icon="sf:arrow.triangle.2.circlepath"
                     variant="purple"
-                    onPress={() => setCurrentReadingOffset((prev) => prev + 1)}
+                    onPress={() => moveReading(1)}
                   />
                 )}
               </View>

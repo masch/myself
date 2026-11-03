@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import {
   router,
   useLocalSearchParams,
+  usePathname,
   useRootNavigationState,
 } from "expo-router";
 
@@ -40,8 +41,12 @@ export interface UseUrlViewStateOptions<T> {
    * Returning `false` means "not applied yet": the screen could not resolve the
    * address because the data it needs is still loading, so the same address is
    * offered again on the next render instead of being marked as handled and lost.
+   *
+   * Returning `"rejected"` means the address asks for something the screen will
+   * never accept. The address is then rewritten from what is on screen, so it
+   * cannot keep naming a value the screen refuses.
    */
-  onApply: (next: T) => boolean | void;
+  onApply: (next: T) => boolean | "rejected" | void;
   /** Whether this change deserves its own history entry. Default: never push. */
   shouldPush?: (previous: T, next: T) => boolean;
   /**
@@ -120,6 +125,13 @@ export function useUrlViewState<T>({
   }, []);
   const navigationReady = Boolean(rootNavigationState?.key) && firstFramePassed;
 
+  // A tab navigator keeps the other tabs mounted, and `setParams` merges into the
+  // route that is current, so a screen that is not on top would write its own
+  // parameters onto somebody else's address. That is how a reflections address once
+  // ended up carrying a `lectura` that belonged to the meditation screen.
+  const pathname = usePathname();
+  const onScreen = pathname === route;
+
   const lastAppliedUrlKeyRef = useRef<string | null>(null);
   const lastWrittenKeyRef = useRef<string | null>(null);
   // Set when the address moved without the router seeing it, so its stale report is
@@ -128,6 +140,9 @@ export function useUrlViewState<T>({
   // Set while the address names something the screen could not resolve yet. The
   // write side stays quiet meanwhile: canonicalising the view would remove the very
   // parameter that is still loading, and the link would lose what it asked for.
+  // A ref, not state: a successful resolution changes the screen and the write
+  // effect runs because of that; the rejected case writes immediately below. Making
+  // it state meant calling setState from an effect, which cascades renders.
   const pendingApplyRef = useRef(false);
   // Whether this view currently owns a pushed history entry that back will pop.
   const pushedEntryRef = useRef(false);
@@ -137,6 +152,9 @@ export function useUrlViewState<T>({
 
   const historyAvailable =
     Platform.OS === "web" && typeof window !== "undefined";
+
+  // The apply effect reaches the writer through a ref, assigned before it runs.
+  const writeCurrentViewRef = useRef<((force: boolean) => void) | null>(null);
 
   // URL to screen: only when the URL itself changed (mount, back, forward, a link).
   useEffect(() => {
@@ -150,9 +168,15 @@ export function useUrlViewState<T>({
 
     lastAppliedUrlKeyRef.current = urlKey;
 
-    if (urlKey === screenKey) return;
+    if (urlKey === screenKey) {
+      // The address stopped asking for anything: whatever was pending is moot, and
+      // leaving the flag set would silence the write side for good.
+      pendingApplyRef.current = false;
+      return;
+    }
 
-    const applied = onApplyRef.current(parsed) !== false;
+    const outcome = onApplyRef.current(parsed);
+    const applied = outcome !== false;
 
     if (!applied) {
       // Leave the address marked as unhandled so the next render offers it again,
@@ -164,16 +188,24 @@ export function useUrlViewState<T>({
 
     pendingApplyRef.current = false;
 
+    if (outcome === "rejected") {
+      // The address names something the screen refused: write what is on screen now
+      // instead of waiting for a change that will never come.
+      writeCurrentViewRef.current?.(false);
+    }
+
     previousStateRef.current = parsed;
     pushedEntryRef.current = false;
   }, [urlKey, parsed, screenKey]);
 
-  // Screen to URL: only when the screen itself changed.
-  useEffect(() => {
-    if (!navigationReady) return;
-    if (pendingApplyRef.current) return;
-
-    if (lastWrittenKeyRef.current === writeKey) return;
+  /**
+   * Writes the current view into the address. Called by the effect below when the
+   * screen changed, and directly when the screen refused what the address asked for
+   * — in that case nothing on screen moves, so no effect would ever fire.
+   */
+  const writeCurrentView = (force: boolean) => {
+    if (!navigationReady || !onScreen) return;
+    if (!force && lastWrittenKeyRef.current === writeKey) return;
 
     // Reaching the screen is not a change the user made: the first write only
     // canonicalises the address, it never adds a history step.
@@ -254,8 +286,20 @@ export function useUrlViewState<T>({
 
     lastAppliedUrlKeyRef.current = screenKey;
     router.setParams(writtenParams);
+  };
+
+  useEffect(() => {
+    writeCurrentViewRef.current = writeCurrentView;
+  });
+
+  // Screen to URL: only when the screen itself changed.
+  useEffect(() => {
+    if (pendingApplyRef.current) return;
+
+    writeCurrentView(false);
   }, [
     navigationReady,
+    onScreen,
     writeKey,
     writtenParams,
     state,

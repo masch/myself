@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
 import {
@@ -169,14 +169,6 @@ export default function ReflectionsScreen() {
     ? (themes.find((t) => t.id === previewCohort.themeId) ?? null)
     : null;
 
-  // Programs arrive asynchronously from the device's own database, so "not found
-  // yet" and "does not exist" have to be told apart: the first retries, the second
-  // opens the section with no sheet.
-  const cohortsLoadedRef = useRef(false);
-  useEffect(() => {
-    if (openCohorts.length > 0) cohortsLoadedRef.current = true;
-  }, [openCohorts.length]);
-
   // The section and the previewed program live in the address: "mirá este
   // programa" becomes a link, and back closes the preview instead of leaving the
   // section. Opening a preview gets its own history entry for exactly that reason.
@@ -196,14 +188,15 @@ export default function ReflectionsScreen() {
         : undefined;
 
       // A shared link can name a cohort before the programs have loaded: ask for
-      // the same address again instead of dropping it. Once loading is over, an id
-      // that is still unknown opens the section with no sheet and no error.
-      if (next.cohortId && !wanted && !cohortsLoadedRef.current) return false;
+      // the same address again instead of dropping it. The loading flag is the
+      // signal, not "the list is non-empty": a device with no open programs loads
+      // fine and must still reach the terminal case below.
+      if (next.cohortId && !wanted && isCohortLoading) return false;
 
       setPreviewCohort(wanted ?? null);
       return true;
     },
-    [openCohorts],
+    [openCohorts, isCohortLoading],
   );
 
   const startsPreview = useCallback(
