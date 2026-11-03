@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useKeepAwake } from "expo-keep-awake";
@@ -11,6 +11,11 @@ import {
 } from "@/modules/dnd-status";
 import { useMeditation } from "@/hooks/use-meditation";
 import { useReadings } from "@/hooks/use-readings";
+import {
+  meditationCodec,
+  type MeditationViewState,
+} from "@/features/meditation/meditation-view-params";
+import { useUrlViewState } from "@/hooks/use-url-view-state";
 import {
   AppButton,
   AppIcon,
@@ -64,7 +69,7 @@ export default function MeditationScreen() {
     playTripleGong,
   } = useMeditation();
 
-  const { readings, recordRead } = useReadings();
+  const { readings, recordRead, isLoading } = useReadings();
   const [currentReadingOffset, setCurrentReadingOffset] = useState(0);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [showDndNotice, setShowDndNotice] = useState(false);
@@ -85,10 +90,70 @@ export default function MeditationScreen() {
   const unreadReadings = readings.filter((r) => r.times_read === 0);
   const candidateReadings =
     unreadReadings.length > 0 ? unreadReadings : readings;
-  const activeReading =
-    candidateReadings.length > 0
-      ? candidateReadings[currentReadingOffset % candidateReadings.length]
+  // The reading on screen travels in the address, so "leé esto" is a link. The
+  // identity is the id, never the offset: the list is unread-first, so an offset
+  // points at a different text as soon as one gets read.
+  //
+  // A reading that has already been read is not among the unread-first candidates,
+  // and the screen records readings as read on its own — so a shared link would
+  // stop resolving right after the receiver finishes it. The linked reading is
+  // therefore pinned and shown until the arrows move somewhere else.
+  const [pinnedReadingId, setPinnedReadingId] = useState<string | null>(null);
+  const pinnedReading =
+    pinnedReadingId !== null
+      ? (readings.find((reading) => reading.id === pinnedReadingId) ?? null)
       : null;
+  const activeReading =
+    pinnedReading ??
+    (candidateReadings.length > 0
+      ? candidateReadings[currentReadingOffset % candidateReadings.length]
+      : null);
+
+  const moveReading = useCallback((delta: number) => {
+    setPinnedReadingId(null);
+    setCurrentReadingOffset((previous) => previous + delta);
+  }, []);
+
+  const meditationView = useMemo<MeditationViewState>(
+    () => ({ readingId: activeReading?.id }),
+    [activeReading?.id],
+  );
+
+  const applyMeditationView = useCallback(
+    (next: MeditationViewState) => {
+      if (!next.readingId) return true;
+
+      // Anything the device knows can be shown, including a reading that is not in
+      // the unread-first candidates.
+      const known = readings.find((reading) => reading.id === next.readingId);
+      if (!known) {
+        // Nothing loaded yet: ask for the same address again. Once loading is over,
+        // the id does not exist and the address must stop naming it.
+        return isLoading ? false : "rejected";
+      }
+
+      const index = candidateReadings.findIndex(
+        (reading) => reading.id === next.readingId,
+      );
+
+      if (index < 0) {
+        setPinnedReadingId(next.readingId);
+        return true;
+      }
+
+      setPinnedReadingId(null);
+      setCurrentReadingOffset(index);
+      return true;
+    },
+    [readings, candidateReadings, isLoading],
+  );
+
+  useUrlViewState({
+    route: "/meditation",
+    codec: meditationCodec,
+    state: meditationView,
+    onApply: applyMeditationView,
+  });
 
   // Auto-record reading log as read when transitioning to Moment 2 (index 1) or beyond
   useEffect(() => {
@@ -349,7 +414,7 @@ export default function MeditationScreen() {
                     title="Elegir otra"
                     icon="sf:arrow.triangle.2.circlepath"
                     variant="purple"
-                    onPress={() => setCurrentReadingOffset((prev) => prev + 1)}
+                    onPress={() => moveReading(1)}
                   />
                 )}
               </View>
@@ -360,6 +425,7 @@ export default function MeditationScreen() {
                     variant="headline"
                     color={colors.systemPurple}
                     style={styles.readingTitle}
+                    testID="meditation-reading-title"
                   >
                     {activeReading.title}
                   </ThemedText>

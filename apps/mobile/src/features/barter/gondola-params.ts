@@ -1,4 +1,5 @@
 import { PRODUCTION_TYPES, type ProductionType } from "@myself/shared";
+import type { UrlViewCodec } from "@/hooks/use-url-view-state";
 
 /**
  * The gondola view encoded in the URL, so the address a producer is looking at
@@ -127,3 +128,19 @@ export function gondolaViewKey(
     .map(([key, value]) => `${key}=${value}`)
     .join("&");
 }
+
+/**
+ * The gondola view as the address encodes it, in the shape `useUrlViewState`
+ * expects. `producerId` is deliberately absent: the store resolves it at bootstrap
+ * and the hook only writes it back, so it belongs to the write-only parameters.
+ */
+export const gondolaCodec: UrlViewCodec<GondolaViewState> = {
+  params: [
+    GONDOLA_PARAMS.query,
+    GONDOLA_PARAMS.productionType,
+    GONDOLA_PARAMS.maxDistanceKm,
+  ],
+  parse: parseGondolaParams,
+  build: (state) => buildGondolaParams(state),
+  key: (state) => gondolaViewKey(state),
+};
