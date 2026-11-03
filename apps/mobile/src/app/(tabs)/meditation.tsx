@@ -46,7 +46,17 @@ function formatClock(hour: number, minute: number): string {
 }
 
 export default function MeditationScreen() {
-  useKeepAwake();
+  // The tag this hook owns is a `useId()`, and its activation is async: when the tab
+  // remounts before `navigator.wakeLock.request` resolves, the release that runs on
+  // cleanup rejects with `ERR_KEEP_AWAKE_TAG_INVALID` ("The wake lock with tag … has
+  // not activated yet"). Nothing awaits that release, so the rejection surfaced as
+  // `Uncaught Error` and, in dev, as an overlay that covered the page — which is how
+  // it was found, navigating forward with the browser buttons.
+  //
+  // `suppressDeactivateWarnings` is the option expo-keep-awake exposes for exactly
+  // this: "The call will throw an unhandled promise rejection … Set the value to
+  // `true` for suppressing the uncaught exception".
+  useKeepAwake(undefined, { suppressDeactivateWarnings: true });
   const {
     status,
     moments,
