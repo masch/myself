@@ -34,8 +34,14 @@ export interface UseUrlViewStateOptions<T> {
   route: string;
   codec: UrlViewCodec<T>;
   state: T;
-  /** Applies the address to the screen. Called only when the address moved on its own. */
-  onApply: (next: T) => void;
+  /**
+   * Applies the address to the screen. Called only when the address moved on its own.
+   *
+   * Returning `false` means "not applied yet": the screen could not resolve the
+   * address because the data it needs is still loading, so the same address is
+   * offered again on the next render instead of being marked as handled and lost.
+   */
+  onApply: (next: T) => boolean | void;
   /** Whether this change deserves its own history entry. Default: never push. */
   shouldPush?: (previous: T, next: T) => boolean;
   /**
@@ -121,6 +127,10 @@ export function useUrlViewState<T>({
   // Set when the address moved without the router seeing it, so its stale report is
   // ignored once instead of reverting the user's last action.
   const skipApplyOnceRef = useRef(false);
+  // Set while the address names something the screen could not resolve yet. The
+  // write side stays quiet meanwhile: canonicalising the view would remove the very
+  // parameter that is still loading, and the link would lose what it asked for.
+  const pendingApplyRef = useRef(false);
   // Whether this view currently owns a pushed history entry that back will pop.
   const pushedEntryRef = useRef(false);
   // What both sides agreed on last, so `shouldPush` can tell a change that starts
@@ -144,17 +154,28 @@ export function useUrlViewState<T>({
 
     if (urlKey === screenKey) return;
 
+    const applied = onApplyRef.current(parsed) !== false;
+
+    if (!applied) {
+      // Leave the address marked as unhandled so the next render offers it again,
+      // which is what an id resolved against still-loading data needs.
+      lastAppliedUrlKeyRef.current = null;
+      pendingApplyRef.current = true;
+      return;
+    }
+
+    pendingApplyRef.current = false;
+
     // A change that came from the browser must not be written back.
     previousStateRef.current = parsed;
     skipNextWriteRef.current = true;
     pushedEntryRef.current = false;
-
-    onApplyRef.current(parsed);
   }, [urlKey, parsed, screenKey]);
 
   // Screen to URL: only when the screen itself changed.
   useEffect(() => {
     if (!navigationReady) return;
+    if (pendingApplyRef.current) return;
 
     if (skipNextWriteRef.current) {
       skipNextWriteRef.current = false;

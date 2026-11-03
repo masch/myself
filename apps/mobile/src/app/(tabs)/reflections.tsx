@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import { Stack, useFocusEffect } from "expo-router";
 import {
@@ -27,6 +27,11 @@ import {
 
 import { useDailyReflections } from "@/features/reflections/hooks/use-daily-reflections";
 import { useThemeCohort } from "@/features/reflections/hooks/use-theme-cohort";
+import {
+  reflectionsCodec,
+  type ReflectionsViewState,
+} from "@/features/reflections/reflections-view-params";
+import { useUrlViewState } from "@/hooks/use-url-view-state";
 import { useProgramPreview } from "@/features/reflections/hooks/use-program-preview";
 import { type ActiveCohortProgressDetail } from "@/features/reflections/domain/ports/reflection.repository.port";
 import {
@@ -163,6 +168,57 @@ export default function ReflectionsScreen() {
   const previewTheme = previewCohort
     ? (themes.find((t) => t.id === previewCohort.themeId) ?? null)
     : null;
+
+  // Programs arrive asynchronously from the device's own database, so "not found
+  // yet" and "does not exist" have to be told apart: the first retries, the second
+  // opens the section with no sheet.
+  const cohortsLoadedRef = useRef(false);
+  useEffect(() => {
+    if (openCohorts.length > 0) cohortsLoadedRef.current = true;
+  }, [openCohorts.length]);
+
+  // The section and the previewed program live in the address: "mirá este
+  // programa" becomes a link, and back closes the preview instead of leaving the
+  // section. Opening a preview gets its own history entry for exactly that reason.
+  const reflectionsView = useMemo<ReflectionsViewState>(
+    () => ({ section: currentTab, cohortId: previewCohort?.id }),
+    [currentTab, previewCohort],
+  );
+
+  const applyReflectionsView = useCallback(
+    (next: ReflectionsViewState) => {
+      setCurrentTab(next.section);
+
+      // `openCohorts` is the list the preview cards come from; a cohort that is
+      // not there is not a program this screen can preview.
+      const wanted = next.cohortId
+        ? openCohorts.find((cohort) => cohort.id === next.cohortId)
+        : undefined;
+
+      // A shared link can name a cohort before the programs have loaded: ask for
+      // the same address again instead of dropping it. Once loading is over, an id
+      // that is still unknown opens the section with no sheet and no error.
+      if (next.cohortId && !wanted && !cohortsLoadedRef.current) return false;
+
+      setPreviewCohort(wanted ?? null);
+      return true;
+    },
+    [openCohorts],
+  );
+
+  const startsPreview = useCallback(
+    (previous: ReflectionsViewState, next: ReflectionsViewState) =>
+      !previous.cohortId && Boolean(next.cohortId),
+    [],
+  );
+
+  useUrlViewState({
+    route: "/reflections",
+    codec: reflectionsCodec,
+    state: reflectionsView,
+    onApply: applyReflectionsView,
+    shouldPush: startsPreview,
+  });
   const programPreview = useProgramPreview(previewTheme?.id ?? null);
 
   // Handle answering
