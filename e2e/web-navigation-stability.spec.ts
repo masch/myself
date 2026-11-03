@@ -32,3 +32,60 @@ test("going back and forward never leaves the app behind an error overlay", asyn
   await expect(page.getByText(ERROR_TEXT)).toHaveCount(0);
   await expect(page.getByText("Programas", { exact: true })).toBeVisible();
 });
+
+/**
+ * The wake lock follows a running session on the screen that is on top, instead of
+ * the meditation tab being mounted. `navigator.wakeLock` is stubbed so the requests
+ * and releases are observable: the lock itself is not something a test can feel.
+ */
+async function stubWakeLock(page: Page) {
+  await page.addInitScript(() => {
+    const calls: string[] = [];
+    (window as unknown as { __wakeLockCalls: string[] }).__wakeLockCalls =
+      calls;
+
+    Object.defineProperty(navigator, "wakeLock", {
+      configurable: true,
+      value: {
+        request: async () => {
+          calls.push("request");
+          return {
+            released: false,
+            onrelease: null,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            release: async () => {
+              calls.push("release");
+            },
+          };
+        },
+      },
+    });
+  });
+}
+
+const wakeLockCalls = (page: Page) =>
+  page.evaluate(
+    () =>
+      (window as unknown as { __wakeLockCalls?: string[] }).__wakeLockCalls ??
+      [],
+  );
+
+test("the wake lock is taken for a running session, not for the mounted tab", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await stubWakeLock(page);
+  await page.setViewportSize(PHONE);
+  await page.goto("/meditation");
+  await expect(page.getByTestId("meditation-reading-title")).toBeVisible({
+    timeout: 30000,
+  });
+
+  // Idle: the tab is mounted and nothing is covered by a lock.
+  expect(await wakeLockCalls(page)).toEqual([]);
+
+  await page.getByText("Iniciar Meditación", { exact: true }).click();
+
+  await expect.poll(() => wakeLockCalls(page)).toContain("request");
+});
