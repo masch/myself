@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useKeepAwake } from "expo-keep-awake";
+import { useFocusEffect } from "expo-router";
 import {
   isDndActive,
   isDndCheckSupported,
@@ -45,8 +46,27 @@ function formatClock(hour: number, minute: number): string {
   return `${h}:${m}`;
 }
 
+/**
+ * The wake lock lives as long as this component is mounted, which is how the lock
+ * follows a running session instead of the whole tab: the meditation tab stays
+ * mounted while the user is elsewhere, and a lock nobody needs keeps the phone awake.
+ */
+function ScreenAwake() {
+  useKeepAwake(undefined, { suppressDeactivateWarnings: true });
+  return null;
+}
+
 export default function MeditationScreen() {
-  useKeepAwake();
+  // The lock is taken only while a session is running and this screen is the one on
+  // top: the tab navigator keeps every tab mounted, so an unconditional hook held a
+  // lock for a session the user might not even be looking at.
+  const [isScreenFocused, setIsScreenFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setIsScreenFocused(true);
+      return () => setIsScreenFocused(false);
+    }, []),
+  );
   const {
     status,
     moments,
@@ -224,6 +244,8 @@ export default function MeditationScreen() {
 
   return (
     <ScreenContainer.Scroll>
+      {/* The lock follows the session and the screen, not the tab being mounted. */}
+      {isRunning && isScreenFocused ? <ScreenAwake /> : null}
       {/* Main Timer Display Card */}
       <Card variant="elevated" padding="none" style={styles.timerCard}>
         <Badge
