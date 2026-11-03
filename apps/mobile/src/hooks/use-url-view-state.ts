@@ -122,8 +122,6 @@ export function useUrlViewState<T>({
 
   const lastAppliedUrlKeyRef = useRef<string | null>(null);
   const lastWrittenKeyRef = useRef<string | null>(null);
-  // Set when the address moved on its own, so the write side does not echo it back.
-  const skipNextWriteRef = useRef(false);
   // Set when the address moved without the router seeing it, so its stale report is
   // ignored once instead of reverting the user's last action.
   const skipApplyOnceRef = useRef(false);
@@ -166,9 +164,7 @@ export function useUrlViewState<T>({
 
     pendingApplyRef.current = false;
 
-    // A change that came from the browser must not be written back.
     previousStateRef.current = parsed;
-    skipNextWriteRef.current = true;
     pushedEntryRef.current = false;
   }, [urlKey, parsed, screenKey]);
 
@@ -176,12 +172,6 @@ export function useUrlViewState<T>({
   useEffect(() => {
     if (!navigationReady) return;
     if (pendingApplyRef.current) return;
-
-    if (skipNextWriteRef.current) {
-      skipNextWriteRef.current = false;
-      lastWrittenKeyRef.current = writeKey;
-      return;
-    }
 
     if (lastWrittenKeyRef.current === writeKey) return;
 

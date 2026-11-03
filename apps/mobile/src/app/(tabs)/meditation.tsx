@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useKeepAwake } from "expo-keep-awake";
@@ -11,6 +11,11 @@ import {
 } from "@/modules/dnd-status";
 import { useMeditation } from "@/hooks/use-meditation";
 import { useReadings } from "@/hooks/use-readings";
+import {
+  meditationCodec,
+  type MeditationViewState,
+} from "@/features/meditation/meditation-view-params";
+import { useUrlViewState } from "@/hooks/use-url-view-state";
 import {
   AppButton,
   AppIcon,
@@ -89,6 +94,45 @@ export default function MeditationScreen() {
     candidateReadings.length > 0
       ? candidateReadings[currentReadingOffset % candidateReadings.length]
       : null;
+
+  // The reading on screen travels in the address, so "leé esto" is a link. The
+  // identity is the id, never the offset: the list is unread-first, so an offset
+  // points at a different text as soon as one gets read.
+  const readingsLoadedRef = useRef(false);
+  useEffect(() => {
+    if (readings.length > 0) readingsLoadedRef.current = true;
+  }, [readings.length]);
+
+  const meditationView = useMemo<MeditationViewState>(
+    () => ({ readingId: activeReading?.id }),
+    [activeReading?.id],
+  );
+
+  const applyMeditationView = useCallback(
+    (next: MeditationViewState) => {
+      if (!next.readingId) return true;
+
+      const index = candidateReadings.findIndex(
+        (reading) => reading.id === next.readingId,
+      );
+
+      // A shared link can name a reading before the device has loaded any: ask for
+      // it again instead of dropping it. Once loaded, an id that is not here leaves
+      // the current selection alone.
+      if (index < 0) return readingsLoadedRef.current;
+
+      setCurrentReadingOffset(index);
+      return true;
+    },
+    [candidateReadings],
+  );
+
+  useUrlViewState({
+    route: "/meditation",
+    codec: meditationCodec,
+    state: meditationView,
+    onApply: applyMeditationView,
+  });
 
   // Auto-record reading log as read when transitioning to Moment 2 (index 1) or beyond
   useEffect(() => {
@@ -360,6 +404,7 @@ export default function MeditationScreen() {
                     variant="headline"
                     color={colors.systemPurple}
                     style={styles.readingTitle}
+                    testID="meditation-reading-title"
                   >
                     {activeReading.title}
                   </ThemedText>
