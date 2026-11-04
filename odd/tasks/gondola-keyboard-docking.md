@@ -113,14 +113,24 @@ types.
   **slice 2** `f362253` makes the gondola the first consumer and rewrites its browser specs (309
   lines); **slice 3** is this document; **slice 4** `784091a` answers the CodeRabbit round — the
   docking rules become a framework-free controller with 19 unit pins, and the adapter stays proven by
-  the browser specs. The change is a
-  component-level fix, not a gondola patch: `ScreenContainer.List` is the list counterpart of
-  `ScreenContainer.Scroll`, and it is the only place that reserves the keyboard inset, docks the
-  focused input and neutralizes `keyboardDismissMode` on the web. The gondola is its first consumer;
-  every future virtualised screen inherits it by using the compound component. Not delivered here,
-  deliberately: push, pull request and merge remain the user's decisions, and the real Android IME
-  is still only verified by behavior that a browser can reproduce (the focus is proven to survive a
-  scroll, which was the mechanical cause), so a device pass on staging is the remaining check.
+  the browser specs.
+
+## Delivery
+
+Merged to `main` as the squash commit `1678276` (2026-11-04), closing issues #129 (the gondola search
+and its lost focus), #131 (a real OPFS conflict that crashed instead of explaining itself) and #133 (a
+simulation tab that crashed on every screen needing the local database). The branch was deleted after
+the merge.
+
+The last open check in this document — the real Android IME — was verified on the staging build
+afterwards and reported working ("se ve bien en staging"). Nothing on this feature is pending. The change is a
+component-level fix, not a gondola patch: `ScreenContainer.List` is the list counterpart of
+`ScreenContainer.Scroll`, and it is the only place that reserves the keyboard inset, docks the
+focused input and neutralizes `keyboardDismissMode` on the web. The gondola is its first consumer;
+every future virtualised screen inherits it by using the compound component. Not delivered here,
+deliberately: push, pull request and merge remain the user's decisions, and the real Android IME
+is still only verified by behavior that a browser can reproduce (the focus is proven to survive a
+scroll, which was the mechanical cause), so a device pass on staging is the remaining check.
 
 - **TASK-7** — CodeRabbit raised exactly one actionable finding on #130: the new hook had no adjacent
   unit suite. It was right — the geometry was pinned, the rules were not, and this repository has no
