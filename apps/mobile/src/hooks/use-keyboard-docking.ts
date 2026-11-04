@@ -228,23 +228,34 @@ export function useKeyboardDocking(
   listRef: ScrollableListRef,
 ): KeyboardDocking {
   const keyboardInset = useKeyboardInset();
-  const controllerRef = useRef<KeyboardDockingController | null>(null);
+  const controllerRef = useRef<{
+    listRef: ScrollableListRef;
+    controller: KeyboardDockingController;
+  } | null>(null);
 
-  // Built on first use and then kept for the life of the screen: the controller
-  // holds the focus, scroll and pending-dock bookkeeping, which must not restart
-  // on every render. Created inside a callback rather than during render so no
-  // ref is read while rendering, and so the list ref can still be null the first
-  // time the hook runs.
+  // Kept for the life of one list: the controller holds the focus, scroll and
+  // pending-dock bookkeeping, which must not restart on every render. Created
+  // inside a callback rather than during render so no ref is read while
+  // rendering, and so the list ref can still be null the first time the hook runs.
+  //
+  // It is cached *per list ref*, not once: a caller can hand over a different ref
+  // object on a later render, and a controller built against the previous one
+  // would dock the list that is no longer on screen. The replaced controller is
+  // disposed so its pending attempt cannot land on the old list.
   const getController = useCallback(() => {
-    if (controllerRef.current === null) {
-      controllerRef.current = createKeyboardDockingController({
-        // Read on every attempt: the ref fills in only after the list mounts.
-        list: () => listRef.current,
-        viewportRelative: Platform.OS === "web",
-      });
-    }
+    const cached = controllerRef.current;
+    if (cached?.listRef === listRef) return cached.controller;
 
-    return controllerRef.current;
+    cached?.controller.dispose();
+
+    const controller = createKeyboardDockingController({
+      // Read on every attempt: the ref fills in only after the list mounts.
+      list: () => listRef.current,
+      viewportRelative: Platform.OS === "web",
+    });
+    controllerRef.current = { listRef, controller };
+
+    return controller;
   }, [listRef]);
 
   const scrollToFocusedInput = useCallback(
