@@ -53,11 +53,13 @@ test("token-replaced styles render their pre-change values", async ({
     }),
   ).toEqual({ gap: "4px", paddingTop: "2px" });
 
-  // The selected producer chip is the success variant, whose background is the
-  // subdued system green the palette now exposes instead of a local literal.
+  // The identity switch is the success variant, whose background is the subdued
+  // system green the palette exposes instead of a local literal. It carries its
+  // own accessible name: the chip says "Cambiar", and the name states what it
+  // changes.
   expect(
     await page
-      .getByRole("button", { name: "Vermut Sabado", exact: true })
+      .getByRole("button", { name: "Cambiar de productor", exact: true })
       .evaluate((el) => getComputedStyle(el).backgroundColor),
   ).toBe("rgba(52, 199, 89, 0.15)");
 
