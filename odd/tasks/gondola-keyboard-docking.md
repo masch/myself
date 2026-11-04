@@ -106,12 +106,14 @@ types.
   unformatted new file (`use-keyboard-docking.ts`); it was formatted and the whole tree now passes
   `prettier --check`. `make check` (which adds `check-odd`, `check-odd-doc` and `check-doctor`) is
   green.
-- **Completion & Delivery**: Complete on branch `fix/gondola-keyboard-docking` in three work-unit
+- **Completion & Delivery**: Complete on branch `fix/gondola-keyboard-docking` in four work-unit
   commits, with the slice boundaries recorded here because the first one is over the ~400-line
   review budget: **slice 1** `8d9873d` adds the primitive and its unit pins (430 authored lines —
   the geometry, the hook and the container, none of which changes an existing screen on its own);
   **slice 2** `f362253` makes the gondola the first consumer and rewrites its browser specs (309
-  lines); **slice 3** is this document. The change is a
+  lines); **slice 3** is this document; **slice 4** `784091a` answers the CodeRabbit round — the
+  docking rules become a framework-free controller with 19 unit pins, and the adapter stays proven by
+  the browser specs. The change is a
   component-level fix, not a gondola patch: `ScreenContainer.List` is the list counterpart of
   `ScreenContainer.Scroll`, and it is the only place that reserves the keyboard inset, docks the
   focused input and neutralizes `keyboardDismissMode` on the web. The gondola is its first consumer;
