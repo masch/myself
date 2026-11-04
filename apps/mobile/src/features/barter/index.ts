@@ -7,3 +7,4 @@ export * from "./use-gondola-params";
 export * from "./inbox-utils";
 export * from "./whatsapp-utils";
 export * from "./components";
+export * from "./simulation-tab";

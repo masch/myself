@@ -1,6 +1,14 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { SimulationTabNotice } from "@/features/barter/components/simulation-tab-notice";
+import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
 
 export default function TabLayout() {
+  // A simulation tab has no local database by design, so every screen that needs
+  // one explains the situation instead of throwing out of the SQLite context.
+  if (isBarterSimulationTab()) {
+    return <SimulationTabNotice />;
+  }
+
   return (
     <NativeTabs labelStyle={{ fontSize: 11 }}>
       <NativeTabs.Trigger name="index">
