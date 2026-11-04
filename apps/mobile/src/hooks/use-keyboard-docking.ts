@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { resolveDockedInputScroll } from "@/components/focus-scroll";
 import { spacing } from "@/theme";
-import { useKeyboardInset } from "./use-keyboard-inset";
+import { useSoftwareKeyboardInset } from "./use-software-keyboard-inset";
 
 /**
  * Gap the docked input keeps between itself and the top of the list.
@@ -211,15 +211,16 @@ export interface KeyboardDocking {
  * for screens that scroll their own virtualised list instead of using
  * `ScreenContainer.Scroll`.
  *
- * Two facts drive it. On the web the browser shrinks only the *visual* viewport,
- * so a full-height list keeps painting the field behind the keyboard; reserving
- * the difference as bottom padding makes the field reachable, and only a scroll
- * makes it visible. And a list of results is only usable when the field sits at
- * the **top** of the band the keyboard leaves, not at its bottom edge, so the
- * text being typed and the results under it share the screen.
+ * Three facts drive it. On the web the browser shrinks only the *visual* viewport,
+ * so a full-height list keeps painting the field behind the keyboard. On native
+ * an Expo Android app is edge-to-edge, so the window does not resize either and
+ * the keyboard is painted over it. And a list of results is only usable when the
+ * field sits at the **top** of the band the keyboard leaves, not at its bottom
+ * edge, so the text being typed and the results under it share the screen.
  *
- * Outside the web `useKeyboardInset` reports `0` and nothing is docked: Android
- * resizes the window with the keyboard and the list already shrinks with it.
+ * The inset comes from `useSoftwareKeyboardInset`, which measures the visual
+ * viewport on the web and listens to the platform's keyboard events on native:
+ * the two windows are different, and only their own source describes them.
  *
  * The rules themselves live in `createKeyboardDockingController`; this hook only
  * feeds it the inset, the focus reports and the scroll offset.
@@ -227,7 +228,7 @@ export interface KeyboardDocking {
 export function useKeyboardDocking(
   listRef: ScrollableListRef,
 ): KeyboardDocking {
-  const keyboardInset = useKeyboardInset();
+  const keyboardInset = useSoftwareKeyboardInset();
   const controllerRef = useRef<{
     listRef: ScrollableListRef;
     controller: KeyboardDockingController;
