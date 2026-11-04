@@ -23,7 +23,7 @@ export const DOCK_TOP_SPACING = spacing.md;
 const DOCK_DELAY_MS = 50;
 
 /** The part of a measured view the docking needs: `measureLayout` and nothing else. */
-export interface MeasurableInput {
+export interface DockableInput {
   measureLayout?: (
     relativeTo: unknown,
     onSuccess: (
@@ -40,13 +40,161 @@ export interface MeasurableInput {
  * The part of a virtualised list the docking needs. `FlatList` satisfies it; so
  * does any other list that can report its scroll node and scroll to an offset.
  */
-export interface ScrollableList {
+export interface DockingList {
   getScrollableNode?: () => unknown;
   scrollToOffset: (params: { offset: number; animated?: boolean }) => void;
 }
 
 export interface ScrollableListRef {
-  readonly current: ScrollableList | null;
+  readonly current: DockingList | null;
+}
+
+export interface KeyboardDockingControllerOptions {
+  /**
+   * The list to dock in, read on every attempt instead of once: the ref is
+   * `null` on the first render and only fills in after the list has mounted.
+   */
+  list: () => DockingList | null;
+  /**
+   * The input the platform considers focused right now, asked when a scheduled
+   * dock runs. Defaults to `TextInput.State`, which react-native-web leaves empty.
+   */
+  readFocusedInput?: () => DockableInput | null;
+  /**
+   * Runs `run` after the dock delay and returns the cancellation of that run.
+   * A parameter instead of a bare `setTimeout` so a fake can drive the delay in
+   * tests, where waiting 50ms per case would be both slow and flaky.
+   */
+  schedule?: (run: () => void) => () => void;
+  /** `true` when `measureLayout` reported visible-port coordinates, i.e. on the web. */
+  viewportRelative: boolean;
+  /** Gap to keep between the docked input and the top of the list. */
+  topSpacing?: number;
+}
+
+export interface KeyboardDockingController {
+  /** Remember `input` and dock it now, if the keyboard is already open. */
+  reportFocus(input: unknown): void;
+  /** The keyboard opened, moved, or closed: dock once, after the delay. */
+  reportInset(inset: number): void;
+  /** Where the list is scrolled to right now, the base a dock is added to. */
+  reportScroll(offset: number): void;
+  /** Cancel a dock that has not run yet. */
+  dispose(): void;
+}
+
+/** The delay, as a scheduler: one timer per dock, cancelled with the returned function. */
+function scheduleDock(run: () => void): () => void {
+  const timer = setTimeout(run, DOCK_DELAY_MS);
+
+  return () => clearTimeout(timer);
+}
+
+function readPlatformFocusedInput(): DockableInput | null {
+  // `TextInput.State` is empty on react-native-web, where the input reports
+  // itself through the focus callback instead.
+  const focused = TextInput.State?.currentlyFocusedInput?.();
+
+  return (focused as DockableInput | null | undefined) ?? null;
+}
+
+/**
+ * Everything the docking decides, without React.
+ *
+ * The hook below is only an adapter over this: the rules that matter — when a
+ * dock is allowed, which input it measures, how long it waits and what it does
+ * with the result — are plain functions with no component tree, so they can be
+ * driven by fakes instead of a rendered list. This repo has no React renderer.
+ *
+ * The controller also owns the state a render would otherwise lose: the last
+ * reported inset, the input that reported itself, the list's scroll offset, and
+ * the pending dock.
+ */
+export function createKeyboardDockingController(
+  options: KeyboardDockingControllerOptions,
+): KeyboardDockingController {
+  const readList = options.list;
+  const readFocusedInput = options.readFocusedInput ?? readPlatformFocusedInput;
+  const schedule = options.schedule ?? scheduleDock;
+  const viewportRelative = options.viewportRelative;
+  const topSpacing = options.topSpacing ?? DOCK_TOP_SPACING;
+
+  let keyboardInset = 0;
+  let reportedInput: DockableInput | null = null;
+  let scrollY = 0;
+  let cancelScheduledDock: (() => void) | null = null;
+
+  const cancelPendingDock = () => {
+    cancelScheduledDock?.();
+    cancelScheduledDock = null;
+  };
+
+  const dock = (input: DockableInput | null, inset: number) => {
+    if (inset <= 0) return;
+
+    // One list and one scroll node per attempt: the list can remount while the
+    // measurement is in flight, and the scroll has to land on the one measured against.
+    const list = readList();
+    const scrollNode = list?.getScrollableNode?.();
+    if (!list || !scrollNode) return;
+
+    if (typeof input?.measureLayout !== "function") return;
+
+    try {
+      input.measureLayout(
+        scrollNode,
+        (_left: number, top: number) => {
+          // The coordinate system the measurement arrives in differs per
+          // platform: see focus-scroll.ts.
+          const offset = resolveDockedInputScroll({
+            top,
+            scrollY,
+            viewportRelative,
+            topSpacing,
+          });
+
+          if (offset !== null) {
+            list.scrollToOffset({ offset, animated: true });
+          }
+        },
+        () => undefined,
+      );
+    } catch {
+      // The input can unmount between the focus and the measurement. Nothing to
+      // dock then, and throwing here would break the focus that just happened.
+    }
+  };
+
+  return {
+    reportFocus: (input: unknown) => {
+      const measurable = (input as DockableInput | null | undefined) ?? null;
+      reportedInput = measurable;
+      dock(measurable, keyboardInset);
+    },
+
+    reportInset: (inset: number) => {
+      keyboardInset = inset;
+      cancelPendingDock();
+
+      if (inset <= 0) return;
+
+      // One dock per inset: another resize while the first attempt is still
+      // pending replaces it, so a single keyboard does not dock the list twice.
+      // The inset is captured here because that is what this attempt was scheduled for.
+      cancelScheduledDock = schedule(() => {
+        cancelScheduledDock = null;
+        dock(readFocusedInput() ?? reportedInput, inset);
+      });
+    },
+
+    reportScroll: (offset: number) => {
+      scrollY = offset;
+    },
+
+    dispose: () => {
+      cancelPendingDock();
+    },
+  };
 }
 
 export interface KeyboardDocking {
@@ -72,79 +220,53 @@ export interface KeyboardDocking {
  *
  * Outside the web `useKeyboardInset` reports `0` and nothing is docked: Android
  * resizes the window with the keyboard and the list already shrinks with it.
+ *
+ * The rules themselves live in `createKeyboardDockingController`; this hook only
+ * feeds it the inset, the focus reports and the scroll offset.
  */
 export function useKeyboardDocking(
   listRef: ScrollableListRef,
 ): KeyboardDocking {
   const keyboardInset = useKeyboardInset();
-  const focusedInputRef = useRef<MeasurableInput | null>(null);
-  const scrollYRef = useRef(0);
+  const controllerRef = useRef<KeyboardDockingController | null>(null);
 
-  const dock = useCallback(
-    (input: MeasurableInput | null, inset: number) => {
-      const list = listRef.current;
-      const scrollNode = list?.getScrollableNode?.();
+  // Built on first use and then kept for the life of the screen: the controller
+  // holds the focus, scroll and pending-dock bookkeeping, which must not restart
+  // on every render. Created inside a callback rather than during render so no
+  // ref is read while rendering, and so the list ref can still be null the first
+  // time the hook runs.
+  const getController = useCallback(() => {
+    if (controllerRef.current === null) {
+      controllerRef.current = createKeyboardDockingController({
+        // Read on every attempt: the ref fills in only after the list mounts.
+        list: () => listRef.current,
+        viewportRelative: Platform.OS === "web",
+      });
+    }
 
-      if (inset <= 0 || !list || !scrollNode) return;
-      if (typeof input?.measureLayout !== "function") return;
-
-      try {
-        input.measureLayout(
-          scrollNode,
-          (_left: number, top: number) => {
-            // The coordinate system the measurement arrives in differs per
-            // platform: see focus-scroll.ts.
-            const offset = resolveDockedInputScroll({
-              top,
-              scrollY: scrollYRef.current,
-              viewportRelative: Platform.OS === "web",
-              topSpacing: DOCK_TOP_SPACING,
-            });
-
-            if (offset !== null) {
-              list.scrollToOffset({ offset, animated: true });
-            }
-          },
-          () => undefined,
-        );
-      } catch {
-        // The input can unmount between the focus and the measurement. Nothing to
-        // dock then, and throwing here would break the focus that just happened.
-      }
-    },
-    [listRef],
-  );
+    return controllerRef.current;
+  }, [listRef]);
 
   const scrollToFocusedInput = useCallback(
-    (input: unknown) => {
-      const measurable = input as MeasurableInput | null;
-      focusedInputRef.current = measurable;
-      dock(measurable, keyboardInset);
-    },
-    [dock, keyboardInset],
+    (input: unknown) => getController().reportFocus(input),
+    [getController],
   );
-
-  useEffect(() => {
-    if (keyboardInset <= 0) return;
-
-    const timer = setTimeout(() => {
-      // `TextInput.State` is empty on react-native-web, where the input reports
-      // itself through the focus callback above instead.
-      const focused =
-        TextInput.State?.currentlyFocusedInput?.() ?? focusedInputRef.current;
-
-      dock(focused as MeasurableInput | null, keyboardInset);
-    }, DOCK_DELAY_MS);
-
-    return () => clearTimeout(timer);
-  }, [keyboardInset, dock]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      scrollYRef.current = event.nativeEvent.contentOffset.y;
+      getController().reportScroll(event.nativeEvent.contentOffset.y);
     },
-    [],
+    [getController],
   );
+
+  // Every distinct inset replaces the pending dock, and unmounting cancels it:
+  // the delay must never outlive the list it would scroll.
+  useEffect(() => {
+    const controller = getController();
+    controller.reportInset(keyboardInset);
+
+    return () => controller.dispose();
+  }, [getController, keyboardInset]);
 
   return { keyboardInset, scrollToFocusedInput, handleScroll };
 }

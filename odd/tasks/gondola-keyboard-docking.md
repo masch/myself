@@ -44,6 +44,8 @@ types.
       react-native-web turns it into "dismiss on any scroll" (S5).
 - [x] **TASK-5**: Drop the query-keyed compact header, and rewrite its browser spec into the
       docking promise (S3).
+- [x] **TASK-7**: Answer the CodeRabbit round: make the docking rules testable without a React
+      renderer and cover them with unit pins (S5).
 - [x] **TASK-6**: Close with `make check` and the full web E2E suite (S1).
 
 ## Evidence & Verification
@@ -117,6 +119,22 @@ types.
   deliberately: push, pull request and merge remain the user's decisions, and the real Android IME
   is still only verified by behavior that a browser can reproduce (the focus is proven to survive a
   scroll, which was the mechanical cause), so a device pass on staging is the remaining check.
+
+- **TASK-7** — CodeRabbit raised exactly one actionable finding on #130: the new hook had no adjacent
+  unit suite. It was right — the geometry was pinned, the rules were not, and this repository has no
+  React renderer (no `react-test-renderer`, no testing-library), so a hook cannot be rendered here.
+  The rules moved out of `useKeyboardDocking` into an exported, framework-free
+  `createKeyboardDockingController` and the hook became an adapter that forwards the inset, the focus
+  reports and the scroll offset; `DOCK_DELAY_MS` is reached through an injectable `schedule` seam.
+  RED observed first: `SyntaxError: Export named 'createKeyboardDockingController' not found`.
+  GREEN: `19 pass, 0 fail` in `src/hooks/__tests__/use-keyboard-docking.test.ts`, asserting only
+  observable effects — the `scrollToOffset` argument and the schedule/cancel counts. The five cases the
+  review named are pinned: no dock at `inset <= 0`, none without `measureLayout`/list/scroll node, one
+  debounced dock per inset with cancel on the next inset and on `dispose`, fallback to the reported input
+  when `TextInput.State` is empty (and preference for the live one), and the scroll offset as the base of
+  the dock. The adapter itself stays proven only by the browser specs, which is stated rather than hidden:
+  `make check` green and `e2e/barter-gondola-mobile-keyboard.spec.ts` **7 passed (22.7s)** after the
+  refactor.
 
 ## Log
 
