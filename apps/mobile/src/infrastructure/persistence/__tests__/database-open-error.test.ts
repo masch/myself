@@ -26,6 +26,18 @@ describe("isDatabaseInUseError", () => {
     expect(isDatabaseInUseError(error)).toBe(true);
   });
 
+  it("recognizes the conflict when Chrome words it without the OPFS API", () => {
+    // Reported from the staging web build on an Android phone: the same OPFS
+    // conflict reaches the app as the bare DOMException text, with no mention of
+    // `createSyncAccessHandle`. Requiring that phrase made it crash instead of
+    // explaining it.
+    expect(
+      isDatabaseInUseError(
+        new Error("NoModificationAllowedError: No modification allowed"),
+      ),
+    ).toBe(true);
+  });
+
   it("leaves a sync access handle rejection for another reason alone", () => {
     // The same API, a different cause: only the lock has its own error name.
     expect(
