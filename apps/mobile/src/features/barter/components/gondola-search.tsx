@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Keyboard } from "react-native";
 import { IconButton, ThemedTextInput } from "@/components";
 import { spacing } from "@/theme";
 
@@ -17,6 +17,10 @@ interface GondolaSearchProps {
  * The field carries a persistent accessible name instead of leaning on the
  * placeholder, which disappears as soon as somebody types, and the clear button
  * has its own label because a glyph is invisible to a screen reader.
+ *
+ * The keyboard's own search action dismisses it: the field is pinned above the
+ * results, so the reason to close the keyboard is that the operator is done
+ * typing, and the rows they came for are already under it.
  */
 export function GondolaSearch({
   value,
@@ -36,6 +40,7 @@ export function GondolaSearch({
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
+        onSubmitEditing={() => Keyboard.dismiss()}
         style={styles.input}
         testID="gondola-search-input"
       />
