@@ -64,3 +64,41 @@ export function resolveFocusedInputScroll({
 
   return null;
 }
+
+export interface DockedInputScrollInput {
+  /** Offset of the input: content coordinates on native, visible-port coordinates on the web. */
+  top: number;
+  scrollY: number;
+  /** `true` when `top` came from a web `measureLayout`, i.e. is not content-relative. */
+  viewportRelative: boolean;
+  /** Gap the input keeps between itself and the top of the band. */
+  topSpacing: number;
+}
+
+/**
+ * Scroll offset that docks the focused input at the **top** of the band the
+ * keyboard leaves, or `null` when it already sits on that line.
+ *
+ * Docking is what a list of results needs and clearing is not: aligning the input
+ * with the bottom edge of the visible band only shows the input, so the results
+ * the user is filtering stay under the keyboard. With the input at the top, the
+ * text being typed and the results under it share the band.
+ *
+ * It never returns an offset smaller than the current one: a field the user
+ * scrolled past is left alone instead of being pulled back down under the finger.
+ */
+export function resolveDockedInputScroll({
+  top,
+  scrollY,
+  viewportRelative,
+  topSpacing,
+}: DockedInputScrollInput): number | null {
+  // Where the field is on screen right now, and where it lives in the content: the
+  // first decides whether it needs to move, the second is the offset to scroll to.
+  const visibleTop = viewportRelative ? top : top - scrollY;
+  const contentTop = viewportRelative ? scrollY + top : top;
+
+  if (visibleTop <= topSpacing) return null;
+
+  return Math.max(0, Math.round(contentTop - topSpacing));
+}
