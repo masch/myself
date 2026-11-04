@@ -5,6 +5,7 @@ import type {
   ScreenContainer as ScreenContainerComponent,
   ScrollScreenContainer as ScrollScreenContainerComponent,
   TabScreenContainer as TabScreenContainerComponent,
+  ListScreenContainer as ListScreenContainerComponent,
   useScreenPadding as useScreenPaddingHook,
   useScrollContainer as useScrollContainerHook,
   ScrollContainerContextValue,
@@ -13,6 +14,7 @@ import type {
 let ScreenContainer: typeof ScreenContainerComponent;
 let ScrollScreenContainer: typeof ScrollScreenContainerComponent;
 let TabScreenContainer: typeof TabScreenContainerComponent;
+let ListScreenContainer: typeof ListScreenContainerComponent;
 let useScreenPadding: typeof useScreenPaddingHook;
 let useScrollContainer: typeof useScrollContainerHook;
 
@@ -25,6 +27,7 @@ beforeAll(async () => {
   ScreenContainer = mod.ScreenContainer;
   ScrollScreenContainer = mod.ScrollScreenContainer;
   TabScreenContainer = mod.TabScreenContainer;
+  ListScreenContainer = mod.ListScreenContainer;
   useScreenPadding = mod.useScreenPadding;
   useScrollContainer = mod.useScrollContainer;
 });
@@ -131,6 +134,37 @@ describe("ScreenContainer component & useScreenPadding hook", () => {
     const scrollContext = capturedContext as ScrollContainerContextValue | null;
     expect(scrollContext).not.toBeNull();
     expect(typeof scrollContext?.scrollToFocusedInput).toBe("function");
+  });
+
+  it("provides scroll container context from the virtualised list container", () => {
+    let capturedContext: ScrollContainerContextValue | null = null;
+    function TestConsumer() {
+      capturedContext = useScrollContainer();
+      return <span>List Header</span>;
+    }
+
+    // A list screen has to give its inputs the same seam the scroll container
+    // does, because the header of a list is where its search field lives.
+    const html = renderToString(
+      <ListScreenContainer
+        data={[{ id: "one" }]}
+        keyExtractor={(item: { id: string }) => item.id}
+        renderItem={() => <span>Row</span>}
+        ListHeaderComponent={<TestConsumer />}
+        testID="list-screen"
+      />,
+    );
+
+    expect(html).toContain("List Header");
+
+    const listContext = capturedContext as ScrollContainerContextValue | null;
+    expect(listContext).not.toBeNull();
+    expect(typeof listContext?.scrollToFocusedInput).toBe("function");
+  });
+
+  it("exposes the list container as a ScreenContainer compound component", () => {
+    expect(typeof ScreenContainer.List).toBe("function");
+    expect(ScreenContainer.List).toBe(ListScreenContainer);
   });
 
   it("handles scrollToFocusedInput safely with various input references", () => {

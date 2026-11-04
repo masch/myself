@@ -13,10 +13,12 @@ import {
   Divider,
 } from "@/components";
 import { colors, layout } from "@/theme";
+import { SimulationTabNotice } from "@/features/barter/components/simulation-tab-notice";
+import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
 
 const CATEGORIES = ["Work", "Personal", "Shopping", "Design", "Urgent"];
 
-export default function ModalScreen() {
+function TaskModal() {
   const { addTask } = useTasks();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -173,3 +175,15 @@ const styles = StyleSheet.create({
     marginLeft: 34,
   },
 });
+
+/**
+ * A simulation tab renders no database provider, and this screen writes tasks,
+ * so the tab gets the explanation instead of a context error.
+ */
+export default function ModalScreen() {
+  if (isBarterSimulationTab()) {
+    return <SimulationTabNotice />;
+  }
+
+  return <TaskModal />;
+}

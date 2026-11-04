@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { resolveFocusedInputScroll } from "../focus-scroll";
+import {
+  resolveDockedInputScroll,
+  resolveFocusedInputScroll,
+} from "../focus-scroll";
 
 /**
  * Where a scroll container has to move so the focused input clears the keyboard.
@@ -153,5 +156,85 @@ describe("resolveFocusedInputScroll", () => {
         bottomSpacing: BOTTOM_SPACING,
       }),
     ).toBe(424);
+  });
+});
+
+/**
+ * Docking is the gondola's promise, not a clearing one: the search field is put
+ * at the top of the band the keyboard leaves instead of at its bottom edge, so
+ * the text being typed and the results under it share the screen.
+ *
+ * The coordinate rule is the same one `resolveFocusedInputScroll` documents: the
+ * web reports visible-port coordinates, native reports content coordinates.
+ */
+describe("resolveDockedInputScroll", () => {
+  it("docks a web field that the keyboard pushed down", () => {
+    // 740 tall phone, keyboard open: the field's visible offset is 528, so the
+    // list scrolls 528 - 16 and the field ends up at the top of the band.
+    expect(
+      resolveDockedInputScroll({
+        top: 528,
+        scrollY: 0,
+        viewportRelative: true,
+        topSpacing: TOP_SPACING,
+      }),
+    ).toBe(512);
+  });
+
+  it("docks relative to what the user already scrolled on the web", () => {
+    // Visible offset 40 means content 552 with 512 of scroll already applied: the
+    // field only has to move 24px more.
+    expect(
+      resolveDockedInputScroll({
+        top: 40,
+        scrollY: 512,
+        viewportRelative: true,
+        topSpacing: TOP_SPACING,
+      }),
+    ).toBe(536);
+  });
+
+  it("leaves a field that already sits on the dock line alone", () => {
+    expect(
+      resolveDockedInputScroll({
+        top: TOP_SPACING,
+        scrollY: 512,
+        viewportRelative: true,
+        topSpacing: TOP_SPACING,
+      }),
+    ).toBeNull();
+  });
+
+  it("never pulls content down, so a field the user scrolled past is left alone", () => {
+    expect(
+      resolveDockedInputScroll({
+        top: 4,
+        scrollY: 700,
+        viewportRelative: true,
+        topSpacing: TOP_SPACING,
+      }),
+    ).toBeNull();
+  });
+
+  it("reads native measurements as content coordinates", () => {
+    expect(
+      resolveDockedInputScroll({
+        top: 528,
+        scrollY: 100,
+        viewportRelative: false,
+        topSpacing: TOP_SPACING,
+      }),
+    ).toBe(512);
+  });
+
+  it("leaves a native field above the dock line alone", () => {
+    expect(
+      resolveDockedInputScroll({
+        top: 10,
+        scrollY: 0,
+        viewportRelative: false,
+        topSpacing: TOP_SPACING,
+      }),
+    ).toBeNull();
   });
 });

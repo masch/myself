@@ -11,10 +11,12 @@ import {
 } from "@/components";
 import { useReadingForm } from "@/hooks/use-reading-form";
 import { colors, layout } from "@/theme";
+import { SimulationTabNotice } from "@/features/barter/components/simulation-tab-notice";
+import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
 
-export default function ReadingModalScreen() {
+function ReadingModal() {
   const params = useLocalSearchParams<{
     id?: string;
     authorId?: string;
@@ -364,3 +366,15 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
+
+/**
+ * A simulation tab renders no database provider, and this screen reads and
+ * writes readings, so the tab gets the explanation instead of a context error.
+ */
+export default function ReadingModalScreen() {
+  if (isBarterSimulationTab()) {
+    return <SimulationTabNotice />;
+  }
+
+  return <ReadingModal />;
+}

@@ -10,6 +10,7 @@ import React, {
 import {
   View,
   ScrollView,
+  FlatList,
   StyleSheet,
   Keyboard,
   TextInput,
@@ -18,6 +19,7 @@ import {
   type StyleProp,
   type ViewStyle,
   type ScrollViewProps,
+  type FlatListProps,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
   type LayoutChangeEvent,
@@ -25,6 +27,7 @@ import {
 import { useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
 import { colors, layout, spacing } from "@/theme";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { useKeyboardDocking } from "@/hooks/use-keyboard-docking";
 import { resolveFocusedInputScroll } from "./focus-scroll";
 
 const DEFAULT_EDGES: Edge[] = ["top", "bottom"];
@@ -35,6 +38,12 @@ export const DEFAULT_HORIZONTAL_PADDING = layout.screenHorizontalPadding;
 const DEFAULT_GAP = layout.cardGap;
 const DEFAULT_KEYBOARD_BOTTOM_SPACING = spacing.lg;
 const DEFAULT_KEYBOARD_TOP_SPACING = spacing.md;
+/**
+ * Lists default to no gap: their rows carry their own bottom margin
+ * (`ProductPackageCard` does), and a container gap would double the space
+ * between two of them.
+ */
+const DEFAULT_LIST_GAP = 0;
 
 export interface ScrollContainerContextValue {
   scrollToFocusedInput: (inputHandle: any) => void;
@@ -58,6 +67,18 @@ export interface ScreenContainerBaseProps {
 
 export type ScreenContainerProps = ScreenContainerBaseProps;
 export type TabScreenContainerProps = ScreenContainerBaseProps;
+
+/** The safe-area geometry every container shares, without the view-only extras. */
+type ScreenGeometryProps = Pick<
+  ScreenContainerBaseProps,
+  "edges" | "topOffset" | "bottomOffset"
+>;
+
+export interface ListScreenContainerProps<ItemT>
+  extends FlatListProps<ItemT>, ScreenGeometryProps {
+  horizontalPadding?: number;
+  gap?: number;
+}
 
 export interface ScrollScreenContainerProps extends ScreenContainerBaseProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
@@ -281,12 +302,105 @@ export function ScrollScreenContainer({
 }
 
 /**
+ * Container for screens whose content is a virtualised list.
+ *
+ * A `FlatList` is not a `ScrollView` and cannot reuse `ScrollScreenContainer`: a
+ * list of thousands of rows has to keep owning its own scrolling. This container
+ * owns everything around that scroll instead — the safe-area geometry, the
+ * standard horizontal padding, and the space the software keyboard covers — and
+ * docks the focused input above the keyboard so the text being typed and the
+ * results under it are on screen at the same time.
+ *
+ * It provides `ScrollContainerContext` like `ScrollScreenContainer` does, so every
+ * input inside the list (header content included) reports its focus and is docked
+ * without the screen knowing anything about the geometry.
+ */
+export function ListScreenContainer<ItemT>({
+  edges = DEFAULT_EDGES,
+  topOffset = DEFAULT_TOP_OFFSET,
+  bottomOffset = DEFAULT_BOTTOM_OFFSET,
+  horizontalPadding = DEFAULT_HORIZONTAL_PADDING,
+  gap = DEFAULT_LIST_GAP,
+  contentContainerStyle,
+  style,
+  testID,
+  keyboardShouldPersistTaps = "handled",
+  keyboardDismissMode,
+  scrollEventThrottle = 16,
+  onScroll,
+  ...listProps
+}: ListScreenContainerProps<ItemT>) {
+  const containerPadding = useScreenPadding({ edges, topOffset, bottomOffset });
+  const listRef = useRef<FlatList<ItemT>>(null);
+  const docking = useKeyboardDocking(listRef);
+  const dockingScroll = docking.handleScroll;
+
+  // react-native-web implements `on-drag` as `dismissKeyboard()` on **every**
+  // `scroll` event, not only on a finger drag
+  // (node_modules/react-native-web/dist/exports/ScrollView/index.js:244-246). On a
+  // phone the browser scrolls the list by itself while the caret is being edited,
+  // so `on-drag` blurs the field on the first typed letter and the OS closes the
+  // keyboard with it. The web therefore keeps the keyboard up on scroll; native
+  // honors whatever the caller asked for, defaulting to `on-drag`.
+  const resolvedKeyboardDismissMode: FlatListProps<ItemT>["keyboardDismissMode"] =
+    Platform.OS === "web" ? "none" : (keyboardDismissMode ?? "on-drag");
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      // The dock needs to know where the list already is before it moves it.
+      dockingScroll(event);
+      onScroll?.(event);
+    },
+    [dockingScroll, onScroll],
+  );
+
+  return (
+    <ScrollContainerContext.Provider
+      value={{ scrollToFocusedInput: docking.scrollToFocusedInput }}
+    >
+      <FlatList<ItemT>
+        {...listProps}
+        ref={listRef}
+        testID={testID}
+        style={[
+          styles.container,
+          { backgroundColor: colors.systemBackground },
+          style,
+        ]}
+        contentContainerStyle={[
+          containerPadding,
+          {
+            paddingLeft:
+              (containerPadding.paddingLeft ?? 0) + horizontalPadding,
+            paddingRight:
+              (containerPadding.paddingRight ?? 0) + horizontalPadding,
+            paddingBottom:
+              (containerPadding.paddingBottom ?? 0) +
+              docking.keyboardInset +
+              gap,
+            gap,
+          },
+          contentContainerStyle,
+        ]}
+        keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+        keyboardDismissMode={resolvedKeyboardDismissMode}
+        // A scroll listener without a throttle gets one event on react-native-web,
+        // and the dock would never learn where the list is.
+        onScroll={handleScroll}
+        scrollEventThrottle={scrollEventThrottle}
+      />
+    </ScrollContainerContext.Provider>
+  );
+}
+
+/**
  * ScreenContainer provides standardized safe-area insets and background styling
  * across all Android and iOS screens, preventing overlaps with system status bar,
  * notch, and home indicator.
  *
  * For scrollable screens, use the compound subcomponent <ScreenContainer.Scroll>,
- * which automatically applies standard horizontal padding and vertical gap.
+ * which automatically applies standard horizontal padding and vertical gap. For
+ * screens that scroll a virtualised list, use <ScreenContainer.List>.
  */
 export function ScreenContainer({
   children,
@@ -314,6 +428,13 @@ export function ScreenContainer({
 }
 
 ScreenContainer.Scroll = ScrollScreenContainer;
+
+/**
+ * The keyboard-aware choice for virtualised lists: `<ScreenContainer.List>` is a
+ * `FlatList` that owns the safe-area geometry and docks the focused input above
+ * the software keyboard.
+ */
+ScreenContainer.List = ListScreenContainer;
 
 /**
  * Specialized container for screens hosted inside tab navigators (e.g. NativeTabs).
