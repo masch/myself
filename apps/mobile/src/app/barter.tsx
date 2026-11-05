@@ -153,7 +153,9 @@ export default function BarterScreen() {
 
   // Everything above the list is its header, so the producer switcher, the inbox,
   // the filters and the count scroll with the gondola instead of being a second
-  // scrollable layer on top of it.
+  // scrollable layer on top of it. The search field is the exception: it is
+  // pinned above the list (see `fixedHeader` below), because a field that scrolls
+  // is a field the software keyboard can cover.
   const listHeader = (
     <View style={styles.listHeader}>
       {/* Producer identity header and multi-tab switcher */}
@@ -187,11 +189,6 @@ export default function BarterScreen() {
         onSelectMaxDistance={setMaxDistanceKm}
       />
 
-      {/* Search over product and producer name, composing with the chips above */}
-      <View style={styles.searchRow}>
-        <GondolaSearch value={query} onChangeText={setQuery} />
-      </View>
-
       <View style={styles.sectionHeader}>
         <ThemedText variant="title2" style={styles.sectionTitle}>
           Góndola de Productores ({visiblePackages.length})
@@ -206,12 +203,23 @@ export default function BarterScreen() {
   return (
     <>
       {/* Virtualised: 1531 packages cannot be a `map` inside a scroll view. The
-          container owns the safe area, the gutter and the keyboard docking, so the
-          list is the screen's root the way `ScreenContainer.Scroll` is elsewhere. */}
+          container owns the safe area, the gutter and the software keyboard, so
+          the list is the screen's root the way `ScreenContainer.Scroll` is
+          elsewhere. `edges` is bottom only: the stack header above this screen
+          already owns the status bar, and insetting for it again spent ~56dp of
+          a phone screen on nothing. */}
       <ScreenContainer.List
+        edges={["bottom"]}
         data={visiblePackages}
         keyExtractor={gondolaKeyExtractor}
         renderItem={renderPackage}
+        fixedHeader={
+          <View style={styles.searchRow}>
+            {/* The field is on screen by construction, whatever the keyboard
+                does: nothing covers it, so nothing has to dock it. */}
+            <GondolaSearch value={query} onChangeText={setQuery} />
+          </View>
+        }
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
           <EmptyState
@@ -230,7 +238,7 @@ export default function BarterScreen() {
           />
         }
         // The container owns the whole safe area, the gutter and the keyboard
-        // docking, exactly like `ScreenContainer.Scroll` does for scrolling
+        // reservation, exactly like `ScreenContainer.Scroll` does for scrolling
         // screens.
         initialNumToRender={INITIAL_PACKAGES}
         maxToRenderPerBatch={PACKAGES_PER_BATCH}
@@ -265,6 +273,7 @@ const styles = StyleSheet.create({
   },
   searchRow: {
     marginHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
   },
   sectionHeader: {
     marginHorizontal: spacing.md,

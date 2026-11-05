@@ -1,35 +1,34 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * The gondola on a phone browser.
+ * The gondola's search field on a phone.
  *
- * Two defects live here, and both are react-native-web behaviors rather than
- * styling bugs:
+ * Three promises live here, and each one failed on a phone before the pinned bar:
  *
- * 1. The keyboard shrinks only the *visual* viewport, so a `height: 100%` list
- *    keeps its full-screen layout and paints the focused field behind the
- *    keyboard. Reserving the difference as bottom padding makes the field
- *    reachable; only a scroll makes it visible. The field therefore docks at the
- *    top of the band the keyboard leaves (`spacing.md` below the list top), so
- *    the text being typed and the results under it share the screen.
+ * 1. The field is **pinned above the list**. It used to be the first item of the
+ *    list header, 1000-odd pixels down, so the software keyboard covered it both
+ *    on the web (only the visual viewport shrinks) and on native (an Expo Android
+ *    app is edge-to-edge, so the window does not resize either). A field that
+ *    never scrolls cannot be covered by an inset it does not depend on.
  *
- * 2. `keyboardDismissMode="on-drag"` is implemented by react-native-web as
- *    `dismissKeyboard()` on **every** `scroll` event, not only a finger drag: any
- *    scroll while somebody types blurs the field, and Android hides the keyboard
- *    with the focus. A browser-driven scroll is exactly what happens on the first
- *    typed character, which is why the keyboard used to close by itself.
+ * 2. The list still **reserves** the space the keyboard covers, so the last
+ *    result can be scrolled clear of it.
+ *
+ * 3. A scroll of the results does not take the caret out of the field, and does
+ *    not move the field: `keyboardDismissMode="on-drag"` used to blur it on
+ *    react-native-web, where that mode is implemented as `dismissKeyboard()` on
+ *    every `scroll` event.
  *
  * Playwright cannot raise an OS keyboard, so the visual viewport is stubbed:
  * `height` is what the browser reports while the keyboard is open. The stub is
  * also the only way to open the keyboard *after* the field already has the focus,
- * which is the order a real phone follows and the one that exposed defect 2.
+ * which is the order a real phone follows.
  */
 const PHONE = { width: 360, height: 740 };
 const KEYBOARD_HEIGHT = 280;
 /** Bottom of what a user can still see while the keyboard is up. */
 const VISIBLE_BOTTOM = PHONE.height - KEYBOARD_HEIGHT;
-/** Where the field is docked: `spacing.md` below the top of the list. */
-const DOCK_LINE = 16;
+const COUNT = /^Góndola de Productores \(\d+\)$/;
 
 type KeyboardWindow = Window & {
   __setKeyboardOpen: (open: boolean) => void;
@@ -104,7 +103,12 @@ async function openGondola(page: Page) {
 async function boxOf(page: Page, testID: string) {
   return page.getByTestId(testID).evaluate((el) => {
     const rect = el.getBoundingClientRect();
-    return { top: rect.top, bottom: rect.bottom };
+    return {
+      top: rect.top,
+      bottom: rect.bottom,
+      left: rect.left,
+      right: rect.right,
+    };
   });
 }
 
@@ -129,25 +133,23 @@ async function listContentPaddingBottom(page: Page): Promise<number> {
   return Number.parseFloat(padding);
 }
 
-/** Where the field sits inside the list, which is the space the dock targets. */
-async function fieldOffsetInList(page: Page): Promise<number> {
-  const list = await boxOf(page, "gondola-list");
+test("the search field sits above the list, so no keyboard inset can cover it", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await stubVisualViewport(page, true);
+  await openGondola(page);
+
   const field = await boxOf(page, "gondola-search-input");
+  const list = await boxOf(page, "gondola-list");
 
-  return field.top - list.top;
-}
-
-/** Waits for the field to reach the top of the band the keyboard leaves. */
-async function expectDockedField(page: Page) {
-  await expect
-    .poll(() => fieldOffsetInList(page), { timeout: 15000 })
-    .toBeLessThanOrEqual(DOCK_LINE + 1);
-
-  expect(await fieldOffsetInList(page)).toBeGreaterThanOrEqual(DOCK_LINE - 1);
-  expect((await boxOf(page, "gondola-search-input")).bottom).toBeLessThan(
-    VISIBLE_BOTTOM,
-  );
-}
+  // Pinned: the field's whole box is above the scrolling area.
+  expect(field.bottom).toBeLessThanOrEqual(list.top + 1);
+  // And with the keyboard open it is still on screen, at first paint, with the
+  // list never scrolled.
+  expect(field.bottom).toBeLessThan(VISIBLE_BOTTOM);
+  expect(await listScrollTop(page)).toBe(0);
+});
 
 test("the list reserves exactly the space the keyboard covers", async ({
   page,
@@ -164,26 +166,7 @@ test("the list reserves exactly the space the keyboard covers", async ({
     .toBe(KEYBOARD_HEIGHT);
 });
 
-test("opening the keyboard docks the search field above it", async ({
-  page,
-}) => {
-  test.setTimeout(120000);
-  await stubVisualViewport(page, false);
-  await openGondola(page);
-
-  // The premise of the defect: with no keyboard the field sits below the line
-  // the keyboard will cover, so the browser has no reason to move it.
-  const before = await boxOf(page, "gondola-search-input");
-  expect(before.top).toBeGreaterThan(VISIBLE_BOTTOM);
-
-  await page.getByTestId("gondola-search-input").click();
-  await raiseKeyboard(page);
-
-  await expectDockedField(page);
-  expect(await listScrollTop(page)).toBeGreaterThan(0);
-});
-
-test("a scroll of the list does not take the focus out of the field", async ({
+test("a scroll of the results neither blurs the field nor moves it", async ({
   page,
 }) => {
   test.setTimeout(120000);
@@ -193,67 +176,92 @@ test("a scroll of the list does not take the focus out of the field", async ({
   const searchInput = page.getByTestId("gondola-search-input");
   await searchInput.click();
   await raiseKeyboard(page);
+
+  const before = await boxOf(page, "gondola-search-input");
 
   // What the browser itself does while a caret is edited, and what a finger drag
   // does: a scroll of the list. `keyboardDismissMode="on-drag"` blurred the field
   // here, and the OS closed the keyboard with it.
   await page
     .getByTestId("gondola-list")
-    .evaluate((el) => el.scrollBy({ top: 120 }));
+    .evaluate((el) => el.scrollBy({ top: 240 }));
 
   await page.keyboard.type("q");
   await expect(searchInput).toHaveValue("q");
+
+  const after = await boxOf(page, "gondola-search-input");
+  expect(after.top).toBe(before.top);
+  expect(after.bottom).toBe(before.bottom);
 });
 
-test("typing keeps the field docked and leaves the producer card reachable above it", async ({
-  page,
-}) => {
-  test.setTimeout(120000);
-  await stubVisualViewport(page, false);
-  await openGondola(page);
-
-  const searchInput = page.getByTestId("gondola-search-input");
-  await searchInput.click();
-  await raiseKeyboard(page);
-  await expectDockedField(page);
-
-  await searchInput.fill("queso");
-
-  // Nothing restructures under the caret: the field stays on the dock line, so
-  // the first character cannot pull the keyboard out from under the user.
-  await expectDockedField(page);
-  await expect(
-    page.getByText(/^Góndola de Productores \(\d+\)$/),
-  ).toBeInViewport();
-
-  // The producer card and the inbox are no longer unmounted by a search: they
-  // stay above, where scrolling back reaches them.
-  await expect(page.getByTestId("active-producer-name")).toHaveCount(1);
-  await expect(page.getByTestId("active-producer-name")).not.toBeInViewport();
-
-  // The ✕ keeps working, and clearing it does not move the field.
-  await page.getByTestId("gondola-search-clear").click();
-  await expect(searchInput).toHaveValue("");
-  await expectDockedField(page);
-});
-
-test("typing filters the gondola inline and shows the count under the field", async ({
+test("typing filters the gondola and updates the count under the field", async ({
   page,
 }) => {
   test.setTimeout(120000);
   await stubVisualViewport(page, true);
   await openGondola(page);
 
-  const total = await page
-    .getByText(/^Góndola de Productores \(\d+\)$/)
-    .innerText();
+  const total = await page.getByText(COUNT).innerText();
 
   await page.getByTestId("gondola-search-input").fill("queso");
 
-  await expect(
-    page.getByText(/^Góndola de Productores \(\d+\)$/),
-  ).not.toHaveText(total);
-  await expect(page.getByText(/Góndola de Productores \(\d+\)/)).toBeVisible();
+  await expect(page.getByText(COUNT)).not.toHaveText(total);
+  await expect(page.getByText(COUNT)).toBeVisible();
+
+  // The ✕ works while the field is pinned, and the field does not move.
+  const before = await boxOf(page, "gondola-search-input");
+  await page.getByTestId("gondola-search-clear").click();
+  await expect(page.getByTestId("gondola-search-input")).toHaveValue("");
+  expect((await boxOf(page, "gondola-search-input")).top).toBe(before.top);
+});
+
+test("the producer identity stays in the list, one short scroll away", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await stubVisualViewport(page, true);
+  await openGondola(page);
+
+  // The identity block scrolls with the results; it is not unmounted by a search.
+  await expect(page.getByTestId("active-producer-name")).toBeInViewport();
+  await page.getByTestId("gondola-search-input").fill("queso");
+  await expect(page.getByTestId("active-producer-name")).toHaveCount(1);
+});
+
+test("every distance option is fully visible at phone width", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await stubVisualViewport(page, false);
+  await openGondola(page);
+
+  const row = page.getByTestId("gondola-distance-row");
+  await expect(row).toBeInViewport();
+
+  const chips = await row.getByRole("button").evaluateAll((els) =>
+    els.map((el) => {
+      const rect = el.getBoundingClientRect();
+      return {
+        text: (el.textContent ?? "").trim(),
+        left: rect.left,
+        right: rect.right,
+      };
+    }),
+  );
+
+  expect(chips.map((chip) => chip.text)).toEqual([
+    "Cualquier distancia",
+    "< 50 km",
+    "< 250 km",
+    "< 800 km",
+  ]);
+
+  // Nothing is cut off: the last chip used to end past the right edge of a phone,
+  // hidden behind a horizontal drag nothing announced.
+  for (const chip of chips) {
+    expect(chip.left).toBeGreaterThanOrEqual(0);
+    expect(chip.right).toBeLessThanOrEqual(PHONE.width);
+  }
 });
 
 test("pinch zoom reserves nothing, because nothing is covering the viewport", async ({

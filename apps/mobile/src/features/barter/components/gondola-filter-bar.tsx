@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { ThemedText, ChipButton } from "@/components";
 import { colors, fontSizes, spacing } from "@/theme";
 import type { ProductionType } from "@myself/shared";
@@ -52,41 +52,33 @@ export function GondolaFilterBar({
       <ThemedText variant="caption1" style={styles.filterTitle}>
         Filtrar por certificación:
       </ThemedText>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
-        testID="gondola-filter-row"
-      >
+      {/* Wrapping rows instead of horizontal ones: a horizontal row hides its last
+          option behind a drag nobody is told about, which on a phone cut "< 800
+          km" in half and read as a broken chip. Every option is visible now. */}
+      <View style={styles.row} testID="gondola-filter-row">
         {TYPE_OPTIONS.map((opt) => (
           <ChipButton
             key={opt.value}
             title={opt.label}
             variant={selectedType === opt.value ? "success" : "default"}
             onPress={() => onSelectType(opt.value)}
-            style={styles.chip}
           />
         ))}
-      </ScrollView>
+      </View>
 
       <ThemedText variant="caption1" style={styles.filterTitle}>
         Radio de cercanía:
       </ThemedText>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
-      >
+      <View style={styles.row} testID="gondola-distance-row">
         {DISTANCE_OPTIONS.map((opt, idx) => (
           <ChipButton
             key={idx}
             title={opt.label}
             variant={maxDistanceKm === opt.value ? "success" : "default"}
             onPress={() => onSelectMaxDistance(opt.value)}
-            style={styles.chip}
           />
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -104,10 +96,8 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.xs,
     paddingBottom: spacing.xxs,
-  },
-  chip: {
-    marginRight: spacing.xs,
   },
 });

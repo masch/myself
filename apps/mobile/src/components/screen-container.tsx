@@ -78,6 +78,13 @@ export interface ListScreenContainerProps<ItemT>
   extends FlatListProps<ItemT>, ScreenGeometryProps {
   horizontalPadding?: number;
   gap?: number;
+  /**
+   * Content pinned above the list, inside the same safe area and gutter, that
+   * never scrolls. A search field belongs here: it stays on screen when the
+   * software keyboard opens, instead of depending on the keyboard geometry to
+   * be scrolled back into view.
+   */
+  fixedHeader?: ReactNode;
 }
 
 export interface ScrollScreenContainerProps extends ScreenContainerBaseProps {
@@ -98,6 +105,72 @@ export interface ScreenPaddingStyle {
   paddingBottom: number;
   paddingLeft: number;
   paddingRight: number;
+}
+
+export interface ListGeometryInput {
+  /** Safe-area padding every container derives from its edges. */
+  containerPadding: ScreenPaddingStyle;
+  /** Standard gutter of this container. */
+  horizontalPadding: number;
+  /** Space the software keyboard covers at the bottom of the window. */
+  keyboardInset: number;
+  gap: number;
+  /** Whether a band with pinned content renders above the scrolling list. */
+  hasFixedHeader: boolean;
+}
+
+export interface ListGeometry {
+  /** The band that holds the pinned content, above the scroll area. */
+  fixedHeader: {
+    paddingTop: number;
+    paddingLeft: number;
+    paddingRight: number;
+  };
+  /** The scrolling content of the list. */
+  content: {
+    paddingTop: number;
+    paddingLeft: number;
+    paddingRight: number;
+    paddingBottom: number;
+    gap: number;
+  };
+}
+
+/**
+ * Where a list container's padding lands when a band can be pinned above it.
+ *
+ * The safe-area top belongs to whichever band is on screen first: the pinned one
+ * when there is one, the scrolling content otherwise. Applying it to both is the
+ * defect this rule prevents — it doubles the space under the header and, on a
+ * phone, spends on empty pixels the room the results need.
+ */
+export function resolveListGeometry({
+  containerPadding,
+  horizontalPadding,
+  keyboardInset,
+  gap,
+  hasFixedHeader,
+}: ListGeometryInput): ListGeometry {
+  const paddingLeft = (containerPadding.paddingLeft ?? 0) + horizontalPadding;
+  const paddingRight = (containerPadding.paddingRight ?? 0) + horizontalPadding;
+
+  return {
+    fixedHeader: {
+      paddingTop: hasFixedHeader ? containerPadding.paddingTop : 0,
+      paddingLeft,
+      paddingRight,
+    },
+    content: {
+      paddingTop: hasFixedHeader ? 0 : containerPadding.paddingTop,
+      paddingLeft,
+      paddingRight,
+      // The keyboard's space belongs to the content: it is what has to be able to
+      // scroll clear of it.
+      paddingBottom:
+        (containerPadding.paddingBottom ?? 0) + keyboardInset + gap,
+      gap,
+    },
+  };
 }
 
 /**
@@ -324,6 +397,7 @@ export function ListScreenContainer<ItemT>({
   contentContainerStyle,
   style,
   testID,
+  fixedHeader,
   keyboardShouldPersistTaps = "handled",
   keyboardDismissMode,
   scrollEventThrottle = 16,
@@ -334,16 +408,23 @@ export function ListScreenContainer<ItemT>({
   const listRef = useRef<FlatList<ItemT>>(null);
   const docking = useKeyboardDocking(listRef);
   const dockingScroll = docking.handleScroll;
+  const geometry = resolveListGeometry({
+    containerPadding,
+    horizontalPadding,
+    keyboardInset: docking.keyboardInset,
+    gap,
+    hasFixedHeader: fixedHeader != null,
+  });
 
-  // react-native-web implements `on-drag` as `dismissKeyboard()` on **every**
-  // `scroll` event, not only on a finger drag
-  // (node_modules/react-native-web/dist/exports/ScrollView/index.js:244-246). On a
-  // phone the browser scrolls the list by itself while the caret is being edited,
-  // so `on-drag` blurs the field on the first typed letter and the OS closes the
-  // keyboard with it. The web therefore keeps the keyboard up on scroll; native
-  // honors whatever the caller asked for, defaulting to `on-drag`.
+  // A list of results is read by scrolling it, so a drag must not take the
+  // keyboard away: dismissing it hides exactly the rows the finger is moving
+  // towards. react-native-web is stricter still — it implements `on-drag` as
+  // `dismissKeyboard()` on **every** `scroll` event, not only on a finger drag
+  // (node_modules/react-native-web/dist/exports/ScrollView/index.js:244-246) — but
+  // the rule is the same on both platforms, so a caller has to ask for a dismissal
+  // mode explicitly instead of inheriting one.
   const resolvedKeyboardDismissMode: FlatListProps<ItemT>["keyboardDismissMode"] =
-    Platform.OS === "web" ? "none" : (keyboardDismissMode ?? "on-drag");
+    keyboardDismissMode ?? "none";
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -355,41 +436,36 @@ export function ListScreenContainer<ItemT>({
   );
 
   return (
-    <ScrollContainerContext.Provider
-      value={{ scrollToFocusedInput: docking.scrollToFocusedInput }}
+    <View
+      style={[styles.container, { backgroundColor: colors.systemBackground }]}
     >
-      <FlatList<ItemT>
-        {...listProps}
-        ref={listRef}
-        testID={testID}
-        style={[
-          styles.container,
-          { backgroundColor: colors.systemBackground },
-          style,
-        ]}
-        contentContainerStyle={[
-          containerPadding,
-          {
-            paddingLeft:
-              (containerPadding.paddingLeft ?? 0) + horizontalPadding,
-            paddingRight:
-              (containerPadding.paddingRight ?? 0) + horizontalPadding,
-            paddingBottom:
-              (containerPadding.paddingBottom ?? 0) +
-              docking.keyboardInset +
-              gap,
-            gap,
-          },
-          contentContainerStyle,
-        ]}
-        keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-        keyboardDismissMode={resolvedKeyboardDismissMode}
-        // A scroll listener without a throttle gets one event on react-native-web,
-        // and the dock would never learn where the list is.
-        onScroll={handleScroll}
-        scrollEventThrottle={scrollEventThrottle}
-      />
-    </ScrollContainerContext.Provider>
+      {/* The pinned band is not part of the scrolling content, so it is not part
+          of the docking context either: a field there is on screen by
+          construction, and docking it against the list would move the list for
+          something the keyboard never covered. */}
+      {fixedHeader == null ? null : (
+        <View style={geometry.fixedHeader} testID="list-fixed-header">
+          {fixedHeader}
+        </View>
+      )}
+      <ScrollContainerContext.Provider
+        value={{ scrollToFocusedInput: docking.scrollToFocusedInput }}
+      >
+        <FlatList<ItemT>
+          {...listProps}
+          ref={listRef}
+          testID={testID}
+          style={[styles.list, style]}
+          contentContainerStyle={[geometry.content, contentContainerStyle]}
+          keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+          keyboardDismissMode={resolvedKeyboardDismissMode}
+          // A scroll listener without a throttle gets one event on react-native-web,
+          // and the dock would never learn where the list is.
+          onScroll={handleScroll}
+          scrollEventThrottle={scrollEventThrottle}
+        />
+      </ScrollContainerContext.Provider>
+    </View>
   );
 }
 
@@ -452,6 +528,9 @@ ScreenContainer.Tab = TabScreenContainer;
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  list: {
     flex: 1,
   },
 });
