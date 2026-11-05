@@ -32,7 +32,10 @@ the native keyboard inset, and the filters stop hiding options.
   reserves the space it covers, and a scroll of the list does not take the caret out of the field.
 
 - **S6** — The operator still sees who they operate as and can switch producer from the gondola; the
-  identity block shrinks, it does not disappear.
+  identity block shrinks, it does not disappear. It is **not** pinned: it stays at the top of the
+  scrolling content, directly under the pinned field, so it is on screen at load and comes back with
+  one short scroll. Pinning it too would spend ~90dp of the band the keyboard leaves on a card that is
+  read once, and the results are what the operator is there for.
 
 ## Tasks
 
@@ -40,7 +43,8 @@ the native keyboard inset, and the filters stop hiding options.
       (S1).
 - [x] **TASK-2**: Pin the field above the list through a `fixedHeader` slot that owns the top safe
       area once, and stop dismissing the keyboard on drag (S2, S3).
-- [x] **TASK-3**: Compact the producer identity block and pin it under the field (S2, S6).
+- [x] **TASK-3**: Compact the producer identity block and keep it at the top of the scrolling content,
+      directly under the pinned field (S2, S6).
 - [x] **TASK-4**: Wrap the filter chips so every distance and certification is reachable (S4).
 - [x] **TASK-5**: Rewrite the browser spec around the new promises (S2, S3, S5) and pin the chip
       visibility (S4).
@@ -132,6 +136,30 @@ the native keyboard inset, and the filters stop hiding options.
   `SQLITE_ERROR: no such table: meditation_readings` on `/v1/readings` (2 failures). Isolated re-runs of
   those specs passed, and a fresh-database run lost two of the four, which is what pointed at state
   rather than code. Only the canonical target's result means anything.
+- **CodeRabbit round (3 findings, all resolved)** — the review requested changes on three "Minor"
+  functional-correctness findings. Each was checked against the source before touching anything, and
+  they did not resolve the same way:
+  - **The identity block is not pinned** (`apps/mobile/src/app/barter.tsx:222`). The finding is true
+    about the _document_ and false about the code: TASK-3 said "pin it under the field", which reads as
+    "make it sticky", and the implementation keeps it in the scrolling header. S6 and TASK-3 now state
+    the layout that was actually chosen and why, so the requirement no longer contradicts the code.
+  - **The Android navigation bar was reserved twice** (`apps/mobile/src/components/screen-container.tsx:170`).
+    A real defect, found by the arithmetic the finding spelled out: React Native reports the keyboard
+    _above_ the navigation bar (`ReactRootView` computes `imeInsets.bottom - barInsets.bottom`), the
+    container already adds `insets.bottom` through its bottom safe-area edge, and
+    `resolveNativeKeyboardInset` added the bar again — 50 + 348 + 16 = 414 instead of
+    50 + 300 + 16 = 366 on a phone with a 34-point home indicator. The native inset is now exactly the
+    reported height, which is also the convention the device-validated `ScrollScreenContainer` uses, and
+    a composition pin asserts the seam: `resolveNativeKeyboardInset` + `resolveListGeometry` must total
+    safe area + keyboard + gap.
+  - **Android 10 and earlier fire no keyboard events** (`apps/mobile/src/hooks/use-software-keyboard-inset.ts:74`).
+    Confirmed against the React Native documentation, verbatim: _"The events will not be fired when
+    using Android 10 or below if your activity has `android:windowSoftInputMode` set to `adjustResize`
+    or `adjustNothing`"_ — which is what an Expo activity does. Not fixed, and not fixable inside this
+    design: a `WindowInsets` source means a native module. It is recorded as a known limit in the
+    module's own documentation instead, with the part that matters for this request intact: the field is
+    pinned, so it is never the thing behind the IME on those devices; only the tail of the results needs
+    the keyboard dismissed. A device pass on Android 11+ is unaffected.
 - **Not verified here (S1)** — the real Android IME on a native build. Every automated check this
   repository owns is a browser check or a unit pin; the native inset is pinned as a rule
   (`resolveNativeKeyboardInset`), not as a device behavior. The device pass on the staging build is

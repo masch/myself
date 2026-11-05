@@ -53,54 +53,26 @@ function createKeyboardSource() {
 }
 
 describe("resolveNativeKeyboardInset", () => {
-  it("reserves the keyboard height on a platform whose window it covers", () => {
-    // iOS draws the keyboard over the window; nothing else is added to it.
-    expect(
-      resolveNativeKeyboardInset({
-        keyboardHeight: 300,
-        bottomInset: 34,
-        isAndroid: false,
-      }),
-    ).toBe(300);
+  it("reserves exactly the height the platform reported", () => {
+    expect(resolveNativeKeyboardInset(300)).toBe(300);
+    expect(resolveNativeKeyboardInset(311)).toBe(311);
   });
 
-  it("adds the navigation bar the Android window draws under", () => {
-    // React Native reports the keyboard above the navigation bar, and an
-    // edge-to-edge window extends under that bar: the app loses both.
-    expect(
-      resolveNativeKeyboardInset({
-        keyboardHeight: 300,
-        bottomInset: 48,
-        isAndroid: true,
-      }),
-    ).toBe(348);
+  it("adds nothing for the Android navigation bar, which the container already reserves", () => {
+    // React Native reports the keyboard *above* the navigation bar, and every
+    // container adds `insets.bottom` once through its bottom safe-area edge. The
+    // covered space is `safe area + keyboard`; adding the bar here as well
+    // reserved it twice and pushed the last row half a bar too far. The pin cannot
+    // see the container from here, so it pins the rule: no addition.
+    expect(resolveNativeKeyboardInset(300)).not.toBe(300 + 48);
   });
 
-  it("reserves nothing while the keyboard is closed, navigation bar or not", () => {
-    expect(
-      resolveNativeKeyboardInset({
-        keyboardHeight: 0,
-        bottomInset: 48,
-        isAndroid: true,
-      }),
-    ).toBe(0);
-    expect(
-      resolveNativeKeyboardInset({
-        keyboardHeight: 0,
-        bottomInset: 34,
-        isAndroid: false,
-      }),
-    ).toBe(0);
+  it("reserves nothing while the keyboard is closed", () => {
+    expect(resolveNativeKeyboardInset(0)).toBe(0);
   });
 
   it("never reports a negative inset", () => {
-    expect(
-      resolveNativeKeyboardInset({
-        keyboardHeight: -120,
-        bottomInset: 48,
-        isAndroid: true,
-      }),
-    ).toBe(0);
+    expect(resolveNativeKeyboardInset(-120)).toBe(0);
   });
 });
 

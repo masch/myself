@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Keyboard, Platform } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useKeyboardInset } from "./use-keyboard-inset";
 
 /**
@@ -16,27 +15,24 @@ import { useKeyboardInset } from "./use-keyboard-inset";
  *
  * `Keyboard`'s events are the only source for the number on native, exactly what
  * `ScrollScreenContainer` already listens to.
+ *
+ * Known limit: React Native documents that on **Android 10 and earlier** the
+ * keyboard events do not fire at all when the activity uses `adjustResize` or
+ * `adjustNothing`, which is what an Expo activity does. The inset then stays `0`
+ * and the list reserves no keyboard space, so on those devices the last results
+ * can only be reached after dismissing the keyboard. The field itself is pinned
+ * above the list, so it is never the thing that ends up behind the IME. Fixing
+ * the tail needs a `WindowInsets` source, which means a native module — see
+ * `odd/tasks/gondola-search-native-keyboard.md`.
  */
-export interface NativeKeyboardInsetInput {
-  /** Height the platform reported for the keyboard itself. */
-  keyboardHeight: number;
-  /** Space the system navigation takes at the bottom of the window. */
-  bottomInset: number;
-  /** Whether the navigation bar is drawn under the window, as Android does. */
-  isAndroid: boolean;
-}
-
-export function resolveNativeKeyboardInset({
-  keyboardHeight,
-  bottomInset,
-  isAndroid,
-}: NativeKeyboardInsetInput): number {
-  if (keyboardHeight <= 0) return 0;
-
-  // React Native reports the keyboard height above the Android navigation bar,
-  // and an edge-to-edge window extends under that bar: the space the app loses is
-  // the keyboard plus the bar. iOS paints over the window without it.
-  return Math.round(keyboardHeight + (isAndroid ? bottomInset : 0));
+export function resolveNativeKeyboardInset(keyboardHeight: number): number {
+  // Nothing is added to the height the platform reports, deliberately. React
+  // Native already reports the keyboard *above* the Android navigation bar
+  // (`ReactRootView` computes `imeInsets.bottom - barInsets.bottom`), and the
+  // containers reserve that bar themselves through the bottom safe-area edge. So
+  // the covered space is `safe area + keyboard`, each counted once: adding the bar
+  // here would reserve it twice and push the last row half a bar too far.
+  return Math.max(0, Math.round(keyboardHeight));
 }
 
 /**
@@ -88,16 +84,9 @@ export function useNativeKeyboardHeight(): number {
   return height;
 }
 
-/** The native keyboard inset, in points, including the Android navigation bar. */
+/** The native keyboard inset, in points: exactly what the platform reported. */
 export function useNativeKeyboardInset(): number {
-  const keyboardHeight = useNativeKeyboardHeight();
-  const { bottom } = useSafeAreaInsets();
-
-  return resolveNativeKeyboardInset({
-    keyboardHeight,
-    bottomInset: bottom,
-    isAndroid: Platform.OS === "android",
-  });
+  return resolveNativeKeyboardInset(useNativeKeyboardHeight());
 }
 
 export interface SoftwareKeyboardInsetInput {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { resolveNativeKeyboardInset } from "@/hooks/use-software-keyboard-inset";
 import { resolveListGeometry } from "../screen-container";
 
 /**
@@ -91,5 +92,27 @@ describe("resolveListGeometry", () => {
     });
 
     expect(geometry.content.paddingBottom).toBe(50);
+  });
+});
+
+describe("the bottom reservation counts the safe area once", () => {
+  it("composes the native keyboard with the container padding without doubling the navigation bar", () => {
+    // The two modules meet here, and that seam is where the defect lived: React
+    // Native reports the keyboard *above* the Android navigation bar, the
+    // container adds `insets.bottom` through its bottom edge, and the native inset
+    // used to add the bar a second time. 300 of keyboard on a phone with a 34-point
+    // home indicator came out as 50 + 348 + 16 = 414 instead of 50 + 300 + 16 = 366:
+    // 48 points of the list scrolling into space nothing covers.
+    const keyboardInset = resolveNativeKeyboardInset(300);
+
+    const geometry = resolveListGeometry({
+      containerPadding,
+      horizontalPadding: 16,
+      keyboardInset,
+      gap: 16,
+      hasFixedHeader: true,
+    });
+
+    expect(geometry.content.paddingBottom).toBe(50 + 300 + 16);
   });
 });
