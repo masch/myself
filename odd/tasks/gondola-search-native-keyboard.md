@@ -120,15 +120,32 @@ the native keyboard inset, and the filters stop hiding options.
   `barter-modal-reset` — **11 passed (2.5m)**. One pin changed on purpose: the success-variant chip is
   found by its accessible name `Cambiar de productor` instead of the producer name, because the chip no
   longer repeats the name shown above it.
+- **TASK-6** — `make check` green (format, ODD gates, lint, types, 707 unit tests across 76 files) and
+  the canonical full browser run, `make check-e2e-web`, green: **48 passed (2.8m)**, 0 failed.
+- **Six false failures, and the harness mistake behind them** — three earlier full-suite runs reported
+  failures in `cohort-dates-timetravel`, `reflection-flow` and `reading-flow`, none of which this change
+  touches. Both causes were mine, and both are recorded because they read exactly like regressions:
+  calling `bunx playwright test` directly instead of `make check-e2e-web`, the target that removes
+  `apps/api/test-e2e.db*` and runs `db:migrate` before the suite. That database is a persistent file,
+  so a directly-invoked run inherits every row the previous one left behind (4 ordering failures), and
+  a hand-deleted one leaves the API without tables: the probe answered
+  `SQLITE_ERROR: no such table: meditation_readings` on `/v1/readings` (2 failures). Isolated re-runs of
+  those specs passed, and a fresh-database run lost two of the four, which is what pointed at state
+  rather than code. Only the canonical target's result means anything.
 - **Not verified here (S1)** — the real Android IME on a native build. Every automated check this
   repository owns is a browser check or a unit pin; the native inset is pinned as a rule
   (`resolveNativeKeyboardInset`), not as a device behavior. The device pass on the staging build is
   the remaining check, and it is the one the user can do that this environment cannot.
 
-- **Completion & Delivery**: Complete on branch `fix/gondola-search-native-keyboard` in work-unit
-  commits, the boundaries recorded at delivery: **slice 1** adds the native inset and the list
-  geometry with their unit pins, **slice 2** makes the gondola consume it (pinned field, compact
-  identity block), **slice 3** wraps the filter chips and updates the token pin, **slice 4** rewrites
-  the browser spec, **slice 5** is this document. Not delivered here, deliberately: push, pull request
-  and merge remain the user's decisions, and the native Android keyboard is still only verified as a
-  rule plus the user's device pass.
+- **Completion & Delivery**: Complete on branch `fix/gondola-search-native-keyboard` in five
+  work-unit commits. **Slice 1** `c3e77d1` adds the native inset and the two-band list geometry with
+  their 13 unit pins (event and hook, no screen changed). **Slice 2** `75236a1` makes the gondola
+  consume it — the pinned field, the `fixedHeader` slot and the browser spec that replaces the docking
+  one. **Slice 3** `52a8b5c` compacts the producer identity block. **Slice 4** `50d6772` wraps the
+  filter chips. **Slice 5** `8a1c8ba` is this document and the corrected S6 of the previous one. Slice
+  1 is over the ~400-line review budget on its own (593 authored lines): the primitive, its rules and
+  the container refactor are one indivisible unit, because the container cannot expose `fixedHeader`
+  without the geometry the pins describe. Not delivered here, deliberately: push, pull request and
+  merge remain the user's decisions, and the real Android IME is still only verified as a rule
+  (`resolveNativeKeyboardInset`) plus the user's device pass; this environment has no Android device
+  to run it on.
