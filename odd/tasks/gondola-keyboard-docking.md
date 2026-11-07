@@ -30,8 +30,10 @@ types.
 - **S5** — The focus survives typing: no layout change, no scroll and no re-render may take the
   caret out of the field while the user is typing (S2).
 
-- **S6** — Native keeps its current behavior. `useKeyboardInset` reports `0` outside the web, so
-  the docking never runs there and Android's `adjustResize` keeps driving the screen as before.
+- **S6** — ~~Native keeps its current behavior. `useKeyboardInset` reports `0` outside the web, so
+  the docking never runs there and Android's `adjustResize` keeps driving the screen as before.~~
+  **Superseded by L4**: this premise was false and is the defect the native build reported. See
+  `odd/tasks/gondola-search-native-keyboard.md`.
 
 ## Tasks
 
@@ -156,3 +158,12 @@ scroll, which was the mechanical cause), so a device pass on staging is the rema
   el teclado"_ (the second symptom, reported in the same message).
 - **L3** — _"Campo arriba y que el resto scrollee"_ (the layout decision, chosen over keeping the
   compact header and compensating the scroll).
+
+- **L4** — The premise of S6 was wrong, reported by the user with two screenshots of the Android
+  native build: _"si bien en la anterior cambio se soluciono las pantallas y teclado en android web,
+  no funciona en android nativo en la busqueda de procutos"_. An Expo Android build is edge-to-edge,
+  so the window does **not** resize for the keyboard: `useKeyboardInset` returning `0` outside the web
+  left the list with no reservation and nothing to scroll, exactly the browser defect this document
+  closed. The correction is tracked and delivered in
+  `odd/tasks/gondola-search-native-keyboard.md`, where the field is pinned above the list instead of
+  depending on any keyboard inset.

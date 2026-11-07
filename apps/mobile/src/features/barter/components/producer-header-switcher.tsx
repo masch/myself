@@ -269,30 +269,40 @@ export function ProducerHeaderSwitcher({
     <Card variant="elevated" style={styles.card}>
       <View style={styles.topRow}>
         <View style={styles.producerInfo}>
-          <ThemedText variant="caption1" style={styles.label}>
-            ESTÁS OPERANDO COMO:
+          <ThemedText variant="caption2" style={styles.label}>
+            ESTÁS OPERANDO COMO
           </ThemedText>
           <ThemedText
             variant="headline"
             style={styles.producerName}
+            numberOfLines={1}
             testID="active-producer-name"
           >
             {activeProducer?.name ?? "Seleccionar productor"}
           </ThemedText>
-          <ThemedText variant="caption1" style={styles.locationText}>
+          <ThemedText
+            variant="caption1"
+            style={styles.locationText}
+            numberOfLines={1}
+          >
             📍 {activeProducer?.address}
           </ThemedText>
         </View>
 
+        {/* The destructive reset is an icon with a spoken name: in a card this
+            dense a labelled chip costs a whole line, and a textless control
+            still has to say what it does. */}
+        {onResetSeed && (
+          <IconButton
+            icon="sf:arrow.clockwise"
+            size="small"
+            accessibilityLabel="Reiniciar datos"
+            onPress={onResetSeed}
+            style={styles.resetButton}
+          />
+        )}
+
         <View style={styles.badgeColumn} testID="producer-badge-column">
-          {onResetSeed && (
-            <ChipButton
-              title="↺ Reiniciar Datos"
-              variant="destructive"
-              onPress={onResetSeed}
-              style={styles.resetChip}
-            />
-          )}
           <Badge
             label={`1 PAP = $${papConfigArs.toLocaleString("es-AR")}`}
             variant="success"
@@ -303,32 +313,23 @@ export function ProducerHeaderSwitcher({
               label={productionTypeLabel(activeProducer.productionType)}
               variant="outline"
               size="sm"
-              style={styles.typeBadge}
             />
           )}
         </View>
       </View>
 
-      {/* The identity control is an action, not a status badge: it says what it
-          does, carries a search glyph, and states the size of the catalog. */}
-      <ThemedText variant="caption1" style={styles.switchLabel}>
-        CAMBIAR DE PRODUCTOR
-      </ThemedText>
-      <ThemedText variant="caption1" style={styles.switchHint}>
-        Buscá por nombre o localidad entre los {producers.length} productores de
-        la red.
-      </ThemedText>
-
-      {/* One trigger instead of one chip per producer: the catalog is 158 long. */}
+      {/* One trigger instead of one chip per producer: the catalog is 158 long.
+          The sentence that explained it is gone, because the chip says what it
+          does and the hint carries the catalog size to a screen reader. */}
       <View style={styles.switchRow} testID="producer-switch-row">
         <ChipButton
-          title={activeProducer?.name ?? "Seleccionar productor"}
+          title="Cambiar"
           icon="sf:magnifyingglass"
           variant="success"
           // The decorative glyph otherwise lands in the accessible name as an
-          // empty node (" Vermut Sabado"), so the name is stated explicitly.
-          accessibilityLabel={activeProducer?.name ?? "Seleccionar productor"}
-          accessibilityHint="Abre el buscador de productores"
+          // empty node, so the name is stated explicitly.
+          accessibilityLabel="Cambiar de productor"
+          accessibilityHint={`Abre el buscador de los ${producers.length} productores de la red`}
           accessibilityState={{ expanded: isSelectorOpen }}
           onPress={openSelector}
           testID="producer-switch-trigger"
@@ -465,19 +466,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     gap: spacing.xs,
   },
-  typeBadge: {
-    marginTop: spacing.xs,
-  },
-  switchLabel: {
-    color: colors.secondaryLabel,
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
-    letterSpacing: letterSpacings.caption,
-    marginBottom: spacing.xxs,
-  },
-  switchHint: {
-    color: colors.secondaryLabel,
-    marginBottom: spacing.xs,
+  resetButton: {
+    marginLeft: spacing.xs,
   },
   switchRow: {
     flexDirection: "row",
@@ -571,8 +561,5 @@ const styles = StyleSheet.create({
   },
   selectorFooter: {
     paddingTop: spacing.sm,
-  },
-  resetChip: {
-    borderColor: colors.systemRed,
   },
 });
