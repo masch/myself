@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Dirección 03 — Recibo honesto</title>
+    <style>
+      :root {
+        --background: #000000;
+        --surface: #1c1c1e;
+        --label: #ffffff;
+        --secondary: #8e8e93;
+        --separator: #38383a;
+        --blue: #007aff;
+        --green: #34c759;
+        --orange: #ff9500;
+        --s-xxs: 2px;
+        --s-xs: 4px;
+        --s-sm: 8px;
+        --s-compact: 12px;
+        --s-md: 16px;
+        --s-lg: 24px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-full: 9999px;
+        --font:
+          -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+          system-ui, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--background);
+        color: var(--label);
+        font-family: var(--font);
+        -webkit-font-smoothing: antialiased;
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+
+      .note {
+        margin: var(--s-compact) var(--s-md) var(--s-md);
+        padding: var(--s-sm) var(--s-compact);
+        border: 1px dashed var(--separator);
+        border-radius: var(--radius-md);
+        background: #0f0f10;
+      }
+      .note-kicker {
+        display: block;
+        font-size: 11px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--secondary);
+      }
+      .note strong {
+        display: block;
+        font-size: 15px;
+        line-height: 20px;
+        font-weight: 600;
+        margin-top: var(--s-xxs);
+      }
+      .note-tradeoff {
+        display: block;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--secondary);
+        margin-top: var(--s-xs);
+      }
+
+      /* Ancla de la superficie: 1 PAP vale lo mismo en toda la góndola, así que se
+     declara una vez arriba de la lista y nunca dentro de cada card. */
+      .list-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--s-compact);
+        margin: 0 var(--s-md) var(--s-compact);
+      }
+      .list-title {
+        margin: 0;
+        font-size: 22px;
+        line-height: 28px;
+        font-weight: 700;
+        color: var(--label);
+      }
+      .pap-anchor {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--secondary);
+        white-space: nowrap;
+      }
+
+      .list {
+        padding: var(--s-compact) 0;
+      }
+      .card {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        padding: var(--s-md);
+        margin: 0 var(--s-md) var(--s-md);
+      }
+
+      .card-title {
+        margin: 0;
+        font-size: 22px;
+        line-height: 28px;
+        font-weight: 600;
+        color: var(--label);
+      }
+      .card-sub {
+        margin: var(--s-xs) 0 0;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--secondary);
+      }
+
+      /* El recibo: cada línea es un hecho del catálogo impreso. */
+      .receipt {
+        margin-top: var(--s-compact);
+      }
+      .dashed {
+        border: 0;
+        border-top: 1px dashed rgba(142, 142, 147, 0.45);
+        margin: var(--s-sm) 0;
+      }
+      .line {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--s-compact);
+        padding: var(--s-xs) 0;
+      }
+      .line-label {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--secondary);
+        flex: 0 1 auto;
+      }
+      .line-value {
+        font-size: 15px;
+        line-height: 20px;
+        font-weight: 600;
+        color: var(--label);
+        text-align: right;
+      }
+      .line-value small {
+        display: block;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 400;
+        color: var(--secondary);
+        margin-top: var(--s-xxs);
+      }
+      .delta {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--s-compact);
+        padding: var(--s-xs) 0 0;
+      }
+      .delta-value {
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+      }
+      .delta-value.is-up {
+        color: var(--green);
+      }
+      .delta-value.is-down {
+        color: var(--orange);
+      }
+      .delta-value.is-exact {
+        color: var(--secondary);
+      }
+
+      /* El total: lo que entregás, en cuerpo de énfasis. */
+      .total {
+        padding-top: var(--s-xs);
+      }
+      .total-label {
+        font-size: 11px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--secondary);
+      }
+      .total-value {
+        font-size: 22px;
+        line-height: 28px;
+        font-weight: 700;
+        color: var(--label);
+        margin-top: var(--s-xxs);
+      }
+
+      .pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s-xs);
+        margin-top: var(--s-compact);
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 6px;
+        border-radius: var(--radius-full);
+        border: 1px solid var(--separator);
+        font-size: 11px;
+        line-height: 13px;
+        font-weight: 600;
+        color: var(--secondary);
+        white-space: nowrap;
+      }
+      .pill.stock {
+        border-color: transparent;
+        background: rgba(142, 142, 147, 0.15);
+        color: var(--label);
+      }
+
+      .action {
+        margin-top: var(--s-compact);
+      }
+      button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        font-family: inherit;
+        width: 100%;
+        background: var(--blue);
+        color: #ffffff;
+        border-radius: var(--radius-lg);
+        padding: 14px 20px;
+        min-height: 44px;
+        font-size: 17px;
+        line-height: 22px;
+        font-weight: 600;
+        transition: opacity 120ms ease;
+      }
+      button:hover {
+        opacity: 0.88;
+      }
+      button:active {
+        opacity: 0.72;
+      }
+      button:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        button {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="note" role="note">
+      <span class="note-kicker">Dirección 03</span>
+      <strong>Recibo honesto</strong>
+      <span class="note-tradeoff"
+        >Cuenta la operación como un comprobante: qué te llevás, cuánto vale en
+        el catálogo, qué entregás y cuánto queda de diferencia. Máxima
+        transparencia; es la que más números muestra y la que más texto necesita
+        explicarse.</span
+      >
+    </aside>
+
+    <main class="list">
+      <header class="list-head">
+        <h1 class="list-title">Góndola de Productores</h1>
+        <span class="pap-anchor num">1 PAP = $50.000 ARS</span>
+      </header>
+
+      <article class="card" aria-label="Aceite girasol: comprobante de 1 PAP">
+        <h2 class="card-title">Aceite girasol x 1/2 litro pet</h2>
+        <p class="card-sub">
+          Naturaleza Viva · 📍 985 km · Guadalupe Norte, Santa Fe
+        </p>
+
+        <div class="receipt">
+          <hr class="dashed" />
+          <div class="line">
+            <span class="line-label">Te llevás</span>
+            <span class="line-value num"
+              >4,5 litros<small>9 botellas de 500 ml</small></span
+            >
+          </div>
+          <div class="line">
+            <span class="line-label">Vale en el catálogo</span>
+            <span class="line-value num"
+              >$48.258,63<small>a $5.362,07 por 500 ml</small></span
+            >
+          </div>
+          <div class="delta">
+            <span class="line-label">Diferencia con 1 PAP</span>
+            <span class="delta-value num is-down">$1.741,37 abajo</span>
+          </div>
+          <hr class="dashed" />
+          <div class="total">
+            <span class="total-label">Entregás</span>
+            <div class="total-value num">1 PAP</div>
+          </div>
+          <hr class="dashed" />
+        </div>
+
+        <div class="pills">
+          <span class="pill">Orgánico</span>
+          <span class="pill stock">1 disponible</span>
+        </div>
+
+        <div class="action">
+          <button
+            type="button"
+            aria-label="Pedir match por Aceite girasol x 1/2 litro pet"
+          >
+            Pedir match
+          </button>
+        </div>
+      </article>
+
+      <article class="card" aria-label="Aceite girasol: comprobante de 1 PAP">
+        <h2 class="card-title">Aceite girasol x 1 litro pet</h2>
+        <p class="card-sub">
+          Naturaleza Viva · 📍 985 km · Guadalupe Norte, Santa Fe
+        </p>
+
+        <div class="receipt">
+          <hr class="dashed" />
+          <div class="line">
+            <span class="line-label">Te llevás</span>
+            <span class="line-value num"
+              >6 litros<small>6 botellas de 1 litro</small></span
+            >
+          </div>
+          <div class="line">
+            <span class="line-label">Vale en el catálogo</span>
+            <span class="line-value num"
+              >$53.420,76<small>a $8.903,46 por 1 litro</small></span
+            >
+          </div>
+          <div class="delta">
+            <span class="line-label">Diferencia con 1 PAP</span>
+            <span class="delta-value num is-up">$3.420,76 arriba</span>
+          </div>
+          <hr class="dashed" />
+          <div class="total">
+            <span class="total-label">Entregás</span>
+            <div class="total-value num">1 PAP</div>
+          </div>
+          <hr class="dashed" />
+        </div>
+
+        <div class="pills">
+          <span class="pill">Orgánico</span>
+          <span class="pill stock">1 disponible</span>
+        </div>
+
+        <div class="action">
+          <button
+            type="button"
+            aria-label="Pedir match por Aceite girasol x 1 litro pet"
+          >
+            Pedir match
+          </button>
+        </div>
+      </article>
+
+      <article class="card" aria-label="Queso gouda: comprobante de 1 PAP">
+        <h2 class="card-title">Queso gouda a granel</h2>
+        <p class="card-sub">
+          Naturaleza Viva · 📍 985 km · Guadalupe Norte, Santa Fe
+        </p>
+
+        <div class="receipt">
+          <hr class="dashed" />
+          <div class="line">
+            <span class="line-label">Te llevás</span>
+            <span class="line-value num"
+              >2,26 kilos<small>corte a granel</small></span
+            >
+          </div>
+          <div class="line">
+            <span class="line-label">Vale en el catálogo</span>
+            <span class="line-value num"
+              >$50.000,00<small>a $22.158,20 por kg</small></span
+            >
+          </div>
+          <div class="delta">
+            <span class="line-label">Diferencia con 1 PAP</span>
+            <span class="delta-value is-exact">sin diferencia</span>
+          </div>
+          <hr class="dashed" />
+          <div class="total">
+            <span class="total-label">Entregás</span>
+            <div class="total-value num">1 PAP</div>
+          </div>
+          <hr class="dashed" />
+        </div>
+
+        <div class="pills">
+          <span class="pill">Orgánico</span>
+          <span class="pill stock">1 disponible</span>
+        </div>
+
+        <div class="action">
+          <button
+            type="button"
+            aria-label="Pedir match por Queso gouda a granel"
+          >
+            Pedir match
+          </button>
+        </div>
+      </article>
+    </main>
+  </body>
+</html>
