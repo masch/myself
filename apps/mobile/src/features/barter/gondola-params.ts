@@ -1,5 +1,10 @@
 import { PRODUCTION_TYPES, type ProductionType } from "@myself/shared";
 import type { UrlViewCodec } from "@/hooks/use-url-view-state";
+import {
+  DEFAULT_CARD_VARIANT,
+  isCardVariant,
+  type CardVariant,
+} from "./card-variant";
 
 /**
  * The gondola view encoded in the URL, so the address a producer is looking at
@@ -16,12 +21,19 @@ export interface GondolaViewState {
   productionType: GondolaTypeFilter;
   /** Distance ceiling in km; `undefined` means any distance. */
   maxDistanceKm?: number;
+  /**
+   * Which of the two validation card layouts the gondola draws. It travels with
+   * the filters because it is the same question — how do I want to see the
+   * gondola? — and because a tester can then be handed `?card=ficha`.
+   */
+  cardVariant: CardVariant;
 }
 
 export const GONDOLA_PARAMS = {
   query: "q",
   productionType: "tipo",
   maxDistanceKm: "km",
+  cardVariant: "card",
   producerId: "producerId",
 } as const;
 
@@ -42,6 +54,7 @@ const GONDOLA_VIEW_PARAMS = [
   GONDOLA_PARAMS.query,
   GONDOLA_PARAMS.productionType,
   GONDOLA_PARAMS.maxDistanceKm,
+  GONDOLA_PARAMS.cardVariant,
 ] as const;
 
 /**
@@ -49,9 +62,9 @@ const GONDOLA_VIEW_PARAMS = [
  *
  * Two cases, and the difference is load-bearing:
  *
- * - The address says nothing about the gondola (no `q`, `tipo` or `km`): the
- *   screen keeps `defaults`, which is whatever the persisted gondola already had.
- *   Opening a plain `/barter` must not reset somebody's filter.
+ * - The address says nothing about the gondola (no `q`, `tipo`, `km` or `card`):
+ *   the screen keeps `defaults`, which is whatever the persisted gondola already
+ *   had. Opening a plain `/barter` must not reset somebody's filter.
  * - The address says something: it is authoritative for the whole view, so an
  *   absent `tipo` or `km` means "Todos" and "any distance", **not** the value the
  *   screen happened to hold at mount. Reading absence as the mount-time value made
@@ -59,7 +72,9 @@ const GONDOLA_VIEW_PARAMS = [
  *   clearing it removes the parameter.
  *
  * A distance is accepted for any positive number, not only the chips the screen
- * offers, so a link built by a newer build keeps working.
+ * offers, so a link built by a newer build keeps working. A layout the URL does
+ * not name — missing, empty or invented — is the default one, which is what makes
+ * a bare `?card=ficha` a complete address for the shared layout.
  */
 export function parseGondolaParams(
   params: RawParams,
@@ -80,10 +95,16 @@ export function parseGondolaParams(
   const maxDistanceKm =
     Number.isFinite(rawDistance) && rawDistance > 0 ? rawDistance : undefined;
 
+  const rawCardVariant = single(params[GONDOLA_PARAMS.cardVariant]);
+  const cardVariant = isCardVariant(rawCardVariant)
+    ? rawCardVariant
+    : DEFAULT_CARD_VARIANT;
+
   return {
     query: single(params[GONDOLA_PARAMS.query]) ?? "",
     productionType,
     maxDistanceKm,
+    cardVariant,
   };
 }
 
@@ -92,7 +113,9 @@ export function parseGondolaParams(
  *
  * Every key is always present so a cleared filter removes its parameter instead
  * of leaving the previous value behind, and an unfiltered gondola serialises to
- * an empty object — no `?q=&tipo=ALL` noise in a shared link.
+ * an empty object — no `?q=&tipo=ALL` noise in a shared link. The layout follows
+ * the same rule: the default closes with no parameter at all, and only a user who
+ * picked the other card shares a `?card=`.
  */
 export function buildGondolaParams(
   state: GondolaViewState,
@@ -108,6 +131,10 @@ export function buildGondolaParams(
       state.maxDistanceKm && state.maxDistanceKm > 0
         ? String(state.maxDistanceKm)
         : undefined,
+    [GONDOLA_PARAMS.cardVariant]:
+      state.cardVariant === DEFAULT_CARD_VARIANT
+        ? undefined
+        : state.cardVariant,
     [GONDOLA_PARAMS.producerId]: producerId || undefined,
   };
 }
@@ -139,6 +166,7 @@ export const gondolaCodec: UrlViewCodec<GondolaViewState> = {
     GONDOLA_PARAMS.query,
     GONDOLA_PARAMS.productionType,
     GONDOLA_PARAMS.maxDistanceKm,
+    GONDOLA_PARAMS.cardVariant,
   ],
   parse: parseGondolaParams,
   build: (state) => buildGondolaParams(state),
