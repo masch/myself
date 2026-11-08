@@ -19,7 +19,7 @@ S5. `solo deben quedar los delcataglo con los precios y formato del catalogo` �
 
 - [x] T1 — S1 — `SEED_PACKAGES` carries only the catalog; the "four POC packages stay" doc block and the "four POC packs" card comment retired. Route: inline. Commit: feature branch.
 - [x] T2 — S4, S5 — `keepOnlyCatalogPackages` drops every package this build does not derive, remaps the two matches the catalog carries and drops the rest. Test-first in `catalog-seed.test.ts`. Route: inline. Commit: feature branch.
-- [x] T3 — S2 — the purge runs on the `localStorage` load path and on the peer sync, with `barter-catalog-only-migration.test.ts` pinning both. Route: inline. Commit: feature branch.
+- [x] T3 — S2 — the purge runs on the `localStorage` load path **and** on the peer sync, with `barter-catalog-only-migration.test.ts` pinning both. Route: inline. Commit: feature branch.
 - [x] T4 — S1-S4 — the barter suite moved off the POC ids: `__tests__/fixture-packages.ts` holds the four shapes as `pkg-fixture-*`, the guard tests inject them, and the payload, seed and component tests use catalog ids. Route: inline. Commit: feature branch.
 - [x] T5 — S1-S5 — `make check` green: 723 mobile tests across 77 files, plus types, lint and format. Route: inline. Commit: feature branch.
 - [x] T6 — record this document and its Engram mirror. Route: inline. Commit: feature branch.
@@ -29,10 +29,12 @@ S5. `solo deben quedar los delcataglo con los precios y formato del catalogo` �
 - `make check-tests`: `@myself/shared` 91 pass, `@myself/api` 106 pass, `@myself/mobile` 723 pass / 0 fail across 77 files.
 - `make check`: tests, types, lint, format and `check-odd` all green.
 - RED before GREEN: with the POC entries removed from the seed and nothing else changed, the suite reported 38 failures across the barter store, the payload tests and the two card tests; the fixture migration and the rewritten seed pins brought it to 0.
+- Self-verification found a real hole after the first commit: the peer sync filtered the broadcast **packages** through `mergePeerPackages` but applied the broadcast **matches** verbatim, so a tab on the old bundle could still hand over a trade naming `pkg-vermut-pack4`. Pinned RED (`never lets a peer trade arrive naming a package this build cannot derive`, 1 failure), then fixed by running `keepOnlyCatalogPackages` on the peer payload before validation, then green.
+- The independent verifier the ASSESS plan requires could not run: `gentle-ai-verify` failed with a provider quota error, as did `gentle-ai-explore` and `gentle-ai-worker` earlier in the session. Nothing was retried, per the unavailable-verifier rule; the six invariants were checked inline instead (peer packages, peer matches, match package-id fields, unsilent data loss, untrusted bytes, per-spec pins).
 
 ## Completion & Delivery
 
-- **Completion & Delivery**: Implemented on branch `feat/catalog-only-packages` (branched from `fix/gondola-search-native-keyboard` so the two concerns never share history) as two work-unit commits: `a186a85` carries the behavior with its pins, and the second carries this document. The touched surface is 12 modified files plus 3 new ones, ~715 authored lines, of which the overwhelming majority is the test migration the removal forced — that is the review cost of a seed that other suites used as their fixture, and it is why the slice is above the ~400-line budget. Nothing outside `apps/mobile/src/features/barter/` is touched: the catalog transcription, the producers and the shared schemas are byte-identical. The branch also carries the 7 commits it was cut from (`fix/gondola-search-native-keyboard`), which are not part of this feature; this document's slice is the single commit `a186a85` plus the document commit. Merge, push and any store release stay the user's decision.
+- **Completion & Delivery**: Implemented on branch `feat/catalog-only-packages` (branched from `fix/gondola-search-native-keyboard` so the two concerns never share history) as three work-unit commits: `a186a85` carries the behavior with its pins, a second carries this document, and a third closes the peer-sync hole self-verification found. The touched surface is 12 modified files plus 3 new ones, ~715 authored lines, of which the overwhelming majority is the test migration the removal forced — that is the review cost of a seed that other suites used as their fixture, and it is why the slice is above the ~400-line budget. Nothing outside `apps/mobile/src/features/barter/` is touched: the catalog transcription, the producers and the shared schemas are byte-identical. The branch also carries the 7 commits it was cut from (`fix/gondola-search-native-keyboard`), which are not part of this feature. Merge, push and any store release stay the user's decision.
 
 ## Log
 
@@ -49,3 +51,5 @@ L5 (design): the purge reads the catalog id set, so anything that is not a shipp
 L6 (user, verbatim): `si, solo deben quedar los delcataglo con los precios y formato del catalogo y cualquier otro debe ser borrado`
 
 L6a: this widens L5 — the rule is no longer the four known ids but "only catalog packages survive", applied to the stored state and to a peer sync. Rewritten: S2, S5. Reopened: T2, T3.
+
+L7 (defect found in self-verification): the broadcast path applied peer **matches** unfiltered, so an old tab could still inject a trade on a retired package. Fixed with `keepOnlyCatalogPackages` on the peer payload and pinned by a RED test.
