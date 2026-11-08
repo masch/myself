@@ -106,6 +106,9 @@ jobs:
           ODD_DOC_BASE: ${{ github.event.pull_request.base.sha }}
         run: make check-odd-doc
 
+      - name: Check Expo Upgrade Parsers
+        run: make check-expo-upgrade
+
       - name: Lint & Typecheck
         run: make check-static
 
