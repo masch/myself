@@ -191,7 +191,7 @@ fix-format-staged: ## Run prettier on staged files only
 fix: fix-format ## Run all automated fixes
 
 .PHONY: expo-upgrade
-expo-upgrade: ## Check recommended versions and upgrade Expo SDK packages
+expo-upgrade: ## Upgrade Expo packages to the versions Expo recommends (DAYS=0 skips the release-age wait)
 	@./scripts/expo-upgrade.sh
 
 
