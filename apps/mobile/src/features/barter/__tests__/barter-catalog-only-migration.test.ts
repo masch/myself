@@ -195,10 +195,10 @@ describe("a stored install written before the catalog", () => {
   });
 
   it("ignores a peer tab still broadcasting the retired packages", () => {
-    const store = createBarterStore({ broadcastEnabled: false });
-    const peer = peers.at(-1);
+    const store = createBarterStore({});
+    const peer = peers.at(-1)!;
 
-    peer?.onmessage?.({
+    peer.onmessage?.({
       data: {
         type: "BARTER_STATE_SYNC",
         payload: {
@@ -209,8 +209,37 @@ describe("a stored install written before the catalog", () => {
       },
     });
 
-    expect(
-      store.getState().packages.filter((pkg) => pkg.id.startsWith("pkg-")),
-    ).toEqual([]);
+    const packages = store.getState().packages;
+
+    expect(packages.filter((pkg) => pkg.id.startsWith("pkg-"))).toEqual([]);
+    expect(packages).toHaveLength(SEED_PACKAGES.length);
+  });
+
+  it("never lets a peer trade arrive naming a package this build cannot derive", () => {
+    const store = createBarterStore({});
+    const peer = peers.at(-1)!;
+
+    peer.onmessage?.({
+      data: {
+        type: "BARTER_STATE_SYNC",
+        payload: {
+          packages: [],
+          matches: [
+            storedMatch({ id: "match-peer" }),
+            storedMatch({
+              id: "match-peer-miel",
+              offeredPackageId: "pkg-vermut-miel",
+            }),
+          ],
+          papConfigArs: 50000,
+        },
+      },
+    });
+
+    const matches = store.getState().matches;
+
+    expect(matches.map((match) => match.id)).toEqual(["match-peer"]);
+    expect(matches[0]?.offeredPackageId).toBe("cat-890");
+    expect(matches[0]?.targetPackageId).toBe("cat-5");
   });
 });

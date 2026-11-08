@@ -576,12 +576,14 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     channel.onmessage = (event) => {
       if (event.data?.type === "BARTER_STATE_SYNC" && event.data.payload) {
         const { packages, matches, papConfigArs } = event.data.payload;
-        // A tab still running the previous bundle broadcasts the former ids.
-        const synced = migratePersistedState({
-          packages,
-          matches,
-          papConfigArs,
-        });
+        // A tab still running the previous bundle broadcasts the former ids,
+        // and one from before the catalog broadcasts packages and trades this
+        // build cannot derive. Both are rewritten before validation, so a peer
+        // can neither resurrect a retired package nor hand over a trade with a
+        // side that does not exist.
+        const synced = keepOnlyCatalogPackages(
+          migratePersistedState({ packages, matches, papConfigArs }),
+        );
         const validated = parseExternalState(synced);
 
         // A message where neither slice carries anything readable is dropped
