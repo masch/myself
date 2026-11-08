@@ -76,11 +76,14 @@ const files = {
 
 const module = new WebAssembly.Module(readFileSync(wasmUrl));
 const result = run(module, {
+  // Notes are requested as well: SC1091 is a note, and a `source` that cannot be
+  // followed would otherwise leave the gate green while `-x` traces nothing.
+  // The threshold is applied below instead of by `--severity`, so that check
+  // cannot be filtered away before it is seen.
   args: [
     "-x",
     "-s",
     "bash",
-    "--severity=warning",
     "-f",
     "gcc",
     ...TARGETS.map((target) => `/mnt/${target}`),
@@ -91,14 +94,38 @@ const result = run(module, {
 
 const stdout = new TextDecoder().decode(result.stdout);
 const stderr = new TextDecoder().decode(result.stderr);
-if (stdout) process.stdout.write(stdout);
-if (stderr) process.stderr.write(stderr);
 
-if (result.exitCode === 0) {
-  console.log(`✓ shellcheck reports no finding across ${TARGETS.length} files`);
-} else if (result.exitCode === 1) {
-  console.error("✗ shellcheck reports findings");
+// From 2 up ShellCheck reports invalid input rather than findings, so its status
+// decides whether the run happened at all. The findings are classified here.
+if (result.exitCode >= 2) {
+  if (stderr) process.stderr.write(stderr);
+  console.error(
+    `✗ shellcheck could not analyse the tree (exit ${result.exitCode})`,
+  );
+  process.exit(result.exitCode);
 }
 
-// ShellCheck's own meaning: 0 clean, 1 findings, 2 or higher invalid input.
-process.exit(result.exitCode);
+const report = stdout.split("\n").filter((line) => line.length > 0);
+const unfollowed = report.filter((line) => line.includes("[SC1091]"));
+const blocking = report.filter((line) => /: (error|warning): /.test(line));
+
+if (unfollowed.length > 0) {
+  for (const line of unfollowed) console.error(line);
+  console.error(
+    "✗ shellcheck could not follow a sourced file, so -x traces nothing: the gate would pass without checking the scripts that source it",
+  );
+  process.exit(1);
+}
+
+if (blocking.length > 0) {
+  for (const line of blocking) console.error(line);
+  console.error(
+    `✗ shellcheck reports ${blocking.length} finding(s) at warning or error severity`,
+  );
+  process.exit(1);
+}
+
+console.log(
+  `✓ shellcheck reports no finding at warning or error severity across ${TARGETS.length} files`,
+);
+process.exit(0);
