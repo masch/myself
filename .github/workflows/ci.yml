@@ -109,6 +109,9 @@ jobs:
       - name: Check Expo Upgrade Parsers
         run: make check-expo-upgrade
 
+      - name: Check Shell Scripts
+        run: make check-shellcheck
+
       - name: Lint & Typecheck
         run: make check-static
 

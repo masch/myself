@@ -33,7 +33,7 @@ run_step() {
     EXIT_CODE=$?
     printf "FAILED (exit %d)\n" "$EXIT_CODE"
     cat "$TMPFILE"
-    echo "\nℹ️  Inspect logs anytime with: make precommit-logs"
+    printf '\nℹ️  Inspect logs anytime with: make precommit-logs\n'
     exit 1
   fi
 }

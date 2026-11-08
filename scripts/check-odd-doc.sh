@@ -35,7 +35,7 @@ while IFS=$'\t' read -r added removed path; do
 
 	# Documents, lockfiles, build output and installed dependencies are not authored code.
 	case "${path}" in
-		*.md | *.lock | bun.lock | package-lock.json | dist/* | .expo/* | node_modules/* | */node_modules/*)
+		*.md | *.lock | package-lock.json | dist/* | .expo/* | node_modules/* | */node_modules/*)
 			continue
 			;;
 	esac

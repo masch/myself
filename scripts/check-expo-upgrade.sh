@@ -9,6 +9,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source-path=SCRIPTDIR
 # shellcheck source=./expo-upgrade-lib.sh
 . "${ROOT}/scripts/expo-upgrade-lib.sh"
 

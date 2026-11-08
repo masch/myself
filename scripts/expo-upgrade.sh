@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source-path=SCRIPTDIR
 # shellcheck source=./expo-upgrade-lib.sh
 . "${ROOT}/scripts/expo-upgrade-lib.sh"
 MOBILE="${ROOT}/apps/mobile"
@@ -73,8 +74,8 @@ ANY_BLOCKED=0
 PENDING="${SPECS}"
 
 while [ -n "${PENDING// /}" ]; do
-	# shellcheck disable=SC2086 # package specs are space-separated by design
 	RC=0
+	# shellcheck disable=SC2086 # package specs are space-separated by design
 	RESULT="$(bun_add ${PENDING} 2>&1)" || RC=$?
 	printf '%s\n' "${RESULT}"
 
