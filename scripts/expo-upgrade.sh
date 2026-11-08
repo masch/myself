@@ -12,6 +12,11 @@ fi
 DAYS="${DAYS:-4}"
 MIN_AGE_SECONDS=$(( DAYS * 86400 ))
 
+# Exit status meaning "the release-age window held some packages back, and every
+# other package is installed". Distinct from 1 so a caller like the weekly
+# dependency job can carry the partial upgrade forward instead of discarding it.
+HELD_BACK_EXIT=3
+
 BUN_ADD_ARGS=(--minimum-release-age "${MIN_AGE_SECONDS}")
 [ -n "${DRY_RUN}" ] && BUN_ADD_ARGS+=(--dry-run)
 
@@ -35,8 +40,19 @@ is_blocked() {
 	printf '%s\n' "$1" | grep -qE 'blocked by minimum-release-age'
 }
 
+# The released specifier is the second quoted token bun prints
+# (`… found for specifier "expo-camera@~57.0.32" …`); the first one is the
+# version the request asked for, so taking it would collect ranges instead of
+# package names. The `@range` suffix is stripped from the end, which keeps the
+# scope of a package like `@expo/foo`.
 blocked_names() {
-	printf '%s\n' "$1" | sed -n 's/^error: No version matching "\([^"]*\)" found for specifier .*blocked by minimum-release-age.*/\1/p' | sort -u
+	local spec
+	printf '%s\n' "$1" |
+		sed -n 's/.*found for specifier "\([^"]*\)".*blocked by minimum-release-age.*/\1/p' |
+		while IFS= read -r spec; do
+			printf '%s\n' "${spec%@*}"
+		done |
+		sort -u
 }
 
 echo "Checking recommended versions..."
@@ -105,7 +121,7 @@ if [ "${RC}" -ne 0 ]; then
 	echo "Held back: $(printf '%s\n' "${BLOCKED}" | tr '\n' ' ')" >&2
 	echo "These are newer than the ${DAYS} day release-age window. Re-run with" >&2
 	echo "DAYS=0 when you are ready to take them now." >&2
-	exit 1
+	exit "${HELD_BACK_EXIT}"
 fi
 
 echo "Done."
