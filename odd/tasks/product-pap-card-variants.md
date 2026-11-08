@@ -23,8 +23,12 @@ Design source: `design/product-pap-card/01-equivalencia-heroe.html` and
 - **S2** — Two layouts, chosen by the user, verbatim: _"podriamos implementar las dos cards y que le
   usuario decida cual usar en filtrado de procutos? estamos en una etapa de validacion de UX"_. The
   switch lives in the gondola product filters (the surface that already answers "how do I want to
-  see the gondola?"), and the choice survives a remount, an app restart and a reload, because a
-  validation user must not re-pick the layout on every visit.
+  see the gondola?"), and the choice survives a remount and a reload because it travels in the
+  gondola address. It deliberately does **not** survive a native app restart: a fresh `/barter` with
+  no `card` parameter parses to `DEFAULT_CARD_VARIANT` (pinned in `gondola-params.test.ts`), which is
+  the documented cost of having no UI-preference store to invent (see Decisions). The shareable URL
+  is what covers the validation case instead: a tester is handed the layout, they never have to
+  remember it.
 - **S3** — The PAP anchor appears once per surface, not once per card. The user, verbatim: _"si el valor de 1 PAP es fijo, porque lo mostramos en cada card?"_ No card renders the ARS value of 1
   PAP. Verified during TASK-4: the anchor **already** renders once, inside the list header
   (`apps/mobile/src/features/barter/components/producer-header-switcher.tsx:307`, as the
@@ -164,5 +168,14 @@ litro pet`). Splitting the presentation suffix out of the printed name would be 
   in `producer-header-switcher.tsx:307`, so no anchor code was written; the change is the removal of
   its per-card repetition.
 - **L6** — Delivery decisions (2026-11-08): the user asked for the issue and the PR, then chose
-  **`chain_strategy=feature-branch-chain`** from the three-option oversized menu and **`Closes
-#144`** for the issue reference.
+  **`chain_strategy=feature-branch-chain`** from the three-option oversized menu and a closing
+  issue reference.
+- **L7** — Corrected after CodeRabbit's review of the tracker PR (2026-11-08), two findings:
+  1. S2 claimed the layout choice survives an app restart, which the URL-backed implementation never
+     delivered: route parameters do not outlive a native process, and `parseGondolaParams({}, ...)`
+     correctly returns `DEFAULT_CARD_VARIANT`. The spec now states the real boundary instead of the
+     intention, and the shareable URL is what carries the validation case.
+  2. The review flagged the literal `minHeight: 28` in the sheet layout's `specRow` and asked for a
+     theme token. The literal was **removed** instead: the row's content (a 22px headline line-height
+     plus 8px of vertical padding) always exceeds 28, so the property never applied, and a token for a
+     value that does not bind is indirection without leverage. No token was added.

@@ -151,7 +151,6 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     justifyContent: "space-between",
     gap: spacing.compact,
-    minHeight: 28,
     paddingVertical: spacing.xs,
   },
   specLabel: {
