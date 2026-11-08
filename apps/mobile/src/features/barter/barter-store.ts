@@ -63,6 +63,14 @@ export interface BarterState {
 
 export interface CreateStoreOptions {
   initialProducers?: Producer[];
+  /**
+   * An explicit package list for the caller, and the one entry point the
+   * catalog-only purge does not rewrite: injected packages are a contract with
+   * the caller, never the app's own data. A test uses it to pin a guard against
+   * a package of a known price and stock; a persisted state or a peer tab is
+   * always written back to catalog packages only, so an injected list that gets
+   * saved is purged on the next load.
+   */
   initialPackages?: ProductPackage[];
   initialMatches?: TradeMatch[];
   defaultActiveProducerId?: string;
