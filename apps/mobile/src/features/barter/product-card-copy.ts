@@ -103,8 +103,8 @@ export function papAdjustment(
  * Silence is the answer in the two cases where the words would be noise: a single
  * presentation (there is nothing to count) and a product counted in units, whose
  * quantity already reads `7 unidades` — `7 envases de 1 unidad` is not Spanish.
- * The same two drops decide the parenthetical `formatCatalogEquivalence` renders,
- * because two spellings of one printed number would be a bug.
+ * The same two drops decide the parenthetical the card, the sheet and the proposal
+ * modal render, because two spellings of one printed number would be a bug.
  */
 export function packagingLabel(catalog: CatalogPackageInfo): string | null {
   if (catalog.presentationCount <= 1) return null;

@@ -279,18 +279,23 @@ describe("ProductPackageCard leads with what one PAP buys", () => {
 });
 
 describe("PackageOfferOption tells the producer what it hands over", () => {
-  it("shows the quantity and the real PAP of a catalog package on offer", () => {
-    // #1: nine half-litres are 4,5 litros, which is 0,97 PAP.
+  it("shows the quantity on offer and its difference in pesos", () => {
+    // #1: nine half-litres are 4,5 litros, which is $1.741 short of one PAP. The
+    // modal used to print the same fact as a PAP fraction, which the card and the
+    // sheet no longer do: one trade, one language.
     const html = renderOffer(catalogPackage("cat-1"));
 
-    expect(html).toContain("1 PAP ≈ 4,5 litros (9 × 500 ml) · real 0,97 PAP");
+    expect(html).toContain("4,5 litros · 9 envases de 500 ml");
+    expect(html).toContain("Queda $1.741 abajo de 1 PAP");
+    expect(html).not.toContain("real ");
   });
 
   it("keeps the badge-only copy for a package without a catalog block", () => {
     const html = renderOffer(FIXTURE_PACKAGES[0]);
 
     expect(html).toContain("1 PAP");
-    expect(html).not.toContain("PAP ≈");
+    expect(html).not.toContain("envases de");
+    expect(html).not.toContain("Queda");
     expect(html).not.toContain("real");
   });
 });
