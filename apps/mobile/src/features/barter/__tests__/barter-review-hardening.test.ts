@@ -6,6 +6,7 @@ import {
   SEED_PACKAGES,
   SEED_PRODUCERS,
 } from "../barter-store";
+import { FIXTURE_PACKAGES } from "./fixture-packages";
 import { getCounterOfferCandidates } from "../inbox-utils";
 
 /**
@@ -67,7 +68,7 @@ afterEach(() => {
 function seedStore() {
   const store = createBarterStore({
     initialProducers: SEED_PRODUCERS,
-    initialPackages: SEED_PACKAGES,
+    initialPackages: [...FIXTURE_PACKAGES, ...SEED_PACKAGES],
     initialMatches: [],
   });
   const peer = peers.at(-1)!;
@@ -84,7 +85,7 @@ function stockOf(
 
 /** A 2 PAP package owned by the same producer as `SEED_PACKAGES[0]`. */
 const TWO_PAP_PACKAGE: ProductPackage = {
-  ...SEED_PACKAGES[0],
+  ...FIXTURE_PACKAGES[0],
   id: "pkg-vermut-2pap",
   title: "Pack 8 Botellas Vermut Rosso 750ml",
   priceArs: 100000,
@@ -96,8 +97,8 @@ function buildMatch(overrides: Partial<TradeMatch> = {}): TradeMatch {
     id: "match-hardening",
     requesterId: PRODUCER_IDS.VERMUT,
     targetProducerId: PRODUCER_IDS.QUESO,
-    offeredPackageId: "pkg-vermut-pack4",
-    targetPackageId: "pkg-queso-gouda",
+    offeredPackageId: "pkg-fixture-vermut-pack4",
+    targetPackageId: "pkg-fixture-queso-gouda",
     papSnapshotArs: 50000,
     totalPap: 1,
     status: "PENDING",
@@ -121,13 +122,16 @@ describe("Barter store: actor & ownership guards", () => {
       store.createTradeProposal({
         requesterId: PRODUCER_IDS.VERMUT,
         targetProducerId: PRODUCER_IDS.QUESO,
-        offeredPackageId: "pkg-queso-gouda",
-        targetPackageId: "pkg-queso-provoleta",
+        offeredPackageId: "pkg-fixture-queso-gouda",
+        targetPackageId: "pkg-fixture-queso-provoleta",
       }),
     ).toThrow("Offered package must belong to the requesting producer");
 
     expect(store.getState().matches).toEqual([]);
-    expect(store.getState().packages).toEqual(SEED_PACKAGES);
+    expect(store.getState().packages).toEqual([
+      ...FIXTURE_PACKAGES,
+      ...SEED_PACKAGES,
+    ]);
     expect(writes).toBe(0);
     expect(peer.posted).toHaveLength(0);
   });
@@ -140,8 +144,8 @@ describe("Barter store: actor & ownership guards", () => {
       store.createTradeProposal({
         requesterId: PRODUCER_IDS.VERMUT,
         targetProducerId: PRODUCER_IDS.QUESO,
-        offeredPackageId: "pkg-vermut-pack4",
-        targetPackageId: "pkg-vermut-miel",
+        offeredPackageId: "pkg-fixture-vermut-pack4",
+        targetPackageId: "pkg-fixture-vermut-miel",
       }),
     ).toThrow("Target package must belong to the target producer");
 
@@ -158,8 +162,8 @@ describe("Barter store: actor & ownership guards", () => {
       store.createTradeProposal({
         requesterId: PRODUCER_IDS.VERMUT,
         targetProducerId: PRODUCER_IDS.VERMUT,
-        offeredPackageId: "pkg-vermut-pack4",
-        targetPackageId: "pkg-vermut-miel",
+        offeredPackageId: "pkg-fixture-vermut-pack4",
+        targetPackageId: "pkg-fixture-vermut-miel",
       }),
     ).toThrow("A producer cannot trade with itself");
 
@@ -173,8 +177,8 @@ describe("Barter store: actor & ownership guards", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
     writes = 0;
     const broadcastsBefore = peer.posted.length;
@@ -183,7 +187,7 @@ describe("Barter store: actor & ownership guards", () => {
       store.counterOfferTradeMatch({
         matchId: match.id,
         targetProducerId: OUTSIDER_ID,
-        counterOfferedPackageId: "pkg-vermut-miel",
+        counterOfferedPackageId: "pkg-fixture-vermut-miel",
       }),
     ).toThrow("Only the target producer of a trade can counter-offer");
 
@@ -197,8 +201,8 @@ describe("Barter store: actor & ownership guards", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
     writes = 0;
     const broadcastsBefore = peer.posted.length;
@@ -207,7 +211,7 @@ describe("Barter store: actor & ownership guards", () => {
       store.counterOfferTradeMatch({
         matchId: match.id,
         targetProducerId: PRODUCER_IDS.QUESO,
-        counterOfferedPackageId: "pkg-queso-provoleta",
+        counterOfferedPackageId: "pkg-fixture-queso-provoleta",
       }),
     ).toThrow("Counter-offered package must belong to the requester");
 
@@ -221,8 +225,8 @@ describe("Barter store: actor & ownership guards", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
     store.acceptTradeMatch(match.id);
     const accepted = store.getState().matches[0];
@@ -240,8 +244,8 @@ describe("Barter store: actor & ownership guards", () => {
     expect(store.getState().packages.map((pkg) => pkg.stockUnits)).toEqual(
       stockAfterAccept,
     );
-    expect(stockOf(store, "pkg-vermut-pack4")).toBe(
-      SEED_PACKAGES[0].stockUnits - 1,
+    expect(stockOf(store, "pkg-fixture-vermut-pack4")).toBe(
+      FIXTURE_PACKAGES[0].stockUnits - 1,
     );
     expect(writes).toBe(0);
     expect(peer.posted.length).toBe(broadcastsBefore);
@@ -252,8 +256,8 @@ describe("Barter store: actor & ownership guards", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
     const pending = store.getState().matches[0];
     writes = 0;
@@ -264,7 +268,10 @@ describe("Barter store: actor & ownership guards", () => {
     );
 
     expect(store.getState().matches[0]).toEqual(pending);
-    expect(store.getState().packages).toEqual(SEED_PACKAGES);
+    expect(store.getState().packages).toEqual([
+      ...FIXTURE_PACKAGES,
+      ...SEED_PACKAGES,
+    ]);
     expect(writes).toBe(0);
     expect(peer.posted.length).toBe(broadcastsBefore);
   });
@@ -276,8 +283,8 @@ describe("Barter store: actor & ownership guards", () => {
     const asRequester = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
     // ...and the target rejects the one it received. The store guard is
     // party-only: it is broader than the inbox's role/status matrix in
@@ -286,8 +293,8 @@ describe("Barter store: actor & ownership guards", () => {
     const asTarget = store.createTradeProposal({
       requesterId: PRODUCER_IDS.QUESO,
       targetProducerId: PRODUCER_IDS.VERMUT,
-      offeredPackageId: "pkg-queso-gouda",
-      targetPackageId: "pkg-vermut-pack4",
+      offeredPackageId: "pkg-fixture-queso-gouda",
+      targetPackageId: "pkg-fixture-vermut-pack4",
     });
 
     expect(
@@ -303,7 +310,7 @@ describe("Barter store: the 1:1 PAP rule", () => {
   it("rejects a proposal whose two packages have different PAP values", () => {
     const store = createBarterStore({
       initialProducers: SEED_PRODUCERS,
-      initialPackages: [...SEED_PACKAGES, TWO_PAP_PACKAGE],
+      initialPackages: [...FIXTURE_PACKAGES, ...SEED_PACKAGES, TWO_PAP_PACKAGE],
       broadcastEnabled: false,
     });
     writes = 0;
@@ -313,7 +320,7 @@ describe("Barter store: the 1:1 PAP rule", () => {
         requesterId: PRODUCER_IDS.VERMUT,
         targetProducerId: PRODUCER_IDS.QUESO,
         offeredPackageId: TWO_PAP_PACKAGE.id,
-        targetPackageId: "pkg-queso-gouda",
+        targetPackageId: "pkg-fixture-queso-gouda",
       }),
     ).toThrow(
       "Trade packages must have the same PAP value: offered 2 PAP, target 1 PAP",
@@ -326,14 +333,14 @@ describe("Barter store: the 1:1 PAP rule", () => {
   it("rejects a counter-offer whose package has a different PAP value than the trade", () => {
     const store = createBarterStore({
       initialProducers: SEED_PRODUCERS,
-      initialPackages: [...SEED_PACKAGES, TWO_PAP_PACKAGE],
+      initialPackages: [...FIXTURE_PACKAGES, ...SEED_PACKAGES, TWO_PAP_PACKAGE],
       broadcastEnabled: false,
     });
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
     writes = 0;
 
@@ -360,7 +367,7 @@ describe("Barter store: TTL on the transition", () => {
     });
     const store = createBarterStore({
       initialProducers: SEED_PRODUCERS,
-      initialPackages: SEED_PACKAGES,
+      initialPackages: [...FIXTURE_PACKAGES, ...SEED_PACKAGES],
       initialMatches: [expired],
       broadcastEnabled: false,
     });
@@ -377,7 +384,7 @@ describe("Barter store: TTL on the transition", () => {
       store.counterOfferTradeMatch({
         matchId: expired.id,
         targetProducerId: PRODUCER_IDS.QUESO,
-        counterOfferedPackageId: "pkg-vermut-miel",
+        counterOfferedPackageId: "pkg-fixture-vermut-miel",
       }),
     ).toThrow(message);
     expect(() =>
@@ -385,7 +392,10 @@ describe("Barter store: TTL on the transition", () => {
     ).toThrow(message);
 
     expect(store.getState().matches[0]).toEqual(expired);
-    expect(store.getState().packages).toEqual(SEED_PACKAGES);
+    expect(store.getState().packages).toEqual([
+      ...FIXTURE_PACKAGES,
+      ...SEED_PACKAGES,
+    ]);
     expect(writes).toBe(0);
   });
 });
@@ -396,20 +406,20 @@ describe("Barter store: existing behaviour preserved", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
 
     const accepted = store.acceptTradeMatch(match.id);
     expect(accepted.status).toBe("WAITING_DELIVERY");
-    expect(stockOf(store, "pkg-vermut-pack4")).toBe(
-      SEED_PACKAGES[0].stockUnits - 1,
+    expect(stockOf(store, "pkg-fixture-vermut-pack4")).toBe(
+      FIXTURE_PACKAGES[0].stockUnits - 1,
     );
 
     const cancelled = store.cancelTradeMatch(match.id, PRODUCER_IDS.QUESO);
     expect(cancelled.status).toBe("CANCELLED_BY_PRODUCER");
-    expect(stockOf(store, "pkg-vermut-pack4")).toBe(
-      SEED_PACKAGES[0].stockUnits,
+    expect(stockOf(store, "pkg-fixture-vermut-pack4")).toBe(
+      FIXTURE_PACKAGES[0].stockUnits,
     );
     expect(writes).toBeGreaterThan(0);
     expect(peer.posted.length).toBeGreaterThan(0);
@@ -420,36 +430,42 @@ describe("Barter store: existing behaviour preserved", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
 
     const countered = store.counterOfferTradeMatch({
       matchId: match.id,
       targetProducerId: PRODUCER_IDS.QUESO,
-      counterOfferedPackageId: "pkg-vermut-miel",
+      counterOfferedPackageId: "pkg-fixture-vermut-miel",
     });
 
     expect(countered.status).toBe("COUNTER_OFFERED");
-    expect(countered.offeredPackageId).toBe("pkg-vermut-miel");
+    expect(countered.offeredPackageId).toBe("pkg-fixture-vermut-miel");
   });
 });
 
 describe("Counter-offer candidates: only 1:1 PAP options are offered", () => {
   it("excludes a requester package whose PAP value differs from the trade", () => {
-    const packages: ProductPackage[] = [...SEED_PACKAGES, TWO_PAP_PACKAGE];
+    const packages: ProductPackage[] = [
+      ...FIXTURE_PACKAGES,
+      ...SEED_PACKAGES,
+      TWO_PAP_PACKAGE,
+    ];
     const match: Pick<
       TradeMatch,
       "requesterId" | "offeredPackageId" | "totalPap"
     > = {
       requesterId: PRODUCER_IDS.VERMUT,
-      offeredPackageId: "pkg-vermut-pack4",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
       totalPap: 1,
     };
 
     const candidates = getCounterOfferCandidates(packages, match);
 
-    expect(candidates.map((pkg) => pkg.id)).toContain("pkg-vermut-miel");
+    expect(candidates.map((pkg) => pkg.id)).toContain(
+      "pkg-fixture-vermut-miel",
+    );
     expect(candidates.some((pkg) => pkg.id === TWO_PAP_PACKAGE.id)).toBe(false);
     expect(candidates.every((pkg) => pkg.papValue === match.totalPap)).toBe(
       true,

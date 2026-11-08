@@ -83,8 +83,9 @@ export function ProductPackageCard({
       </View>
 
       {/* What the printed catalog charges, then what this package hands over for
-          1 PAP. A package the catalog does not print (the four POC packs) has no
-          `catalog` block and renders neither line. */}
+          1 PAP. A package that predates the catalog block has no `catalog` and
+          renders neither line, which is every injected or legacy state: the seed
+          itself is catalog-only. */}
       {catalog ? (
         <View style={styles.catalogBlock}>
           <ThemedText

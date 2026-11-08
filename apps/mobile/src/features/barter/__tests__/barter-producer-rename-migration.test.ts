@@ -25,13 +25,15 @@ class FakeBroadcastChannel {
   close() {}
 }
 
+/**
+ * A package a previous build stored: a **catalog** id, because the catalog-only
+ * purge drops anything this build cannot derive, and this file is about the
+ * producer rename that has to travel with the stored bytes.
+ */
 const legacyPackage = {
-  id: "pkg-legacy",
+  ...SEED_PACKAGES.find((pkg) => pkg.id === "cat-5")!,
   producerId: "prod-vermut",
-  title: "Legacy",
   productionType: "AGROECOLOGICAL",
-  priceArs: 50000,
-  papValue: 1,
   stockUnits: 3,
 };
 
@@ -105,8 +107,7 @@ describe("producer rename migration on the paths a user can reach", () => {
 
     const state = createBarterStore({ broadcastEnabled: false }).getState();
 
-    expect(state.packages).toHaveLength(SEED_PACKAGES.length);
-    expect(state.packages[0].producerId).toBe(PRODUCER_IDS.VERMUT);
+    expect(state.packages).toEqual(SEED_PACKAGES);
   });
 
   it("leaves the stored bytes untouched when a command is rejected", () => {
@@ -181,8 +182,8 @@ describe("external payload validation", () => {
     // build ships is merged in behind it, instead of the stored list replacing
     // the seeds.
     expect(store.getState().matches).toEqual([]);
-    expect(store.getState().packages).toHaveLength(SEED_PACKAGES.length + 1);
-    expect(store.getState().packages[0].id).toBe("pkg-legacy");
+    expect(store.getState().packages).toHaveLength(SEED_PACKAGES.length);
+    expect(store.getState().packages[0].id).toBe(legacyPackage.id);
     expect(store.getState().packages[0].producerId).toBe(PRODUCER_IDS.VERMUT);
   });
 
@@ -212,10 +213,11 @@ describe("external payload validation", () => {
     // synced message is never echoed back to the peer.
     // The package in the message is merged into the local list: it is applied,
     // and the local seeds are not dropped by the shorter peer snapshot.
-    expect(store.getState().packages).toHaveLength(SEED_PACKAGES.length + 1);
-    expect(store.getState().packages.at(-1)?.producerId).toBe(
-      PRODUCER_IDS.QUESO,
-    );
+    expect(store.getState().packages).toHaveLength(SEED_PACKAGES.length);
+    expect(
+      store.getState().packages.find((pkg) => pkg.id === legacyPackage.id)
+        ?.producerId,
+    ).toBe(PRODUCER_IDS.QUESO);
     expect(store.getState().matches).toEqual(before.matches);
     expect(peer.posted).toHaveLength(0);
   });
@@ -235,7 +237,7 @@ describe("external payload validation", () => {
     // The stored package survives at the head of the list and the catalog is
     // merged in behind it, so a stored install also receives the printed
     // products this build ships.
-    expect(state.packages).toHaveLength(SEED_PACKAGES.length + 1);
+    expect(state.packages).toHaveLength(SEED_PACKAGES.length);
     expect(state.packages[0].producerId).toBe(PRODUCER_IDS.VERMUT);
     expect(state.matches).toHaveLength(1);
     expect(state.matches[0].id).toBe("m-stored");
