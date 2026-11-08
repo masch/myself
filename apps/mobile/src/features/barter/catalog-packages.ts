@@ -174,34 +174,6 @@ export function formatCatalogQuantity(
 }
 
 /**
- * `1 PAP ≈ 3 litros (4 × 750 ml) · real 1,12 PAP` — the equivalence the card and
- * the proposal modal both show: what the package hands over, in which packaging,
- * and the exact fraction of a PAP that whole count really is (S5).
- *
- * The packaging parenthetical is dropped when there is only one presentation or
- * when the product is counted (`7 unidades`), where `(1 × unidad)` would be
- * noise.
- */
-export function formatCatalogEquivalence(
-  papValue: number,
-  catalog: CatalogPackageInfo,
-): string {
-  const packaging =
-    catalog.presentationCount > 1 && catalog.measure !== "unidad"
-      ? ` (${catalog.presentationCount} × ${formatCatalogSize(
-          catalog.presentationSize,
-          catalog.measure,
-        )})`
-      : "";
-  const realPapValue = catalog.realPapValue.toFixed(2).replace(".", ",");
-
-  return `${papValue} PAP ≈ ${formatCatalogQuantity(
-    catalog.quantity,
-    catalog.measure,
-  )}${packaging} · real ${realPapValue} PAP`;
-}
-
-/**
  * Derives one package from one printed row.
  *
  * `papConfigArs` is the ARS value of 1 PAP; it defaults to the shop-wide

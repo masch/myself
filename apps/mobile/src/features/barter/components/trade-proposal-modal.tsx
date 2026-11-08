@@ -25,7 +25,9 @@ import {
 import type { ProductPackage } from "@myself/shared";
 import { productionTypeLabel } from "../production-type-labels";
 import { filterPackagesByTitle } from "../barter-selectors";
-import { formatCatalogEquivalence } from "../catalog-packages";
+import { formatCatalogQuantity } from "../catalog-packages";
+import { packagingLabel, papAdjustment } from "../product-card-copy";
+import { ADJUSTMENT_COLORS } from "./product-card-parts";
 
 interface TradeProposalModalProps {
   visible: boolean;
@@ -108,12 +110,9 @@ export function PackageOfferOption({
               : `${ownPackage.stockUnits} disponible${ownPackage.stockUnits > 1 ? "s" : ""}`}
           </ThemedText>
           {ownPackage.catalog ? (
-            <ThemedText variant="caption2" style={styles.pkgCatalog}>
-              {formatCatalogEquivalence(
-                ownPackage.papValue,
-                ownPackage.catalog,
-              )}
-            </ThemedText>
+            <View style={styles.pkgCatalogBlock}>
+              <CatalogDisclosure pkg={ownPackage} variant="caption2" />
+            </View>
           ) : null}
         </View>
 
@@ -191,14 +190,12 @@ export function TradeProposalModal({
                 size="sm"
               />
             </View>
-            {/* What the target really means: how much of it 1 PAP buys. */}
+            {/* What the target really means: how much of it 1 PAP buys, and what
+                the rounding costs, in the same words the gondola cards use. */}
             {targetPackage.catalog ? (
-              <ThemedText variant="caption1" style={styles.targetCatalog}>
-                {formatCatalogEquivalence(
-                  targetPackage.papValue,
-                  targetPackage.catalog,
-                )}
-              </ThemedText>
+              <View style={styles.targetCatalogBlock}>
+                <CatalogDisclosure pkg={targetPackage} variant="caption1" />
+              </View>
             ) : null}
           </Card>
 
@@ -280,7 +277,55 @@ export function TradeProposalModal({
   );
 }
 
+/**
+ * What a package really hands over, in the words the gondola cards already use:
+ * the quantity, the containers it comes in, and the difference against the PAP it
+ * trades.
+ *
+ * The modal used to print the same facts as a PAP fraction (`real 0,97 PAP`). Two
+ * screens describing one trade in two languages is how a user learns to distrust
+ * both, so the copy comes from `product-card-copy` — the same module the cards read.
+ */
+function CatalogDisclosure({
+  pkg,
+  variant,
+}: {
+  pkg: ProductPackage;
+  variant: "caption1" | "caption2";
+}) {
+  const catalog = pkg.catalog;
+
+  if (!catalog) return null;
+
+  const packaging = packagingLabel(catalog);
+  const adjustment = papAdjustment(catalog, pkg.priceArs);
+  const quantity = formatCatalogQuantity(catalog.quantity, catalog.measure);
+
+  return (
+    <>
+      <ThemedText variant={variant} style={styles.catalogQuantity}>
+        {packaging ? `${quantity} · ${packaging}` : quantity}
+      </ThemedText>
+      <ThemedText
+        variant={variant}
+        style={ADJUSTMENT_COLORS[adjustment.direction]}
+      >
+        {adjustment.sentence}
+      </ThemedText>
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
+  catalogQuantity: {
+    color: colors.secondaryLabel,
+  },
+  targetCatalogBlock: {
+    marginTop: spacing.xs,
+  },
+  pkgCatalogBlock: {
+    gap: spacing.xxs,
+  },
   overlay: {
     flex: 1,
     backgroundColor: colors.scrim,
@@ -321,11 +366,6 @@ const styles = StyleSheet.create({
   targetMeta: {
     flexDirection: "row",
     gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  targetCatalog: {
-    color: colors.label,
-    fontWeight: fontWeights.semibold,
     marginTop: spacing.xs,
   },
   sectionTitle: {
@@ -383,10 +423,6 @@ const styles = StyleSheet.create({
   },
   pkgStock: {
     color: colors.secondaryLabel,
-  },
-  pkgCatalog: {
-    color: colors.label,
-    fontWeight: fontWeights.semibold,
   },
   textDisabled: {
     color: colors.secondaryLabel,

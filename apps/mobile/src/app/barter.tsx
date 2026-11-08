@@ -222,6 +222,12 @@ export default function BarterScreen() {
           a phone screen on nothing. */}
       <ScreenContainer.List
         edges={["bottom"]}
+        // The gutter belongs to the rows, not to the container: the switcher, the
+        // filter bar, the search row and the card each carry `spacing.md`, so the
+        // container's default padding added a second inset on top of theirs and
+        // charged the cards 12px per side for nothing. Zero here and the 16 of the
+        // rows is the whole gutter, which is also what keeps every element aligned.
+        horizontalPadding={0}
         data={visiblePackages}
         keyExtractor={gondolaKeyExtractor}
         renderItem={renderPackage}
