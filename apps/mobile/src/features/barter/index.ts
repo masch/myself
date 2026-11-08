@@ -1,5 +1,6 @@
 export * from "./barter-store";
 export * from "./barter-selectors";
+export * from "./card-variant";
 export * from "./geo-utils";
 export * from "./use-barter";
 export * from "./gondola-params";
