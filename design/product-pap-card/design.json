@@ -1,0 +1,27 @@
+{
+  "title": "Cards de producto — qué te llevás por 1 PAP",
+  "brief": "Rediseñar la card de producto de la góndola de trueque para que la cantidad equivalente a 1 PAP se entienda de un vistazo, sin que el nombre impreso del producto compita con ella. Regla aplicada: 1 PAP = $50.000 ARS es invariante de la superficie, se declara una vez arriba de la lista y la card solo muestra lo que varía por producto. Datos reales del catálogo Primavera 2026.",
+  "artboards": [
+    {
+      "file": "01-equivalencia-heroe.html",
+      "title": "Equivalencia héroe",
+      "tradeoff": "La cantidad por 1 PAP lidera en cuerpo grande y el producto pasa a subtítulo: claridad máxima al escanear, pero buscar por nombre en una lista larga cuesta más.",
+      "width": 390,
+      "height": 1180
+    },
+    {
+      "file": "02-ficha-especificacion.html",
+      "title": "Ficha de especificación",
+      "tradeoff": "Etiqueta y valor en la misma línea base con los valores alineados a la derecha: se comparan cards como filas de una tabla, a costa de más altura y densidad.",
+      "width": 390,
+      "height": 1180
+    },
+    {
+      "file": "03-recibo-honesto.html",
+      "title": "Recibo honesto",
+      "tradeoff": "Cuenta la operación como un comprobante con la diferencia en pesos entre lo que vale el paquete y 1 PAP: máxima transparencia sobre el redondeo, a costa de más números y de depender del ancla del encabezado para cerrar la cuenta.",
+      "width": 390,
+      "height": 1180
+    }
+  ]
+}

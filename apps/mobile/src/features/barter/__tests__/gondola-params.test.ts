@@ -5,6 +5,7 @@ import {
   parseGondolaParams,
   type GondolaViewState,
 } from "../gondola-params";
+import { DEFAULT_CARD_VARIANT } from "../card-variant";
 
 /**
  * The gondola view travels in the URL so a shared address reproduces the page and
@@ -15,6 +16,7 @@ const DEFAULTS: GondolaViewState = {
   query: "",
   productionType: "ALL",
   maxDistanceKm: undefined,
+  cardVariant: DEFAULT_CARD_VARIANT,
 };
 
 describe("parseGondolaParams", () => {
@@ -25,6 +27,7 @@ describe("parseGondolaParams", () => {
       query: "queso",
       productionType: "ORGANIC",
       maxDistanceKm: 250,
+      cardVariant: "cantidad",
     });
   });
 
@@ -33,6 +36,7 @@ describe("parseGondolaParams", () => {
       query: "miel",
       productionType: "AGROECOLOGICAL",
       maxDistanceKm: 50,
+      cardVariant: "ficha",
     };
 
     expect(parseGondolaParams({}, persisted)).toEqual(persisted);
@@ -44,12 +48,13 @@ describe("parseGondolaParams", () => {
     expect(
       parseGondolaParams(
         { q: "queso" },
-        { query: "", productionType: "ORGANIC", maxDistanceKm: 250 },
+        { ...DEFAULTS, productionType: "ORGANIC", maxDistanceKm: 250 },
       ),
     ).toEqual({
       query: "queso",
       productionType: "ALL",
       maxDistanceKm: undefined,
+      cardVariant: "cantidad",
     });
   });
 
@@ -87,12 +92,61 @@ describe("parseGondolaParams", () => {
   });
 });
 
+/**
+ * The layout is part of the gondola view, not a component flag: the selected card
+ * travels in the address so a validation user can be handed `?card=ficha`.
+ */
+describe("the layout in the gondola address", () => {
+  const persisted: GondolaViewState = {
+    query: "miel",
+    productionType: "ORGANIC",
+    maxDistanceKm: 250,
+    cardVariant: "ficha",
+  };
+
+  it("treats an address that only carries the layout as speaking about the gondola", () => {
+    // A shared `?card=ficha` carries no filter at all. If it did not count as a
+    // gondola view, the link would be ignored and the layout would never change.
+    expect(parseGondolaParams({ card: "ficha" }, persisted)).toEqual({
+      query: "",
+      productionType: "ALL",
+      maxDistanceKm: undefined,
+      cardVariant: "ficha",
+    });
+  });
+
+  it("falls back to the quantity layout when the address omits, empties or invents one", () => {
+    for (const card of [undefined, "", "algo"]) {
+      expect(
+        parseGondolaParams({ q: "queso", card }, persisted).cardVariant,
+      ).toBe("cantidad");
+    }
+  });
+
+  it("keeps the default URL free of the layout parameter", () => {
+    expect(buildGondolaParams(DEFAULTS).card).toBeUndefined();
+  });
+
+  it("writes the sheet layout once the user picks it", () => {
+    expect(buildGondolaParams({ ...DEFAULTS, cardVariant: "ficha" }).card).toBe(
+      "ficha",
+    );
+  });
+
+  it("tells two layouts of the same gondola apart", () => {
+    expect(gondolaViewKey({ ...DEFAULTS, cardVariant: "ficha" })).not.toBe(
+      gondolaViewKey(DEFAULTS),
+    );
+  });
+});
+
 describe("buildGondolaParams", () => {
   it("writes nothing for an unfiltered gondola", () => {
     expect(buildGondolaParams(DEFAULTS)).toEqual({
       q: undefined,
       tipo: undefined,
       km: undefined,
+      card: undefined,
       producerId: undefined,
     });
   });
@@ -100,13 +154,19 @@ describe("buildGondolaParams", () => {
   it("writes the certification, the distance and the producer when they exist", () => {
     expect(
       buildGondolaParams(
-        { query: "queso", productionType: "ORGANIC", maxDistanceKm: 250 },
+        {
+          ...DEFAULTS,
+          query: "queso",
+          productionType: "ORGANIC",
+          maxDistanceKm: 250,
+        },
         "sabado",
       ),
     ).toEqual({
       q: "queso",
       tipo: "ORGANIC",
       km: "250",
+      card: undefined,
       producerId: "sabado",
     });
   });
@@ -135,6 +195,7 @@ describe("buildGondolaParams", () => {
       query: "queso",
       productionType: "BIODYNAMIC",
       maxDistanceKm: 800,
+      cardVariant: "ficha",
     };
     const params = buildGondolaParams(state, "sabado");
     const url = new URLSearchParams(
@@ -153,11 +214,21 @@ describe("buildGondolaParams", () => {
 describe("gondolaViewKey", () => {
   it("is order independent", () => {
     const a = gondolaViewKey(
-      { query: "queso", productionType: "ORGANIC", maxDistanceKm: 250 },
+      {
+        query: "queso",
+        productionType: "ORGANIC",
+        maxDistanceKm: 250,
+        cardVariant: "cantidad",
+      },
       "sabado",
     );
     const b = gondolaViewKey(
-      { query: "queso", productionType: "ORGANIC", maxDistanceKm: 250 },
+      {
+        maxDistanceKm: 250,
+        cardVariant: "cantidad",
+        productionType: "ORGANIC",
+        query: "queso",
+      },
       "sabado",
     );
 

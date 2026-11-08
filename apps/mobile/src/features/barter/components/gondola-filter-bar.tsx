@@ -3,6 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { ThemedText, ChipButton } from "@/components";
 import { colors, fontSizes, spacing } from "@/theme";
 import type { ProductionType } from "@myself/shared";
+import { CARD_VARIANTS, type CardVariant } from "../card-variant";
 import { PRODUCTION_TYPE_LABELS } from "../production-type-labels";
 
 interface GondolaFilterBarProps {
@@ -10,6 +11,8 @@ interface GondolaFilterBarProps {
   onSelectType: (type: ProductionType | "ALL") => void;
   maxDistanceKm?: number;
   onSelectMaxDistance: (km?: number) => void;
+  cardVariant: CardVariant;
+  onSelectCardVariant: (variant: CardVariant) => void;
 }
 
 /**
@@ -41,11 +44,27 @@ const DISTANCE_OPTIONS: { label: string; value?: number }[] = [
   { label: "< 800 km", value: 800 },
 ];
 
+/**
+ * The layouts are named by what their card looks like, not by their artboard name:
+ * a validation user picks "Cantidad" or "Ficha" without a design vocabulary. The
+ * labels live here and the order comes from `CARD_VARIANTS`, so the row and the
+ * two card layouts cannot drift apart.
+ */
+const CARD_VARIANT_LABELS: Record<CardVariant, string> = {
+  cantidad: "Cantidad",
+  ficha: "Ficha",
+};
+
+export const CARD_VARIANT_OPTIONS: { label: string; value: CardVariant }[] =
+  CARD_VARIANTS.map((value) => ({ value, label: CARD_VARIANT_LABELS[value] }));
+
 export function GondolaFilterBar({
   selectedType = "ALL",
   onSelectType,
   maxDistanceKm,
   onSelectMaxDistance,
+  cardVariant,
+  onSelectCardVariant,
 }: GondolaFilterBarProps) {
   return (
     <View style={styles.container}>
@@ -76,6 +95,24 @@ export function GondolaFilterBar({
             title={opt.label}
             variant={maxDistanceKm === opt.value ? "success" : "default"}
             onPress={() => onSelectMaxDistance(opt.value)}
+          />
+        ))}
+      </View>
+
+      {/* The layout switch sits with the filters because it answers the same kind
+          of question: how do I want to see the gondola? It is under test, so the
+          row is only a choice between two cards, never a setting to configure. */}
+      <ThemedText variant="caption1" style={styles.filterTitle}>
+        Ver card:
+      </ThemedText>
+      <View style={styles.row} testID="gondola-card-variant-row">
+        {CARD_VARIANT_OPTIONS.map((opt) => (
+          <ChipButton
+            key={opt.value}
+            testID={`card-variant-${opt.value}`}
+            title={opt.label}
+            variant={cardVariant === opt.value ? "success" : "default"}
+            onPress={() => onSelectCardVariant(opt.value)}
           />
         ))}
       </View>

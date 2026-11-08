@@ -18,6 +18,8 @@ import {
   TradeProposalModal,
   useGondolaParams,
   filterGondolaPackages,
+  DEFAULT_CARD_VARIANT,
+  type CardVariant,
   type GondolaPackage,
 } from "@/features/barter";
 import type { ProductPackage } from "@myself/shared";
@@ -62,6 +64,11 @@ export default function BarterScreen() {
   } = useBarter();
 
   const [query, setQuery] = useState("");
+  // Which of the two validation layouts the gondola draws. It lives beside the
+  // filters because it is part of the gondola view: `useGondolaParams` carries it
+  // into the address, so the choice survives a reload and can be shared as a link.
+  const [cardVariant, setCardVariant] =
+    useState<CardVariant>(DEFAULT_CARD_VARIANT);
   const [selectedTargetPackage, setSelectedTargetPackage] =
     useState<ProductPackage | null>(null);
 
@@ -72,11 +79,13 @@ export default function BarterScreen() {
     query,
     productionType: productionTypeFilter ?? "ALL",
     maxDistanceKm,
+    cardVariant,
     activeProducerId: activeProducer?.id,
     onApply: (state) => {
       setQuery(state.query);
       setProductionTypeFilter(state.productionType);
       setMaxDistanceKm(state.maxDistanceKm);
+      setCardVariant(state.cardVariant);
     },
   });
 
@@ -138,11 +147,12 @@ export default function BarterScreen() {
     ({ item }: { item: GondolaPackage }) => (
       <ProductPackageCard
         packageItem={item}
+        variant={cardVariant}
         hasPendingProposal={pendingPackageIds.has(item.id)}
         onProposeTrade={handleOpenProposal}
       />
     ),
-    [pendingPackageIds, handleOpenProposal],
+    [pendingPackageIds, handleOpenProposal, cardVariant],
   );
 
   const targetProducer = producers.find(
@@ -181,12 +191,14 @@ export default function BarterScreen() {
         />
       </View>
 
-      {/* Filter bar: production type and distance */}
+      {/* Filter bar: production type, distance and the card layout under test */}
       <GondolaFilterBar
         selectedType={productionTypeFilter}
         onSelectType={setProductionTypeFilter}
         maxDistanceKm={maxDistanceKm}
         onSelectMaxDistance={setMaxDistanceKm}
+        cardVariant={cardVariant}
+        onSelectCardVariant={setCardVariant}
       />
 
       <View style={styles.sectionHeader}>

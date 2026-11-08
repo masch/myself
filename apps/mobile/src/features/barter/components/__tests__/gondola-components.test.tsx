@@ -11,7 +11,12 @@ import {
   PackageOfferOption,
   resolveSelectedOffer,
 } from "../trade-proposal-modal";
-import { TYPE_OPTIONS } from "../gondola-filter-bar";
+import {
+  CARD_VARIANT_OPTIONS,
+  GondolaFilterBar,
+  TYPE_OPTIONS,
+} from "../gondola-filter-bar";
+import { CARD_VARIANTS, type CardVariant } from "../../card-variant";
 
 /**
  * The catalog copy the gondola and the proposal modal show is presentational, so
@@ -42,7 +47,10 @@ function catalogPackage(id: string): ProductPackage {
   return found;
 }
 
-function renderCard(pkg: ProductPackage): string {
+function renderCard(
+  pkg: ProductPackage,
+  variant: CardVariant = "cantidad",
+): string {
   const producer = PRIMAVERA_2026_PRODUCERS.find(
     (entry) => entry.id === pkg.producerId,
   );
@@ -56,9 +64,44 @@ function renderCard(pkg: ProductPackage): string {
       <ProductPackageCard
         packageItem={{ ...pkg, producer, distanceKm: 12 }}
         onProposeTrade={() => {}}
+        variant={variant}
       />,
     ),
   );
+}
+
+function renderFilterBar(cardVariant: CardVariant): string {
+  return textOf(
+    renderToString(
+      <GondolaFilterBar
+        selectedType="ALL"
+        onSelectType={() => {}}
+        onSelectMaxDistance={() => {}}
+        cardVariant={cardVariant}
+        onSelectCardVariant={() => {}}
+      />,
+    ),
+  );
+}
+
+/**
+ * The opening tag of one layout chip, colours included.
+ *
+ * The selected and unselected chips differ only in the colours the chip puts on
+ * the element that also carries its `testID`, so that tag is the whole difference
+ * between the two states — no renderer needed to ask which chip is active.
+ */
+function chipMarkup(html: string, value: CardVariant): string {
+  const marker = `data-testid="card-variant-${value}"`;
+  const at = html.indexOf(marker);
+
+  if (at === -1) throw new Error(`The filter bar renders no ${value} chip`);
+
+  // The marker itself is what tells the chips apart by identity, so it is removed:
+  // what is left is the colours each chip is drawn with.
+  return html
+    .slice(html.lastIndexOf("<", at), html.indexOf(">", at) + 1)
+    .replace(` ${marker}`, "");
 }
 
 function renderOffer(pkg: ProductPackage): string {
@@ -129,32 +172,109 @@ describe("Barter Gondola Component Logic", () => {
   });
 });
 
-describe("ProductPackageCard carries the printed price and the PAP fraction", () => {
-  it("discloses what the PDF charges for one printed presentation", () => {
-    // #890: Vermut Rosso x 750 ml, $13.970 la botella; four bottles are 1,1176
-    // PAP, so the card says both numbers instead of hiding the fraction.
-    const html = renderCard(catalogPackage("cat-890"));
+/**
+ * The layout switch lives in the product filters, the surface that already answers
+ * "how do I want to see the gondola?".
+ */
+describe("GondolaFilterBar offers the two card layouts", () => {
+  it("renders one chip per layout, in the order the layouts live in", () => {
+    const html = renderFilterBar("cantidad");
 
-    expect(html).toContain("Precio de lista: $13.970,00 por 750 ml");
-    expect(html).toContain("1 PAP ≈ 3 litros (4 × 750 ml) · real 1,12 PAP");
+    expect(html).toContain("Ver card:");
+    expect(html).toContain('data-testid="gondola-card-variant-row"');
+    expect(CARD_VARIANT_OPTIONS.map((option) => option.value)).toEqual([
+      ...CARD_VARIANTS,
+    ]);
+    expect(CARD_VARIANT_OPTIONS.map((option) => option.label)).toEqual([
+      "Cantidad",
+      "Ficha",
+    ]);
+
+    for (const option of CARD_VARIANT_OPTIONS) {
+      expect(html).toContain(`data-testid="card-variant-${option.value}"`);
+      expect(html).toContain(option.label);
+    }
+
+    // One chip each, never a duplicated row.
+    expect(html.split('data-testid="card-variant-').length - 1).toBe(
+      CARD_VARIANTS.length,
+    );
   });
 
-  it("discloses a weighed product without a presentation parenthetical", () => {
+  it("marks the chip of the layout on screen as the selected one", () => {
+    const cantidad = renderFilterBar("cantidad");
+    const ficha = renderFilterBar("ficha");
+
+    // The two chips never look alike, and picking the other layout swaps which
+    // one carries the active colours.
+    expect(chipMarkup(cantidad, "cantidad")).not.toBe(
+      chipMarkup(cantidad, "ficha"),
+    );
+    expect(chipMarkup(ficha, "ficha")).toBe(chipMarkup(cantidad, "cantidad"));
+    expect(chipMarkup(ficha, "cantidad")).toBe(chipMarkup(cantidad, "ficha"));
+  });
+});
+
+describe("ProductPackageCard leads with what one PAP buys", () => {
+  it("puts the quantity a user gets for 1 PAP in the largest type on the card", () => {
+    // #1: nine half-litres are 4,5 litros, which is $1.741 short of one PAP.
+    // The defect this replaces: `x 1/2 litro` was the headline while `4,5 litros`
+    // sat in a caption, so nothing on the card answered the question it raises.
+    const html = renderCard(catalogPackage("cat-1"));
+
+    expect(html).toContain("4,5 litros");
+    expect(html).toContain("POR 1 PAP");
+    expect(html).toContain("Son 9 envases de 500 ml.");
+    expect(html).toContain("El catálogo los cobra a $5.362,07 por 500 ml.");
+    expect(html).toContain("Queda $1.741 abajo de 1 PAP");
+  });
+
+  it("lays the same facts out as label and value in the sheet layout", () => {
+    const html = renderCard(catalogPackage("cat-1"), "ficha");
+
+    expect(html).toContain("Te llevás por 1 PAP");
+    expect(html).toContain("4,5 litros");
+    expect(html).toContain("Cómo viene");
+    expect(html).toContain("9 envases de 500 ml");
+    expect(html).toContain("Ajuste a 1 PAP");
+    expect(html).toContain("−$1.741");
+    expect(html).toContain("$5.362,07 por 500 ml");
+  });
+
+  it("says a weighed package coincides exactly instead of naming a fraction", () => {
     // #5: Gouda at $22.158,20 por kg — the package is 2,26 kg, exactly 1 PAP.
     const html = renderCard(catalogPackage("cat-5"));
 
-    expect(html).toContain("Precio de lista: $22.158,20 por kg");
-    expect(html).toContain("1 PAP ≈ 2,26 kg · real 1,00 PAP");
+    expect(html).toContain("2,26 kg");
+    expect(html).toContain("El catálogo lo cobra a $22.158,20 por kg.");
+    expect(html).toContain("Coincide exacto con 1 PAP");
+    expect(html).not.toContain("envases de");
   });
 
-  it("adds neither line to a package that carries no catalog block", () => {
-    // A state a build injects or a producer already stored can still carry a
-    // package that predates the catalog block, so the card keeps its copy.
-    const html = renderCard(FIXTURE_PACKAGES[0]);
+  it("never repeats the ARS value of one PAP inside a card", () => {
+    // The anchor is one fact for the whole gondola and it already renders once, in
+    // the list header. Repeating it per card is what the user asked to remove: a
+    // constant the eye learns to skip, in the row where the variable number lives.
+    for (const variant of CARD_VARIANTS) {
+      expect(renderCard(catalogPackage("cat-1"), variant)).not.toContain(
+        "50.000",
+      );
+    }
+  });
 
-    expect(html).not.toContain("Precio de lista");
-    expect(html).not.toContain("PAP ≈");
-    expect(html).toContain("Valor: $50.000 ARS");
+  it("renders a package that carries no catalog block in both layouts", () => {
+    // A state a build injects or a producer already stored can still carry a
+    // package that predates the catalog block, so both layouts keep their copy.
+    for (const variant of CARD_VARIANTS) {
+      const html = renderCard(FIXTURE_PACKAGES[0], variant);
+
+      expect(html).not.toContain("POR 1 PAP");
+      expect(html).not.toContain("El catálogo");
+      expect(html).not.toContain("Coincide exacto");
+      expect(html).toContain("ENTREGÁS");
+      expect(html).toContain("1 PAP");
+      expect(html).toContain("Pedir Match");
+    }
   });
 });
 
