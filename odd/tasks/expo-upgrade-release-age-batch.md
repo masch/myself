@@ -18,6 +18,9 @@ Let `make expo-upgrade` install what the release-age window allows instead of lo
 - [x] **T3** (S3, S6) Replace the bare `exit 1` on the held-back path with `HELD_BACK_EXIT=3`. — `738975c`
 - [x] **T4** (S4, S6) Make `scripts/ci-weekly-deps.sh` tolerate status 3, capture the held-back names from its stderr and add them to the pull-request body. — `738975c`
 - [x] **T5** (S6) This document, and the verification record below.
+- [x] **T6** (S1, S3) Make the retry iterative: each round re-sends only the packages the window has not blocked yet, so a batch with several too-new packages still installs the rest instead of dying on the second one. Native review finding R4-1 (corroborated by the refuter at `scripts/expo-upgrade.sh:113-121`).
+- [x] **T7** (S2, S3, S4) Emit the held-back report to stderr, where the weekly caller can parse it, and refuse to report a held-back outcome when the blocked package cannot be matched to a requested one — a failure is never relabelled as a carried-forward upgrade. Findings R4-2, R3-H1, R3-H2.
+- [x] **T8** (S6) Move the parsers into `scripts/expo-upgrade-lib.sh`, add `scripts/check-expo-upgrade.sh` with deterministic cases, and run it from `make check` and the `static-analysis` CI job. Finding R3-S1.
 
 ## Log
 
@@ -25,6 +28,8 @@ Let `make expo-upgrade` install what the release-age window allows instead of lo
 - **L2** — The user asked to review CodeRabbit's findings. Both were checked against the code: the exit-status one is a real defect, the `blocked_names` one was plausible but unproven at that point.
 - **L3** — The user asked to verify the first finding. Bun 1.3.14 compiles the message `No version matching "" found for specifier "" (blocked by minimum-release-age: N seconds)`, so the first quoted token is the version. The original `blocked_names()` therefore collected ranges, `REMAINING` equalled `SPECS` and the retry re-sent the identical batch.
 - **L4** — The user approved fixing both findings.
+- **L5** — Native review `review-92e6ecc8f2ddbf45` closed `escalated` with `unknown_causality` on `R3-H1` and `R3-H2`, and the refuter corroborated `R4-1`. Verified against the file: `R4-1` (single retry, so two blocked packages still abort the batch) and `R4-2` (the `  - <name>` list went to stdout while the caller captures stderr) are real. `R3-H1` / `R3-H2` cite lines 137-139 of a 127-line file, which is why admission downgraded them as `unverified_location`, and their severe claim does not reproduce — an empty parse exits with the retry's own status before reaching the held-back exit. What survives is the missing guard, now fixed.
+- **L6** — The user approved fixing `R4-1`, `R4-2`, the empty-parse guard and the missing automated proof.
 
 ## Evidence & Verification
 
@@ -39,5 +44,7 @@ Let `make expo-upgrade` install what the release-age window allows instead of lo
 - The weekly caller was driven end to end against a stub in a scratch git repository: status 3 reaches the "held back" report and exits 0, status 1 aborts with 1.
 - `bash -n` is clean on both scripts, and the pre-commit `check-format-staged` and `check-affected` hooks pass.
 - **Not verified**: a live `bun add` against a package genuinely inside the window, which needs network and mutates installed dependencies, and `shellcheck`, which is neither installed in the development environment nor run by this repository's CI.
+- `scripts/check-expo-upgrade.sh` passes all 18 cases: `is_blocked` on a release-age refusal and on an unrelated failure; `blocked_names` for a plain, scoped, rangeless and ANSI-wrapped specifier plus two blocked packages in one message and a regression case proving the requested version is never returned; the retry set dropping one and both blocked specifiers and keeping the rest otherwise; `with_names` reporting nothing when the blocked package is not one of the requested ones; `parse_recommended` keeping Expo's `~`; and the weekly caller continuing on a held-back-only outcome while naming the packages and aborting on status 1.
+- The suite runs from `make check-expo-upgrade`, is a dependency of `make check`, and is a step in the `static-analysis` CI job, because this repository's CI invokes the `check-*` targets individually and never `make check`.
 
 - **Completion & Delivery**: Complete on branch `chore/expo-upgrade-minimum-release-age`, tracking issue #140 and pull request #141, in three work-unit commits: the recovered script and Makefile help (`89e74dc`), the two review findings (`738975c`), and this document. Deliberately not delivered here: the merge, which still needs the repository's approval comment, and any claim that the script survives a live `bun add` — no run against a real blocked package was made.

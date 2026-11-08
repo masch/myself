@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=./expo-upgrade-lib.sh
+. "${ROOT}/scripts/expo-upgrade-lib.sh"
 MOBILE="${ROOT}/apps/mobile"
 APP_VERSION_NAME="${APP_VERSION_NAME:-}"
 DRY_RUN="${DRY_RUN:-}"
@@ -27,32 +29,8 @@ expo_check() {
 	(cd "${MOBILE}" && APP_VERSION_NAME="${APP_VERSION_NAME}" bun run expo install --check 2>&1) || true
 }
 
-# Keep the range operator Expo prints (`~57.0.32`), not a pinned exact version.
-parse_recommended() {
-	sed -n 's/^  \([^ ]*\)@[^ ]* - expected version: \([^ ]*\)$/\1@\2/p'
-}
-
 bun_add() {
 	(cd "${MOBILE}" && bun add "${BUN_ADD_ARGS[@]}" "$@")
-}
-
-is_blocked() {
-	printf '%s\n' "$1" | grep -qE 'blocked by minimum-release-age'
-}
-
-# The released specifier is the second quoted token bun prints
-# (`… found for specifier "expo-camera@~57.0.32" …`); the first one is the
-# version the request asked for, so taking it would collect ranges instead of
-# package names. The `@range` suffix is stripped from the end, which keeps the
-# scope of a package like `@expo/foo`.
-blocked_names() {
-	local spec
-	printf '%s\n' "$1" |
-		sed -n 's/.*found for specifier "\([^"]*\)".*blocked by minimum-release-age.*/\1/p' |
-		while IFS= read -r spec; do
-			printf '%s\n' "${spec%@*}"
-		done |
-		sort -u
 }
 
 echo "Checking recommended versions..."
@@ -86,41 +64,53 @@ fi
 SPECS=${PACKAGES}
 
 echo "Upgrading: ${SPECS}"
-RC=0
-RESULT="$(bun_add ${SPECS} 2>&1)" || RC=$?
-printf '%s\n' "${RESULT}"
 
-if [ "${RC}" -ne 0 ]; then
+# Each round re-sends only the packages the window has not blocked yet, so a
+# batch holding several too-new packages still installs the rest instead of
+# losing the whole set to the first one bun refuses.
+ALL_BLOCKED=""
+ANY_BLOCKED=0
+PENDING="${SPECS}"
+
+while [ -n "${PENDING// /}" ]; do
+	# shellcheck disable=SC2086 # package specs are space-separated by design
+	RC=0
+	RESULT="$(bun_add ${PENDING} 2>&1)" || RC=$?
+	printf '%s\n' "${RESULT}"
+
+	[ "${RC}" -eq 0 ] && break
+
 	if ! is_blocked "${RESULT}"; then
 		echo "Upgrade failed. Nothing else to try." >&2
 		exit "${RC}"
 	fi
 
-	BLOCKED="$(blocked_names "${RESULT}")"
-	BLOCKED_LOOKUP=" $(printf '%s' "${BLOCKED}" | tr '\n' ' ') "
-	echo "Published less than ${DAYS} day(s) ago, so held back by the release-age policy:"
-	printf '%s\n' "${BLOCKED}" | sed 's/^/  - /'
+	ROUND_BLOCKED="$(blocked_names "${RESULT}")"
+	NEW_BLOCKED="$(with_names "${PENDING}" "${ROUND_BLOCKED}")"
 
-	REMAINING=""
-	for spec in ${SPECS}; do
-		case "${BLOCKED_LOOKUP}" in
-			*" ${spec%@*} "*) continue ;;
-		esac
-		REMAINING="${REMAINING} ${spec}"
-	done
-
-	if [ -n "${REMAINING}" ]; then
-		echo "Upgrading the rest:${REMAINING}"
-		# shellcheck disable=SC2086
-		RC=0
-		RESULT="$(bun_add ${REMAINING} 2>&1)" || RC=$?
-		printf '%s\n' "${RESULT}"
-		[ "${RC}" -ne 0 ] && exit "${RC}"
+	# A blocked message this run cannot attribute to a requested package is a
+	# real failure, never a held-back success: exiting 3 here would tell the
+	# weekly job to carry forward an upgrade that never happened.
+	if [ -z "${NEW_BLOCKED}" ]; then
+		echo "The release-age policy refused this upgrade, but the blocked package could not be matched to a requested one:" >&2
+		printf '%s\n' "${ROUND_BLOCKED}" >&2
+		exit "${RC}"
 	fi
 
-	echo "Held back: $(printf '%s\n' "${BLOCKED}" | tr '\n' ' ')" >&2
-	echo "These are newer than the ${DAYS} day release-age window. Re-run with" >&2
-	echo "DAYS=0 when you are ready to take them now." >&2
+	ALL_BLOCKED="${ALL_BLOCKED}${NEW_BLOCKED}"$'\n'
+	ANY_BLOCKED=1
+	PENDING="$(without_names "${PENDING}" "${NEW_BLOCKED}" | tr '\n' ' ')"
+done
+
+if [ "${ANY_BLOCKED}" -eq 1 ]; then
+	# The whole report goes to stderr: it is the only stream the weekly caller
+	# captures, and it is how the caller names the packages it left out.
+	{
+		echo "Published less than ${DAYS} day(s) ago, so held back by the release-age policy:"
+		printf '%s\n' "${ALL_BLOCKED}" | sed '/^[[:space:]]*$/d; s/^/  - /'
+		echo "These are newer than the ${DAYS} day release-age window. Re-run with"
+		echo "DAYS=0 when you are ready to take them now."
+	} >&2
 	exit "${HELD_BACK_EXIT}"
 fi
 
