@@ -58,11 +58,11 @@ describe("barter store: the state it writes itself", () => {
     const proposal = first.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "cat-890",
+      targetPackageId: "cat-5",
     });
     first.acceptTradeMatch(proposal.id);
-    first.updatePackageStock("pkg-vermut-pack4", 1);
+    first.updatePackageStock("cat-890", 3);
 
     const raw = mem.get(STORAGE_KEY);
     expect(typeof raw).toBe("string");

@@ -89,8 +89,8 @@ const MATCH: TradeMatch = {
   id: "match-payload",
   requesterId: PRODUCER_IDS.VERMUT,
   targetProducerId: PRODUCER_IDS.QUESO,
-  offeredPackageId: "pkg-vermut-pack4",
-  targetPackageId: "pkg-queso-gouda",
+  offeredPackageId: "cat-890",
+  targetPackageId: "cat-5",
   papSnapshotArs: 50000,
   totalPap: 1,
   status: "WAITING_DELIVERY",
@@ -115,7 +115,7 @@ describe("Barter store: granularity of the external state", () => {
     const { store } = boot(raw);
 
     // The catalog survived, marker included...
-    expect(stockOf(store, "pkg-vermut-pack4")).toBe(2);
+    expect(stockOf(store, "cat-890")).toBe(2);
     expect(store.getState().packages).toHaveLength(MARKED.length);
     // ...and only the unusable match is gone.
     expect(store.getState().matches).toHaveLength(1);
@@ -132,7 +132,7 @@ describe("Barter store: granularity of the external state", () => {
     const { store } = boot(raw);
 
     expect(store.getState().packages).toHaveLength(MARKED.length);
-    expect(stockOf(store, "pkg-vermut-pack4")).toBe(2);
+    expect(stockOf(store, "cat-890")).toBe(2);
     expect(store.getState().matches).toHaveLength(1);
     expect(store.getState().matches[0]?.status).toBe("WAITING_DELIVERY");
   });
@@ -142,11 +142,11 @@ describe("Barter store: granularity of the external state", () => {
 
     const { store } = boot(raw);
 
-    expect(stockOf(store, "pkg-vermut-pack4")).toBe(2);
+    expect(stockOf(store, "cat-890")).toBe(2);
     expect(store.getState().matches).toEqual([]);
   });
 
-  it("keeps a match whose package was dropped, since the screens handle it", () => {
+  it("drops a match that names a package this build cannot derive", () => {
     const raw = JSON.stringify({
       packages: [{ ...SEED_PACKAGES[0], id: "pkg-dropped", papValue: 0.5 }],
       matches: [
@@ -157,11 +157,11 @@ describe("Barter store: granularity of the external state", () => {
 
     const { store } = boot(raw);
 
-    // No package is readable, so that slice falls back; the match is readable
-    // and stays, pointing at an id the screens render as "Paquete no
-    // disponible".
+    // No package is readable, so that slice falls back to the seeds; the match
+    // names a package the catalog does not derive, so the trade goes with it
+    // instead of surviving as an orphan nobody can serve.
     expect(store.getState().packages).toEqual(SEED_PACKAGES);
-    expect(store.getState().matches).toHaveLength(1);
+    expect(store.getState().matches).toEqual([]);
   });
 
   it("falls back to the seeds only when nothing in the stored value is readable", () => {
@@ -187,7 +187,7 @@ describe("Barter store: granularity of the external state", () => {
       },
     });
 
-    expect(stockOf(store, "pkg-vermut-pack4")).toBe(2);
+    expect(stockOf(store, "cat-890")).toBe(2);
     expect(store.getState().matches).toHaveLength(1);
     expect(store.getState().matches[0]?.id).toBe(MATCH.id);
     // A synced message is never echoed back to the peer.
@@ -221,7 +221,7 @@ describe("Barter store: granularity of the external state", () => {
 
     const { store } = boot(raw);
 
-    expect(stockOf(store, "pkg-vermut-pack4")).toBe(2);
+    expect(stockOf(store, "cat-890")).toBe(2);
     expect(store.getState().packages).toHaveLength(MARKED.length);
     expect(store.getState().matches).toEqual([]);
   });
@@ -235,7 +235,7 @@ describe("Barter store: granularity of the external state", () => {
 
     const { store } = boot(raw);
 
-    expect(stockOf(store, "pkg-vermut-pack4")).toBe(2);
+    expect(stockOf(store, "cat-890")).toBe(2);
     expect(store.getState().packages).toHaveLength(MARKED.length);
     expect(store.getState().matches).toEqual([]);
   });

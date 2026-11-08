@@ -22,6 +22,7 @@ import {
   SEED_PACKAGES,
   SEED_PRODUCERS,
 } from "../barter-store";
+import { FIXTURE_PACKAGES } from "./fixture-packages";
 
 /**
  * A producer the catalog prints but neither party of these matches, so "not a
@@ -76,7 +77,7 @@ afterEach(() => {
 function seedStore() {
   const store = createBarterStore({
     initialProducers: SEED_PRODUCERS,
-    initialPackages: SEED_PACKAGES,
+    initialPackages: [...FIXTURE_PACKAGES, ...SEED_PACKAGES],
     initialMatches: [],
   });
   const peer = peers.at(-1)!;
@@ -87,8 +88,8 @@ function propose(store: ReturnType<typeof createBarterStore>) {
   return store.createTradeProposal({
     requesterId: PRODUCER_IDS.VERMUT,
     targetProducerId: PRODUCER_IDS.QUESO,
-    offeredPackageId: "pkg-vermut-pack4",
-    targetPackageId: "pkg-queso-gouda",
+    offeredPackageId: "pkg-fixture-vermut-pack4",
+    targetPackageId: "pkg-fixture-queso-gouda",
   });
 }
 
@@ -99,7 +100,7 @@ function counterOnce(
   store.counterOfferTradeMatch({
     matchId,
     targetProducerId: PRODUCER_IDS.QUESO,
-    counterOfferedPackageId: "pkg-vermut-miel",
+    counterOfferedPackageId: "pkg-fixture-vermut-miel",
   });
 }
 
@@ -153,7 +154,7 @@ describe("Barter store: the party guard boundaries", () => {
     };
     const expiredStore = createBarterStore({
       initialProducers: SEED_PRODUCERS,
-      initialPackages: SEED_PACKAGES,
+      initialPackages: [...FIXTURE_PACKAGES, ...SEED_PACKAGES],
       initialMatches: [expired],
       broadcastEnabled: false,
     });
