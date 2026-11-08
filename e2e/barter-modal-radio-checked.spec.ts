@@ -12,15 +12,19 @@ import { test, expect } from "@playwright/test";
  */
 test("the checked proposal radio follows the selection", async ({ page }) => {
   test.setTimeout(120000);
-  await page.goto("/barter?producerId=sabado");
+  await page.goto("/barter?producerId=naturaleza-viva");
   await expect(page.getByTestId("active-producer-name")).toHaveText(
-    "Vermut Sabado",
+    "Naturaleza Viva",
     { timeout: 30000 },
   );
 
+  // The vermut is the 890th printed package, so the virtualized gondola only
+  // renders it once the search narrows the list.
+  await page.getByTestId("gondola-search-input").fill("vermut rosso");
+
   await page
     .getByRole("button", {
-      name: "Pedir match por Horma 2kg Queso Gouda Agroecológico",
+      name: "Pedir match por Vermut Rosso x 750 ml (muy bueno)",
       exact: true,
     })
     .click();

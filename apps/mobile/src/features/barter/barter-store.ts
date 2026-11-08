@@ -41,57 +41,15 @@ export const PRODUCER_IDS = {
 export const SEED_PRODUCERS: Producer[] = [...PRIMAVERA_2026_PRODUCERS];
 
 /**
- * The packages the app seeds: the four POC packages the user already traded,
- * then every product the Primavera 2026 catalog prints.
+ * The packages the app seeds: every product the Primavera 2026 catalog prints,
+ * in printed order, each holding what is worth 1 PAP (see `catalog-packages.ts`),
+ * so a stored install and an injected test store run the same catalog.
  *
- * The four POC packages stay (S8): they are a persisted contract — stored
- * matches point at their ids — and the catalog does not print them as such (it
- * prints `Vermut Rosso x 750 ml`, not the pack of four). They are the only
- * packages here that are not derived from a printed row.
- *
- * The catalog packages follow in printed order, each holding what is worth 1 PAP
- * (see `catalog-packages.ts`), so a stored install and an injected test store
- * run the same catalog.
+ * Nothing is handwritten here. The four POC packages this seed used to carry are
+ * retired: the catalog derives an equivalent for two of them, and a state that
+ * still stores one is rewritten on load by `retireSeedPackages`.
  */
-export const SEED_PACKAGES: ProductPackage[] = [
-  {
-    id: "pkg-vermut-pack4",
-    producerId: PRODUCER_IDS.VERMUT,
-    title: "Pack 4 Botellas Vermut Rosso 750ml",
-    productionType: "AGROECOLOGICAL",
-    priceArs: 50000,
-    papValue: 1,
-    stockUnits: 6,
-  },
-  {
-    id: "pkg-vermut-miel",
-    producerId: PRODUCER_IDS.VERMUT,
-    title: "Miel Multiflora de Chacra 1kg",
-    productionType: "AGROECOLOGICAL",
-    priceArs: 50000,
-    papValue: 1,
-    stockUnits: 4,
-  },
-  {
-    id: "pkg-queso-gouda",
-    producerId: PRODUCER_IDS.QUESO,
-    title: "Horma 2kg Queso Gouda Agroecológico",
-    productionType: "ORGANIC",
-    priceArs: 50000,
-    papValue: 1,
-    stockUnits: 5,
-  },
-  {
-    id: "pkg-queso-provoleta",
-    producerId: PRODUCER_IDS.QUESO,
-    title: "Pack 6 Provoletas Estacionadas",
-    productionType: "ORGANIC",
-    priceArs: 50000,
-    papValue: 1,
-    stockUnits: 3,
-  },
-  ...catalogPackages(),
-];
+export const SEED_PACKAGES: ProductPackage[] = [...catalogPackages()];
 
 export interface BarterState {
   producers: Producer[];
@@ -105,6 +63,14 @@ export interface BarterState {
 
 export interface CreateStoreOptions {
   initialProducers?: Producer[];
+  /**
+   * An explicit package list for the caller, and the one entry point the
+   * catalog-only purge does not rewrite: injected packages are a contract with
+   * the caller, never the app's own data. A test uses it to pin a guard against
+   * a package of a known price and stock; a persisted state or a peer tab is
+   * always written back to catalog packages only, so an injected list that gets
+   * saved is purged on the next load.
+   */
   initialPackages?: ProductPackage[];
   initialMatches?: TradeMatch[];
   defaultActiveProducerId?: string;
@@ -167,11 +133,18 @@ export function mergePeerPackages(
   current: ProductPackage[],
   incoming: ProductPackage[] | undefined,
 ): ProductPackage[] {
-  if (!incoming) {
+  // A tab still running a bundle from before the catalog broadcasts the retired
+  // POC packs. A package this build cannot derive is not a package the user may
+  // trade, so a sync never resurrects one.
+  const catalogIncoming = incoming?.filter((pkg) =>
+    CATALOG_PACKAGE_IDS.has(pkg.id),
+  );
+
+  if (!catalogIncoming) {
     return current;
   }
 
-  const incomingById = new Map(incoming.map((pkg) => [pkg.id, pkg]));
+  const incomingById = new Map(catalogIncoming.map((pkg) => [pkg.id, pkg]));
   const currentIds = new Set(current.map((pkg) => pkg.id));
 
   return [
@@ -179,7 +152,7 @@ export function mergePeerPackages(
     // packs without reshuffling the gondola.
     ...current.map((pkg) => incomingById.get(pkg.id) ?? pkg),
     // A package only the peer carries is still a package the user may trade.
-    ...incoming.filter((pkg) => !currentIds.has(pkg.id)),
+    ...catalogIncoming.filter((pkg) => !currentIds.has(pkg.id)),
   ];
 }
 
@@ -249,6 +222,84 @@ export function migratePersistedState(
       targetProducerId: migrateProducerId(match.targetProducerId),
     })),
   };
+}
+
+/** Every package id this build derives from the printed catalog. */
+const CATALOG_PACKAGE_IDS: ReadonlySet<string> = new Set(
+  SEED_PACKAGES.map((pkg) => pkg.id),
+);
+
+/**
+ * The retired packages the printed catalog carries as the same product, and the
+ * catalog package that replaces each one.
+ *
+ * Everything else that is not a catalog package has no equivalent — the catalog
+ * prints no such product, or prints it from another producer — so the purge drops
+ * it instead of crediting a package that hands over something different.
+ */
+export const RETIRED_PACKAGE_REMAP: Readonly<Record<string, string>> = {
+  "pkg-vermut-pack4": "cat-890",
+  "pkg-queso-gouda": "cat-5",
+};
+
+/**
+ * Keeps only the packages this build derives from the printed catalog, and the
+ * matches between them.
+ *
+ * The gondola is catalog-only: a package that is not one of `catalogIds` carries
+ * a price, a presentation and a producer this build does not print, so it is
+ * dropped. A match naming a dropped package moves to the catalog package that
+ * carries the same product when `RETIRED_PACKAGE_REMAP` knows one, and is dropped
+ * otherwise — a trade with a side that no longer exists can neither be shown nor
+ * accepted. A counter-offer history naming a dropped id is dropped rather than
+ * kept as a dangling reference; the trade itself is what matters.
+ *
+ * `catalogIds` is injectable so a test can pin the rule against a small set.
+ */
+export function keepOnlyCatalogPackages(
+  state: Partial<BarterState>,
+  catalogIds: ReadonlySet<string> = CATALOG_PACKAGE_IDS,
+): Partial<BarterState> {
+  const remap = (packageId: string): string | null =>
+    catalogIds.has(packageId)
+      ? packageId
+      : (RETIRED_PACKAGE_REMAP[packageId] ?? null);
+
+  const packages = asList<ProductPackage>(state.packages)?.filter((pkg) =>
+    catalogIds.has(pkg.id),
+  );
+
+  const matches = asList<TradeMatch>(state.matches)?.flatMap((match) => {
+    const offered = remap(match.offeredPackageId);
+    const target = remap(match.targetPackageId);
+
+    if (offered === null || target === null) {
+      return [];
+    }
+
+    const { counterOfferHistory, ...rest } = match;
+    const previous = counterOfferHistory
+      ? remap(counterOfferHistory.previousOfferedPackageId)
+      : null;
+
+    return [
+      {
+        ...rest,
+        offeredPackageId: offered,
+        targetPackageId: target,
+        ...(counterOfferHistory && previous !== null
+          ? {
+              counterOfferHistory: {
+                ...counterOfferHistory,
+                previousOfferedPackageId: previous,
+              },
+            }
+          : {}),
+      },
+    ];
+  });
+
+  return { ...state, packages, matches };
 }
 
 /**
@@ -431,11 +482,15 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        // A state written before a producer rename still carries the old ids.
-        // It is validated after that rewrite, so a migrated id is not mistaken
-        // for a malformed one.
+        // A state written before a producer rename still carries the old ids,
+        // and one written before the catalog still carries packages this build
+        // cannot derive. Both are rewritten before validation, so a migrated id
+        // is not mistaken for a malformed one and a retired package never
+        // reaches the gondola again.
         persistedState =
-          parseExternalState(migratePersistedState(JSON.parse(raw))) ?? {};
+          parseExternalState(
+            keepOnlyCatalogPackages(migratePersistedState(JSON.parse(raw))),
+          ) ?? {};
       }
     } catch {
       persistedState = {};
@@ -529,12 +584,14 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     channel.onmessage = (event) => {
       if (event.data?.type === "BARTER_STATE_SYNC" && event.data.payload) {
         const { packages, matches, papConfigArs } = event.data.payload;
-        // A tab still running the previous bundle broadcasts the former ids.
-        const synced = migratePersistedState({
-          packages,
-          matches,
-          papConfigArs,
-        });
+        // A tab still running the previous bundle broadcasts the former ids,
+        // and one from before the catalog broadcasts packages and trades this
+        // build cannot derive. Both are rewritten before validation, so a peer
+        // can neither resurrect a retired package nor hand over a trade with a
+        // side that does not exist.
+        const synced = keepOnlyCatalogPackages(
+          migratePersistedState({ packages, matches, papConfigArs }),
+        );
         const validated = parseExternalState(synced);
 
         // A message where neither slice carries anything readable is dropped

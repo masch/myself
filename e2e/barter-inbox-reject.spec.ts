@@ -14,18 +14,19 @@ const STORAGE_KEY = "p2p_barter_poc_state_v1";
 const SEEDED_STATE = {
   packages: [
     {
-      id: "pkg-vermut-pack4",
+      id: "cat-890",
       producerId: "sabado",
-      title: "Pack 4 Botellas Vermut Rosso 750ml",
+      title: "Vermut Rosso x 750 ml (muy bueno)",
       productionType: "AGROECOLOGICAL",
       priceArs: 50000,
       papValue: 1,
       stockUnits: 5,
     },
     {
-      id: "pkg-queso-gouda",
+      id: "cat-5",
       producerId: "naturaleza-viva",
-      title: "Horma 2kg Queso Gouda Agroecológico",
+      title:
+        "Queso Gouda (horma de aprox. 3 kg) en el galpón se arregla dif. de pesajes",
       productionType: "ORGANIC",
       priceArs: 50000,
       papValue: 1,
@@ -37,8 +38,8 @@ const SEEDED_STATE = {
       id: "match-reject-ui",
       requesterId: "sabado",
       targetProducerId: "naturaleza-viva",
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "cat-890",
+      targetPackageId: "cat-5",
       papSnapshotArs: 50000,
       totalPap: 1,
       status: "PENDING",

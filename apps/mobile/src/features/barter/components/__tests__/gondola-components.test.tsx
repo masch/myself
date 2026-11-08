@@ -3,6 +3,7 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import { PRODUCTION_TYPES, type ProductPackage } from "@myself/shared";
 import { SEED_PACKAGES, SEED_PRODUCERS } from "../../barter-store";
+import { FIXTURE_PACKAGES } from "../../__tests__/fixture-packages";
 import { catalogPackages } from "../../catalog-packages";
 import { PRIMAVERA_2026_PRODUCERS } from "../../producer-catalog";
 import { ProductPackageCard } from "../product-package-card";
@@ -147,9 +148,9 @@ describe("ProductPackageCard carries the printed price and the PAP fraction", ()
   });
 
   it("adds neither line to a package that carries no catalog block", () => {
-    // The four POC packages are a persisted contract and the catalog does not
-    // print them, so they keep exactly the copy they had.
-    const html = renderCard(SEED_PACKAGES[0]);
+    // A state a build injects or a producer already stored can still carry a
+    // package that predates the catalog block, so the card keeps its copy.
+    const html = renderCard(FIXTURE_PACKAGES[0]);
 
     expect(html).not.toContain("Precio de lista");
     expect(html).not.toContain("PAP ≈");
@@ -166,7 +167,7 @@ describe("PackageOfferOption tells the producer what it hands over", () => {
   });
 
   it("keeps the badge-only copy for a package without a catalog block", () => {
-    const html = renderOffer(SEED_PACKAGES[0]);
+    const html = renderOffer(FIXTURE_PACKAGES[0]);
 
     expect(html).toContain("1 PAP");
     expect(html).not.toContain("PAP ≈");

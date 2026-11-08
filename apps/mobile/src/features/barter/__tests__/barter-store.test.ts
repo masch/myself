@@ -9,6 +9,7 @@ import {
   SEED_PRODUCERS,
   SEED_PACKAGES,
 } from "../barter-store";
+import { FIXTURE_PACKAGES } from "./fixture-packages";
 import { calculateDistanceKm } from "../geo-utils";
 
 describe("Barter Store & Concurrency Engine", () => {
@@ -17,7 +18,7 @@ describe("Barter Store & Concurrency Engine", () => {
   beforeEach(() => {
     store = createBarterStore({
       initialProducers: SEED_PRODUCERS,
-      initialPackages: SEED_PACKAGES,
+      initialPackages: [...FIXTURE_PACKAGES, ...SEED_PACKAGES],
       initialMatches: [],
       defaultActiveProducerId: PRODUCER_IDS.VERMUT, // Vermut Sabado
       broadcastEnabled: false, // Isolated in unit tests
@@ -69,14 +70,14 @@ describe("Barter Store & Concurrency Engine", () => {
   it("creates a trade proposal in PENDING status without locking stock", () => {
     const initialPkgVermut = store
       .getState()
-      .packages.find((p) => p.id === "pkg-vermut-pack4")!;
+      .packages.find((p) => p.id === "pkg-fixture-vermut-pack4")!;
     const initialStock = initialPkgVermut.stockUnits;
 
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
       papConfigArs: 50000,
       ttlHours: 48,
     });
@@ -87,7 +88,7 @@ describe("Barter Store & Concurrency Engine", () => {
     // Stock MUST NOT be deducted in PENDING
     const afterPkgVermut = store
       .getState()
-      .packages.find((p) => p.id === "pkg-vermut-pack4")!;
+      .packages.find((p) => p.id === "pkg-fixture-vermut-pack4")!;
     expect(afterPkgVermut.stockUnits).toBe(initialStock);
   });
 
@@ -95,26 +96,26 @@ describe("Barter Store & Concurrency Engine", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
 
     const vermutStockBefore = store
       .getState()
-      .packages.find((p) => p.id === "pkg-vermut-pack4")!.stockUnits;
+      .packages.find((p) => p.id === "pkg-fixture-vermut-pack4")!.stockUnits;
     const quesoStockBefore = store
       .getState()
-      .packages.find((p) => p.id === "pkg-queso-gouda")!.stockUnits;
+      .packages.find((p) => p.id === "pkg-fixture-queso-gouda")!.stockUnits;
 
     const updatedMatch = store.acceptTradeMatch(match.id);
     expect(updatedMatch.status).toBe("WAITING_DELIVERY");
 
     const vermutStockAfter = store
       .getState()
-      .packages.find((p) => p.id === "pkg-vermut-pack4")!.stockUnits;
+      .packages.find((p) => p.id === "pkg-fixture-vermut-pack4")!.stockUnits;
     const quesoStockAfter = store
       .getState()
-      .packages.find((p) => p.id === "pkg-queso-gouda")!.stockUnits;
+      .packages.find((p) => p.id === "pkg-fixture-queso-gouda")!.stockUnits;
 
     expect(vermutStockAfter).toBe(vermutStockBefore - 1);
     expect(quesoStockAfter).toBe(quesoStockBefore - 1);
@@ -122,14 +123,14 @@ describe("Barter Store & Concurrency Engine", () => {
 
   it("cascades cancellation (CANCELLED_INSUFFICIENT_STOCK) to other pending matches when stock runs out", () => {
     // Set stock of queso to exactly 1
-    store.updatePackageStock("pkg-queso-gouda", 1);
+    store.updatePackageStock("pkg-fixture-queso-gouda", 1);
 
     // Producer A proposes match 1 for Queso Gouda
     const match1 = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
 
     // A second competing proposal for the same Queso Gouda package, from the
@@ -137,8 +138,8 @@ describe("Barter Store & Concurrency Engine", () => {
     const match2 = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-miel",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-miel",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
 
     // Accept match 1 -> consumes the only 1 unit of stock
@@ -156,21 +157,21 @@ describe("Barter Store & Concurrency Engine", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
 
     // Target producer counters proposing miel instead of vermut
     const countered = store.counterOfferTradeMatch({
       matchId: match.id,
       targetProducerId: PRODUCER_IDS.QUESO,
-      counterOfferedPackageId: "pkg-vermut-miel",
+      counterOfferedPackageId: "pkg-fixture-vermut-miel",
     });
 
     expect(countered.status).toBe("COUNTER_OFFERED");
-    expect(countered.offeredPackageId).toBe("pkg-vermut-miel");
+    expect(countered.offeredPackageId).toBe("pkg-fixture-vermut-miel");
     expect(countered.counterOfferHistory?.previousOfferedPackageId).toBe(
-      "pkg-vermut-pack4",
+      "pkg-fixture-vermut-pack4",
     );
 
     // Requester accepts the counter-offer
@@ -180,9 +181,10 @@ describe("Barter Store & Concurrency Engine", () => {
     // Stock of honey should be decremented, not vermut
     const mielStock = store
       .getState()
-      .packages.find((p) => p.id === "pkg-vermut-miel")!.stockUnits;
+      .packages.find((p) => p.id === "pkg-fixture-vermut-miel")!.stockUnits;
     expect(mielStock).toBe(
-      SEED_PACKAGES.find((p) => p.id === "pkg-vermut-miel")!.stockUnits - 1,
+      FIXTURE_PACKAGES.find((p) => p.id === "pkg-fixture-vermut-miel")!
+        .stockUnits - 1,
     );
   });
 
@@ -190,8 +192,8 @@ describe("Barter Store & Concurrency Engine", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
     store.acceptTradeMatch(match.id);
 
@@ -210,16 +212,16 @@ describe("Barter Store & Concurrency Engine", () => {
   it("rolls back stock when trade is cancelled prior to physical completion", () => {
     const vermutStockInitial = store
       .getState()
-      .packages.find((p) => p.id === "pkg-vermut-pack4")!.stockUnits;
+      .packages.find((p) => p.id === "pkg-fixture-vermut-pack4")!.stockUnits;
     const quesoStockInitial = store
       .getState()
-      .packages.find((p) => p.id === "pkg-queso-gouda")!.stockUnits;
+      .packages.find((p) => p.id === "pkg-fixture-queso-gouda")!.stockUnits;
 
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredPackageId: "pkg-fixture-vermut-pack4",
+      targetPackageId: "pkg-fixture-queso-gouda",
     });
 
     store.acceptTradeMatch(match.id);
@@ -231,10 +233,10 @@ describe("Barter Store & Concurrency Engine", () => {
     // Stock must be restored to initial values
     const vermutStockRestored = store
       .getState()
-      .packages.find((p) => p.id === "pkg-vermut-pack4")!.stockUnits;
+      .packages.find((p) => p.id === "pkg-fixture-vermut-pack4")!.stockUnits;
     const quesoStockRestored = store
       .getState()
-      .packages.find((p) => p.id === "pkg-queso-gouda")!.stockUnits;
+      .packages.find((p) => p.id === "pkg-fixture-queso-gouda")!.stockUnits;
 
     expect(vermutStockRestored).toBe(vermutStockInitial);
     expect(quesoStockRestored).toBe(quesoStockInitial);
@@ -296,7 +298,7 @@ describe("Producer simulation link (buildProducerLink)", () => {
 describe("Renamed producer ids (migration)", () => {
   const store = createBarterStore({
     initialProducers: SEED_PRODUCERS,
-    initialPackages: SEED_PACKAGES,
+    initialPackages: [...FIXTURE_PACKAGES, ...SEED_PACKAGES],
     initialMatches: [],
     broadcastEnabled: false,
   });
@@ -322,8 +324,8 @@ describe("Renamed producer ids (migration)", () => {
       ...store.createTradeProposal({
         requesterId: PRODUCER_IDS.VERMUT,
         targetProducerId: PRODUCER_IDS.QUESO,
-        offeredPackageId: SEED_PACKAGES[0].id,
-        targetPackageId: SEED_PACKAGES[2].id,
+        offeredPackageId: FIXTURE_PACKAGES[0].id,
+        targetPackageId: FIXTURE_PACKAGES[2].id,
       }),
       requesterId: "prod-vermut",
       targetProducerId: "prod-queso",
@@ -331,7 +333,7 @@ describe("Renamed producer ids (migration)", () => {
 
     const migrated = migratePersistedState({
       producers: [{ ...SEED_PRODUCERS[0], id: "prod-vermut" }],
-      packages: [{ ...SEED_PACKAGES[2], producerId: "prod-queso" }],
+      packages: [{ ...FIXTURE_PACKAGES[2], producerId: "prod-queso" }],
       matches: [legacyMatch],
       papConfigArs: 1234,
     });
@@ -365,7 +367,7 @@ describe("Default identity resolution", () => {
   it("opens as the pinned producer when the list carries it", () => {
     const store = createBarterStore({
       initialProducers: SEED_PRODUCERS,
-      initialPackages: SEED_PACKAGES,
+      initialPackages: [...FIXTURE_PACKAGES, ...SEED_PACKAGES],
       initialMatches: [],
       broadcastEnabled: false,
     });
@@ -381,7 +383,7 @@ describe("Default identity resolution", () => {
     );
     const store = createBarterStore({
       initialProducers: withoutVermut,
-      initialPackages: SEED_PACKAGES,
+      initialPackages: [...FIXTURE_PACKAGES, ...SEED_PACKAGES],
       initialMatches: [],
       broadcastEnabled: false,
     });

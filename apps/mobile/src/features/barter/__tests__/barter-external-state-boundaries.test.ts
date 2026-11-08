@@ -73,8 +73,8 @@ const MATCH: TradeMatch = {
   id: "match-boundary",
   requesterId: PRODUCER_IDS.VERMUT,
   targetProducerId: PRODUCER_IDS.QUESO,
-  offeredPackageId: "pkg-vermut-pack4",
-  targetPackageId: "pkg-queso-gouda",
+  offeredPackageId: "cat-890",
+  targetPackageId: "cat-5",
   papSnapshotArs: 50000,
   totalPap: 1,
   status: "WAITING_DELIVERY",
@@ -143,7 +143,7 @@ describe("external state: empty lists and rejected commands", () => {
     expect(peer.posted).toHaveLength(0);
   });
 
-  it("keeps an orphan match and fails loudly where a package is required", () => {
+  it("drops a match that names a package this build cannot derive", () => {
     const { store } = boot(
       JSON.stringify({
         packages: [{ ...SEED_PACKAGES[0], papValue: 0.5 }],
@@ -158,12 +158,14 @@ describe("external state: empty lists and rejected commands", () => {
         papConfigArs: 50000,
       }),
     );
-    expect(store.getState().matches).toHaveLength(1);
+    // The gondola is catalog-only: a trade with a side the catalog does not
+    // print can neither be shown nor accepted, so it is dropped with the package.
+    expect(store.getState().matches).toEqual([]);
     expect(store.getState().packages).toEqual(SEED_PACKAGES);
 
     const bytesBefore = mem.get(STORAGE_KEY);
     expect(() => store.acceptTradeMatch(MATCH.id)).toThrow(
-      "One or both trade packages missing from catalog",
+      `Match ${MATCH.id} not found`,
     );
     expect(() =>
       store.createTradeProposal({
@@ -185,18 +187,17 @@ describe("external state: empty lists and rejected commands", () => {
       data: {
         type: "BARTER_STATE_SYNC",
         payload: {
-          packages: [{ ...SEED_PACKAGES[0], id: "pkg-peer", stockUnits: 7 }],
+          packages: [{ ...SEED_PACKAGES[0], stockUnits: 7 }],
           matches: [incomplete, MATCH],
           papConfigArs: 50000,
         },
       },
     });
 
-    // The readable half is applied: the peer's package is merged in beside the
-    // local ones instead of replacing them, which is what keeps the catalog's
-    // consumed stock alive across a snapshot from an older tab.
+    // The readable half is applied: the peer's stock for a package both tabs
+    // carry wins, and the unparseable match is the only thing dropped.
     expect(
-      store.getState().packages.find((pkg) => pkg.id === "pkg-peer")
+      store.getState().packages.find((pkg) => pkg.id === SEED_PACKAGES[0].id)
         ?.stockUnits,
     ).toBe(7);
     expect(store.getState().matches).toHaveLength(1);

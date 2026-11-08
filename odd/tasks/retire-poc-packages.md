@@ -1,0 +1,66 @@
+# Retire the four POC packages
+
+Feature: the gondola carries only packages derived from the printed Primavera 2026 catalog. The four handwritten POC packages (`pkg-vermut-pack4`, `pkg-vermut-miel`, `pkg-queso-gouda`, `pkg-queso-provoleta`) are retired, and a persisted install purges them on load instead of carrying them forever.
+Touched: `apps/mobile/src/features/barter/barter-store.ts`, its comments in `components/product-package-card.tsx`, and `apps/mobile/src/features/barter/__tests__/**`.
+
+## Specs
+
+S1. `quisiera sacar los 4 POC` — `SEED_PACKAGES` seeds only `catalogPackages()`: no seeded id starts with `pkg-`, and the seed count goes from 1531 to 1527.
+
+S2. A persisted state that names a package this build does not derive from the catalog shows none of them after a reload: the stored package is dropped, the drop is written back so the next load does not have to repeat it, and a peer tab running an older bundle cannot resurrect one either.
+
+S3. `Que desaparezca` (the "Pack 6 Provoletas Estacionadas") — no catalog row is invented, and `primavera-products.ts` / `producer-catalog.ts` stay byte-identical. A product the PDF does not print leaves the gondola.
+
+S4. `Remapearlos al equivalente` — a stored `TradeMatch` naming a dropped package is rewritten to its catalog equivalent when the catalog carries the same product: `pkg-vermut-pack4` → `cat-890` (Vermut Rosso x 750 ml, producer 102 → 4 botellas = 1 PAP) and `pkg-queso-gouda` → `cat-5` (Queso Gouda horma de aprox. 3 kg, producer 1 → 2,26 kg = 1 PAP). A match that names a dropped id with no known equivalent (`pkg-vermut-miel`, `pkg-queso-provoleta`) is dropped, because crediting another producer's product would record a trade that never happened.
+
+S5. `solo deben quedar los delcataglo con los precios y formato del catalogo` — every card in the gondola renders the printed list price and the `1 PAP ≈ …` line, because every package carries the catalog block. No card falls back to the bare `Valor: $50.000 ARS` copy for seeded or loaded data.
+
+## Tasks
+
+- [x] T1 — S1 — `SEED_PACKAGES` carries only the catalog; the "four POC packages stay" doc block and the "four POC packs" card comment retired. Route: inline. Commit: feature branch.
+- [x] T2 — S4, S5 — `keepOnlyCatalogPackages` drops every package this build does not derive, remaps the two matches the catalog carries and drops the rest. Test-first in `catalog-seed.test.ts`. Route: inline. Commit: feature branch.
+- [x] T3 — S2 — the purge runs on the `localStorage` load path **and** on the peer sync, with `barter-catalog-only-migration.test.ts` pinning both. Route: inline. Commit: feature branch.
+- [x] T4 — S1-S4 — the barter suite moved off the POC ids: `__tests__/fixture-packages.ts` holds the four shapes as `pkg-fixture-*`, the guard tests inject them, and the payload, seed and component tests use catalog ids. Route: inline. Commit: feature branch.
+- [x] T5 — S1-S5 — `make check` green: 723 mobile tests across 77 files, plus types, lint and format. Route: inline. Commit: feature branch.
+- [x] T6 — record this document and its Engram mirror. Route: inline. Commit: feature branch.
+
+## Verification Evidence
+
+- `make check-tests`: `@myself/shared` 91 pass, `@myself/api` 106 pass, `@myself/mobile` 723 pass / 0 fail across 77 files.
+- `make check`: tests, types, lint, format and `check-odd` all green.
+- RED before GREEN: with the POC entries removed from the seed and nothing else changed, the suite reported 38 failures across the barter store, the payload tests and the two card tests; the fixture migration and the rewritten seed pins brought it to 0.
+- Self-verification found a real hole after the first commit: the peer sync filtered the broadcast **packages** through `mergePeerPackages` but applied the broadcast **matches** verbatim, so a tab on the old bundle could still hand over a trade naming `pkg-vermut-pack4`. Pinned RED (`never lets a peer trade arrive naming a package this build cannot derive`, 1 failure), then fixed by running `keepOnlyCatalogPackages` on the peer payload before validation, then green.
+- Browser E2E, the check `make check` does not run: six Playwright specs still pointed at the retired packages, so the CI run failed with `Test timeout of 120000ms exceeded` while waiting for cards that no longer exist. Two were driven by `pkg-*` ids injected in `localStorage` (the purge removes them on load), four by accessible names of POC cards. Fixed by moving them to catalog ids and titles; the two modal specs also had to reach the vermouth through `gondola-search-input`, because the gondola is a virtualized `FlatList` with `initialNumToRender = 8` and the vermut is the 890th package.
+- `bunx playwright test` over those six specs: **6 passed (15.8s)**.
+- A seventh spec failed on the CI run that carried the fix: `barter-stale-state` stored a package under `pkg-before-rename` to prove a producer rename travels with the bytes, and the purge dropped it before the rename could matter. Moved to `cat-890` with the former producer id, so it proves the rename again. `2 passed (9.9s)`.
+- The independent verifier the ASSESS plan requires could not run: `gentle-ai-verify` failed with a provider quota error on two separate attempts (the second one explicitly requested by the user), as did `gentle-ai-explore` and `gentle-ai-worker` earlier in the session. Nothing was retried beyond that request, per the unavailable-verifier rule, and the six invariants were checked inline instead:
+  1. **No non-catalog package reaches the live state.** The only ways `state.packages` is assigned are `barter-store.ts:533` (an injected list or the purged persisted one), `:598` (`mergePeerPackages`, filtered), `:639`, `:743`, `:935` (`map` over the existing list), and `resetToSeed` (`:993`, `SEED_PACKAGES`). The injected list is the caller's contract and is now documented as the single entry the purge does not rewrite.
+  2. **No dangling reference survives.** Every package-id field of `TradeMatch` (`schemas.ts:92`, `:100-101`) is covered: `offeredPackageId`, `targetPackageId` and `counterOfferHistory.previousOfferedPackageId`, on both the load path and the peer payload.
+  3. **No silent collateral loss.** The purge spreads the state, so `producers`, `papConfigArs` and a surviving package object (consumed stock included) are untouched; only non-catalog packages and the matches naming them go.
+  4. **Untrusted bytes are safe.** Both paths run the purge before `parseExternalState`, and `asList` reads a non-list slice as absent (pinned by `reads a slice that is not a list as absent`).
+  5. **Pins per spec.** S1: `seeds exactly the printed catalog, in printed order` and `seeds nothing the catalog does not derive`. S2: the five cases in `barter-catalog-only-migration.test.ts`. S3: proven by the empty diff on `primavera-products.ts` / `producer-catalog.ts` rather than by a test — no row was invented. S4: `moves a match onto the catalog package that carries the same product`, `drops a match whose product the catalog does not print`, `moves the counter-offer history with the trade`, `drops a counter-offer history it cannot resolve`. S5: `gives every seeded package the catalog price and disclosure`, plus the rendered-copy tests in `gondola-components.test.tsx`.
+  6. **Existing installs.** A stored match between two catalog ids survives untouched (`leaves a catalog-only state untouched`); a trade on a retired package is the only thing lost, remapped when the catalog carries the product.
+
+## Completion & Delivery
+
+- **Completion & Delivery**: Implemented on branch `feat/catalog-only-packages` (delivered as `feat/catalog-only-gondola`) as five work-unit commits: the behavior with its pins, this document, the peer-sync fix self-verification found, the verification record, and the E2E migration. The touched surface is 12 modified files plus 3 new ones under `apps/mobile/src/features/barter/`, and 7 Playwright specs under `e2e/` that consumed the retired packages as fixtures — the overwhelming majority of the change is the test migration the removal forced. That is the review cost of a seed that doubles as a fixture, and why the slice is above the ~400-line budget. The catalog transcription, the producers and the shared schemas are byte-identical. Merge, push and any store release stay the user's decision.
+
+## Log
+
+L1 (user, verbatim): `que tenriamos que hacer para que todos los productos sean de cataloogo? quisiera sacar los 4 POC`
+
+L2 (user decision, verbatim): "El \"Pack 6 Provoletas Estacionadas\" no tiene fila en el PDF Primavera 2026. ¿Qué hacemos?" → `Que desaparezca`. "Los matches guardados apuntan a los ids de los 4 POC. ¿Qué hacemos con ellos al purgar?" → `Remapearlos al equivalente`.
+
+L3 (evidence, inline): `producer-catalog.ts:975` — `sabado` is printed producer **102**, and `primavera-products.ts:922` shows its only row is `[890, 102, "Vermut Rosso x 750 ml (muy bueno)"]`. The 1 kg honey rows belong to other producers (`[537, 54]`, `[702, 75]`, `[787, 86]`, `[788, 87]`, `[1160, 127]`), so `pkg-vermut-miel` has no same-producer equivalent and is dropped. `naturaleza-viva` is printed producer **1**, whose row `[5, 1, "Queso Gouda (horma de aprox. 3 kg)"]` replaces `pkg-queso-gouda` with a better package. A case-insensitive `provoleta` search finds the string only in `barter-store.ts` and its tests: no catalog row exists.
+
+L4 (routing): `gentle-ai-explore` was launched for the POC → catalog mapping and failed with a quota error, so discovery ran inline under a bounded budget instead.
+
+L5 (design): the purge reads the catalog id set, so anything that is not a shipped catalog package is dropped; the explicit `RETIRED_PACKAGE_REMAP` only preserves the two matches whose product the catalog really carries.
+
+L6 (user, verbatim): `si, solo deben quedar los delcataglo con los precios y formato del catalogo y cualquier otro debe ser borrado`
+
+L6a: this widens L5 — the rule is no longer the four known ids but "only catalog packages survive", applied to the stored state and to a peer sync. Rewritten: S2, S5. Reopened: T2, T3.
+
+L7 (defect found in self-verification): the broadcast path applied peer **matches** unfiltered, so an old tab could still inject a trade on a retired package. Fixed with `keepOnlyCatalogPackages` on the peer payload and pinned by a RED test.
+
+L8 (defect found in CI): `make check` does not run Playwright, so the first green was incomplete; six E2E specs depended on the retired packages and the CI run failed with a 120s timeout. Fixed in the same change, and the two modal specs now search before clicking because the gondola list is virtualized.

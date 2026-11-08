@@ -10,7 +10,8 @@ const STORAGE_KEY = "p2p_barter_poc_state_v1";
  * `localStorage`, and a tab still running the old build also broadcasts its own
  * packages to its peers. The gondola resolved each package's producer with a
  * non-null assertion, so a single orphan crashed the whole screen on
- * `producer.latitude` instead of rendering without it.
+ * `producer.latitude` instead of rendering without it. The catalog-only purge is
+ * what keeps a package this build cannot derive out of that path entirely.
  */
 test.describe("E2E barter with a state written by a previous build", () => {
   test("renders when a stored package names a producer that no longer exists", async ({
@@ -60,7 +61,9 @@ test.describe("E2E barter with a state written by a previous build", () => {
     test.setTimeout(120000);
 
     // The previous build stored the package under `prod-vermut` and handed out
-    // links naming `prod-queso`.
+    // links naming `prod-queso`. The id is a catalog one on purpose: the gondola
+    // is catalog-only, so a package this build cannot derive is dropped before
+    // the rename can matter, and the rename is what this test is about.
     await page.addInitScript(
       ([key, state]: [string, string]) => {
         window.localStorage.setItem(key, state);
@@ -70,7 +73,7 @@ test.describe("E2E barter with a state written by a previous build", () => {
         JSON.stringify({
           packages: [
             {
-              id: "pkg-before-rename",
+              id: "cat-890",
               producerId: "prod-vermut",
               title: "Pack previo al renombre de productores",
               productionType: "AGROECOLOGICAL",
