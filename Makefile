@@ -129,8 +129,8 @@ check-expo-upgrade: ## Verify the Expo upgrade parsers and its exit contract
 	@./scripts/check-expo-upgrade.sh
 
 .PHONY: check-shellcheck
-check-shellcheck: ## Run shellcheck over the shell scripts and the git hooks (needs shellcheck installed)
-	@./scripts/check-shellcheck.sh
+check-shellcheck: ## Run shellcheck over the shell scripts and the git hooks (from the WASM dependency)
+	@bun scripts/check-shellcheck.mjs
 
 
 .PHONY: check-doctor
@@ -165,7 +165,7 @@ check-shared: ## Run all checks for Shared workspace
 	bun turbo run lint typecheck test --filter=@myself/shared
 
 .PHONY: check
-check: check-format check-odd check-odd-doc check-expo-upgrade ## Run full quality check suite via unified Turborepo pipeline
+check: check-format check-odd check-odd-doc check-expo-upgrade check-shellcheck ## Run full quality check suite via unified Turborepo pipeline
 	bun turbo run lint typecheck test
 	$(MAKE) check-doctor
 
