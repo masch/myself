@@ -65,7 +65,7 @@ test("token-replaced styles render their pre-change values", async ({
 
   await page
     .getByRole("button", {
-      name: "Pedir match por Horma 2kg Queso Gouda Agroecológico",
+      name: "Pedir match por Aceite de coco virgen x 360 gr excelente calidad",
       exact: true,
     })
     .click();

@@ -23,9 +23,9 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
   }) => {
     test.setTimeout(120000);
 
-    await page.goto("/barter?producerId=sabado");
+    await page.goto("/barter?producerId=naturaleza-viva");
     await expect(page.getByTestId("active-producer-name")).toHaveText(
-      "Vermut Sabado",
+      "Naturaleza Viva",
       { timeout: 30000 },
     );
 
@@ -33,55 +33,59 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
     const checkedRadio = page.getByRole("radio", { checked: true });
     const submitProposal = page.getByRole("button", { name: "Enviar Match" });
 
-    // First open, as Vermut Sabado, for a package owned by Naturaleza Viva: the
-    // offers are this producer's own inventory (its catalog products plus the
-    // POC packs), with one preselected. The modal searches that inventory,
-    // because a printed producer ships up to 77 packages.
+    // First open, as Naturaleza Viva, for the one package Vermut Sabado prints:
+    // the offers are this producer's own inventory, with one preselected. The
+    // modal searches that inventory, because a printed producer ships up to 77
+    // packages.
+    // The vermut is the 890th printed package, so the virtualized gondola only
+    // renders it once the search narrows the list.
+    await page.getByTestId("gondola-search-input").fill("vermut rosso");
     await page
       .getByRole("button", {
-        name: "Pedir match por Horma 2kg Queso Gouda Agroecológico",
+        name: "Pedir match por Vermut Rosso x 750 ml (muy bueno)",
         exact: true,
       })
       .click();
     await expect(checkedRadio).toHaveCount(1);
     await expect(submitProposal).toBeEnabled();
-    await page.getByTestId("own-package-search").fill("pack 4 botellas");
+    await page.getByTestId("own-package-search").fill("aceite de coco");
     await expect(proposalRadios).toHaveCount(1);
     await expect(checkedRadio).toHaveCount(1);
 
     await page.getByRole("button", { name: "Cancelar" }).click();
     await expect(proposalRadios).toHaveCount(0);
 
-    // The operator becomes Naturaleza Viva from the header switcher, without
+    // The operator becomes Vermut Sabado from the header switcher, without
     // reloading: a reload rebuilds the screen and hides the stale selection.
     // The switcher is a searchable selector because the catalog is 158 long.
     await page.getByTestId("producer-switch-row").getByRole("button").click();
-    await page.getByTestId("producer-search-input").fill("naturaleza");
-    await page.getByTestId("producer-option-naturaleza-viva").click();
+    await page.getByTestId("producer-search-input").fill("sabado");
+    await page.getByTestId("producer-option-sabado").click();
     await expect(page.getByTestId("active-producer-name")).toHaveText(
-      "Naturaleza Viva",
+      "Vermut Sabado",
     );
 
     // Second open, now for a package of the other producer: the offers are the
-    // new producer's inventory, not the previous one's. The Gouda is Naturaleza
-    // Viva's, and the pack the trade asks for is not on offer any more.
+    // new producer's inventory, not the previous one's. The cheese is Naturaleza
+    // Viva's, and the oil the trade asks for is not on offer any more.
+    await page.getByTestId("gondola-search-input").fill("queso rallado");
     await page
       .getByRole("button", {
-        name: "Pedir match por Pack 4 Botellas Vermut Rosso 750ml",
+        name: "Pedir match por Queso rallado x 150grs",
         exact: true,
       })
       .click();
     await expect(checkedRadio).toHaveCount(1);
     await expect(submitProposal).toBeEnabled();
-    // The previous producer's pack is not on offer any more...
-    await page.getByTestId("own-package-search").fill("pack 4 botellas");
+    // The previous producer's inventory is not on offer any more...
+    await page.getByTestId("own-package-search").fill("aceite de coco");
     await expect(proposalRadios).toHaveCount(0);
-    // ...and the new producer's own POC pack is, by its full printed title.
-    await page.getByTestId("own-package-search").fill("horma 2kg queso gouda");
+    // ...and the new producer's own printed product is, by its full title.
+    await page.getByTestId("own-package-search").fill("vermut rosso");
     await expect(proposalRadios).toHaveCount(1);
     await expect(checkedRadio).toHaveCount(1);
     await expect(
-      page.getByRole("radio").filter({ hasText: "Horma 2kg Queso Gouda" }),
+      page.getByRole("radio").filter({ hasText: "Vermut Rosso" }),
     ).toBeVisible();
   });
 });
