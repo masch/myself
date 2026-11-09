@@ -50,6 +50,10 @@ function catalogPackage(id: string): ProductPackage {
 function renderCard(
   pkg: ProductPackage,
   variant: CardVariant = "cantidad",
+  overrides: {
+    producerFilterId?: string;
+    onToggleProducerFilter?: (producerId: string) => void;
+  } = {},
 ): string {
   const producer = PRIMAVERA_2026_PRODUCERS.find(
     (entry) => entry.id === pkg.producerId,
@@ -64,13 +68,18 @@ function renderCard(
       <ProductPackageCard
         packageItem={{ ...pkg, producer, distanceKm: 12 }}
         onProposeTrade={() => {}}
+        onToggleProducerFilter={overrides.onToggleProducerFilter ?? (() => {})}
+        producerFilterId={overrides.producerFilterId}
         variant={variant}
       />,
     ),
   );
 }
 
-function renderFilterBar(cardVariant: CardVariant): string {
+function renderFilterBar(
+  cardVariant: CardVariant,
+  producerFilterName?: string,
+): string {
   return textOf(
     renderToString(
       <GondolaFilterBar
@@ -79,9 +88,35 @@ function renderFilterBar(cardVariant: CardVariant): string {
         onSelectMaxDistance={() => {}}
         cardVariant={cardVariant}
         onSelectCardVariant={() => {}}
+        producerFilterName={producerFilterName}
+        onClearProducerFilter={() => {}}
       />,
     ),
   );
+}
+
+/**
+ * The opening tag that carries one `testID`: its colours and its accessible name.
+ *
+ * The state of a chip lives on the element that also carries the `testID`, so that
+ * tag is what a server render can be asked about — no renderer needed.
+ */
+function elementTag(html: string, testID: string): string {
+  const marker = `data-testid="${testID}"`;
+  const at = html.indexOf(marker);
+
+  if (at === -1) throw new Error(`The markup carries no ${testID}`);
+
+  return html.slice(html.lastIndexOf("<", at), html.indexOf(">", at) + 1);
+}
+
+/** The fill of one chip, so two states can be compared without naming a token. */
+function backgroundColorOf(tag: string): string {
+  const found = tag.match(/background-color:[^;"]+/);
+
+  if (!found) throw new Error(`The chip tag carries no background: ${tag}`);
+
+  return found[0];
 }
 
 /**
@@ -274,6 +309,117 @@ describe("ProductPackageCard leads with what one PAP buys", () => {
       expect(html).toContain("ENTREGÁS");
       expect(html).toContain("1 PAP");
       expect(html).toContain("Pedir Match");
+    }
+  });
+});
+
+/**
+ * The producer filter is one chip on every card ("en todas las cards va el chip"),
+ * and the chip is the only control the card adds: the filter state itself is
+ * declared once, on the list header, never per card.
+ */
+describe("ProductPackageCard offers the producer filter on every card", () => {
+  const oil = catalogPackage("cat-1");
+  const chipId = "card-producer-filter-naturaleza-viva";
+
+  it("renders one idle chip under the producer in both layouts", () => {
+    for (const variant of CARD_VARIANTS) {
+      const html = renderCard(oil, variant);
+      const tag = elementTag(html, chipId);
+
+      expect(html).toContain("Ver solo de Naturaleza Viva");
+      expect(tag).toContain(
+        'aria-label="Ver solo los productos de Naturaleza Viva"',
+      );
+      expect(tag).toContain('aria-selected="false"');
+
+      // One chip per card, and never inside the footer action: a toggle nested in
+      // the button that starts a trade would be a pressable inside a pressable.
+      expect(html.split('data-testid="card-producer-filter-').length - 1).toBe(
+        1,
+      );
+      expect(html.indexOf(`data-testid="${chipId}"`)).toBeLessThan(
+        html.indexOf("ENTREGÁS"),
+      );
+    }
+  });
+
+  it("turns that chip into the applied state while its producer is filtered", () => {
+    for (const variant of CARD_VARIANTS) {
+      const idle = renderCard(oil, variant);
+      const active = renderCard(oil, variant, {
+        producerFilterId: "naturaleza-viva",
+      });
+      const tag = elementTag(active, chipId);
+
+      expect(active).toContain("Solo Naturaleza Viva");
+      expect(active).not.toContain("Ver solo de Naturaleza Viva");
+      expect(tag).toContain(
+        'aria-label="Quitar el filtro de productor Naturaleza Viva"',
+      );
+      expect(tag).toContain('aria-selected="true"');
+
+      // Colour never carries the state alone: the two variants differ in fill and
+      // the copy says which state it is in.
+      expect(backgroundColorOf(tag)).not.toBe(
+        backgroundColorOf(elementTag(idle, chipId)),
+      );
+    }
+  });
+
+  it("leaves the chip idle when another producer is the filtered one", () => {
+    const html = renderCard(oil, "cantidad", { producerFilterId: "sabado" });
+    const tag = elementTag(html, chipId);
+
+    expect(html).toContain("Ver solo de Naturaleza Viva");
+    expect(tag).toContain('aria-selected="false"');
+  });
+});
+
+/**
+ * The active filter is declared once, on the list header, so a card never has to be
+ * found and read to know what the gondola is filtered by — the same rule S3 already
+ * set for the PAP anchor.
+ */
+describe("GondolaFilterBar declares the applied producer filter once", () => {
+  it("renders the filter at the top of the bar with a chip that clears it", () => {
+    const html = renderFilterBar("cantidad", "Naturaleza Viva");
+    const tag = elementTag(html, "gondola-producer-filter-active");
+
+    expect(html).toContain("Filtrando por");
+    expect(html).toContain("Naturaleza Viva");
+    expect(tag).toContain(
+      'aria-label="Quitar el filtro de productor Naturaleza Viva"',
+    );
+
+    // One row, above the filters it narrows.
+    expect(
+      html.split('data-testid="gondola-producer-filter-row"').length - 1,
+    ).toBe(1);
+    expect(
+      html.indexOf('data-testid="gondola-producer-filter-row"'),
+    ).toBeLessThan(html.indexOf('data-testid="gondola-filter-row"'));
+
+    // It is drawn in the applied colour, the one the selected filters use.
+    expect(backgroundColorOf(tag)).toBe(
+      backgroundColorOf(elementTag(html, "card-variant-cantidad")),
+    );
+  });
+
+  it("shows no applied row while the gondola is unfiltered", () => {
+    const html = renderFilterBar("cantidad");
+
+    expect(html).not.toContain('data-testid="gondola-producer-filter-row"');
+    expect(html).not.toContain("Filtrando por");
+    expect(html).not.toContain('data-testid="gondola-producer-filter-active"');
+
+    // The three filter rows the bar already had are untouched.
+    for (const row of [
+      "gondola-filter-row",
+      "gondola-distance-row",
+      "gondola-card-variant-row",
+    ]) {
+      expect(html).toContain(`data-testid="${row}"`);
     }
   });
 });

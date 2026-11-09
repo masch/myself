@@ -13,6 +13,10 @@ interface GondolaFilterBarProps {
   onSelectMaxDistance: (km?: number) => void;
   cardVariant: CardVariant;
   onSelectCardVariant: (variant: CardVariant) => void;
+  /** The producer the gondola is narrowed to, by name; absent means unfiltered. */
+  producerFilterName?: string;
+  /** Clears the producer filter, from the chip that declares it. */
+  onClearProducerFilter: () => void;
 }
 
 /**
@@ -65,9 +69,30 @@ export function GondolaFilterBar({
   onSelectMaxDistance,
   cardVariant,
   onSelectCardVariant,
+  producerFilterName,
+  onClearProducerFilter,
 }: GondolaFilterBarProps) {
   return (
     <View style={styles.container}>
+      {/* The producer filter is declared once, here, and never repeated per card: a
+          list of fifteen cards cannot be the place a user learns what the list is
+          filtered by. The chip is the only way back to the whole gondola. */}
+      {producerFilterName ? (
+        <View style={styles.appliedRow} testID="gondola-producer-filter-row">
+          <ThemedText variant="caption1" style={styles.appliedLabel}>
+            Filtrando por
+          </ThemedText>
+          <ChipButton
+            testID="gondola-producer-filter-active"
+            title={producerFilterName}
+            icon="sf:xmark"
+            variant="success"
+            onPress={onClearProducerFilter}
+            accessibilityLabel={`Quitar el filtro de productor ${producerFilterName}`}
+          />
+        </View>
+      ) : null}
+
       <ThemedText variant="caption1" style={styles.filterTitle}>
         Filtrar por certificación:
       </ThemedText>
@@ -130,6 +155,17 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
     marginTop: spacing.xs,
     marginBottom: spacing.xs,
+  },
+  appliedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  appliedLabel: {
+    color: colors.secondaryLabel,
+    fontSize: fontSizes.xs,
   },
   row: {
     flexDirection: "row",

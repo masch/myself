@@ -27,12 +27,19 @@ export function useGondolaParams({
   productionType,
   maxDistanceKm,
   cardVariant,
+  producerFilter,
   activeProducerId,
   onApply,
 }: UseGondolaParamsInput): void {
   const view = useMemo<GondolaViewState>(
-    () => ({ query, productionType, maxDistanceKm, cardVariant }),
-    [query, productionType, maxDistanceKm, cardVariant],
+    () => ({
+      query,
+      productionType,
+      maxDistanceKm,
+      cardVariant,
+      producerFilter,
+    }),
+    [query, productionType, maxDistanceKm, cardVariant, producerFilter],
   );
 
   const writeOnly = useMemo(
