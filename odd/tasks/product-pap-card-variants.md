@@ -179,3 +179,27 @@ litro pet`). Splitting the presentation suffix out of the printed name would be 
      theme token. The literal was **removed** instead: the row's content (a 22px headline line-height
      plus 8px of vertical padding) always exceeds 28, so the property never applied, and a token for a
      value that does not bind is indirection without leverage. No token was added.
+- **L8** — New increment request, verbatim: _"quisiera agregar otra card de visualizacion de
+  procutos, podemos agregar otra que remarme primero al productor del proucto y su origen? Luego el
+  resto dela informaicon, podemos hacer opciones local sin subir para validar antes?"_. Answer: yes —
+  local validation only, per S4. Two directions written to `design/product-pap-card/`
+  (`04-productor-protagonista.html`, `05-etiqueta-de-origen.html`), both keeping S3 (no per-card
+  1 PAP value) and real Primavera 2026 data from three different producers (Naturaleza Viva,
+  Salve la Tierra, Sasaki), because a producer-first hierarchy cannot be judged on one producer
+  repeated three times. Opened on the local canvas; **no source touched**. The new `S#` and the
+  implementation task are written only after the user picks a direction, so no spec is invented
+  before the choice.
+- **L9** — New requirement while still validating L8, verbatim: _"me gustaría que la card tenga un filtro
+  nuevo que haga que filtre todos los procutos de ese productor al estilo toggle, como lo podriamos
+  visuzliar?"_. Answer: `design/product-pap-card/06-filtro-productor.html` compares the same toggle in
+  three placements (A inside the card, B the producer name as the control with the state declared in
+  the list header, C a filter chip under the producer) plus the applied-state block on the list
+  header. Finding that shapes the decision: `?producerId=` is the user's **identity**, not a filter
+  (`gondola-params.ts:39-45`, excluded from `GONDOLA_VIEW_PARAMS`, resolved in
+  `barter-store.ts:505-536`), and `BarterState` carries only `productionTypeFilter` and
+  `maxDistanceKm`. A producer _filter_ is therefore new state with its own address key, not a reuse
+  of `producerId`. No source touched.
+- **L10** — Treatment chosen by the user, verbatim: _"ok, vmaos por C"_. Reference artboard
+  `design/product-pap-card/07-chip-productor-elegida.html` pins both states of the control (idle chip
+  under the producer, pressed chip plus the applied filter declared once on the list header), so the
+  filter state never repeats per card — the same rule S3 already set for the PAP anchor.
