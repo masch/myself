@@ -250,3 +250,12 @@ litro pet`). Splitting the presentation suffix out of the printed name would be 
   The chip ships in both card layouts; the applied filter is declared once on the filter bar. Decision
   still open from L8: which card hierarchy the new producer-first card uses — `04-producto-protagonista`
   or `05-etiqueta-de-origen` — so the new variant itself is not implemented yet.
+
+## Delivery slices
+
+- **Slice 1** — `d976d46` `docs(design): explore producer-first cards and the producer filter chip`:
+  the four artboards and their manifest (~2.5k lines, almost all self-contained HTML mock).
+- **Slice 2** — `9ec7839` `feat(barter): filter the gondola by the producer on the card`: T6-T8 with
+  their tests and this document (~590 lines of source). Delivery strategy stays **local only** (S4):
+  the branch is never pushed and no PR opens until the user asks, so the two slices above are the
+  review units if that changes.
