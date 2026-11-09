@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, type ColorValue } from "react-native";
-import { AppButton, Badge, ThemedText } from "@/components";
+import { AppButton, Badge, ChipButton, ThemedText } from "@/components";
 import { colors, fontWeights, letterSpacings, radius, spacing } from "@/theme";
 import type { ProductPackage } from "@myself/shared";
 import type { GondolaPackage } from "../barter-selectors";
@@ -18,10 +18,66 @@ import type { PapAdjustmentDirection } from "../product-card-copy";
  * instead of two hierarchies.
  */
 
-export interface PackageCardLayoutProps {
+/** The facts every card and its footer render, with no view state attached. */
+export interface PackageCardContentProps {
   packageItem: GondolaPackage;
   onProposeTrade: (pkg: ProductPackage) => void;
   hasPendingProposal?: boolean;
+}
+
+export interface PackageCardLayoutProps extends PackageCardContentProps {
+  /** The producer the gondola is narrowed to, when any. */
+  producerFilterId?: string;
+  /**
+   * Toggles the producer filter. Required on purpose: a layout that forgot to wire
+   * the chip would ship a control that does nothing, and the user asked for it in
+   * every card.
+   */
+  onToggleProducerFilter: (producerId: string) => void;
+}
+
+/**
+ * The producer filter, as one chip under the producer line of every card.
+ *
+ * The control is the chip and only the chip. What the gondola is currently
+ * filtered by is declared once on the list header, so the same fact never repeats
+ * down a list of fifteen cards — the rule the PAP anchor already follows.
+ *
+ * `ChipButton` owns the pill, the press feedback and the button role, so this part
+ * only owns the copy, the pressed state and the accessible name. The two labels
+ * say what pressing does, never just what is on screen: idle it narrows to this
+ * producer, active it removes the filter.
+ */
+export function PackageProducerFilter({
+  packageItem,
+  producerFilterId,
+  onToggleProducerFilter,
+}: Pick<
+  PackageCardLayoutProps,
+  "packageItem" | "producerFilterId" | "onToggleProducerFilter"
+>) {
+  const producerName = packageItem.producer.name;
+  const isActive = producerFilterId === packageItem.producerId;
+
+  return (
+    <View style={styles.producerFilter}>
+      <ChipButton
+        testID={`card-producer-filter-${packageItem.producerId}`}
+        title={
+          isActive ? `Solo ${producerName}` : `Ver solo de ${producerName}`
+        }
+        variant={isActive ? "success" : "secondary"}
+        onPress={() => onToggleProducerFilter(packageItem.producerId)}
+        accessibilityLabel={
+          isActive
+            ? `Quitar el filtro de productor ${producerName}`
+            : `Ver solo los productos de ${producerName}`
+        }
+        accessibilityState={{ selected: isActive }}
+        aria-selected={isActive}
+      />
+    </View>
+  );
 }
 
 /**
@@ -69,7 +125,7 @@ export function PackageHandOver({
   packageItem,
   onProposeTrade,
   hasPendingProposal = false,
-}: PackageCardLayoutProps) {
+}: PackageCardContentProps) {
   const isOutOfStock = packageItem.stockUnits <= 0;
 
   return (
@@ -128,6 +184,11 @@ export const ADJUSTMENT_COLORS: Record<
 };
 
 const styles = StyleSheet.create({
+  producerFilter: {
+    flexDirection: "row",
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+  },
   pills: {
     flexDirection: "row",
     flexWrap: "wrap",

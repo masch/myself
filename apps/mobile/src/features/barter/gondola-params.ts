@@ -27,6 +27,12 @@ export interface GondolaViewState {
    * gondola? — and because a tester can then be handed `?card=ficha`.
    */
   cardVariant: CardVariant;
+  /**
+   * The producer the gondola is narrowed to, when the user pressed a card's filter
+   * chip. It travels as `?de=`, **not** as `?producerId=`: that one is who the app
+   * is being used as, and the gondola already excludes that producer's own shelf.
+   */
+  producerFilter?: string;
 }
 
 export const GONDOLA_PARAMS = {
@@ -34,6 +40,8 @@ export const GONDOLA_PARAMS = {
   productionType: "tipo",
   maxDistanceKm: "km",
   cardVariant: "card",
+  /** The producer the gondola is narrowed to. */
+  producerFilter: "de",
   producerId: "producerId",
 } as const;
 
@@ -55,6 +63,7 @@ const GONDOLA_VIEW_PARAMS = [
   GONDOLA_PARAMS.productionType,
   GONDOLA_PARAMS.maxDistanceKm,
   GONDOLA_PARAMS.cardVariant,
+  GONDOLA_PARAMS.producerFilter,
 ] as const;
 
 /**
@@ -62,14 +71,14 @@ const GONDOLA_VIEW_PARAMS = [
  *
  * Two cases, and the difference is load-bearing:
  *
- * - The address says nothing about the gondola (no `q`, `tipo`, `km` or `card`):
- *   the screen keeps `defaults`, which is whatever the persisted gondola already
- *   had. Opening a plain `/barter` must not reset somebody's filter.
+ * - The address says nothing about the gondola (no `q`, `tipo`, `km`, `card` or
+ *   `de`): the screen keeps `defaults`, which is whatever the persisted gondola
+ *   already had. Opening a plain `/barter` must not reset somebody's filter.
  * - The address says something: it is authoritative for the whole view, so an
- *   absent `tipo` or `km` means "Todos" and "any distance", **not** the value the
- *   screen happened to hold at mount. Reading absence as the mount-time value made
- *   back and forward restore a filter the user had already cleared, because
- *   clearing it removes the parameter.
+ *   absent `tipo`, `km` or `de` means "Todos", "any distance" and "no producer
+ *   filter", **not** the value the screen happened to hold at mount. Reading
+ *   absence as the mount-time value made back and forward restore a filter the
+ *   user had already cleared, because clearing it removes the parameter.
  *
  * A distance is accepted for any positive number, not only the chips the screen
  * offers, so a link built by a newer build keeps working. A layout the URL does
@@ -105,6 +114,7 @@ export function parseGondolaParams(
     productionType,
     maxDistanceKm,
     cardVariant,
+    producerFilter: single(params[GONDOLA_PARAMS.producerFilter]) || undefined,
   };
 }
 
@@ -116,6 +126,11 @@ export function parseGondolaParams(
  * an empty object — no `?q=&tipo=ALL` noise in a shared link. The layout follows
  * the same rule: the default closes with no parameter at all, and only a user who
  * picked the other card shares a `?card=`.
+ *
+ * `producerId` is passed separately because it is not part of the view: it is who
+ * the app is being used as, and it is written (never parsed) so a shared link
+ * opens as the producer it was copied from. The producer *filter* is a view and
+ * travels in its own key, so the two can never overwrite each other.
  */
 export function buildGondolaParams(
   state: GondolaViewState,
@@ -135,6 +150,7 @@ export function buildGondolaParams(
       state.cardVariant === DEFAULT_CARD_VARIANT
         ? undefined
         : state.cardVariant,
+    [GONDOLA_PARAMS.producerFilter]: state.producerFilter || undefined,
     [GONDOLA_PARAMS.producerId]: producerId || undefined,
   };
 }
@@ -167,6 +183,7 @@ export const gondolaCodec: UrlViewCodec<GondolaViewState> = {
     GONDOLA_PARAMS.productionType,
     GONDOLA_PARAMS.maxDistanceKm,
     GONDOLA_PARAMS.cardVariant,
+    GONDOLA_PARAMS.producerFilter,
   ],
   parse: parseGondolaParams,
   build: (state) => buildGondolaParams(state),

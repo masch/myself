@@ -12,6 +12,7 @@ import {
 import {
   ADJUSTMENT_COLORS,
   PackageHandOver,
+  PackageProducerFilter,
   PackageStatePills,
   packageCardStyles,
   type PackageCardLayoutProps,
@@ -34,6 +35,8 @@ export function ProductPackageCardHero({
   packageItem,
   onProposeTrade,
   hasPendingProposal = false,
+  producerFilterId,
+  onToggleProducerFilter,
 }: PackageCardLayoutProps) {
   const catalog = packageItem.catalog;
   const packaging = catalog ? packagingLabel(catalog) : null;
@@ -68,6 +71,12 @@ export function ProductPackageCardHero({
           de {packageItem.producer.name}
         </ThemedText>
       </View>
+
+      <PackageProducerFilter
+        packageItem={packageItem}
+        producerFilterId={producerFilterId}
+        onToggleProducerFilter={onToggleProducerFilter}
+      />
 
       {catalog ? (
         <View style={styles.truth}>

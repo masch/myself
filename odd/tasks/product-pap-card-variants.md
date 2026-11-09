@@ -53,6 +53,21 @@ arriba de 1 PAP`, `Coincide exacto con 1 PAP` — never as a bare `real 0,97 PAP
   and pending states are never hidden by the redesign, and a package without a `catalog` block
   (the four POC packages, any injected state) still renders — it just has no equivalence to state.
 
+- **S9** — The producer filter is a toggle on **every** card, in the user's words: _"me gustaría que la
+  card tenga un filtro nuevo que haga que filtre todos los procutos de ese productor al estilo
+  toggle"_ and then _"en todas las cards va el chip"_. Treatment **C**, confirmed with _"ok, vmaos por
+  C"_, pinned in `design/product-pap-card/07-chip-productor-elegida.html`: an actionable chip
+  `Ver solo de <productor>` under the producer line of every layout, which narrows the gondola to that
+  producer's packages. With the filter on, the same chip reads `Solo <productor>`, is filled and
+  reports `aria-pressed="true"`, and pressing it again clears the filter. The canonical place to read
+  and clear the active filter is the list header (`Filtrando por <productor>` + clear), never a second
+  source of truth living inside a card.
+- **S10** — The filter is not identity. `?producerId=` keeps meaning "who I am" — the producer whose
+  own packages the gondola already excludes — so the filter travels in its own address key
+  `?de=<producerId>`, composes **AND** with certification, distance and search, and is therefore
+  shareable. Adding it must not change the behaviour of any existing parameter, and S4 still holds:
+  local only.
+
 ## Tasks
 
 - [x] **TASK-1**: One owner for the card's derived strings — quantity wording, packaging wording
@@ -67,6 +82,12 @@ arriba de 1 PAP`, `Coincide exacto con 1 PAP` — never as a bare `real 0,97 PAP
       address (no new preference store), and the single `1 PAP = <ARS>` anchor confirmed rather than
       duplicated (S2, S3, S7).
 - [x] **TASK-5**: Close: full `make check`, evidence, and the local evaluation note (S4).
+- [x] **TASK-6**: Producer-filter state, the `?de=` address key and its AND composition with the
+      existing filters, test-first (S10).
+- [x] **TASK-7**: `PackageProducerFilter` chip rendered by every card layout, with its pressed state
+      and accessible name (S9).
+- [x] **TASK-8**: The applied-filter chip on the list header that clears the filter (S9).
+- [x] **TASK-9**: Close: full `make check`, evidence, and the local evaluation note (S4).
 
 ## Evidence & Verification
 
@@ -130,6 +151,25 @@ found`). GREEN at `740 pass`, and the three assertions left failing were the par
   the design source) — each targeting the previous branch and carrying the Chain Context section.
   The tracker carries `Closes #144`; the children only `Refs #144`, so the issue closes on
   integration. The web E2E suite remains unverified for this change (see above).
+
+- **TASK-6** — `barter-store.ts` (`producerFilterId`, `setProducerFilter`), `gondola-params.ts`
+  (`?de=`, its own key next to the write-only `producerId`), `use-gondola-params.ts`,
+  `barter-selectors.ts` (`deriveGondolaPackages` narrowing + `toggleProducerFilter`), `use-barter.ts`
+  and `app/barter.tsx`. RED first: 4 failures — the narrowing cases returned
+  `peregrino-del-valle` instead of `naturaleza-viva`, the `?de=` round-trip returned `undefined`, and
+  the view key compared two gondolas as equal. GREEN with the rule implemented; the AND case (organic
+  producer asked for vegan) returns `[]`, and an unknown id returns the unfiltered list.
+- **TASK-7** — `product-card-parts.tsx`: `PackageCardContentProps` / `PackageCardLayoutProps` split so
+  `onToggleProducerFilter` is required while the existing `PackageHandOver` call sites keep their
+  narrower contract, plus `PackageProducerFilter` on top of `ChipButton`. Both layouts render it under
+  the producer line. RED: three `The markup carries no card-producer-filter-naturaleza-viva` failures.
+- **TASK-8** — `gondola-filter-bar.tsx`: `Filtrando por` row, rendered only when a producer name
+  resolves, with the chip that clears it. RED: `The markup carries no gondola-producer-filter-active`.
+- **TASK-9** — `make check-tests` (mobile 758 pass / 0 fail, API 106 pass), `make check-types` (3/3
+  workspaces), `make check-lint` (0 errors, 4 pre-existing warnings), `make check-format` clean after
+  `make fix-format`. One accessibility note: react-native-web drops `accessibilityState`, so the chip
+  carries both `accessibilityState={{ selected }}` for native and `aria-selected` for web — the same
+  pairing `segmented-control.tsx` already uses.
 
 ## Decisions
 
@@ -203,3 +243,19 @@ litro pet`). Splitting the presentation suffix out of the printed name would be 
   `design/product-pap-card/07-chip-productor-elegida.html` pins both states of the control (idle chip
   under the producer, pressed chip plus the applied filter declared once on the list header), so the
   filter state never repeats per card — the same rule S3 already set for the PAP anchor.
+
+- **L11** — Implemented on `feat/producer-filter-chip`, local only (no push, no PR, no release, S4):
+  the producer filter is new view state (`?de=`), never a reuse of `producerId`, it composes AND with
+  the certification and distance filters, and it fails open on a producer the catalog no longer has.
+  The chip ships in both card layouts; the applied filter is declared once on the filter bar. Decision
+  still open from L8: which card hierarchy the new producer-first card uses — `04-producto-protagonista`
+  or `05-etiqueta-de-origen` — so the new variant itself is not implemented yet.
+
+## Delivery slices
+
+- **Slice 1** — `d976d46` `docs(design): explore producer-first cards and the producer filter chip`:
+  the four artboards and their manifest (~2.5k lines, almost all self-contained HTML mock).
+- **Slice 2** — `9ec7839` `feat(barter): filter the gondola by the producer on the card`: T6-T8 with
+  their tests and this document (~590 lines of source). Delivery strategy stays **local only** (S4):
+  the branch is never pushed and no PR opens until the user asks, so the two slices above are the
+  review units if that changes.

@@ -253,3 +253,46 @@ describe("gondolaViewKey", () => {
     expect(gondolaViewKey(DEFAULTS, "sabado")).not.toBe(base);
   });
 });
+
+/**
+ * The producer filter is a view, not identity.
+ *
+ * `producerId` says who I am, and the gondola already excludes that producer's own
+ * packages; narrowing to somebody else's shelf is a different fact, so it needs a
+ * different key — and the two must never overwrite each other in a shared link.
+ */
+describe("the address carries the producer filter", () => {
+  it("round-trips the producer filter in its own key, apart from producerId", () => {
+    const state = parseGondolaParams({ de: "naturaleza-viva" }, DEFAULTS);
+
+    expect(state.producerFilter).toBe("naturaleza-viva");
+
+    const params = buildGondolaParams(state, "sabado");
+
+    expect(params.de).toBe("naturaleza-viva");
+    expect(params.producerId).toBe("sabado");
+  });
+
+  it("reads an absent producer filter as no filter, even when the screen had one", () => {
+    // Clearing the filter removes its parameter, so reading absence as "keep the
+    // mount-time value" would restore a filter the user already turned off when
+    // they navigate back.
+    const state = parseGondolaParams(
+      { q: "queso" },
+      { ...DEFAULTS, producerFilter: "naturaleza-viva" },
+    );
+
+    expect(state.producerFilter).toBeUndefined();
+    expect(buildGondolaParams(state).de).toBeUndefined();
+  });
+
+  it("keeps two gondolas apart in the view key when only the producer differs", () => {
+    const filtered = gondolaViewKey({
+      ...DEFAULTS,
+      producerFilter: "sasaki",
+    });
+
+    expect(filtered).not.toBe(gondolaViewKey(DEFAULTS));
+    expect(filtered).toContain("de=sasaki");
+  });
+});
