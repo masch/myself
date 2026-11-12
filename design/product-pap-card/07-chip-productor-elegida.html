@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Dirección 07 — Chip de productor: los dos estados</title>
+    <style>
+      :root {
+        --background: #000000;
+        --surface: #1c1c1e;
+        --band: #0f0f10;
+        --label: #ffffff;
+        --secondary: #8e8e93;
+        --separator: #38383a;
+        --blue: #007aff;
+        --green: #34c759;
+        --orange: #ff9500;
+        --s-xxs: 2px;
+        --s-xs: 4px;
+        --s-sm: 8px;
+        --s-compact: 12px;
+        --s-md: 16px;
+        --s-lg: 24px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-full: 9999px;
+        --font:
+          -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+          system-ui, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--background);
+        color: var(--label);
+        font-family: var(--font);
+        -webkit-font-smoothing: antialiased;
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+
+      .note {
+        margin: var(--s-compact) var(--s-md) var(--s-md);
+        padding: var(--s-sm) var(--s-compact);
+        border: 1px dashed var(--separator);
+        border-radius: var(--radius-md);
+        background: var(--band);
+      }
+      .note-kicker {
+        display: block;
+        font-size: 11px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--secondary);
+      }
+      .note strong {
+        display: block;
+        font-size: 15px;
+        line-height: 20px;
+        font-weight: 600;
+        margin-top: var(--s-xxs);
+      }
+      .note-tradeoff {
+        display: block;
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--secondary);
+        margin-top: var(--s-xs);
+      }
+
+      .list-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--s-compact);
+        margin: 0 var(--s-md) var(--s-compact);
+      }
+      .list-title {
+        margin: 0;
+        font-size: 22px;
+        line-height: 28px;
+        font-weight: 700;
+        color: var(--label);
+      }
+      .pap-anchor {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--secondary);
+        white-space: nowrap;
+      }
+
+      /* Fila de filtros activos: el estado del toggle se declara una vez acá y
+     nunca se repite por card, igual que el ancla de 1 PAP. */
+      .applied-row {
+        display: flex;
+        align-items: center;
+        gap: var(--s-sm);
+        margin: 0 var(--s-md) var(--s-compact);
+        overflow-x: auto;
+      }
+      .applied-label {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--secondary);
+        white-space: nowrap;
+      }
+      .applied-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 32px;
+        padding: 0 10px;
+        border-radius: var(--radius-full);
+        border-color: transparent;
+        background: rgba(52, 199, 89, 0.16);
+        color: var(--label);
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .applied-chip .glyph {
+        flex: 0 0 auto;
+      }
+
+      .list {
+        padding: var(--s-compact) 0;
+      }
+      .card {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        padding: var(--s-md);
+        margin: 0 var(--s-md) var(--s-md);
+      }
+
+      .producer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s-sm);
+      }
+      .producer-name {
+        margin: 0;
+        font-size: 21px;
+        line-height: 26px;
+        font-weight: 700;
+        color: var(--label);
+      }
+      .producer-origin {
+        display: block;
+        margin-top: var(--s-xxs);
+        font-size: 14px;
+        line-height: 19px;
+        color: var(--secondary);
+      }
+
+      /* El control: un chip que se comporta como toggle. Inactivo con borde y
+     texto secundario; activo relleno, para que el estado no dependa solo del
+     color del texto. */
+      .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 32px;
+        margin-top: var(--s-sm);
+        padding: 0 10px;
+        border-radius: var(--radius-full);
+        border: 1px solid var(--separator);
+        background: transparent;
+        color: var(--secondary);
+        font-size: 13px;
+        line-height: 18px;
+        font-weight: 600;
+      }
+      .filter-chip .glyph {
+        flex: 0 0 auto;
+      }
+      .filter-chip[aria-pressed="true"] {
+        border-color: transparent;
+        background: rgba(52, 199, 89, 0.16);
+        color: var(--label);
+      }
+
+      .product-label {
+        display: block;
+        font-size: 11px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--secondary);
+      }
+      .product-name {
+        margin: var(--s-xxs) 0 0;
+        font-size: 19px;
+        line-height: 24px;
+        font-weight: 600;
+        color: var(--label);
+      }
+
+      .equiv {
+        display: flex;
+        align-items: baseline;
+        gap: var(--s-xs);
+        margin-top: var(--s-compact);
+      }
+      .equiv-value {
+        font-size: 30px;
+        line-height: 34px;
+        font-weight: 700;
+        color: var(--label);
+      }
+      .equiv-of {
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--secondary);
+      }
+
+      .support {
+        margin: var(--s-xs) 0 0;
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--secondary);
+      }
+      .support.is-down {
+        color: var(--orange);
+      }
+
+      .rule {
+        height: 1px;
+        background: var(--separator);
+        margin: var(--s-compact) 0;
+      }
+
+      .source-label {
+        font-size: 11px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--secondary);
+      }
+      .source-value {
+        margin: var(--s-xxs) 0 0;
+        font-size: 13px;
+        line-height: 18px;
+        color: var(--label);
+      }
+
+      .pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s-xs);
+        margin-top: var(--s-sm);
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 6px;
+        border-radius: var(--radius-full);
+        border: 1px solid var(--separator);
+        font-size: 11px;
+        line-height: 13px;
+        font-weight: 600;
+        color: var(--secondary);
+        white-space: nowrap;
+      }
+      .pill.stock {
+        border-color: transparent;
+        background: rgba(142, 142, 147, 0.15);
+        color: var(--label);
+      }
+
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s-compact);
+      }
+      .hand-over {
+        display: flex;
+        flex-direction: column;
+      }
+      .hand-over-label {
+        font-size: 11px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--secondary);
+      }
+      .hand-over-value {
+        font-size: 16px;
+        line-height: 21px;
+        font-weight: 600;
+        color: var(--label);
+        margin-top: var(--s-xxs);
+      }
+
+      button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .match {
+        background: var(--blue);
+        color: #ffffff;
+        border-radius: var(--radius-lg);
+        padding: 14px 20px;
+        min-height: 44px;
+        font-size: 17px;
+        line-height: 22px;
+        font-weight: 600;
+      }
+      .match:focus-visible,
+      .filter-chip:focus-visible,
+      .applied-chip:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
+      }
+
+      .state {
+        margin: var(--s-lg) var(--s-md) 0;
+        padding-top: var(--s-compact);
+        border-top: 1px dashed var(--separator);
+      }
+      .state-kicker {
+        display: block;
+        font-size: 11px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--secondary);
+      }
+      .state-title {
+        margin: var(--s-xxs) 0 var(--s-compact);
+        font-size: 15px;
+        line-height: 20px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="note" role="note">
+      <span class="note-kicker">Dirección 07 · elegida</span>
+      <strong>Chip de productor, en sus dos estados</strong>
+      <span class="note-tradeoff"
+        >El chip vive en la card, bajo el productor; el estado del filtro se
+        declara una sola vez sobre la lista. Tocar el chip lo enciende y suma el
+        filtro al encabezado; tocar el chip del encabezado lo apaga y devuelve
+        la góndola completa. Dos caminos para el mismo estado, un solo
+        estado.</span
+      >
+    </aside>
+
+    <main class="list">
+      <header class="list-head">
+        <h1 class="list-title">Góndola de Productores</h1>
+        <span class="pap-anchor num">1 PAP = $50.000 ARS</span>
+      </header>
+
+      <article
+        class="card"
+        aria-label="Naturaleza Viva: aceite girasol por 1 PAP. Sin filtro de productor"
+      >
+        <div class="producer-row">
+          <h2 class="producer-name">Naturaleza Viva</h2>
+          <span class="pill">Orgánico</span>
+        </div>
+        <span class="producer-origin"
+          >📍 985 km · Guadalupe Norte, Santa Fe</span
+        >
+
+        <button
+          type="button"
+          class="filter-chip"
+          aria-pressed="false"
+          aria-label="Ver solo los productos de Naturaleza Viva"
+        >
+          <svg
+            class="glyph"
+            width="12"
+            height="12"
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M1.5 2.5h13l-5 5.6v5.1l-3 1.3V8.1z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Ver solo de Naturaleza Viva
+        </button>
+
+        <div class="rule"></div>
+
+        <span class="product-label">Producto</span>
+        <p class="product-name">Aceite girasol x 1/2 litro pet</p>
+
+        <div class="equiv">
+          <span class="equiv-value num">4,5 litros</span>
+          <span class="equiv-of">por 1 PAP</span>
+        </div>
+        <p class="support num">9 envases de 500 ml</p>
+        <p class="support num is-down">Queda $1.741 abajo de 1 PAP</p>
+
+        <div class="rule"></div>
+
+        <span class="source-label">Precio del catálogo impreso</span>
+        <p class="source-value num">$5.362,07 por 500 ml</p>
+
+        <div class="pills">
+          <span class="pill stock">1 disponible</span>
+        </div>
+
+        <div class="rule"></div>
+
+        <div class="footer">
+          <div class="hand-over">
+            <span class="hand-over-label">Entregás</span>
+            <span class="hand-over-value num">1 PAP</span>
+          </div>
+          <button
+            type="button"
+            class="match"
+            aria-label="Pedir match por Aceite girasol x 1/2 litro pet"
+          >
+            Pedir match
+          </button>
+        </div>
+      </article>
+    </main>
+
+    <section
+      class="state"
+      aria-label="Estado con el filtro de productor activo"
+    >
+      <span class="state-kicker">Estado activo</span>
+      <p class="state-title">
+        El filtro aparece en el encabezado y la card muestra el chip encendido.
+      </p>
+
+      <div class="applied-row">
+        <span class="applied-label">Filtrando por</span>
+        <button
+          type="button"
+          class="applied-chip"
+          aria-label="Quitar el filtro de productor Naturaleza Viva"
+        >
+          Naturaleza Viva
+          <svg
+            class="glyph"
+            width="12"
+            height="12"
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M4 4l8 8M12 4l-8 8"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <article
+        class="card"
+        aria-label="Naturaleza Viva: queso gouda por 1 PAP. Filtro de productor activo"
+      >
+        <div class="producer-row">
+          <h2 class="producer-name">Naturaleza Viva</h2>
+          <span class="pill">Orgánico</span>
+        </div>
+        <span class="producer-origin"
+          >📍 985 km · Guadalupe Norte, Santa Fe</span
+        >
+
+        <button
+          type="button"
+          class="filter-chip"
+          aria-pressed="true"
+          aria-label="Quitar el filtro de productor Naturaleza Viva"
+        >
+          <svg
+            class="glyph"
+            width="12"
+            height="12"
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M1.5 2.5h13l-5 5.6v5.1l-3 1.3V8.1z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Solo Naturaleza Viva
+        </button>
+
+        <div class="rule"></div>
+
+        <span class="product-label">Producto</span>
+        <p class="product-name">Queso Gouda a granel</p>
+
+        <div class="equiv">
+          <span class="equiv-value num">2,26 kilos</span>
+          <span class="equiv-of">por 1 PAP</span>
+        </div>
+        <p class="support num">corte a granel</p>
+        <p class="support num">Coincide exacto con 1 PAP</p>
+
+        <div class="rule"></div>
+
+        <span class="source-label">Precio del catálogo impreso</span>
+        <p class="source-value num">$22.158,20 por kg</p>
+
+        <div class="pills">
+          <span class="pill stock">1 disponible</span>
+        </div>
+
+        <div class="rule"></div>
+
+        <div class="footer">
+          <div class="hand-over">
+            <span class="hand-over-label">Entregás</span>
+            <span class="hand-over-value num">1 PAP</span>
+          </div>
+          <button
+            type="button"
+            class="match"
+            aria-label="Pedir match por Queso Gouda a granel"
+          >
+            Pedir match
+          </button>
+        </div>
+      </article>
+    </section>
+  </body>
+</html>

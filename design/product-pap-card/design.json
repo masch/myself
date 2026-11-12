@@ -1,6 +1,7 @@
 {
   "title": "Cards de producto — qué te llevás por 1 PAP",
-  "brief": "Rediseñar la card de producto de la góndola de trueque para que la cantidad equivalente a 1 PAP se entienda de un vistazo, sin que el nombre impreso del producto compita con ella. Regla aplicada: 1 PAP = $50.000 ARS es invariante de la superficie, se declara una vez arriba de la lista y la card solo muestra lo que varía por producto. Datos reales del catálogo Primavera 2026.",
+  "brief": "Rediseñar la card de producto de la góndola de trueque para que la cantidad equivalente a 1 PAP se entienda de un vistazo, sin que el nombre impreso del producto compita con ella. Regla aplicada: 1 PAP = $50.000 ARS es invariante de la superficie, se declara una vez arriba de la lista y la card solo muestra lo que varía por producto. Datos reales del catálogo Primavera 2026. Las direcciones 04 y 05 prueban la misma regla con la jerarquía invertida: primero el productor y su origen, después el resto.",
+  "feature": "odd/tasks/product-pap-card-variants.md",
   "artboards": [
     {
       "file": "01-equivalencia-heroe.html",
@@ -22,6 +23,34 @@
       "tradeoff": "Cuenta la operación como un comprobante con la diferencia en pesos entre lo que vale el paquete y 1 PAP: máxima transparencia sobre el redondeo, a costa de más números y de depender del ancla del encabezado para cerrar la cuenta.",
       "width": 390,
       "height": 1180
+    },
+    {
+      "file": "04-productor-protagonista.html",
+      "title": "Productor protagonista",
+      "tradeoff": "El productor y su origen abren la card, el producto pasa a etiqueta y la equivalencia queda un escalón abajo: se sabe de quién es lo que te llevás antes de leer el número, a costa de repetir el mismo nombre en cada producto de ese productor y de perder el escaneo por cantidad.",
+      "width": 390,
+      "height": 1360
+    },
+    {
+      "file": "05-etiqueta-de-origen.html",
+      "title": "Etiqueta de origen",
+      "tradeoff": "El origen entra como un bloque rotulado dentro de la card (viene de, distancia, productor, lugar) y debajo sigue la ficha de la cuenta: el origen se reconoce como dato propio, a costa de un contenedor anidado y unos 60 px más de alto por card.",
+      "width": 390,
+      "height": 1360
+    },
+    {
+      "file": "06-filtro-productor.html",
+      "title": "Filtro por productor: tres tratamientos",
+      "tradeoff": "Compara el mismo toggle en tres lugares: dentro de la card (A), en el nombre del productor con el estado en el encabezado (B), y como chip accionable bajo el productor (C). A es la más explícita pero repite un estado global en cada card de la lista; B es la más barata en altura y la más ambigua al tocar; C queda a medio camino y es la más fácil de descubrir.",
+      "width": 390,
+      "height": 1600
+    },
+    {
+      "file": "07-chip-productor-elegida.html",
+      "title": "Chip de productor, elegida",
+      "tradeoff": "La dirección elegida: el chip accionable vive bajo el productor en la card y el estado del filtro se declara una sola vez sobre la lista. Ocupa ~40 px por card y exige que la fila de filtros activos exista en el encabezado; a cambio, el control se descubre sin repetir un estado global doce veces.",
+      "width": 390,
+      "height": 1240
     }
   ]
 }
