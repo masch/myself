@@ -19,6 +19,7 @@ export function useBarter(): BarterState & {
   setProductionTypeFilter: (
     filter?: BarterState["productionTypeFilter"],
   ) => void;
+  setProducerFilter: (producerId?: string) => void;
   createTradeProposal: typeof globalBarterStore.createTradeProposal;
   acceptTradeMatch: typeof globalBarterStore.acceptTradeMatch;
   rejectTradeMatch: typeof globalBarterStore.rejectTradeMatch;
@@ -80,6 +81,7 @@ export function useBarter(): BarterState & {
     setPapConfigArs: globalBarterStore.setPapConfigArs,
     setMaxDistanceKm: globalBarterStore.setMaxDistanceKm,
     setProductionTypeFilter: globalBarterStore.setProductionTypeFilter,
+    setProducerFilter: globalBarterStore.setProducerFilter,
     createTradeProposal: globalBarterStore.createTradeProposal,
     acceptTradeMatch: globalBarterStore.acceptTradeMatch,
     rejectTradeMatch: globalBarterStore.rejectTradeMatch,

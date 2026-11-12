@@ -59,6 +59,12 @@ export interface BarterState {
   papConfigArs: number;
   maxDistanceKm?: number;
   productionTypeFilter?: ProductionType | "ALL";
+  /**
+   * The producer the gondola is narrowed to, when the user pressed that card's
+   * filter chip. It is **not** `activeProducerId`: that one is who is looking and
+   * is excluded from the gondola, this one chooses which shelf is in it.
+   */
+  producerFilterId?: string;
 }
 
 export interface CreateStoreOptions {
@@ -545,6 +551,7 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     papConfigArs: persistedState.papConfigArs ?? DEFAULT_PAP_VALUE_ARS,
     maxDistanceKm: undefined,
     productionTypeFilter: "ALL",
+    producerFilterId: undefined,
   };
 
   const listeners = new Set<() => void>();
@@ -638,6 +645,16 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
 
     setProductionTypeFilter: (filter?: ProductionType | "ALL") => {
       state = { ...state, productionTypeFilter: filter };
+      notify(false);
+    },
+
+    /**
+     * Narrows the gondola to one producer's shelf. Local to this tab, like the
+     * other two filters: it is how this user is looking at the gondola, not a fact
+     * about the trade.
+     */
+    setProducerFilter: (producerId?: string) => {
+      state = { ...state, producerFilterId: producerId };
       notify(false);
     },
 

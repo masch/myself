@@ -9,6 +9,7 @@ import {
   deriveGondolaPackages,
   filterGondolaPackages,
   filterPackagesByTitle,
+  toggleProducerFilter,
 } from "../barter-selectors";
 
 function makeState(overrides: Partial<BarterState> = {}): BarterState {
@@ -134,6 +135,23 @@ describe("filterGondolaPackages", () => {
   });
 });
 
+/**
+ * The chip is one control with two states, so pressing it again has to undo what
+ * pressing it did instead of nesting filters nobody can see.
+ */
+describe("toggleProducerFilter", () => {
+  it("sets the producer the first time and clears it when pressed again", () => {
+    const filtered = toggleProducerFilter(undefined, "naturaleza-viva");
+
+    expect(filtered).toBe("naturaleza-viva");
+    expect(toggleProducerFilter(filtered, "naturaleza-viva")).toBeUndefined();
+  });
+
+  it("moves the filter to another producer instead of keeping both", () => {
+    expect(toggleProducerFilter("naturaleza-viva", "sasaki")).toBe("sasaki");
+  });
+});
+
 describe("filterPackagesByTitle", () => {
   const own = [
     { id: "a", title: "Pack 4 Botellas Vermut Rosso 750ml" },
@@ -158,5 +176,75 @@ describe("filterPackagesByTitle", () => {
 
   it("returns nothing when no title matches", () => {
     expect(filterPackagesByTitle(own, "queso")).toEqual([]);
+  });
+});
+
+/**
+ * The producer filter is one chip per card narrowing one list, so it composes with
+ * the filters already there and it never empties the gondola because the producer
+ * it names stopped existing.
+ */
+describe("deriveGondolaPackages narrows to one producer", () => {
+  it("keeps only that producer's packages, composed with the type filter", () => {
+    const gondola = deriveGondolaPackages(
+      makeState({
+        activeProducerId: "sabado",
+        producerFilterId: "naturaleza-viva",
+      }),
+    );
+
+    expect(gondola.length).toBeGreaterThan(0);
+    for (const item of gondola) {
+      expect(item.producerId).toBe("naturaleza-viva");
+    }
+
+    // AND, never replace: Naturaleza Viva is organic, so asking for vegan on its
+    // shelf is empty. An unfiltered producer list would still carry rows.
+    expect(
+      deriveGondolaPackages(
+        makeState({
+          activeProducerId: "sabado",
+          producerFilterId: "naturaleza-viva",
+          productionTypeFilter: "VEGAN",
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it("still applies the distance ceiling inside the narrowed list", () => {
+    const narrow = deriveGondolaPackages(
+      makeState({
+        activeProducerId: "sabado",
+        producerFilterId: "naturaleza-viva",
+      }),
+    );
+    const near = deriveGondolaPackages(
+      makeState({
+        activeProducerId: "sabado",
+        producerFilterId: "naturaleza-viva",
+        maxDistanceKm: 50,
+      }),
+    );
+
+    expect(narrow.length).toBeGreaterThan(0);
+    expect(near.length).toBeLessThan(narrow.length);
+    for (const item of near) {
+      expect(item.distanceKm).toBeLessThanOrEqual(50);
+      expect(item.producerId).toBe("naturaleza-viva");
+    }
+  });
+
+  it("narrows nothing when the filter names a producer the catalog lost", () => {
+    // A link built by a newer build, or a stored state after a catalog change: an
+    // empty gondola would read as "this producer sells nothing" instead of "this
+    // filter no longer applies".
+    const unfiltered = deriveGondolaPackages(makeState());
+    const stale = deriveGondolaPackages(
+      makeState({ producerFilterId: "prod-ghost" }),
+    );
+
+    expect(stale.map((item) => item.id)).toEqual(
+      unfiltered.map((item) => item.id),
+    );
   });
 });

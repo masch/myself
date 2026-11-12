@@ -18,6 +18,7 @@ import {
   TradeProposalModal,
   useGondolaParams,
   filterGondolaPackages,
+  toggleProducerFilter,
   DEFAULT_CARD_VARIANT,
   type CardVariant,
   type GondolaPackage,
@@ -56,9 +57,11 @@ export default function BarterScreen() {
     matches,
     productionTypeFilter,
     maxDistanceKm,
+    producerFilterId,
     setActiveProducer,
     setProductionTypeFilter,
     setMaxDistanceKm,
+    setProducerFilter,
     createTradeProposal,
     resetToSeed,
   } = useBarter();
@@ -80,12 +83,14 @@ export default function BarterScreen() {
     productionType: productionTypeFilter ?? "ALL",
     maxDistanceKm,
     cardVariant,
+    producerFilter: producerFilterId,
     activeProducerId: activeProducer?.id,
     onApply: (state) => {
       setQuery(state.query);
       setProductionTypeFilter(state.productionType);
       setMaxDistanceKm(state.maxDistanceKm);
       setCardVariant(state.cardVariant);
+      setProducerFilter(state.producerFilter);
     },
   });
 
@@ -119,6 +124,19 @@ export default function BarterScreen() {
     setSelectedTargetPackage(pkg);
   }, []);
 
+  // One control, two states: the card chip and the header chip both come back
+  // here, so pressing an active chip clears the filter instead of narrowing again.
+  const handleToggleProducerFilter = useCallback(
+    (producerId: string) => {
+      setProducerFilter(toggleProducerFilter(producerFilterId, producerId));
+    },
+    [producerFilterId, setProducerFilter],
+  );
+
+  const handleClearProducerFilter = useCallback(() => {
+    setProducerFilter(undefined);
+  }, [setProducerFilter]);
+
   const handleConfirmProposal = (offeredPackageId: string) => {
     if (!selectedTargetPackage || !activeProducer) return;
 
@@ -149,15 +167,29 @@ export default function BarterScreen() {
         packageItem={item}
         variant={cardVariant}
         hasPendingProposal={pendingPackageIds.has(item.id)}
+        producerFilterId={producerFilterId}
         onProposeTrade={handleOpenProposal}
+        onToggleProducerFilter={handleToggleProducerFilter}
       />
     ),
-    [pendingPackageIds, handleOpenProposal, cardVariant],
+    [
+      pendingPackageIds,
+      handleOpenProposal,
+      handleToggleProducerFilter,
+      cardVariant,
+      producerFilterId,
+    ],
   );
 
   const targetProducer = producers.find(
     (p) => p.id === selectedTargetPackage?.producerId,
   );
+
+  // The header names the filter; a stored or shared id the catalog lost resolves to
+  // no name, and the gondola is unfiltered by then (see `deriveGondolaPackages`).
+  const producerFilterName = producerFilterId
+    ? producers.find((p) => p.id === producerFilterId)?.name
+    : undefined;
 
   const trimmedQuery = query.trim();
 
@@ -199,6 +231,8 @@ export default function BarterScreen() {
         onSelectMaxDistance={setMaxDistanceKm}
         cardVariant={cardVariant}
         onSelectCardVariant={setCardVariant}
+        producerFilterName={producerFilterName}
+        onClearProducerFilter={handleClearProducerFilter}
       />
 
       <View style={styles.sectionHeader}>

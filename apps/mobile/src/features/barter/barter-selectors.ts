@@ -12,15 +12,31 @@ export type GondolaPackage = BarterState["packages"][number] & {
 
 /**
  * Builds the gondola: packages from the other producers, with the production
- * type and max distance filters applied.
+ * type, distance and producer filters applied.
+ *
+ * The producer filter is a **view**, not identity: `activeProducerId` says who is
+ * looking and is excluded from the gondola, while `producerFilterId` narrows what
+ * that producer sees. The three filters narrow the same list (AND), so a link
+ * carrying all of them reproduces exactly one shelf.
+ *
+ * A filter naming a producer the catalog no longer carries narrows nothing. An
+ * empty gondola would read as "this producer sells nothing" instead of "this
+ * filter no longer applies", and a shared link would look broken.
  */
 export function deriveGondolaPackages(state: BarterState): GondolaPackage[] {
   const activeProducer = state.producers.find(
     (p) => p.id === state.activeProducerId,
   );
 
+  const filteredProducer = state.producerFilterId
+    ? state.producers.find((p) => p.id === state.producerFilterId)
+    : undefined;
+
   return state.packages
     .filter((pkg) => pkg.producerId !== state.activeProducerId)
+    .filter(
+      (pkg) => !filteredProducer || pkg.producerId === filteredProducer.id,
+    )
     .filter((pkg) => {
       if (
         state.productionTypeFilter &&
@@ -64,6 +80,18 @@ export function deriveGondolaPackages(state: BarterState): GondolaPackage[] {
       }
       return true;
     });
+}
+
+/**
+ * The producer filter as one toggle: pressing the producer already filtered clears
+ * the filter, pressing another one replaces it. Two producers can never both be
+ * the filter, so a chip always describes the whole state it shows.
+ */
+export function toggleProducerFilter(
+  current: string | undefined,
+  producerId: string,
+): string | undefined {
+  return current === producerId ? undefined : producerId;
 }
 
 /**
