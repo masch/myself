@@ -251,6 +251,16 @@ litro pet`). Splitting the presentation suffix out of the printed name would be 
   still open from L8: which card hierarchy the new producer-first card uses — `04-producto-protagonista`
   or `05-etiqueta-de-origen` — so the new variant itself is not implemented yet.
 
+- **L12** — Delivery state, corrected (2026-11-08): PR **#154**
+  (`feat/producer-filter-chip-impl` → `main`) is open, so S4's "local only" no longer governs and the
+  branch is pushed from here on; the slices below stay the review units. Previous entries were not
+  rewritten, so two facts stated above are now historical: the slice hashes `d976d46`/`9ec7839` are
+  pre-rewrite objects no longer in this branch's ancestry (the delivered commits are `2640ff9`, design
+  directions, and `5c6aff5`, the feature), and the design content itself already sits on `main` as
+  `db226f5` (#152). The conflict on this file came from that squash and was resolved by keeping this
+  branch's side — `main` added nothing the branch lacks: `git diff` from `b796b45` to `origin/main`
+  over `design/` and `odd/` is empty — in merge commit `871f18c`.
+
 ## Delivery slices
 
 - **Slice 1** — `d976d46` `docs(design): explore producer-first cards and the producer filter chip`:
