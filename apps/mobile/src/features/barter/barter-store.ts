@@ -51,6 +51,9 @@ export const SEED_PRODUCERS: Producer[] = [...PRIMAVERA_2026_PRODUCERS];
  */
 export const SEED_PACKAGES: ProductPackage[] = [...catalogPackages()];
 
+/** The current seed by package id, for refreshing stored installs at load time. */
+const SEED_PACKAGE_BY_ID = new Map(SEED_PACKAGES.map((pkg) => [pkg.id, pkg]));
+
 export interface BarterState {
   producers: Producer[];
   packages: ProductPackage[];
@@ -195,10 +198,30 @@ export function mergeCatalogPackages(
     return SEED_PACKAGES;
   }
 
-  const persistedIds = new Set(persisted.map((pkg) => pkg.id));
+  // Stored bytes come from another build, and a deploy that changes the catalog
+  // (new titles, re-priced rows, dropped presentations) must reach the operator
+  // without a manual "Reiniciar datos": for every package this seed still
+  // prints, the seed's printed facts win (title, price, PAP equivalence and
+  // disclosure) while the persisted state keeps what belongs to the install —
+  // its producer assignment and the stock its trades consumed. The ids this
+  // seed dropped fall through to the keep/drop logic below.
+  const refreshed = persisted.map((pkg) => {
+    const seed = SEED_PACKAGE_BY_ID.get(pkg.id);
+    return seed
+      ? {
+          ...pkg,
+          title: seed.title,
+          priceArs: seed.priceArs,
+          papValue: seed.papValue,
+          ...(seed.catalog ? { catalog: seed.catalog } : {}),
+        }
+      : pkg;
+  });
+
+  const persistedIds = new Set(refreshed.map((pkg) => pkg.id));
   const missing = SEED_PACKAGES.filter((pkg) => !persistedIds.has(pkg.id));
 
-  return missing.length === 0 ? persisted : [...persisted, ...missing];
+  return missing.length === 0 ? refreshed : [...refreshed, ...missing];
 }
 
 /**
