@@ -174,6 +174,93 @@ export function formatCatalogQuantity(
 }
 
 /**
+ * A printed size inside a product name: `x 5 kg`, `x 1/2 litro`, `x 150grs`,
+ * `x 660 CC.`, `x 4,75 lt.`.
+ *
+ * The printed catalog spells the same measure fourteen ways (`grs`, `gs`, `gr`,
+ * `k`, `kilos`, `cc`, `lts`…), so the token is a tolerant alternation rather
+ * than a grammar. A trailing `(?![a-záéíóúñü])` keeps a single-letter unit from
+ * matching inside a word.
+ *
+ * A count is deliberately **not** a size: `x 6 unidades` or `x unid.` prints how
+ * many pieces one package holds, which the buyer needs, so it stays in the name.
+ */
+const PRINTED_SIZE_SOURCE =
+  "[xX]\\s*(?:aprox\\.?\\s*)?\\d+(?:[.,]\\d+)?(?:\\s*\\/\\s*\\d+)?\\s*(?:mililitros?|kilos?|gramos?|litros?|kgs?|grs?|lts?|cc|ml|gr|gs|kg|lt|g|l|k)\\.?(?![a-záéíóúñü])";
+
+/** Collapses the whitespace a removed token leaves behind. */
+function tidyTitle(name: string): string {
+  return name
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.;:])/g, "$1")
+    .replace(/^[\s.,;:·-]+/, "")
+    .replace(/[\s.,;:·-]+$/, "");
+}
+
+/**
+ * The product name without the printed size it carries.
+ *
+ * The catalog derives every number it discloses from the printed columns
+ * (`presentationSize`, `measure`, the two prices), so the size inside the name is
+ * the one duplicated fact a card would say twice: the title would read
+ * `Aceite girasol x 1 litro pet` under a badge that already states what one PAP
+ * hands over. Removing it here keeps the transcription in
+ * `primavera-products.ts` exactly as the PDF prints it — the tuple stays the
+ * re-checkable evidence — and only the card loses the repetition.
+ *
+ * Only the **last** token goes, because the earlier ones belong to a compound
+ * name (`Galletas de Maíz morado x 40 g (saborizadas …)`), and a name that is
+ * nothing but a size keeps its original text rather than becoming empty.
+ */
+export function stripPrintedSize(name: string): string {
+  let last: RegExpExecArray | null = null;
+
+  for (const match of name.matchAll(new RegExp(PRINTED_SIZE_SOURCE, "gi"))) {
+    last = match;
+  }
+
+  if (!last) return tidyTitle(name);
+
+  const candidate = tidyTitle(
+    `${name.slice(0, last.index)} ${name.slice(last.index + last[0].length)}`,
+  );
+
+  return candidate.length > 1 ? candidate : tidyTitle(name);
+}
+
+/**
+ * What one measure of the product costs, in printed cents — the only fair way to
+ * compare two presentations of the same good.
+ *
+ * A row the catalog sells by measure prints that price directly. A sealed
+ * presentation prints what the container costs, so its per-measure price is that
+ * price divided by how much the container holds.
+ */
+function printedPricePerMeasure(facts: CatalogPackageFacts): number {
+  const unitPrice = facts[PRODUCT_UNIT_PRICE];
+  const measure = facts[PRODUCT_MEASURE];
+
+  if (unitPrice !== null && (measure === "kg" || measure === "litro")) {
+    return unitPrice;
+  }
+
+  const presentationPrice = facts[PRODUCT_FINAL_PRICE] ?? unitPrice;
+  const size = facts[PRODUCT_PRESENTATION_SIZE];
+
+  if (presentationPrice === null) return Number.POSITIVE_INFINITY;
+
+  return size > 0 ? presentationPrice / size : presentationPrice;
+}
+
+/**
+ * The key that makes two rows the same product on the gondola: one producer and
+ * one name, with the printed size already gone.
+ */
+function productKey(producerId: string, title: string): string {
+  return `${producerId}::${title.toLowerCase()}`;
+}
+
+/**
  * Derives one package from one printed row.
  *
  * `papConfigArs` is the ARS value of 1 PAP; it defaults to the shop-wide
@@ -257,6 +344,14 @@ export function deriveCatalogPackage(
  * can never point at a producer the catalog does not print — a number that does
  * not resolve throws instead of dropping the product silently, because a
  * dropped row is a product the user cannot trade and nobody would notice.
+ *
+ * One card per product name per producer (S8): the printed catalog offers the
+ * same good in two or three presentations (`Harina de trigo blanca 000 x 5kg`,
+ * `x 10 kg`, `x 25kg`). With the printed size out of the title those rows would
+ * render as identical cards, so only the row with the **best price per measure**
+ * survives — dropping the format means the price that remains should be the one
+ * least inflated by packaging. A tie keeps the row the PDF prints first, so the
+ * choice is reproducible from the document alone.
  */
 export function catalogPackages(
   papConfigArs?: number,
@@ -265,7 +360,12 @@ export function catalogPackages(
     PRIMAVERA_2026_CATALOG.map((entry) => [entry.number, entry]),
   );
 
-  return PRIMAVERA_2026_PRODUCTS.map((facts) => {
+  const survivors = new Map<
+    string,
+    { pkg: CatalogProductPackage; pricePerMeasure: number }
+  >();
+
+  for (const facts of PRIMAVERA_2026_PRODUCTS) {
     const product = facts[PRODUCT_PRODUCT];
     const producerNumber = facts[PRODUCT_PRODUCER];
     const producer = producers.get(producerNumber);
@@ -277,16 +377,35 @@ export function catalogPackages(
     }
 
     const derived = deriveCatalogPackage(facts, papConfigArs);
+    const title = stripPrintedSize(facts[PRODUCT_NAME]);
+    const key = productKey(producer.id, title);
+    const pricePerMeasure = printedPricePerMeasure(facts);
+    const current = survivors.get(key);
 
-    return {
-      id: `${CATALOG_PACKAGE_ID_PREFIX}${product}`,
-      producerId: producer.id,
-      title: facts[PRODUCT_NAME],
-      productionType: producer.productionType,
-      priceArs: derived.priceArs,
-      papValue: derived.papValue,
-      stockUnits: CATALOG_STOCK_UNITS,
-      catalog: derived.catalog,
-    };
-  });
+    // Strictly cheaper, never equal: the earlier printed row keeps a tie.
+    if (current && current.pricePerMeasure <= pricePerMeasure) continue;
+
+    survivors.set(key, {
+      pricePerMeasure,
+      pkg: {
+        id: `${CATALOG_PACKAGE_ID_PREFIX}${product}`,
+        producerId: producer.id,
+        title,
+        productionType: producer.productionType,
+        priceArs: derived.priceArs,
+        papValue: derived.papValue,
+        stockUnits: CATALOG_STOCK_UNITS,
+        catalog: derived.catalog,
+      },
+    });
+  }
+
+  return [...survivors.values()]
+    .map((entry) => entry.pkg)
+    .sort((a, b) => printedNumber(a.id) - printedNumber(b.id));
+}
+
+/** The printed row a package id was built from, for restoring the printed order. */
+function printedNumber(id: string): number {
+  return Number(id.slice(CATALOG_PACKAGE_ID_PREFIX.length));
 }
