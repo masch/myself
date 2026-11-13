@@ -124,6 +124,30 @@ function boot(raw: unknown) {
   return createBarterStore({ broadcastEnabled: false });
 }
 
+describe("a stored install written before the current catalog build", () => {
+  it("renders a surviving package with the seed's current title, keeping the stored stock", () => {
+    // Deploy-time refresh: the stored bytes carry whatever name the previous
+    // build printed, and the operator must never press "Reiniciar datos" to see
+    // the catalog this build ships — the seed wins, only the stock is theirs.
+    const state = boot({
+      packages: [
+        {
+          ...SEED_PACKAGES.find((pkg) => pkg.id === "cat-24"),
+          title: "Semillas de alfalfa para brotes x 1/2 kg",
+          stockUnits: 3,
+        },
+      ],
+      matches: [],
+      papConfigArs: 50000,
+    }).getState();
+
+    const refreshed = state.packages.find((pkg) => pkg.id === "cat-24");
+
+    expect(refreshed?.title).toBe("Semillas de alfalfa para brotes");
+    expect(refreshed?.stockUnits).toBe(3);
+  });
+});
+
 describe("a stored install written before the catalog", () => {
   it("keeps only the packages the printed catalog derives", () => {
     const state = boot({
