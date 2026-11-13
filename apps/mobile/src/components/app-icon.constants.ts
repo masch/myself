@@ -20,6 +20,9 @@ export const SF_VECTOR_MAP: Record<string, IoniconsName> = {
   "sf:checkmark.circle.fill": "checkmark-circle",
   "sf:checkmark.seal.fill": "checkmark-done-circle",
   "sf:arrow.uturn.backward": "arrow-undo",
+  "sf:arrow.clockwise": "refresh",
+  "sf:arrow.triangle.2.circlepath": "sync",
+  "sf:cart": "cart-outline",
   "sf:xmark": "close",
 
   // Sharing & Links

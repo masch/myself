@@ -295,7 +295,7 @@ export function ProducerHeaderSwitcher({
         {onResetSeed && (
           <IconButton
             icon="sf:arrow.clockwise"
-            size="small"
+            size="large"
             accessibilityLabel="Reiniciar datos"
             onPress={onResetSeed}
             style={styles.resetButton}
