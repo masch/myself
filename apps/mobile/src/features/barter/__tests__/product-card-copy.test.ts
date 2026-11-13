@@ -6,7 +6,7 @@ import {
 import {
   formatArs,
   formatPrintedPrice,
-  locationLine,
+  distanceLabel,
   packagingLabel,
   papAdjustment,
 } from "../product-card-copy";
@@ -174,10 +174,13 @@ describe("the card's money writes the number the catalog prints", () => {
   });
 });
 
-describe("locationLine merges the two facts the card used to split", () => {
-  it("joins distance and address in one line", () => {
-    expect(locationLine(985, "Guadalupe Norte, Santa Fe")).toBe(
-      "📍 985 km · Guadalupe Norte, Santa Fe",
-    );
+describe("distanceLabel states the distance on its own", () => {
+  it("writes the kilometres the origin block leads with", () => {
+    // The distance used to share one grey line with the address
+    // (`📍 985 km · Guadalupe Norte, Santa Fe`). It is now the comparable number
+    // of the origin block, so it is written alone and without the pin: an emoji
+    // in front of the one figure the eye compares across cards is noise.
+    expect(distanceLabel(12)).toBe("a 12 km");
+    expect(distanceLabel(985)).toBe("a 985 km");
   });
 });

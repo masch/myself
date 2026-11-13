@@ -258,7 +258,7 @@ describe("ProductPackageCard leads with what one PAP buys", () => {
     const html = renderCard(catalogPackage("cat-1"));
 
     expect(html).toContain("4,5 litros");
-    expect(html).toContain("POR 1 PAP");
+    expect(html).toContain("1 PAP =");
     expect(html).toContain("Son 9 envases de 500 ml.");
     expect(html).toContain("El catálogo los cobra a $5.362,07 por 500 ml.");
     expect(html).toContain("Queda $1.741 abajo de 1 PAP");
@@ -303,12 +303,61 @@ describe("ProductPackageCard leads with what one PAP buys", () => {
     for (const variant of CARD_VARIANTS) {
       const html = renderCard(FIXTURE_PACKAGES[0], variant);
 
-      expect(html).not.toContain("POR 1 PAP");
+      expect(html).not.toContain("1 PAP =");
       expect(html).not.toContain("El catálogo");
       expect(html).not.toContain("Coincide exacto");
       expect(html).toContain("ENTREGÁS");
       expect(html).toContain("1 PAP");
       expect(html).toContain("Pedir Match");
+    }
+  });
+});
+
+/**
+ * The producer, the distance and the place decide whether a trade is even
+ * practical — nobody drives to Tilcara for one PAP — yet they sat in a grey
+ * caption under the printed price. The user asked for them highlighted
+ * **on every card** (`por card`), not once in the list header: the producer
+ * changes between the packages of one list, so a header cannot name it.
+ */
+describe("ProductPackageCard highlights who sells it and where it comes from", () => {
+  it("opens every card with the producer, the distance and the place", () => {
+    for (const variant of CARD_VARIANTS) {
+      const html = renderCard(catalogPackage("cat-1"), variant);
+
+      // The block is a card part, not two loose lines: its own test id is what
+      // proves the three facts travel together in both layouts.
+      expect(elementTag(html, "card-origin-cat-1")).toContain("data-testid");
+      expect(html).toContain("Naturaleza Viva");
+      expect(html).toContain("a 12 km");
+      expect(html).toContain("Guadalupe Norte, Santa Fe");
+    }
+  });
+
+  it("retires the two grey lines the highlighted block replaces", () => {
+    for (const variant of CARD_VARIANTS) {
+      const html = renderCard(catalogPackage("cat-1"), variant);
+
+      // `de {producer}` under the product name and the pinned location line were
+      // the old, lowest hierarchy: the same facts now open the card. The pin is
+      // gone outright, and the producer is named three times for one card — the
+      // block, then the chip's title and its accessible name, which say what
+      // pressing it does. A fourth mention is the line this test retired.
+      expect(html).not.toContain("📍");
+      expect(html.split("Naturaleza Viva").length - 1).toBe(3);
+    }
+  });
+
+  it("still states the origin on a package that carries no catalog block", () => {
+    // A package can predate the catalog block and still be on offer, so the
+    // origin block never depends on the equivalence being printable.
+    for (const variant of CARD_VARIANTS) {
+      const html = renderCard(FIXTURE_PACKAGES[0], variant);
+
+      expect(
+        elementTag(html, `card-origin-${FIXTURE_PACKAGES[0].id}`),
+      ).toContain("data-testid");
+      expect(html).toContain("a 12 km");
     }
   });
 });

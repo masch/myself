@@ -4,8 +4,11 @@ import { AppButton, Badge, ChipButton, ThemedText } from "@/components";
 import { colors, fontWeights, letterSpacings, radius, spacing } from "@/theme";
 import type { ProductPackage } from "@myself/shared";
 import type { GondolaPackage } from "../barter-selectors";
+import {
+  distanceLabel,
+  type PapAdjustmentDirection,
+} from "../product-card-copy";
 import { productionTypeLabel } from "../production-type-labels";
-import type { PapAdjustmentDirection } from "../product-card-copy";
 
 /**
  * The parts both card layouts render identically.
@@ -76,6 +79,43 @@ export function PackageProducerFilter({
         accessibilityState={{ selected: isActive }}
         aria-selected={isActive}
       />
+    </View>
+  );
+}
+
+/**
+ * Who sells it and where it comes from, as the block that opens every card.
+ *
+ * The producer, the distance and the place decide whether a trade is even
+ * practical — nobody drives to Tilcara for one PAP — and they sat in a grey
+ * caption under the printed price. The user asked for them highlighted
+ * **on every card** (`por card`), never once in the list header: the producer
+ * changes between the packages of one list, so a header cannot name it.
+ *
+ * The block is inset instead of bleeding to the card edges on purpose: a
+ * full-width band would need `overflow: hidden` on the shell, and that clips the
+ * elevated card's shadow into a flat rectangle on iOS.
+ */
+export function PackageOrigin({
+  packageItem,
+}: {
+  packageItem: GondolaPackage;
+}) {
+  return (
+    <View style={styles.origin} testID={`card-origin-${packageItem.id}`}>
+      <ThemedText variant="headline" style={styles.originProducer}>
+        {packageItem.producer.name}
+      </ThemedText>
+      <View style={styles.originMeta}>
+        <Badge
+          label={distanceLabel(packageItem.distanceKm)}
+          variant="success"
+          size="sm"
+        />
+        <ThemedText variant="caption1" style={styles.originPlace}>
+          {packageItem.producer.address}
+        </ThemedText>
+      </View>
     </View>
   );
 }
@@ -184,6 +224,28 @@ export const ADJUSTMENT_COLORS: Record<
 };
 
 const styles = StyleSheet.create({
+  origin: {
+    backgroundColor: colors.systemGreen12,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.compact,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.compact,
+  },
+  originProducer: {
+    color: colors.label,
+    fontWeight: fontWeights.bold,
+  },
+  originMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginTop: spacing.xxs,
+  },
+  originPlace: {
+    color: colors.secondaryLabel,
+    flexShrink: 1,
+  },
   producerFilter: {
     flexDirection: "row",
     marginTop: spacing.sm,

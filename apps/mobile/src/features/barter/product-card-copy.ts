@@ -117,11 +117,14 @@ export function packagingLabel(catalog: CatalogPackageInfo): string | null {
 }
 
 /**
- * Where the producer is, as one line: `📍 985 km · Guadalupe Norte, Santa Fe`.
+ * How far the producer is, as the origin block writes it: `a 12 km`.
  *
- * Distance and address were two lines describing one fact — how far this is and
- * where — and the second one pushed the price out of the card's first screenful.
+ * Distance and address used to share one grey line under the printed price
+ * (`📍 985 km · Guadalupe Norte, Santa Fe`). The user asked for the producer and
+ * its origin highlighted on every card, so the two facts split: the distance is
+ * the number the eye compares across cards and stands alone, without a pin in
+ * front of it, and the address keeps its own line beside it.
  */
-export function locationLine(distanceKm: number, address: string): string {
-  return `📍 ${distanceKm} km · ${address}`;
+export function distanceLabel(distanceKm: number): string {
+  return `a ${distanceKm} km`;
 }

@@ -5,13 +5,13 @@ import { colors, fontWeights, letterSpacings, spacing } from "@/theme";
 import { formatCatalogQuantity } from "../catalog-packages";
 import {
   formatPrintedPrice,
-  locationLine,
   packagingLabel,
   papAdjustment,
 } from "../product-card-copy";
 import {
   ADJUSTMENT_COLORS,
   PackageHandOver,
+  PackageOrigin,
   PackageProducerFilter,
   PackageStatePills,
   packageCardStyles,
@@ -27,7 +27,9 @@ import {
  * that with height and with a label the user has to read.
  *
  * Nothing is dropped relative to layout A — the difference is which number the
- * eye meets first, never which numbers exist.
+ * eye meets first, never which numbers exist. The origin block is the same one in
+ * both: the producer, the distance and the place are highlighted on every card,
+ * so the sheet no longer folds them into a subtitle under the product name.
  */
 export function ProductPackageCardSpec({
   packageItem,
@@ -44,15 +46,11 @@ export function ProductPackageCardSpec({
 
   return (
     <Card variant="elevated" style={packageCardStyles.card}>
+      <PackageOrigin packageItem={packageItem} />
+
       <View style={styles.head}>
         <ThemedText variant="headline" style={styles.title}>
           {packageItem.title}
-        </ThemedText>
-        <ThemedText variant="caption1" style={styles.headSub}>
-          {`${packageItem.producer.name} · ${locationLine(
-            packageItem.distanceKm,
-            packageItem.producer.address,
-          )}`}
         </ThemedText>
       </View>
 
@@ -147,10 +145,6 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.label,
-  },
-  headSub: {
-    color: colors.secondaryLabel,
-    marginTop: spacing.xxs,
   },
   spec: {
     marginTop: spacing.xs,
