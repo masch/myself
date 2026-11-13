@@ -23,7 +23,7 @@ test("the selector flags the producer that owes an answer", async ({
   // Vermut Sabado proposes an exact 1 PAP trade for Naturaleza Viva's cheese.
   await page
     .getByRole("button", {
-      name: "Pedir match por Aceite de coco virgen x 360 gr excelente calidad",
+      name: "Pedir match por Aceite de coco virgen excelente calidad",
       exact: true,
     })
     .click();

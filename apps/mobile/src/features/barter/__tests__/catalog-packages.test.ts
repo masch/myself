@@ -7,6 +7,7 @@ import {
   deriveCatalogPackage,
   formatCatalogQuantity,
   formatCatalogSize,
+  stripPrintedSize,
 } from "../catalog-packages";
 import type {
   CatalogMeasure,
@@ -236,43 +237,70 @@ describe("deriveCatalogPackage — the invariants the barter relies on", () => {
 });
 
 describe("catalogPackages", () => {
-  it("seeds one package per printed row, in printed order", () => {
+  it("seeds one package per product name per producer, in printed order", () => {
     const packages = catalogPackages();
 
-    expect(packages).toHaveLength(1527);
-    expect(new Set(packages.map((pkg) => pkg.id)).size).toBe(1527);
-    expect(packages.map((pkg) => pkg.id)).toEqual(
-      PRODUCTS.map(([product]) => `${CATALOG_PACKAGE_ID_PREFIX}${product}`),
-    );
-    expect(packages[0].id).toBe("cat-1");
+    // The printed rows are 1527; one card per product name per producer keeps
+    // 1374 of them — repeated presentations of one good collapse into their
+    // best price per measure.
+    expect(packages).toHaveLength(1374);
+    expect(new Set(packages.map((pkg) => pkg.id)).size).toBe(1374);
+    // cat-1 and cat-2 are one oil in two bottle sizes: the litre bottle has the
+    // better per-litre price, so it opens the gondola and the half-litre drops.
+    expect(packages[0].id).toBe("cat-2");
     expect(packages.at(-1)?.id).toBe("cat-1527");
   });
 
-  it("carries the printed name and one documented default of stock per package", () => {
+  it("carries the sizeless title of its surviving row and one documented default of stock", () => {
+    const printed = new Map(
+      PRIMAVERA_2026_PRODUCTS.map((row) => [
+        `${CATALOG_PACKAGE_ID_PREFIX}${row[0]}`,
+        row,
+      ]),
+    );
     const packages = catalogPackages();
 
-    for (const [index, pkg] of packages.entries()) {
-      expect(pkg.title).toBe(PRODUCTS[index][2]);
+    expect(packages.length).toBeLessThan(PRIMAVERA_2026_PRODUCTS.length);
+
+    for (const pkg of packages) {
+      const row = printed.get(pkg.id);
+
+      // Every package still resolves to the printed row it survived from, and
+      // the name it carries is that row's name with its printed size gone.
+      expect(row, `${pkg.id} has no printed row`).toBeDefined();
+      // The name it carries is exactly its row's name with the printed size
+      // gone — never a hand-edited rewrite of what the PDF prints.
+      expect(pkg.title).toBe(stripPrintedSize(row![2]));
       expect(pkg.stockUnits).toBe(CATALOG_STOCK_UNITS);
     }
   });
 
-  it("attributes every package to the producer its row sits under", () => {
+  it("attributes every surviving package to the producer its row sits under", () => {
     const producers = new Map(
       PRIMAVERA_2026_PRODUCERS.map((producer) => [producer.id, producer]),
     );
     const entries = new Map(
       PRIMAVERA_2026_CATALOG.map((entry) => [entry.number, entry]),
     );
+    const printed = new Map(
+      PRIMAVERA_2026_PRODUCTS.map((row) => [
+        `${CATALOG_PACKAGE_ID_PREFIX}${row[0]}`,
+        row,
+      ]),
+    );
     const packages = catalogPackages();
 
-    for (const [index, pkg] of packages.entries()) {
-      const entry = entries.get(PRODUCTS[index][1]);
+    for (const pkg of packages) {
+      const row = printed.get(pkg.id);
+
+      if (!row) {
+        throw new Error(`The printed catalog carries no row for ${pkg.id}`);
+      }
+
+      const entry = entries.get(row[1]);
 
       if (!entry) {
-        throw new Error(
-          `The printed catalog carries no producer ${PRODUCTS[index][1]}`,
-        );
+        throw new Error(`The printed catalog carries no producer ${row[1]}`);
       }
 
       const producer = producers.get(pkg.producerId);
@@ -286,7 +314,7 @@ describe("catalogPackages", () => {
       expect(pkg.productionType).toBe(producer.productionType);
     }
 
-    // Every printed producer ends up with at least one package on the gondola.
+    // Every printed producer still ends up with at least one package on the gondola.
     expect(new Set(packages.map((pkg) => pkg.producerId)).size).toBe(158);
   });
 

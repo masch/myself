@@ -24,7 +24,7 @@ test("the checked proposal radio follows the selection", async ({ page }) => {
 
   await page
     .getByRole("button", {
-      name: "Pedir match por Vermut Rosso x 750 ml (muy bueno)",
+      name: "Pedir match por Vermut Rosso (muy bueno)",
       exact: true,
     })
     .click();

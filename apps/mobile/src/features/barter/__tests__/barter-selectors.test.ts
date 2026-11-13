@@ -81,13 +81,11 @@ describe("filterGondolaPackages", () => {
     // The query the user reaches for first, and the row it has to find.
     expect(
       filterGondolaPackages(gondola, "vermut").map((p) => p.title),
-    ).toContain("Vermut Rosso x 750 ml (muy bueno)");
+    ).toContain("Vermut Rosso (muy bueno)");
 
     const found = filterGondolaPackages(gondola, "VERMUT ROSSO");
 
-    expect(found.map((p) => p.title)).toContain(
-      "Vermut Rosso x 750 ml (muy bueno)",
-    );
+    expect(found.map((p) => p.title)).toContain("Vermut Rosso (muy bueno)");
     for (const item of found) {
       expect(item.title.toLowerCase()).toContain("vermut rosso");
     }
