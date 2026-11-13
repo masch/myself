@@ -42,7 +42,7 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
     await page.getByTestId("gondola-search-input").fill("vermut rosso");
     await page
       .getByRole("button", {
-        name: "Pedir match por Vermut Rosso x 750 ml (muy bueno)",
+        name: "Pedir match por Vermut Rosso (muy bueno)",
         exact: true,
       })
       .click();
@@ -71,7 +71,7 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
     await page.getByTestId("gondola-search-input").fill("queso rallado");
     await page
       .getByRole("button", {
-        name: "Pedir match por Queso rallado x 150grs",
+        name: "Pedir match por Queso rallado",
         exact: true,
       })
       .click();

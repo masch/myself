@@ -252,28 +252,28 @@ describe("GondolaFilterBar offers the two card layouts", () => {
 
 describe("ProductPackageCard leads with what one PAP buys", () => {
   it("puts the quantity a user gets for 1 PAP in the largest type on the card", () => {
-    // #1: nine half-litres are 4,5 litros, which is $1.741 short of one PAP.
-    // The defect this replaces: `x 1/2 litro` was the headline while `4,5 litros`
-    // sat in a caption, so nothing on the card answered the question it raises.
-    const html = renderCard(catalogPackage("cat-1"));
+    // #24: three half-kilo bags are 1,5 kg, which is $6.087 short of one PAP.
+    // The defect this replaces: `x 1/2 kg` was the headline while `1,5 kg` sat in a
+    // caption, so nothing on the card answered the question it raises.
+    const html = renderCard(catalogPackage("cat-24"));
 
-    expect(html).toContain("4,5 litros");
+    expect(html).toContain("1,5 kg");
     expect(html).toContain("1 PAP =");
-    expect(html).toContain("Son 9 envases de 500 ml.");
-    expect(html).toContain("El catálogo los cobra a $5.362,07 por 500 ml.");
-    expect(html).toContain("Queda $1.741 abajo de 1 PAP");
+    expect(html).toContain("Son 3 envases de 500 g.");
+    expect(html).toContain("El catálogo los cobra a $14.637,56 por 500 g.");
+    expect(html).toContain("Queda $6.087 abajo de 1 PAP");
   });
 
   it("lays the same facts out as label and value in the sheet layout", () => {
-    const html = renderCard(catalogPackage("cat-1"), "ficha");
+    const html = renderCard(catalogPackage("cat-24"), "ficha");
 
     expect(html).toContain("Te llevás por 1 PAP");
-    expect(html).toContain("4,5 litros");
+    expect(html).toContain("1,5 kg");
     expect(html).toContain("Cómo viene");
-    expect(html).toContain("9 envases de 500 ml");
+    expect(html).toContain("3 envases de 500 g");
     expect(html).toContain("Ajuste a 1 PAP");
-    expect(html).toContain("−$1.741");
-    expect(html).toContain("$5.362,07 por 500 ml");
+    expect(html).toContain("−$6.087");
+    expect(html).toContain("$14.637,56 por 500 g");
   });
 
   it("says a weighed package coincides exactly instead of naming a fraction", () => {
@@ -291,7 +291,7 @@ describe("ProductPackageCard leads with what one PAP buys", () => {
     // the list header. Repeating it per card is what the user asked to remove: a
     // constant the eye learns to skip, in the row where the variable number lives.
     for (const variant of CARD_VARIANTS) {
-      expect(renderCard(catalogPackage("cat-1"), variant)).not.toContain(
+      expect(renderCard(catalogPackage("cat-24"), variant)).not.toContain(
         "50.000",
       );
     }
@@ -323,11 +323,11 @@ describe("ProductPackageCard leads with what one PAP buys", () => {
 describe("ProductPackageCard highlights who sells it and where it comes from", () => {
   it("opens every card with the producer, the distance and the place", () => {
     for (const variant of CARD_VARIANTS) {
-      const html = renderCard(catalogPackage("cat-1"), variant);
+      const html = renderCard(catalogPackage("cat-24"), variant);
 
       // The block is a card part, not two loose lines: its own test id is what
       // proves the three facts travel together in both layouts.
-      expect(elementTag(html, "card-origin-cat-1")).toContain("data-testid");
+      expect(elementTag(html, "card-origin-cat-24")).toContain("data-testid");
       expect(html).toContain("Naturaleza Viva");
       expect(html).toContain("a 12 km");
       expect(html).toContain("Guadalupe Norte, Santa Fe");
@@ -336,7 +336,7 @@ describe("ProductPackageCard highlights who sells it and where it comes from", (
 
   it("retires the two grey lines the highlighted block replaces", () => {
     for (const variant of CARD_VARIANTS) {
-      const html = renderCard(catalogPackage("cat-1"), variant);
+      const html = renderCard(catalogPackage("cat-24"), variant);
 
       // `de {producer}` under the product name and the pinned location line were
       // the old, lowest hierarchy: the same facts now open the card. The pin is
@@ -368,7 +368,7 @@ describe("ProductPackageCard highlights who sells it and where it comes from", (
  * declared once, on the list header, never per card.
  */
 describe("ProductPackageCard offers the producer filter on every card", () => {
-  const oil = catalogPackage("cat-1");
+  const oil = catalogPackage("cat-2");
   const chipId = "card-producer-filter-naturaleza-viva";
 
   it("renders one idle chip under the producer in both layouts", () => {
@@ -475,13 +475,13 @@ describe("GondolaFilterBar declares the applied producer filter once", () => {
 
 describe("PackageOfferOption tells the producer what it hands over", () => {
   it("shows the quantity on offer and its difference in pesos", () => {
-    // #1: nine half-litres are 4,5 litros, which is $1.741 short of one PAP. The
+    // #24: three half-kilo bags are 1,5 kg, which is $6.087 short of one PAP. The
     // modal used to print the same fact as a PAP fraction, which the card and the
     // sheet no longer do: one trade, one language.
-    const html = renderOffer(catalogPackage("cat-1"));
+    const html = renderOffer(catalogPackage("cat-24"));
 
-    expect(html).toContain("4,5 litros · 9 envases de 500 ml");
-    expect(html).toContain("Queda $1.741 abajo de 1 PAP");
+    expect(html).toContain("1,5 kg · 3 envases de 500 g");
+    expect(html).toContain("Queda $6.087 abajo de 1 PAP");
     expect(html).not.toContain("real ");
   });
 

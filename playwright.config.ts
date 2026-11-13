@@ -10,6 +10,11 @@ export default defineConfig({
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // CI must not pay the full serial timeout cascade when the app breaks: stop
+  // after a few distinct failures and cap the whole run, instead of 4 tests ×
+  // 120s × 3 attempts silently stretching a red run past half an hour.
+  maxFailures: process.env.CI ? 3 : 0,
+  globalTimeout: process.env.CI ? 15 * 60 * 1000 : 0,
   reporter: process.env.CI ? [["github"], ["html"]] : "list",
   use: {
     baseURL: "http://localhost:8082",
