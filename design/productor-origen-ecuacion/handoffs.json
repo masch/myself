@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "chosen": "01-banda-de-origen.html",
+  "handoffs": {
+    "01-banda-de-origen.html": {
+      "status": "implemented",
+      "queued": false,
+      "sentAt": "2026-11-13T00:10:34.605Z",
+      "startedAt": "2026-11-13T00:10:49.250Z",
+      "implementedAt": "2026-11-13T00:12:33.905Z",
+      "note": "Verificado: 761 tests unitarios, tipos, lint sin errores, prettier y doctor 20/20; barrido Playwright web 48/48. Cambios: PackageOrigin nuevo en product-card-parts (bloque inset, productor en headline + badge de distancia verde + lugar), ambos layouts lo abren; hero pasa a ecuación `1 PAP =` sobre la cantidad; se retiran las dos líneas grises viejas (`de {productor}` y `📍 km · lugar`) y el helper locationLine, reemplazado por distanceLabel. Sin commit."
+    }
+  }
+}

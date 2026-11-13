@@ -5,13 +5,13 @@ import { colors, fontWeights, letterSpacings, spacing } from "@/theme";
 import { formatCatalogQuantity } from "../catalog-packages";
 import {
   formatPrintedPrice,
-  locationLine,
   packagingLabel,
   papAdjustment,
 } from "../product-card-copy";
 import {
   ADJUSTMENT_COLORS,
   PackageHandOver,
+  PackageOrigin,
   PackageProducerFilter,
   PackageStatePills,
   packageCardStyles,
@@ -30,6 +30,10 @@ import {
  * The packaging line exists to resolve the contradiction the old card created: it
  * announced `x 1/2 litro` at the top and `4,5 litros` in a caption, and nothing
  * said both were true (`9 envases de 500 ml` is how they are).
+ *
+ * Since the producer and its origin were highlighted, the card opens with that
+ * block and the equivalence follows as an equation — `1 PAP =` above `4,5 litros`
+ * — instead of a quantity with a caption underneath it.
  */
 export function ProductPackageCardHero({
   packageItem,
@@ -46,10 +50,15 @@ export function ProductPackageCardHero({
 
   return (
     <Card variant="elevated" style={packageCardStyles.card}>
+      <PackageOrigin packageItem={packageItem} />
+
       {/* A package that predates the catalog block (a POC pack, an injected
           state) has no equivalence to state: it still renders, led by its name. */}
       {catalog ? (
         <View style={styles.hero}>
+          <ThemedText variant="caption2" style={styles.equationAnchor}>
+            1 PAP =
+          </ThemedText>
           <ThemedText
             variant="largeTitle"
             style={styles.quantity}
@@ -57,18 +66,12 @@ export function ProductPackageCardHero({
           >
             {formatCatalogQuantity(catalog.quantity, catalog.measure)}
           </ThemedText>
-          <ThemedText variant="caption1" style={styles.perPap}>
-            POR 1 PAP
-          </ThemedText>
         </View>
       ) : null}
 
       <View style={styles.identity}>
         <ThemedText variant="headline" style={styles.title}>
           {packageItem.title}
-        </ThemedText>
-        <ThemedText variant="callout" style={styles.producer}>
-          de {packageItem.producer.name}
         </ThemedText>
       </View>
 
@@ -103,10 +106,6 @@ export function ProductPackageCardHero({
         </ThemedText>
       ) : null}
 
-      <ThemedText variant="caption1" style={styles.location}>
-        {locationLine(packageItem.distanceKm, packageItem.producer.address)}
-      </ThemedText>
-
       <PackageStatePills packageItem={packageItem} />
 
       <PackageHandOver
@@ -126,21 +125,16 @@ const styles = StyleSheet.create({
     color: colors.label,
     fontWeight: fontWeights.bold,
   },
-  perPap: {
+  equationAnchor: {
     color: colors.secondaryLabel,
     fontWeight: fontWeights.semibold,
     letterSpacing: letterSpacings.caption,
-    marginTop: spacing.xxs,
   },
   identity: {
     marginBottom: spacing.sm,
   },
   title: {
     color: colors.label,
-  },
-  producer: {
-    color: colors.secondaryLabel,
-    marginTop: spacing.xxs,
   },
   truth: {
     marginBottom: spacing.sm,
@@ -155,8 +149,5 @@ const styles = StyleSheet.create({
   adjustment: {
     fontWeight: fontWeights.semibold,
     marginBottom: spacing.sm,
-  },
-  location: {
-    color: colors.secondaryLabel,
   },
 });
