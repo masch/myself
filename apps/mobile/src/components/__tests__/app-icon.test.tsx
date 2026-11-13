@@ -33,6 +33,12 @@ describe("AppIcon component", () => {
     expect(html).toBeDefined();
   });
 
+  it("resolves the producer reset, sync and cart symbols instead of the help fallback", () => {
+    expect(SF_VECTOR_MAP["sf:arrow.clockwise"]).toBeDefined();
+    expect(SF_VECTOR_MAP["sf:arrow.triangle.2.circlepath"]).toBeDefined();
+    expect(SF_VECTOR_MAP["sf:cart"]).toBeDefined();
+  });
+
   it("falls back gracefully for unknown symbols", () => {
     const html = renderToString(<AppIcon name="sf:unknown.nonexistent" />);
     expect(html).toBeDefined();
