@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=390" />
+    <title>Ecuación protagonista — card de producto</title>
+    <style>
+      :root {
+        --bg: #000;
+        --surface: #1c1c1e;
+        --raised: #2c2c2e;
+        --label: #fff;
+        --secondary: #8e8e93;
+        --separator: #38383a;
+        --blue: #007aff;
+        --green: #34c759;
+        --orange: #ff9500;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        width: 390px;
+        background: var(--bg);
+        color: var(--label);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        padding: 16px 0 32px;
+      }
+      .sheet-head {
+        padding: 0 16px 16px;
+      }
+      .sheet-head h1 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      .sheet-head p {
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--secondary);
+        margin: 0;
+      }
+      .card {
+        background: var(--surface);
+        border-radius: 16px;
+        margin: 0 16px 16px;
+        padding: 14px 16px 0;
+      }
+
+      .product {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+        color: var(--secondary);
+        text-transform: uppercase;
+      }
+
+      /* ---- la ecuación es el titular: 1 PAP = cantidad ---- */
+      .equation {
+        margin-top: 8px;
+      }
+      .eq-top {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        color: var(--secondary);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .eq-top .pap {
+        color: var(--label);
+      }
+      .qty {
+        font-size: 38px;
+        font-weight: 700;
+        letter-spacing: -1px;
+        line-height: 1.05;
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+      }
+      .eq-product {
+        font-size: 17px;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+      .eq-note {
+        font-size: 12px;
+        color: var(--secondary);
+        margin-top: 6px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        margin-top: 12px;
+        background: var(--raised);
+        border: 0;
+        border-radius: 9999px;
+        padding: 6px 12px;
+        color: var(--label);
+        font-size: 12px;
+        font-weight: 500;
+        font-family: inherit;
+      }
+      .chip:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+
+      .truth {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--secondary);
+        line-height: 1.45;
+      }
+      .adjust {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--orange);
+        margin-top: 6px;
+      }
+      .pills {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .pill {
+        font-size: 11px;
+        font-weight: 500;
+        border: 1px solid var(--separator);
+        border-radius: 9999px;
+        padding: 2px 8px;
+      }
+      .pill.neutral {
+        border-color: transparent;
+        background: var(--raised);
+        color: var(--secondary);
+      }
+
+      /* ---- origen en una franja al pie: productor · km · lugar ---- */
+      .origin-strip {
+        margin: 14px -16px 0;
+        padding: 10px 16px;
+        background: rgba(52, 199, 89, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        font-size: 12px;
+      }
+      .origin-strip .who {
+        font-weight: 700;
+        color: var(--label);
+        font-size: 13px;
+      }
+      .origin-strip .dot {
+        color: var(--separator);
+      }
+      .origin-strip .where {
+        color: var(--secondary);
+      }
+      .origin-strip .km {
+        margin-left: auto;
+        font-weight: 600;
+        color: var(--green);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 -16px;
+        padding: 12px 16px 16px;
+        background: var(--surface);
+        border-top: 1px solid var(--separator);
+      }
+      .hand-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.6px;
+        color: var(--secondary);
+      }
+      .hand-value {
+        font-size: 15px;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+      .cta {
+        background: var(--blue);
+        color: #fff;
+        border: 0;
+        border-radius: 12px;
+        padding: 11px 16px;
+        font-size: 15px;
+        font-weight: 600;
+        font-family: inherit;
+      }
+      .cta:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sheet-head">
+      <h1>03 · Ecuación protagonista, origen al pie</h1>
+      <p>
+        La igualdad ocupa el lugar del titular y el origen se lee como una
+        franja al pie del contenido. Ganás el dato de un vistazo, pero el
+        productor deja de ser lo primero: se descubre después de la cantidad.
+      </p>
+    </div>
+
+    <!-- CARD 1 -->
+    <article class="card">
+      <div class="product">Aceite girasol x 1/2 litro pet</div>
+
+      <div class="equation">
+        <div class="eq-top"><span class="pap">1 PAP</span><span>=</span></div>
+        <div class="qty">4,5 litros</div>
+        <div class="eq-product">de aceite de girasol</div>
+        <div class="eq-note">
+          Son 9 envases de 500 ml · el catálogo los cobra a $5.362,07 por 1/2
+          litro.
+        </div>
+      </div>
+
+      <button class="chip" type="button">Ver solo de Naturaleza Viva</button>
+
+      <div class="adjust">Queda $1.741 abajo de 1 PAP</div>
+
+      <div class="pills">
+        <span class="pill">Orgánico</span>
+        <span class="pill neutral">1 disponible</span>
+      </div>
+
+      <div class="origin-strip">
+        <span class="who">Naturaleza Viva</span>
+        <span class="dot">·</span>
+        <span class="where">Guadalupe Norte, Santa Fe</span>
+        <span class="km">a 12 km</span>
+      </div>
+
+      <div class="footer">
+        <div>
+          <div class="hand-label">ENTREGÁS</div>
+          <div class="hand-value">1 PAP</div>
+        </div>
+        <button class="cta" type="button">Pedir Match</button>
+      </div>
+    </article>
+
+    <!-- CARD 2 -->
+    <article class="card">
+      <div class="product">Aceite girasol x 1 litro pet</div>
+
+      <div class="equation">
+        <div class="eq-top"><span class="pap">1 PAP</span><span>=</span></div>
+        <div class="qty">6 litros</div>
+        <div class="eq-product">de aceite de girasol</div>
+        <div class="eq-note">
+          Son 6 botellas de 1 litro · el catálogo los cobra a $8.903,46 por 1
+          litro.
+        </div>
+      </div>
+
+      <button class="chip" type="button">Ver solo de Naturaleza Viva</button>
+
+      <div class="adjust">Queda $3.421 arriba de 1 PAP</div>
+
+      <div class="pills">
+        <span class="pill">Orgánico</span>
+        <span class="pill neutral">1 disponible</span>
+      </div>
+
+      <div class="origin-strip">
+        <span class="who">Naturaleza Viva</span>
+        <span class="dot">·</span>
+        <span class="where">Guadalupe Norte, Santa Fe</span>
+        <span class="km">a 12 km</span>
+      </div>
+
+      <div class="footer">
+        <div>
+          <div class="hand-label">ENTREGÁS</div>
+          <div class="hand-value">1 PAP</div>
+        </div>
+        <button class="cta" type="button">Pedir Match</button>
+      </div>
+    </article>
+  </body>
+</html>

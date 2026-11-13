@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=390" />
+    <title>Banda de origen — card de producto</title>
+    <style>
+      :root {
+        --bg: #000;
+        --surface: #1c1c1e;
+        --raised: #2c2c2e;
+        --label: #fff;
+        --secondary: #8e8e93;
+        --separator: #38383a;
+        --blue: #007aff;
+        --green: #34c759;
+        --orange: #ff9500;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        width: 390px;
+        background: var(--bg);
+        color: var(--label);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        padding: 16px 0 32px;
+      }
+      .sheet-head {
+        padding: 0 16px 16px;
+      }
+      .sheet-head h1 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      .sheet-head p {
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--secondary);
+        margin: 0;
+      }
+      .card {
+        background: var(--surface);
+        border-radius: 16px;
+        margin: 0 16px 16px;
+        overflow: hidden;
+      }
+      /* ---- banda de origen: lo que se destaca, pegado al borde superior ---- */
+      .origin-band {
+        background: linear-gradient(
+          180deg,
+          rgba(52, 199, 89, 0.14),
+          rgba(52, 199, 89, 0)
+        );
+        padding: 14px 16px 12px;
+        border-bottom: 1px solid var(--separator);
+      }
+      .producer {
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+      }
+      .origin-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 6px;
+        flex-wrap: wrap;
+      }
+      .km {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--green);
+        background: rgba(52, 199, 89, 0.12);
+        border-radius: 9999px;
+        padding: 3px 9px;
+        font-variant-numeric: tabular-nums;
+      }
+      .place {
+        font-size: 13px;
+        color: var(--secondary);
+      }
+      .body {
+        padding: 14px 16px 16px;
+      }
+      .product {
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+      /* ---- la ecuación, en una sola frase tipográfica ---- */
+      .equation {
+        margin-top: 12px;
+      }
+      .eq-line {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .eq-anchor {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.6px;
+        color: var(--secondary);
+        text-transform: uppercase;
+      }
+      .eq-qty {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.6px;
+        font-variant-numeric: tabular-nums;
+      }
+      .eq-product {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--label);
+      }
+      .eq-note {
+        font-size: 12px;
+        color: var(--secondary);
+        margin-top: 4px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 12px;
+        background: var(--raised);
+        border: 0;
+        border-radius: 9999px;
+        padding: 6px 12px;
+        color: var(--label);
+        font-size: 12px;
+        font-weight: 500;
+        font-family: inherit;
+      }
+      .chip:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+      .truth {
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--label);
+      }
+      .truth small {
+        display: block;
+        font-size: 12px;
+        color: var(--secondary);
+        margin-top: 2px;
+      }
+      .adjust {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--orange);
+        margin-top: 8px;
+      }
+      .pills {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .pill {
+        font-size: 11px;
+        font-weight: 500;
+        border: 1px solid var(--separator);
+        border-radius: 9999px;
+        padding: 2px 8px;
+        color: var(--label);
+      }
+      .pill.neutral {
+        border-color: transparent;
+        background: var(--raised);
+        color: var(--secondary);
+      }
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--separator);
+      }
+      .hand-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.6px;
+        color: var(--secondary);
+      }
+      .hand-value {
+        font-size: 15px;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+      .cta {
+        background: var(--blue);
+        color: #fff;
+        border: 0;
+        border-radius: 12px;
+        padding: 11px 16px;
+        font-size: 15px;
+        font-weight: 600;
+        font-family: inherit;
+      }
+      .cta:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sheet-head">
+      <h1>01 · Banda de origen</h1>
+      <p>
+        Productor, distancia y lugar viven en una banda con color propio arriba
+        de la card; la ecuación queda en una sola frase, con la cantidad grande
+        y el producto a su lado. Nada de la card actual desaparece: solo cambia
+        qué se lee primero.
+      </p>
+    </div>
+
+    <!-- CARD 1 -->
+    <article class="card">
+      <header class="origin-band">
+        <div class="producer">Naturaleza Viva</div>
+        <div class="origin-meta">
+          <span class="km">a 12 km</span>
+          <span class="place">Guadalupe Norte, Santa Fe</span>
+        </div>
+      </header>
+
+      <div class="body">
+        <div class="product">Aceite girasol x 1/2 litro pet</div>
+
+        <div class="equation">
+          <div class="eq-line">
+            <span class="eq-anchor">1 PAP =</span>
+            <span class="eq-qty">4,5 litros</span>
+            <span class="eq-product">de aceite de girasol</span>
+          </div>
+          <div class="eq-note">Son 9 envases de 500 ml.</div>
+        </div>
+
+        <button class="chip" type="button">Ver solo de Naturaleza Viva</button>
+
+        <div class="truth">
+          El catálogo los cobra a $5.362,07 por 1/2 litro.
+        </div>
+        <div class="adjust">Queda $1.741 abajo de 1 PAP</div>
+
+        <div class="pills">
+          <span class="pill">Orgánico</span>
+          <span class="pill neutral">1 disponible</span>
+        </div>
+
+        <div class="footer">
+          <div>
+            <div class="hand-label">ENTREGÁS</div>
+            <div class="hand-value">1 PAP</div>
+          </div>
+          <button class="cta" type="button">Pedir Match</button>
+        </div>
+      </div>
+    </article>
+
+    <!-- CARD 2 — mismo productor, para mostrar el costo de la banda repetida -->
+    <article class="card">
+      <header class="origin-band">
+        <div class="producer">Naturaleza Viva</div>
+        <div class="origin-meta">
+          <span class="km">a 12 km</span>
+          <span class="place">Guadalupe Norte, Santa Fe</span>
+        </div>
+      </header>
+
+      <div class="body">
+        <div class="product">Aceite girasol x 1 litro pet</div>
+
+        <div class="equation">
+          <div class="eq-line">
+            <span class="eq-anchor">1 PAP =</span>
+            <span class="eq-qty">6 litros</span>
+            <span class="eq-product">de aceite de girasol</span>
+          </div>
+          <div class="eq-note">Son 6 botellas de 1 litro.</div>
+        </div>
+
+        <button class="chip" type="button">Ver solo de Naturaleza Viva</button>
+
+        <div class="truth">El catálogo los cobra a $8.903,46 por 1 litro.</div>
+        <div class="adjust">Queda $3.421 arriba de 1 PAP</div>
+
+        <div class="pills">
+          <span class="pill">Orgánico</span>
+          <span class="pill neutral">1 disponible</span>
+        </div>
+
+        <div class="footer">
+          <div>
+            <div class="hand-label">ENTREGÁS</div>
+            <div class="hand-value">1 PAP</div>
+          </div>
+          <button class="cta" type="button">Pedir Match</button>
+        </div>
+      </div>
+    </article>
+  </body>
+</html>

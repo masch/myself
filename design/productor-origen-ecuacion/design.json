@@ -1,0 +1,34 @@
+{
+  "title": "Card de producto — productor, origen y equivalencia destacados",
+  "brief": "Destacar en la card de producto de la góndola de trueque tres datos que hoy están en voz baja: el productor (Naturaleza Viva), la distancia y el lugar (a 12 km · Guadalupe Norte, Santa Fe) y la equivalencia escrita como igualdad (1 PAP = 4,5 litros de aceite de girasol). Se prototipan tres jerarquías distintas y, aparte, tres redacciones de la línea de origen. Datos reales del catálogo Primavera 2026, productor 1: aceite de girasol x 1/2 litro pet (9 envases de 500 ml = 4,5 litros por 1 PAP) y x 1 litro pet (6 botellas = 6 litros por 1 PAP). Nada del contenido actual desaparece; cambia qué se lee primero.",
+  "artboards": [
+    {
+      "file": "01-banda-de-origen.html",
+      "title": "Banda de origen",
+      "tradeoff": "Productor y origen abren la card en una banda con color propio y la ecuación queda en una frase con la cantidad grande: se sabe de quién y de dónde es antes de leer el número, a costa de repetir la banda de 68 px en cada producto de ese productor (Naturaleza Viva sola tiene 33 filas en el catálogo).",
+      "width": 390,
+      "height": 1360
+    },
+    {
+      "file": "02-ficha-de-origen.html",
+      "title": "Ficha de origen",
+      "tradeoff": "El origen entra como bloque rotulado (VIENE DE · distancia · lugar) y la igualdad se lee como una cuenta de tres partes: la más legible y la más comparable entre cards, a costa de un contenedor anidado, dos rótulos y unos 60 px más de alto por card.",
+      "width": 390,
+      "height": 1460
+    },
+    {
+      "file": "03-ecuacion-protagonista.html",
+      "title": "Ecuación protagonista, origen al pie",
+      "tradeoff": "La igualdad toma el lugar del titular y el origen se resume en una franja al pie de 40 px: el dato que decide la operación se lee de un vistazo y no se repite la banda arriba, a costa de que el productor y la distancia se descubran después de la cantidad.",
+      "width": 390,
+      "height": 1240
+    },
+    {
+      "file": "04-linea-de-origen.html",
+      "title": "La línea de origen, tres tratamientos",
+      "tradeoff": "Compara la misma línea en tres redacciones — frase con el km adelante (20 px), productor con subtítulo (42 px) y dos píldoras (52 px) — para fijar el texto antes de elegir jerarquía; no es una card completa, así que no se puede juzgar sola.",
+      "width": 390,
+      "height": 1000
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=390" />
+    <title>La línea de origen, tres tratamientos</title>
+    <style>
+      :root {
+        --bg: #000;
+        --surface: #1c1c1e;
+        --raised: #2c2c2e;
+        --label: #fff;
+        --secondary: #8e8e93;
+        --separator: #38383a;
+        --blue: #007aff;
+        --green: #34c759;
+        --orange: #ff9500;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        width: 390px;
+        background: var(--bg);
+        color: var(--label);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        padding: 16px 0 32px;
+      }
+      .sheet-head {
+        padding: 0 16px 16px;
+      }
+      .sheet-head h1 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      .sheet-head p {
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--secondary);
+        margin: 0;
+      }
+      .card {
+        background: var(--surface);
+        border-radius: 16px;
+        margin: 0 16px 16px;
+        padding: 14px 16px 16px;
+      }
+      .tag {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.6px;
+        color: var(--secondary);
+        margin-bottom: 10px;
+      }
+      .tag b {
+        color: var(--label);
+      }
+      .eq {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        line-height: 1.3;
+      }
+      .eq span {
+        color: var(--secondary);
+        font-weight: 500;
+        font-size: 13px;
+      }
+
+      /* A — una sola frase con el km adelante */
+      .origin-a {
+        font-size: 13px;
+        color: var(--secondary);
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: baseline;
+      }
+      .origin-a .km {
+        font-weight: 700;
+        color: var(--label);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* B — productor arriba, km y lugar como segunda línea */
+      .origin-b .who {
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .origin-b .where {
+        font-size: 12px;
+        color: var(--secondary);
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+      }
+      .origin-b .where .km {
+        color: var(--green);
+        font-weight: 600;
+      }
+
+      /* C — dos píldoras: distancia y lugar, con el productor como título */
+      .origin-c .who {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .origin-c .pills-row {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+      }
+      .origin-c .p {
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 500;
+        background: var(--raised);
+        color: var(--label);
+      }
+      .origin-c .p.km {
+        background: rgba(52, 199, 89, 0.14);
+        color: var(--green);
+        font-weight: 600;
+      }
+
+      .note {
+        font-size: 11px;
+        color: var(--secondary);
+        margin-top: 10px;
+        line-height: 1.4;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sheet-head">
+      <h1>04 · La línea de origen, tres tratamientos</h1>
+      <p>
+        Mismo dato, tres formas de escribirlo: <em>km · lugar · productor</em>.
+        Sirve para elegir la redacción antes de decidir la jerarquía de la card.
+      </p>
+    </div>
+
+    <article class="card">
+      <div class="tag">A · <b>Una frase, el km adelante</b></div>
+      <div class="eq">1 PAP = 4,5 litros <span>de aceite de girasol</span></div>
+      <div class="origin-a">
+        <span class="km">a 12 km</span>
+        <span>Guadalupe Norte, Santa Fe</span>
+        <span>· Naturaleza Viva</span>
+      </div>
+      <div class="note">
+        Alto 20 px, cero decoración. La más barata; el productor queda como cola
+        de la frase y se pierde al escanear.
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="tag">B · <b>Productor arriba, km y lugar abajo</b></div>
+      <div class="origin-b">
+        <div class="who">Naturaleza Viva</div>
+        <div class="where">
+          <span class="km">a 12 km</span> · Guadalupe Norte, Santa Fe
+        </div>
+      </div>
+      <div class="eq" style="margin-top: 10px">
+        1 PAP = 4,5 litros <span>de aceite de girasol</span>
+      </div>
+      <div class="note">
+        Alto 42 px. El productor tiene peso propio y el origen se lee como
+        subtítulo con el km en verde.
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="tag">C · <b>Productor y dos píldoras</b></div>
+      <div class="origin-c">
+        <div class="who">Naturaleza Viva</div>
+        <div class="pills-row">
+          <span class="p km">a 12 km</span>
+          <span class="p">Guadalupe Norte, Santa Fe</span>
+        </div>
+      </div>
+      <div class="eq" style="margin-top: 10px">
+        1 PAP = 4,5 litros <span>de aceite de girasol</span>
+      </div>
+      <div class="note">
+        Alto 52 px. La distancia se vuelve dato comparable entre cards; a cambio
+        agrega dos cápsulas por card y compite con las píldoras de estado.
+      </div>
+    </article>
+  </body>
+</html>
