@@ -9,25 +9,8 @@ import { formatCatalogSize, type CatalogPackageInfo } from "./catalog-packages";
  * validation user picked.
  *
  * Everything here answers one question — **what does this package really hand
- * over for the PAP it trades?** — and it answers it in the money a producer
- * thinks in, never in a bare PAP fraction: `real 0,97 PAP` means nothing to
- * somebody deciding whether to trade, `Queda $1.741 abajo de 1 PAP` means
- * exactly what it costs.
+ * over for the PAP it trades?** — in the money a producer thinks in.
  */
-
-/** Which way a package lands against the whole PAP it trades. */
-export type PapAdjustmentDirection = "below" | "above" | "exact";
-
-/** The rounding a package discloses, in the three shapes a card renders it. */
-export interface PapAdjustmentCopy {
-  direction: PapAdjustmentDirection;
-  /** Signed difference in whole ARS pesos: negative when the package lands under. */
-  deltaArs: number;
-  /** Full sentence for the hero layout: `Queda $1.741 abajo de 1 PAP`. */
-  sentence: string;
-  /** Compact cell for the spec layout: `−$1.741`, `+$3.421`, `coincide exacto`. */
-  compact: string;
-}
 
 /**
  * An ARS amount as the card writes it: whole pesos, Spanish thousands, unsigned.
@@ -57,47 +40,6 @@ export function formatPrintedPrice(amountArs: number): string {
 }
 
 /**
- * The real difference between what the package is worth and what the trade hands
- * over for it — the number that replaces `real 0,97 PAP`.
- *
- * `priceArs` is the package's own traded price (`papValue × 1 PAP`), not the
- * shop-wide configuration: the card then compares two figures the store already
- * agreed on, so a re-priced catalog can never make the card disagree with what
- * `createTradeProposal` will actually verify.
- *
- * A difference that rounds to zero pesos is reported as coinciding exactly. The
- * alternative — printing `Queda $0 abajo` — is true at the cent and useless at
- * the peso the rest of the card speaks.
- */
-export function papAdjustment(
-  catalog: CatalogPackageInfo,
-  priceArs: number,
-): PapAdjustmentCopy {
-  const deltaArs = Math.round(catalog.realPriceArs - priceArs);
-
-  if (deltaArs === 0) {
-    return {
-      direction: "exact",
-      deltaArs,
-      sentence: "Coincide exacto con 1 PAP",
-      compact: "coincide exacto",
-    };
-  }
-
-  const direction: PapAdjustmentDirection = deltaArs < 0 ? "below" : "above";
-  const amount = formatArs(deltaArs);
-
-  return {
-    direction,
-    deltaArs,
-    sentence: `Queda ${amount} ${direction === "below" ? "abajo" : "arriba"} de 1 PAP`,
-    // The minus sign is the typographic one (U+2212), not a hyphen: it aligns with
-    // the plus in the other layout's column and reads as arithmetic, not as text.
-    compact: `${direction === "below" ? "−" : "+"}${amount}`,
-  };
-}
-
-/**
  * The containers a counted package holds: `9 envases de 500 ml`.
  *
  * Silence is the answer in the two cases where the words would be noise: a single
@@ -107,6 +49,7 @@ export function papAdjustment(
  * modal render, because two spellings of one printed number would be a bug.
  */
 export function packagingLabel(catalog: CatalogPackageInfo): string | null {
+  if (catalog.kind !== "empaquetado") return null;
   if (catalog.presentationCount <= 1) return null;
   if (catalog.measure === "unidad") return null;
 

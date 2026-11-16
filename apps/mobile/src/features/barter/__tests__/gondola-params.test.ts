@@ -27,7 +27,7 @@ describe("parseGondolaParams", () => {
       query: "queso",
       productionType: "ORGANIC",
       maxDistanceKm: 250,
-      cardVariant: "cantidad",
+      cardVariant: "ficha",
     });
   });
 
@@ -54,7 +54,7 @@ describe("parseGondolaParams", () => {
       query: "queso",
       productionType: "ALL",
       maxDistanceKm: undefined,
-      cardVariant: "cantidad",
+      cardVariant: "ficha",
     });
   });
 
@@ -115,11 +115,11 @@ describe("the layout in the gondola address", () => {
     });
   });
 
-  it("falls back to the quantity layout when the address omits, empties or invents one", () => {
+  it("falls back to the sheet layout when the address omits, empties or invents one", () => {
     for (const card of [undefined, "", "algo"]) {
       expect(
         parseGondolaParams({ q: "queso", card }, persisted).cardVariant,
-      ).toBe("cantidad");
+      ).toBe("ficha");
     }
   });
 
@@ -127,14 +127,14 @@ describe("the layout in the gondola address", () => {
     expect(buildGondolaParams(DEFAULTS).card).toBeUndefined();
   });
 
-  it("writes the sheet layout once the user picks it", () => {
-    expect(buildGondolaParams({ ...DEFAULTS, cardVariant: "ficha" }).card).toBe(
-      "ficha",
-    );
+  it("writes the quantity layout once the user picks it", () => {
+    expect(
+      buildGondolaParams({ ...DEFAULTS, cardVariant: "cantidad" }).card,
+    ).toBe("cantidad");
   });
 
   it("tells two layouts of the same gondola apart", () => {
-    expect(gondolaViewKey({ ...DEFAULTS, cardVariant: "ficha" })).not.toBe(
+    expect(gondolaViewKey({ ...DEFAULTS, cardVariant: "cantidad" })).not.toBe(
       gondolaViewKey(DEFAULTS),
     );
   });
@@ -218,14 +218,14 @@ describe("gondolaViewKey", () => {
         query: "queso",
         productionType: "ORGANIC",
         maxDistanceKm: 250,
-        cardVariant: "cantidad",
+        cardVariant: "ficha",
       },
       "sabado",
     );
     const b = gondolaViewKey(
       {
         maxDistanceKm: 250,
-        cardVariant: "cantidad",
+        cardVariant: "ficha",
         productionType: "ORGANIC",
         query: "queso",
       },

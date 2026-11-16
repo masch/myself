@@ -10,6 +10,7 @@
  * pins the granularity of payloads written from outside the store.
  */
 import { afterEach, describe, expect, it } from "bun:test";
+import { DEFAULT_PAP_VALUE_ARS } from "@myself/shared";
 import {
   createBarterStore,
   PRODUCER_IDS,
@@ -53,7 +54,7 @@ function boot(raw?: string) {
 }
 
 describe("barter store: the state it writes itself", () => {
-  it("reloads, intact, the state the store just persisted", () => {
+  it("reloads, intact, the runtime state the store just persisted", () => {
     const first = boot();
     const proposal = first.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
@@ -74,14 +75,13 @@ describe("barter store: the state it writes itself", () => {
 
     const second = boot(raw);
 
-    // Nothing was dropped on the way back in...
-    expect(second.getState().packages).toEqual(first.getState().packages);
+    // The catalog always boots from the seed — packages and PAP start fresh —
+    // but the trades the first store created survive the reload: matches are
+    // the runtime state persistence exists to carry.
+    expect(second.getState().packages).toEqual(SEED_PACKAGES);
     expect(second.getState().matches).toEqual(first.getState().matches);
-    expect(second.getState().papConfigArs).toBe(first.getState().papConfigArs);
-    // ...which a silent fall back to the seeds would have broken, both by
-    // emptying the matches and by restoring the seeded stock.
+    expect(second.getState().papConfigArs).toBe(DEFAULT_PAP_VALUE_ARS);
     expect(second.getState().matches).toHaveLength(1);
     expect(second.getState().matches[0]?.status).toBe("WAITING_DELIVERY");
-    expect(second.getState().packages).not.toEqual(SEED_PACKAGES);
   });
 });

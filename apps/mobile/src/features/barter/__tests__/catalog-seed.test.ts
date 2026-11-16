@@ -75,23 +75,39 @@ function storedMatch(overrides: Partial<TradeMatch> = {}): TradeMatch {
 }
 
 describe("SEED_PACKAGES", () => {
-  it("seeds exactly the printed catalog, in printed order", () => {
+  it("seeds the printed catalog plus the direct block, catalog in printed order", () => {
     const catalog = catalogPackages();
+    const seeded = SEED_PACKAGES.map((pkg) => pkg.id);
 
-    expect(SEED_PACKAGES.map((pkg) => pkg.id)).toEqual(
+    expect(seeded.slice(0, catalog.length)).toEqual(
       catalog.map((pkg) => pkg.id),
     );
-    expect(new Set(SEED_PACKAGES.map((pkg) => pkg.id)).size).toBe(
-      catalog.length,
-    );
+    expect(seeded.length).toBe(catalog.length + 3);
+    expect(new Set(seeded).size).toBe(seeded.length);
   });
 
-  it("seeds nothing the catalog does not derive", () => {
-    const handwritten = SEED_PACKAGES.filter(
-      (pkg) => !pkg.id.startsWith("cat-"),
-    );
+  it("seeds the three direct Vermut packages the producer declares", () => {
+    const direct = SEED_PACKAGES.filter((pkg) => pkg.id.startsWith("direct-"));
 
-    expect(handwritten).toEqual([]);
+    expect(direct.map((pkg) => pkg.id)).toEqual([
+      "direct-vermut-rosso-750",
+      "direct-vermut-blanco-750",
+      "direct-vermut-rosso-1l",
+    ]);
+    for (const pkg of direct) {
+      expect(pkg.producerId).toBe(PRODUCER_IDS.VERMUT);
+      expect(pkg.papValue).toBe(1);
+      expect(pkg.priceArs).toBe(DEFAULT_PAP_VALUE_ARS);
+      expect(pkg.catalog?.realPapValue).toBe(1);
+    }
+    // The declared containers are what one PAP buys; the reference price
+    // derives from them, and the handed quantity is their product.
+    const rosso = direct[0].catalog!;
+
+    if (rosso.kind !== "empaquetado") throw new Error("not empaquetado");
+    expect(rosso.presentationCount * rosso.presentationSize).toBe(3.75);
+    expect(rosso.listPriceArs).toBeCloseTo(DEFAULT_PAP_VALUE_ARS / 3.75, 6);
+    expect(rosso.listPriceBasis).toContain("por");
   });
 
   it("gives every seeded package the catalog price and disclosure", () => {
@@ -213,7 +229,7 @@ describe("mergeCatalogPackages", () => {
 
     expect(preCatalog).toEqual([]);
     expect(merged.map((pkg) => pkg.id)).toEqual(
-      catalogPackages().map((pkg) => pkg.id),
+      SEED_PACKAGES.map((pkg) => pkg.id),
     );
   });
 
@@ -278,6 +294,62 @@ describe("the seeded catalog trades 1:1", () => {
     expect(match.offeredPackageId).toBe(offered.id);
     expect(match.targetPackageId).toBe(target.id);
     expect(store.getState().matches).toHaveLength(1);
+  });
+});
+
+describe("re-pricing the catalog when the PAP value changes", () => {
+  const measureSeeds = SEED_PACKAGES.filter(
+    (pkg) =>
+      pkg.catalog !== undefined &&
+      pkg.catalog.realPriceArs === DEFAULT_PAP_VALUE_ARS &&
+      pkg.catalog.kind === "granel",
+  );
+
+  it("re-derives the seeded packages so the by-measure ones land exactly on 1 PAP", () => {
+    const store = createBarterStore({
+      initialPackages: SEED_PACKAGES,
+      initialMatches: [],
+      broadcastEnabled: false,
+    });
+    const newPapArs = DEFAULT_PAP_VALUE_ARS + 12345;
+
+    expect(measureSeeds.length).toBeGreaterThan(0);
+
+    store.setPapConfigArs(newPapArs);
+
+    const byId = new Map(store.getState().packages.map((pkg) => [pkg.id, pkg]));
+
+    for (const seed of measureSeeds) {
+      const refreshed = byId.get(seed.id);
+
+      if (!refreshed?.catalog) {
+        throw new Error(`Catalog package ${seed.id} vanished on PAP re-price`);
+      }
+
+      expect(refreshed.priceArs).toBe(newPapArs);
+      expect(refreshed.papValue).toBe(1);
+      expect(refreshed.catalog.realPriceArs).toBe(newPapArs);
+    }
+  });
+
+  it("keeps the stock a real trade consumed and the packages the catalog does not carry", () => {
+    const foreign = fixturePackage("pkg-fixture-vermut-pack4");
+    const traded = {
+      ...packageById(measureSeeds[0].id),
+      stockUnits: 0,
+    };
+    const store = createBarterStore({
+      initialPackages: [traded, foreign],
+      initialMatches: [],
+      broadcastEnabled: false,
+    });
+
+    store.setPapConfigArs(DEFAULT_PAP_VALUE_ARS + 1);
+
+    const byId = new Map(store.getState().packages.map((pkg) => [pkg.id, pkg]));
+
+    expect(byId.get(traded.id)?.stockUnits).toBe(0);
+    expect(byId.get(foreign.id)).toEqual(foreign);
   });
 });
 

@@ -4,6 +4,7 @@ import {
   CATALOG_PACKAGE_ID_PREFIX,
   CATALOG_STOCK_UNITS,
   catalogPackages,
+  catalogQuantity,
   deriveCatalogPackage,
   formatCatalogQuantity,
   formatCatalogSize,
@@ -66,10 +67,9 @@ describe("deriveCatalogPackage — sold by measure", () => {
     expect(derived.papValue).toBe(1);
     expect(derived.priceArs).toBe(50000);
     expect(derived.catalog).toEqual({
-      quantity: 2.2565,
+      kind: "granel",
       measure: "kg",
-      presentationCount: 1,
-      presentationSize: 3,
+      quantity: 2.2565,
       listPriceArs: 22158.2,
       listPriceBasis: "por kg",
       realPriceArs: 50000,
@@ -81,6 +81,8 @@ describe("deriveCatalogPackage — sold by measure", () => {
     // #55: Maíz pisingallo x 5 k, $3.588 por kg: $50.000 buy 13,94 kg.
     const derived = deriveCatalogPackage(row(55));
 
+    expect(derived.catalog.kind).toBe("granel");
+    if (derived.catalog.kind !== "granel") throw new Error("not granel");
     expect(derived.catalog.quantity).toBeCloseTo(13.94, 2);
     expect(derived.catalog.listPriceArs).toBe(3588);
     expect(derived.papValue).toBe(1);
@@ -91,6 +93,7 @@ describe("deriveCatalogPackage — sold by measure", () => {
     // 1 PAP = $60.000 buys 60.000 / 22.158,2 = 2,71 kg of the same cheese.
     const derived = deriveCatalogPackage(row(5), 60000);
 
+    if (derived.catalog.kind !== "granel") throw new Error("not granel");
     expect(derived.catalog.quantity).toBeCloseTo(2.71, 2);
     expect(derived.priceArs).toBe(60000);
     expect(derived.catalog.realPriceArs).toBe(60000);
@@ -106,7 +109,7 @@ describe("deriveCatalogPackage — whole presentations", () => {
     expect(derived.papValue).toBe(1);
     expect(derived.priceArs).toBe(50000);
     expect(derived.catalog).toEqual({
-      quantity: 3,
+      kind: "empaquetado",
       measure: "litro",
       presentationCount: 4,
       presentationSize: 0.75,
@@ -124,8 +127,10 @@ describe("deriveCatalogPackage — whole presentations", () => {
 
     expect(derived.papValue).toBe(1);
     expect(derived.priceArs).toBe(50000);
+    if (derived.catalog.kind !== "empaquetado")
+      throw new Error("not empaquetado");
     expect(derived.catalog.presentationCount).toBe(9);
-    expect(derived.catalog.quantity).toBe(4.5);
+    expect(catalogQuantity(derived.catalog)).toBe(4.5);
     expect(derived.catalog.listPriceArs).toBe(5362.07);
     expect(derived.catalog.listPriceBasis).toBe("por 500 ml");
     expect(derived.catalog.realPriceArs).toBe(48258.63);
@@ -137,8 +142,10 @@ describe("deriveCatalogPackage — whole presentations", () => {
     // its PAP count is the nearest whole one, never a fraction (S3).
     const derived = deriveCatalogPackage(madeUpRow(null, 6647460, 3, "kg"));
 
+    if (derived.catalog.kind !== "empaquetado")
+      throw new Error("not empaquetado");
     expect(derived.catalog.presentationCount).toBe(1);
-    expect(derived.catalog.quantity).toBe(3);
+    expect(catalogQuantity(derived.catalog)).toBe(3);
     expect(derived.papValue).toBe(1);
     expect(derived.priceArs).toBe(50000);
     expect(derived.catalog.realPriceArs).toBeCloseTo(66474.6, 6);
@@ -153,6 +160,8 @@ describe("deriveCatalogPackage — whole presentations", () => {
 
     expect(derived.papValue).toBe(10);
     expect(derived.priceArs).toBe(500000);
+    if (derived.catalog.kind !== "empaquetado")
+      throw new Error("not empaquetado");
     expect(derived.catalog.presentationCount).toBe(1);
     expect(derived.catalog.listPriceBasis).toBe("por unidad");
     expect(derived.catalog.realPapValue).toBeCloseTo(9.99, 4);
@@ -164,8 +173,10 @@ describe("deriveCatalogPackage — whole presentations", () => {
     const derived = deriveCatalogPackage(row(714));
 
     expect(derived.catalog.measure).toBe("unidad");
+    if (derived.catalog.kind !== "empaquetado")
+      throw new Error("not empaquetado");
     expect(derived.catalog.presentationCount).toBe(2);
-    expect(derived.catalog.quantity).toBe(36);
+    expect(catalogQuantity(derived.catalog)).toBe(36);
     expect(derived.catalog.listPriceBasis).toBe("por 18 unidades");
   });
 
@@ -174,6 +185,8 @@ describe("deriveCatalogPackage — whole presentations", () => {
     // whole count of seven frascos.
     const derived = deriveCatalogPackage(row(27));
 
+    if (derived.catalog.kind !== "empaquetado")
+      throw new Error("not empaquetado");
     expect(derived.catalog.presentationCount).toBe(7);
     expect(derived.catalog.presentationSize).toBe(0.06);
     expect(derived.catalog.listPriceBasis).toBe("por 60 ml");
@@ -204,8 +217,8 @@ describe("deriveCatalogPackage — the invariants the barter relies on", () => {
         problems.push(`${label}: realPapValue ${catalog.realPapValue}`);
       }
 
-      if (!(catalog.quantity > 0)) {
-        problems.push(`${label}: quantity ${catalog.quantity}`);
+      if (!(catalogQuantity(catalog) > 0)) {
+        problems.push(`${label}: quantity ${catalogQuantity(catalog)}`);
       }
 
       if (!(catalog.listPriceArs > 0)) {
@@ -240,11 +253,12 @@ describe("catalogPackages", () => {
   it("seeds one package per product name per producer, in printed order", () => {
     const packages = catalogPackages();
 
-    // The printed rows are 1527; one card per product name per producer keeps
-    // 1374 of them — repeated presentations of one good collapse into their
-    // best price per measure.
-    expect(packages).toHaveLength(1374);
-    expect(new Set(packages.map((pkg) => pkg.id)).size).toBe(1374);
+    // The printed rows are 1527; one card per product name, producer and sale
+    // form keeps 1406 of them — repeated presentations of one form collapse
+    // into their best price per measure, and a product the producer offers
+    // both granel and empaquetado keeps one card per form.
+    expect(packages).toHaveLength(1406);
+    expect(new Set(packages.map((pkg) => pkg.id)).size).toBe(1406);
     // cat-1 and cat-2 are one oil in two bottle sizes: the litre bottle has the
     // better per-litre price, so it opens the gondola and the half-litre drops.
     expect(packages[0].id).toBe("cat-2");
@@ -351,7 +365,7 @@ describe("what the printed price buys, spelled the way the catalog prints it", (
 
       // #953 prices 3 g sachets: the quantity must keep its grams, not round to
       // zero and fail the contract.
-      expect(catalog.quantity).toBeGreaterThan(0);
+      expect(catalogQuantity(catalog)).toBeGreaterThan(0);
     }
   });
 
@@ -360,7 +374,7 @@ describe("what the printed price buys, spelled the way the catalog prints it", (
     // quantity that a two-decimal kilogram would have rounded to zero.
     const derived = deriveCatalogPackage(row(953));
 
-    expect(derived.catalog.quantity).toBeCloseTo(0.048, 4);
+    expect(catalogQuantity(derived.catalog)).toBeCloseTo(0.048, 4);
     expect(derived.catalog.listPriceBasis).toBe("por 3 g");
   });
 });
@@ -389,7 +403,7 @@ describe("the quantity a package hands over, spelled the way the catalog speaks"
   it("never publishes a machine-formatted quantity for any printed row", () => {
     for (const pkg of catalogPackages()) {
       const text = formatCatalogQuantity(
-        pkg.catalog.quantity,
+        catalogQuantity(pkg.catalog),
         pkg.catalog.measure,
       );
 

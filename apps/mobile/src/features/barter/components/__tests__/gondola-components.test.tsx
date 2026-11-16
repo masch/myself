@@ -221,8 +221,8 @@ describe("GondolaFilterBar offers the two card layouts", () => {
       ...CARD_VARIANTS,
     ]);
     expect(CARD_VARIANT_OPTIONS.map((option) => option.label)).toEqual([
-      "Cantidad",
       "Ficha",
+      "Cantidad",
     ]);
 
     for (const option of CARD_VARIANT_OPTIONS) {
@@ -261,7 +261,10 @@ describe("ProductPackageCard leads with what one PAP buys", () => {
     expect(html).toContain("1 PAP =");
     expect(html).toContain("Son 3 envases de 500 g.");
     expect(html).toContain("El catálogo los cobra a $14.637,56 por 500 g.");
-    expect(html).toContain("Queda $6.087 abajo de 1 PAP");
+    // Sealed presentations cannot land on 1 PAP: the card states the facts and
+    // stays silent about the rounding instead of billing an unavoidable gap.
+    expect(html).not.toContain("abajo de 1 PAP");
+    expect(html).not.toContain("Ajuste a 1 PAP");
   });
 
   it("lays the same facts out as label and value in the sheet layout", () => {
@@ -271,18 +274,20 @@ describe("ProductPackageCard leads with what one PAP buys", () => {
     expect(html).toContain("1,5 kg");
     expect(html).toContain("Cómo viene");
     expect(html).toContain("3 envases de 500 g");
-    expect(html).toContain("Ajuste a 1 PAP");
-    expect(html).toContain("−$6.087");
+    expect(html).not.toContain("Ajuste a 1 PAP");
     expect(html).toContain("$14.637,56 por 500 g");
   });
 
   it("says a weighed package coincides exactly instead of naming a fraction", () => {
     // #5: Gouda at $22.158,20 por kg — the package is 2,26 kg, exactly 1 PAP.
+    // Every package now lands on 1 PAP by construction, so no card states an
+    // adjustment at all: the quantity and the printed price carry the story.
     const html = renderCard(catalogPackage("cat-5"));
 
     expect(html).toContain("2,26 kg");
     expect(html).toContain("El catálogo lo cobra a $22.158,20 por kg.");
-    expect(html).toContain("Coincide exacto con 1 PAP");
+    expect(html).not.toContain("Coincide exacto");
+    expect(html).not.toContain("Ajuste a 1 PAP");
     expect(html).not.toContain("envases de");
   });
 
@@ -474,14 +479,14 @@ describe("GondolaFilterBar declares the applied producer filter once", () => {
 });
 
 describe("PackageOfferOption tells the producer what it hands over", () => {
-  it("shows the quantity on offer and its difference in pesos", () => {
-    // #24: three half-kilo bags are 1,5 kg, which is $6.087 short of one PAP. The
-    // modal used to print the same fact as a PAP fraction, which the card and the
-    // sheet no longer do: one trade, one language.
+  it("shows the quantity on offer and stays silent on a sealed package's rounding", () => {
+    // #24: three half-kilo bags, sold by the sealed presentation — the modal
+    // used to print the rounding as a peso difference, which no sealed card
+    // states anymore: one trade, one language.
     const html = renderOffer(catalogPackage("cat-24"));
 
     expect(html).toContain("1,5 kg · 3 envases de 500 g");
-    expect(html).toContain("Queda $6.087 abajo de 1 PAP");
+    expect(html).not.toContain("de 1 PAP");
     expect(html).not.toContain("real ");
   });
 

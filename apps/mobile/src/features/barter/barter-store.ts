@@ -10,7 +10,12 @@ import {
   type ProductPackage,
   type TradeMatch,
 } from "@myself/shared";
-import { catalogPackages } from "./catalog-packages";
+import {
+  catalogPackages,
+  catalogQuantity,
+  deriveDirectCatalogPackage,
+  type DirectProductInput,
+} from "./catalog-packages";
 import { PRIMAVERA_2026_PRODUCERS } from "./producer-catalog";
 
 /**
@@ -41,6 +46,38 @@ export const PRODUCER_IDS = {
 export const SEED_PRODUCERS: Producer[] = [...PRIMAVERA_2026_PRODUCERS];
 
 /**
+ * The first direct load: three products Vermut Sábado declares without a
+ * printed catalog row. The quantity is what one PAP buys — the producer said
+ * it, the app repeats it — and the price of reference derives from it.
+ */
+const DIRECT_SEED_PRODUCTS: DirectProductInput[] = [
+  {
+    id: "vermut-rosso-750",
+    title: "Vermut Rosso x 750 ml",
+    kind: "empaquetado",
+    measure: "litro",
+    presentationSize: 0.75,
+    presentationCount: 5,
+  },
+  {
+    id: "vermut-blanco-750",
+    title: "Vermut Blanco x 750 ml",
+    kind: "empaquetado",
+    measure: "litro",
+    presentationSize: 0.75,
+    presentationCount: 5,
+  },
+  {
+    id: "vermut-rosso-1l",
+    title: "Vermut Rosso x 1 litro",
+    kind: "empaquetado",
+    measure: "litro",
+    presentationSize: 1,
+    presentationCount: 5,
+  },
+];
+
+/**
  * The packages the app seeds: every product the Primavera 2026 catalog prints,
  * in printed order, each holding what is worth 1 PAP (see `catalog-packages.ts`),
  * so a stored install and an injected test store run the same catalog.
@@ -49,10 +86,18 @@ export const SEED_PRODUCERS: Producer[] = [...PRIMAVERA_2026_PRODUCERS];
  * retired: the catalog derives an equivalent for two of them, and a state that
  * still stores one is rewritten on load by `retireSeedPackages`.
  */
-export const SEED_PACKAGES: ProductPackage[] = [...catalogPackages()];
+export const SEED_PACKAGES: ProductPackage[] = [
+  ...catalogPackages(),
+  ...DIRECT_SEED_PRODUCTS.map((input) => deriveDirectCatalogPackage(input)),
+];
 
 /** The current seed by package id, for refreshing stored installs at load time. */
 const SEED_PACKAGE_BY_ID = new Map(SEED_PACKAGES.map((pkg) => [pkg.id, pkg]));
+
+/** The seed by package id, derived against one PAP value. */
+function seedPackagesFor(papConfigArs: number) {
+  return new Map(catalogPackages(papConfigArs).map((pkg) => [pkg.id, pkg]));
+}
 
 export interface BarterState {
   producers: Producer[];
@@ -193,9 +238,15 @@ export function mergeCatalogProducers(persisted?: Producer[]): Producer[] {
  */
 export function mergeCatalogPackages(
   persisted?: ProductPackage[],
+  papConfigArs: number = DEFAULT_PAP_VALUE_ARS,
 ): ProductPackage[] {
+  const seedByid =
+    papConfigArs === DEFAULT_PAP_VALUE_ARS
+      ? SEED_PACKAGE_BY_ID
+      : seedPackagesFor(papConfigArs);
+
   if (!persisted?.length) {
-    return SEED_PACKAGES;
+    return [...seedByid.values()];
   }
 
   // Stored bytes come from another build, and a deploy that changes the catalog
@@ -206,7 +257,7 @@ export function mergeCatalogPackages(
   // its producer assignment and the stock its trades consumed. The ids this
   // seed dropped fall through to the keep/drop logic below.
   const refreshed = persisted.map((pkg) => {
-    const seed = SEED_PACKAGE_BY_ID.get(pkg.id);
+    const seed = seedByid.get(pkg.id);
     return seed
       ? {
           ...pkg,
@@ -219,7 +270,9 @@ export function mergeCatalogPackages(
   });
 
   const persistedIds = new Set(refreshed.map((pkg) => pkg.id));
-  const missing = SEED_PACKAGES.filter((pkg) => !persistedIds.has(pkg.id));
+  const missing = [...seedByid.values()].filter(
+    (pkg) => !persistedIds.has(pkg.id),
+  );
 
   return missing.length === 0 ? refreshed : [...refreshed, ...missing];
 }
@@ -505,7 +558,13 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     }
   }
 
-  // Load persisted state if on Web
+  // The seed is the only thing the boot trusts: a stored install never
+  // restores the catalog (packages, prices, PAP value), because the seed this
+  // build ships is always the truth — a fresh boot starts the gondola exactly
+  // as the code prints it. What persistence and the peer broadcast carry is
+  // the runtime-created state: trades, the stock they consumed, and the
+  // matches they left. A stored or peer package id this seed does not print
+  // is dropped, so yesterday's experiments never masquerade as products.
   let persistedState: Partial<BarterState> = {};
   if (isWeb) {
     try {
@@ -526,10 +585,9 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     }
   }
 
-  // Producers this store runs with: explicit options win, and a persisted list is
-  // merged into the catalog instead of replacing it.
-  const producers =
-    options.initialProducers ?? mergeCatalogProducers(persistedState.producers);
+  // Producers this store runs with: the seed catalog, plus persisted producer
+  // edits that the runtime created (none yet — the hook exists for the UI alta).
+  const producers = options.initialProducers ?? SEED_PRODUCERS;
 
   // Initial producer resolution from query params (?producerId=...)
   // The default identity is pinned to the producer the app has always opened as,
@@ -567,11 +625,12 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
 
   let state: BarterState = {
     producers,
-    packages:
-      options.initialPackages ?? mergeCatalogPackages(persistedState.packages),
+    // The seed always: a stored install's packages never restore the catalog —
+    // the gondola starts as the code prints it, with stock unconsumed.
+    packages: options.initialPackages ?? SEED_PACKAGES,
     matches: options.initialMatches ?? persistedState.matches ?? [],
     activeProducerId: initialActiveId,
-    papConfigArs: persistedState.papConfigArs ?? DEFAULT_PAP_VALUE_ARS,
+    papConfigArs: DEFAULT_PAP_VALUE_ARS,
     maxDistanceKm: undefined,
     productionTypeFilter: "ALL",
     producerFilterId: undefined,
@@ -657,7 +716,17 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
     },
 
     setPapConfigArs: (papArs: number) => {
-      state = { ...state, papConfigArs: papArs };
+      // Re-deriving the catalog against the new value is what keeps the rule
+      // the catalog owns: every seeded package is worth whole PAPs of the
+      // value the operator set, so the by-measure ones land exactly on 1 PAP
+      // again instead of carrying the margin of the value they were priced
+      // with. Stock and the packages the catalog does not carry survive the
+      // merge untouched.
+      state = {
+        ...state,
+        papConfigArs: papArs,
+        packages: mergeCatalogPackages(state.packages, papArs),
+      };
       notify(true);
     },
 

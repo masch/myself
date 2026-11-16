@@ -1,4 +1,9 @@
-import { DEFAULT_PAP_VALUE_ARS, type ProductPackage } from "@myself/shared";
+import {
+  DEFAULT_PAP_VALUE_ARS,
+  type GranelPackageCatalog,
+  type PackagedPackageCatalog,
+  type ProductPackage,
+} from "@myself/shared";
 import {
   PRODUCT_FINAL_PRICE,
   PRODUCT_MEASURE,
@@ -49,6 +54,22 @@ import { PRIMAVERA_2026_PRODUCTS } from "./primavera-products";
 export const CATALOG_PACKAGE_ID_PREFIX = "cat-";
 
 /**
+ * Every directly declared product id is this prefix plus the local id the
+ * producer's block gives it, so the two sources never collide on an id.
+ */
+export const DIRECT_PACKAGE_ID_PREFIX = "direct-";
+
+/**
+ * Who the direct products belong to until a per-producer entry point exists:
+ * the block is authored for Vermut Sábado, the producer the first direct load
+ * is for.
+ */
+export const DIRECT_PRODUCT_PRODUCER_ID = "sabado";
+
+/** The production type a direct package carries, same as its producer prints. */
+export const DIRECT_PRODUCT_PRODUCTION_TYPE = "AGROECOLOGICAL" as const;
+
+/**
  * How many packages of a catalog product are on offer (S7).
  *
  * The PDF prints no stock, so every catalog package takes one documented
@@ -59,29 +80,16 @@ export const CATALOG_PACKAGE_ID_PREFIX = "cat-";
 export const CATALOG_STOCK_UNITS = 1;
 
 /**
- * What a printed package discloses beside its 1-PAP equivalence.
+ * What a catalog package discloses beside its 1-PAP equivalence, by sale form.
  *
- * All the numbers come from the printed row, so a user can compare the price
- * the catalog loaded with the price this app gives it (S4).
+ * The producer's declared form decides what the rest means: a `granel` package
+ * states the quantity one PAP buys (the buyer chooses the measure) and prices
+ * per measure; an `empaquetado` package states the containers (the buyer takes
+ * them whole) and prices per container. The handed quantity of an `empaquetado`
+ * package is always `presentationCount × presentationSize` — never stored, so
+ * it cannot drift.
  */
-export interface CatalogPackageInfo {
-  /** How much of `measure` one package hands over. */
-  quantity: number;
-  /** The measure that quantity is expressed in. */
-  measure: CatalogMeasure;
-  /** How many printed presentations the package holds. */
-  presentationCount: number;
-  /** How much of `measure` one printed presentation holds. */
-  presentationSize: number;
-  /** The price the PDF prints, in ARS. */
-  listPriceArs: number;
-  /** What that printed price buys: `por kg`, `por 3 kg`, `por unidad`. */
-  listPriceBasis: string;
-  /** What the handed quantity really costs in ARS. */
-  realPriceArs: number;
-  /** `realPriceArs` as an exact PAP fraction — the difference to disclose. */
-  realPapValue: number;
-}
+export type CatalogPackageInfo = GranelPackageCatalog | PackagedPackageCatalog;
 
 /**
  * A package every one of whose printed facts is known: the four POC packages
@@ -99,6 +107,117 @@ export interface DerivedCatalogPackage {
   /** Exactly `papValue * papConfigArs`, the only price the store verifies. */
   priceArs: number;
   catalog: CatalogPackageInfo;
+}
+
+/**
+ * One product the producer declares directly, without a catalog row. The sale
+ * form is the producer's decision, so the input is one of the two forms:
+ *
+ * - `granel`: the declared quantity is what one PAP buys, and the reference
+ *   price per measure derives from it.
+ * - `empaquetado`: the declared containers are what one PAP buys, and the
+ *   handed quantity is always `presentationCount × presentationSize`.
+ */
+export type DirectProductInput =
+  | {
+      id: string;
+      title: string;
+      kind: "granel";
+      measure: CatalogMeasure;
+      /** What one PAP buys, in `measure` units. */
+      quantity: number;
+    }
+  | {
+      id: string;
+      title: string;
+      kind: "empaquetado";
+      measure: CatalogMeasure;
+      /** How many containers one PAP buys. */
+      presentationCount: number;
+      /** How much of `measure` one container holds. */
+      presentationSize: number;
+    };
+
+/**
+ * Derives the package of one directly declared product: always exactly 1 PAP.
+ */
+export function deriveDirectCatalogPackage(
+  input: DirectProductInput,
+  papConfigArs: number = DEFAULT_PAP_VALUE_ARS,
+): CatalogProductPackage {
+  if (papConfigArs <= 0) {
+    throw new Error("PAP configuration value must be strictly positive");
+  }
+
+  const catalog: CatalogPackageInfo =
+    input.kind === "granel"
+      ? deriveGranelCatalog(input, papConfigArs)
+      : derivePackagedCatalog(input, papConfigArs);
+
+  return {
+    id: `${DIRECT_PACKAGE_ID_PREFIX}${input.id}`,
+    producerId: DIRECT_PRODUCT_PRODUCER_ID,
+    title: input.title,
+    productionType: DIRECT_PRODUCT_PRODUCTION_TYPE,
+    priceArs: papConfigArs,
+    papValue: 1,
+    stockUnits: CATALOG_STOCK_UNITS,
+    catalog,
+  };
+}
+
+/** The granel half of a direct derivation: the quantity is the declared one. */
+function deriveGranelCatalog(
+  input: Extract<DirectProductInput, { kind: "granel" }>,
+  papConfigArs: number,
+): GranelPackageCatalog {
+  const quantity = roundQuantity(input.quantity, input.measure);
+
+  if (quantity !== input.quantity) {
+    throw new Error(
+      `Direct product ${input.id} declares a quantity the disclosure cannot repeat exactly`,
+    );
+  }
+
+  return {
+    kind: "granel",
+    measure: input.measure,
+    quantity,
+    listPriceArs: papConfigArs / input.quantity,
+    listPriceBasis: `por ${input.measure}`,
+    realPriceArs: papConfigArs,
+    realPapValue: 1,
+  };
+}
+
+/**
+ * The empaquetado half of a direct derivation: the containers are the declared
+ * ones, and the reference price is what one container costs.
+ */
+function derivePackagedCatalog(
+  input: Extract<DirectProductInput, { kind: "empaquetado" }>,
+  papConfigArs: number,
+): PackagedPackageCatalog {
+  if (input.presentationSize <= 0 || input.presentationCount <= 0) {
+    throw new Error(
+      `Direct product ${input.id} declares a non-positive container`,
+    );
+  }
+
+  return {
+    kind: "empaquetado",
+    measure: input.measure,
+    presentationCount: input.presentationCount,
+    presentationSize: input.presentationSize,
+    listPriceArs:
+      papConfigArs / (input.presentationCount * input.presentationSize),
+    listPriceBasis: `por ${formatCatalogSize(
+      input.presentationSize,
+      input.measure,
+    )}`,
+    realPriceArs: papConfigArs,
+    realPapValue: 1,
+  };
 }
 
 /**
@@ -171,6 +290,18 @@ export function formatCatalogQuantity(
   return `${formatNumber(rounded)} ${noun}${
     noun === "kg" || rounded === 1 ? "" : "s"
   }`;
+}
+
+/**
+ * What one PAP buys, as the card's headline — by sale form.
+ *
+ * A granel package states it; an empaquetado package derives it from its
+ * containers (`count × size`), the only place that multiplication lives.
+ */
+export function catalogQuantity(catalog: CatalogPackageInfo): number {
+  return catalog.kind === "granel"
+    ? catalog.quantity
+    : catalog.presentationCount * catalog.presentationSize;
 }
 
 /**
@@ -253,11 +384,18 @@ function printedPricePerMeasure(facts: CatalogPackageFacts): number {
 }
 
 /**
- * The key that makes two rows the same product on the gondola: one producer and
- * one name, with the printed size already gone.
+ * The key that makes two rows the same product on the gondola: one producer,
+ * one name with the printed size gone, and **one sale form** — the same good
+ * granel and empaquetado are two packages the buyer chooses between, not
+ * duplicates of each other. Within one form the best price per measure wins,
+ * because two same-form packages of one product render as identical cards.
  */
-function productKey(producerId: string, title: string): string {
-  return `${producerId}::${title.toLowerCase()}`;
+function productKey(
+  producerId: string,
+  title: string,
+  kind: CatalogPackageInfo["kind"],
+): string {
+  return `${producerId}::${title.toLowerCase()}::${kind}`;
 }
 
 /**
@@ -280,7 +418,8 @@ export function deriveCatalogPackage(
   const measure = facts[PRODUCT_MEASURE];
 
   // Sold by measure: the buyer chooses the amount, so the quantity is what
-  // makes the package worth exactly 1 PAP.
+  // makes the package worth exactly 1 PAP. There is no container: a granel
+  // row prints no presentation count and no size fiction.
   if (unitPriceCents !== null && (measure === "kg" || measure === "litro")) {
     const listPriceArs = unitPriceCents / 100;
 
@@ -288,21 +427,20 @@ export function deriveCatalogPackage(
       papValue: 1,
       priceArs: papConfigArs,
       catalog: {
-        quantity: roundQuantity(papConfigArs / listPriceArs, measure),
+        kind: "granel",
         measure,
-        presentationCount: 1,
-        presentationSize,
+        quantity: roundQuantity(papConfigArs / listPriceArs, measure),
         listPriceArs,
         listPriceBasis: `por ${measure}`,
         realPriceArs: papConfigArs,
         realPapValue: 1,
-      },
+      } satisfies GranelPackageCatalog,
     };
   }
 
-  // Everything else is a whole count of sealed presentations. `Precio final` is
-  // what one presentation costs; a row that prints only a per-unit price (the
-  // plants and seeds) sells one unit, so that price is what one presentation
+  // Everything else is a whole count of sealed containers. `Precio final` is
+  // what one container costs; a row that prints only a per-unit price (the
+  // plants and seeds) sells one unit, so that price is what one container
   // costs too.
   const presentationPriceCents = finalPriceCents ?? unitPriceCents;
 
@@ -325,7 +463,7 @@ export function deriveCatalogPackage(
     papValue,
     priceArs: papValue * papConfigArs,
     catalog: {
-      quantity: roundQuantity(presentationCount * presentationSize, measure),
+      kind: "empaquetado",
       measure,
       presentationCount,
       presentationSize,
@@ -333,7 +471,7 @@ export function deriveCatalogPackage(
       listPriceBasis: `por ${formatCatalogSize(presentationSize, measure)}`,
       realPriceArs,
       realPapValue,
-    },
+    } satisfies PackagedPackageCatalog,
   };
 }
 
@@ -378,7 +516,8 @@ export function catalogPackages(
 
     const derived = deriveCatalogPackage(facts, papConfigArs);
     const title = stripPrintedSize(facts[PRODUCT_NAME]);
-    const key = productKey(producer.id, title);
+    const kind = derived.catalog.kind;
+    const key = productKey(producer.id, title, kind);
     const pricePerMeasure = printedPricePerMeasure(facts);
     const current = survivors.get(key);
 
