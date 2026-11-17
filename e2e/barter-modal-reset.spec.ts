@@ -80,11 +80,12 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
     // The previous producer's inventory is not on offer any more...
     await page.getByTestId("own-package-search").fill("aceite de coco");
     await expect(proposalRadios).toHaveCount(0);
-    // ...and the new producer's own printed product is, by its full printed
-    // title — "vermut rosso" alone matches the three direct packages too.
+    // ...and the new producer's own printed product is, by its unique seed
+    // title — "vermut rosso" alone matches the three direct packages too, and
+    // the printed row's title carries no size since the sizeless-title change.
     await page
       .getByTestId("own-package-search")
-      .fill("vermut rosso x 750 ml (muy bueno)");
+      .fill("vermut rosso (muy bueno)");
     await expect(proposalRadios).toHaveCount(1);
     await expect(checkedRadio).toHaveCount(1);
     await expect(
