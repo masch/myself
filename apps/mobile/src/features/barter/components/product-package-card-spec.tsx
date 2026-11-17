@@ -2,14 +2,9 @@ import React from "react";
 import { StyleSheet, View, type StyleProp, type TextStyle } from "react-native";
 import { Card, ThemedText } from "@/components";
 import { colors, fontWeights, letterSpacings, spacing } from "@/theme";
-import { formatCatalogQuantity } from "../catalog-packages";
+import { catalogQuantity, formatCatalogQuantity } from "../catalog-packages";
+import { formatPrintedPrice, packagingLabel } from "../product-card-copy";
 import {
-  formatPrintedPrice,
-  packagingLabel,
-  papAdjustment,
-} from "../product-card-copy";
-import {
-  ADJUSTMENT_COLORS,
   PackageHandOver,
   PackageOrigin,
   PackageProducerFilter,
@@ -40,9 +35,6 @@ export function ProductPackageCardSpec({
 }: PackageCardLayoutProps) {
   const catalog = packageItem.catalog;
   const packaging = catalog ? packagingLabel(catalog) : null;
-  const adjustment = catalog
-    ? papAdjustment(catalog, packageItem.priceArs)
-    : null;
 
   return (
     <Card variant="elevated" style={packageCardStyles.card}>
@@ -64,18 +56,13 @@ export function ProductPackageCardSpec({
         <View style={styles.spec}>
           <SpecRow
             label="Te llevás por 1 PAP"
-            value={formatCatalogQuantity(catalog.quantity, catalog.measure)}
+            value={formatCatalogQuantity(
+              catalogQuantity(catalog),
+              catalog.measure,
+            )}
             testID={`package-quantity-${packageItem.id}`}
           />
           {packaging ? <SpecRow label="Cómo viene" value={packaging} /> : null}
-          {adjustment ? (
-            <SpecRow
-              label="Ajuste a 1 PAP"
-              value={adjustment.compact}
-              valueStyle={ADJUSTMENT_COLORS[adjustment.direction]}
-              testID={`package-pap-adjustment-${packageItem.id}`}
-            />
-          ) : null}
         </View>
       ) : null}
 

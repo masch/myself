@@ -25,9 +25,8 @@ import {
 import type { ProductPackage } from "@myself/shared";
 import { productionTypeLabel } from "../production-type-labels";
 import { filterPackagesByTitle } from "../barter-selectors";
-import { formatCatalogQuantity } from "../catalog-packages";
-import { packagingLabel, papAdjustment } from "../product-card-copy";
-import { ADJUSTMENT_COLORS } from "./product-card-parts";
+import { catalogQuantity, formatCatalogQuantity } from "../catalog-packages";
+import { packagingLabel } from "../product-card-copy";
 
 interface TradeProposalModalProps {
   visible: boolean;
@@ -298,19 +297,15 @@ function CatalogDisclosure({
   if (!catalog) return null;
 
   const packaging = packagingLabel(catalog);
-  const adjustment = papAdjustment(catalog, pkg.priceArs);
-  const quantity = formatCatalogQuantity(catalog.quantity, catalog.measure);
+  const quantity = formatCatalogQuantity(
+    catalogQuantity(catalog),
+    catalog.measure,
+  );
 
   return (
     <>
       <ThemedText variant={variant} style={styles.catalogQuantity}>
         {packaging ? `${quantity} · ${packaging}` : quantity}
-      </ThemedText>
-      <ThemedText
-        variant={variant}
-        style={ADJUSTMENT_COLORS[adjustment.direction]}
-      >
-        {adjustment.sentence}
       </ThemedText>
     </>
   );

@@ -125,10 +125,9 @@ function boot(raw: unknown) {
 }
 
 describe("a stored install written before the current catalog build", () => {
-  it("renders a surviving package with the seed's current title, keeping the stored stock", () => {
-    // Deploy-time refresh: the stored bytes carry whatever name the previous
-    // build printed, and the operator must never press "Reiniciar datos" to see
-    // the catalog this build ships — the seed wins, only the stock is theirs.
+  it("boots the seed catalog, never the stored packages", () => {
+    // The seed this build ships is always the truth: a boot never restores
+    // stored packages or their stock, whatever the previous build printed.
     const state = boot({
       packages: [
         {
@@ -141,15 +140,12 @@ describe("a stored install written before the current catalog build", () => {
       papConfigArs: 50000,
     }).getState();
 
-    const refreshed = state.packages.find((pkg) => pkg.id === "cat-24");
-
-    expect(refreshed?.title).toBe("Semillas de alfalfa para brotes");
-    expect(refreshed?.stockUnits).toBe(3);
+    expect(state.packages).toEqual(SEED_PACKAGES);
   });
 });
 
 describe("a stored install written before the catalog", () => {
-  it("keeps only the packages the printed catalog derives", () => {
+  it("boots the seed catalog; nothing of the stored packages survives", () => {
     const state = boot({
       packages: [
         ...STORED_POC_PACKAGES,
@@ -162,11 +158,7 @@ describe("a stored install written before the catalog", () => {
     expect(state.packages.filter((pkg) => pkg.id.startsWith("pkg-"))).toEqual(
       [],
     );
-    // The package the catalog does derive keeps the stock the stored trade left.
-    expect(
-      state.packages.find((pkg) => pkg.id === SEED_PACKAGES[0].id),
-    ).toEqual({ ...SEED_PACKAGES[0], stockUnits: 0 });
-    expect(state.packages).toHaveLength(SEED_PACKAGES.length);
+    expect(state.packages).toEqual(SEED_PACKAGES);
   });
 
   it("moves a stored match onto the catalog package that carries the product", () => {

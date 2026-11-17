@@ -10,18 +10,19 @@
  * selected layout travels in the gondola address: a tester can be handed a link
  * that opens the other layout instead of being asked to tap a chip first.
  */
-export const CARD_VARIANTS = ["cantidad", "ficha"] as const;
+export const CARD_VARIANTS = ["ficha", "cantidad"] as const;
 
 export type CardVariant = (typeof CARD_VARIANTS)[number];
 
 /**
  * The layout the gondola opens with.
  *
- * The quantity-first card is the default because it is the one that answers
- * "what do I get for 1 PAP?" without the user knowing what a PAP is worth yet;
- * the sheet is the alternative under test, not the baseline.
+ * The sheet (ficha) is the default: its label/value rows state every fact of
+ * the package — what one PAP buys, how it comes, the printed price — and the
+ * user chose it as the layout to open on. The quantity-first card stays one
+ * tap away as the alternative under test.
  */
-export const DEFAULT_CARD_VARIANT: CardVariant = "cantidad";
+export const DEFAULT_CARD_VARIANT: CardVariant = "ficha";
 
 /**
  * Narrows an untrusted value — a route parameter, a hand-typed URL, a link from a

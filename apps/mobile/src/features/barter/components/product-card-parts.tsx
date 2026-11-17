@@ -1,13 +1,10 @@
 import React from "react";
-import { StyleSheet, View, type ColorValue } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { AppButton, Badge, ChipButton, ThemedText } from "@/components";
 import { colors, fontWeights, letterSpacings, radius, spacing } from "@/theme";
 import type { ProductPackage } from "@myself/shared";
 import type { GondolaPackage } from "../barter-selectors";
-import {
-  distanceLabel,
-  type PapAdjustmentDirection,
-} from "../product-card-copy";
+import { distanceLabel } from "../product-card-copy";
 import { productionTypeLabel } from "../production-type-labels";
 
 /**
@@ -206,22 +203,6 @@ export const packageCardStyles = StyleSheet.create({
     padding: spacing.md,
   },
 });
-
-/**
- * The colour of the rounding line, shared by both layouts.
- *
- * Colour never carries the state on its own: every sentence this map colours also
- * says `abajo`, `arriba` or `Coincide exacto` in words, so the card survives a
- * colour-blind reader and a greyscale screenshot.
- */
-export const ADJUSTMENT_COLORS: Record<
-  PapAdjustmentDirection,
-  { color: ColorValue }
-> = {
-  below: { color: colors.systemOrange },
-  above: { color: colors.systemGreen },
-  exact: { color: colors.secondaryLabel },
-};
 
 const styles = StyleSheet.create({
   origin: {

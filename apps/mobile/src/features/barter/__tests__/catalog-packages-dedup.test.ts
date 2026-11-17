@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import { DEFAULT_PAP_VALUE_ARS } from "@myself/shared";
 
-import { catalogPackages } from "../catalog-packages";
+import { catalogPackages, catalogQuantity } from "../catalog-packages";
 
 /**
  * One card per product name per producer.
@@ -22,16 +22,16 @@ const PRINTED_SIZE =
 describe("catalogPackages — one card per product name", () => {
   const packages = catalogPackages(DEFAULT_PAP_VALUE_ARS);
 
-  it("never offers two packages under the same title for one producer", () => {
+  it("never offers two packages of the same form under the same title for one producer", () => {
     const seen = new Map<string, string>();
 
     for (const pkg of packages) {
-      const key = `${pkg.producerId}::${pkg.title.trim().toLowerCase()}`;
+      const key = `${pkg.producerId}::${pkg.title.trim().toLowerCase()}::${pkg.catalog?.kind}`;
       const previous = seen.get(key);
 
       expect(
         previous,
-        `producer ${pkg.producerId} offers "${pkg.title}" twice: ${previous} and ${pkg.id}`,
+        `producer ${pkg.producerId} offers "${pkg.title}" (${pkg.catalog?.kind}) twice: ${previous} and ${pkg.id}`,
       ).toBeUndefined();
 
       seen.set(key, pkg.id);
@@ -54,13 +54,16 @@ describe("catalogPackages — one card per product name", () => {
     }
   });
 
-  it("drops the repeated presentations of one producer", () => {
-    // Producer 42 prints one sugar in four formats; one card must remain.
+  it("drops the repeated presentations of one form, keeps one card per form", () => {
+    // Producer 42 prints one sugar in four formats: two granel rows and two
+    // empaquetado ones. One card per sale form remains — the granel bulk offer
+    // and the empaquetado bottles are choices the buyer makes between.
     const sugar = packages.filter((pkg) =>
       pkg.title.toLowerCase().startsWith("azúcar mascabo"),
     );
 
-    expect(sugar).toHaveLength(1);
+    expect(sugar).toHaveLength(2);
+    expect(new Set(sugar.map((pkg) => pkg.catalog?.kind)).size).toBe(2);
   });
 
   it("keeps the presentation with the best price per measure", () => {
@@ -87,7 +90,7 @@ describe("catalogPackages — one card per product name", () => {
     for (const pkg of packages) {
       expect(pkg.papValue).toBeGreaterThanOrEqual(1);
       expect(pkg.priceArs).toBe(pkg.papValue * DEFAULT_PAP_VALUE_ARS);
-      expect(pkg.catalog.quantity).toBeGreaterThan(0);
+      expect(catalogQuantity(pkg.catalog)).toBeGreaterThan(0);
     }
   });
 });

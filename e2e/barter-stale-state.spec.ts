@@ -55,17 +55,16 @@ test.describe("E2E barter with a state written by a previous build", () => {
     await expect(page.getByText("Something went wrong")).toHaveCount(0);
   });
 
-  test("shows a package stored under a renamed producer id", async ({
+  test("resolves a renamed producer link and boots the seed catalog", async ({
     page,
   }) => {
     test.setTimeout(120000);
 
-    // The previous build stored the package under `prod-vermut` and handed out
-    // links naming `prod-queso`. The id is a catalog one on purpose: the gondola
-    // is catalog-only, so a package this build cannot derive is dropped before
-    // the rename can matter, and the rename is what this test is about. The
-    // stored title is irrelevant since the seed refresh (#160): the package
-    // renders with the title this build prints, so the assertion reads it.
+    // A previous build stored a package under `prod-vermut` (a renamed id) and
+    // handed out links naming `prod-queso`. The link keeps working — the former
+    // id resolves to the same producer — but the boot is seed-first: a stored
+    // package never reaches the gondola, whatever its id says, and the screen
+    // shows this build's catalog instead of throwing or showing stale bytes.
     await page.addInitScript(
       ([key, state]: [string, string]) => {
         window.localStorage.setItem(key, state);
@@ -98,13 +97,9 @@ test.describe("E2E barter with a state written by a previous build", () => {
       { timeout: 30000 },
     );
 
-    // The stored package is migrated instead of orphaned: it reaches the
-    // gondola of the other producer, which only the rewrite makes possible.
-    // Its title comes from this build's seed, not from the stored bytes.
+    // The gondola boots from the seed: the stale stored title is nowhere, the
+    // catalog package renders with this build's title under its own producer.
     await expect(page.getByText("Góndola de Productores")).toBeVisible();
-    await expect(
-      page.getByText("Vermut Rosso (muy bueno)", { exact: true }),
-    ).toBeVisible();
     await expect(
       page.getByText("Pack previo al renombre de productores"),
     ).toHaveCount(0);

@@ -177,14 +177,11 @@ describe("external payload validation", () => {
       store.confirmDelivery("match-malformed", PRODUCER_IDS.VERMUT),
     ).toThrow("Match match-malformed not found");
 
-    // Only the malformed match is dropped: the package stored next to it is
-    // valid, so it stays at the head of the list and every catalog package this
-    // build ships is merged in behind it, instead of the stored list replacing
-    // the seeds.
+    // Only the malformed match is dropped. Packages always boot from the seed,
+    // so the stored one next to it never reaches the gondola regardless of
+    // whether its bytes parse.
     expect(store.getState().matches).toEqual([]);
-    expect(store.getState().packages).toHaveLength(SEED_PACKAGES.length);
-    expect(store.getState().packages[0].id).toBe(legacyPackage.id);
-    expect(store.getState().packages[0].producerId).toBe(PRODUCER_IDS.VERMUT);
+    expect(store.getState().packages).toEqual(SEED_PACKAGES);
   });
 
   it("applies the readable slices of a broadcast whose match is unusable", () => {
@@ -222,7 +219,7 @@ describe("external payload validation", () => {
     expect(peer.posted).toHaveLength(0);
   });
 
-  it("still loads a stored state whose packages and matches parse", () => {
+  it("loads a stored state's matches; packages always boot from the seed", () => {
     storage.set(
       STORAGE_KEY,
       JSON.stringify({
@@ -234,11 +231,10 @@ describe("external payload validation", () => {
 
     const state = createBarterStore({ broadcastEnabled: false }).getState();
 
-    // The stored package survives at the head of the list and the catalog is
-    // merged in behind it, so a stored install also receives the printed
-    // products this build ships.
-    expect(state.packages).toHaveLength(SEED_PACKAGES.length);
-    expect(state.packages[0].producerId).toBe(PRODUCER_IDS.VERMUT);
+    // The boot trusts the seed alone for the catalog: a stored package this
+    // build does not print never masquerades as a product. The stored match
+    // is the runtime state persistence exists to carry.
+    expect(state.packages).toEqual(SEED_PACKAGES);
     expect(state.matches).toHaveLength(1);
     expect(state.matches[0].id).toBe("m-stored");
   });

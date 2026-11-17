@@ -8,6 +8,8 @@ import type {
   producerSchema,
   productionTypeSchema,
   productMeasureSchema,
+  granelCatalogSchema,
+  packagedCatalogSchema,
   productPackageCatalogSchema,
   productPackageSchema,
   tradeMatchSchema,
@@ -19,6 +21,8 @@ export type GeoLocation = z.infer<typeof geoLocationSchema>;
 export type Producer = z.infer<typeof producerSchema>;
 export type ProductMeasure = z.infer<typeof productMeasureSchema>;
 export type ProductPackageCatalog = z.infer<typeof productPackageCatalogSchema>;
+export type GranelPackageCatalog = z.infer<typeof granelCatalogSchema>;
+export type PackagedPackageCatalog = z.infer<typeof packagedCatalogSchema>;
 export type ProductPackage = z.infer<typeof productPackageSchema>;
 export type TradeMatchStatus = z.infer<typeof tradeMatchStatusSchema>;
 export type DeliveryConfirmation = z.infer<typeof deliveryConfirmationSchema>;

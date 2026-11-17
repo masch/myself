@@ -8,7 +8,6 @@ import {
   formatPrintedPrice,
   distanceLabel,
   packagingLabel,
-  papAdjustment,
 } from "../product-card-copy";
 
 /**
@@ -54,16 +53,6 @@ const LITRE_OIL: Facts = [
 ];
 /** #5: Gouda at $22.158,20 por kg, sold by measure → exactly 1 PAP. */
 const GOUDA: Facts = [5, 1, "Queso gouda a granel", 2215820, null, 1, "kg"];
-/** #890: Vermut Rosso x 750 ml at $13.970,00 → 4 botellas, four is above 1 PAP. */
-const VERMOUTH: Facts = [
-  890,
-  1,
-  "Vermut Rosso x 750 ml",
-  null,
-  1397000,
-  0.75,
-  "litro",
-];
 /** #1141: one presentation already worth more than 1 PAP. */
 const ONE_HEAVY_UNIT: Facts = [
   1141,
@@ -74,69 +63,6 @@ const ONE_HEAVY_UNIT: Facts = [
   1,
   "unidad",
 ];
-
-describe("papAdjustment states the rounding in pesos, not in fractions", () => {
-  it("says a counted package lands below 1 PAP", () => {
-    // 9 × $5.362,07 = $48.258,63 against the $50.000 the trade asks for.
-    const { catalog, priceArs } = derive(HALF_LITRE_OIL);
-    const adjustment = papAdjustment(catalog, priceArs);
-
-    expect(adjustment.direction).toBe("below");
-    expect(adjustment.deltaArs).toBe(-1741);
-    expect(adjustment.sentence).toBe("Queda $1.741 abajo de 1 PAP");
-    expect(adjustment.compact).toBe("−$1.741");
-  });
-
-  it("says a counted package lands above 1 PAP", () => {
-    // 6 × $8.903,46 = $53.420,76.
-    const { catalog, priceArs } = derive(LITRE_OIL);
-    const adjustment = papAdjustment(catalog, priceArs);
-
-    expect(adjustment.direction).toBe("above");
-    expect(adjustment.deltaArs).toBe(3421);
-    expect(adjustment.sentence).toBe("Queda $3.421 arriba de 1 PAP");
-    expect(adjustment.compact).toBe("+$3.421");
-  });
-
-  it("says so when a weighed package is worth exactly the PAP it trades", () => {
-    const { catalog, priceArs } = derive(GOUDA);
-    const adjustment = papAdjustment(catalog, priceArs);
-
-    expect(adjustment.direction).toBe("exact");
-    expect(adjustment.deltaArs).toBe(0);
-    expect(adjustment.sentence).toBe("Coincide exacto con 1 PAP");
-    expect(adjustment.compact).toBe("coincide exacto");
-  });
-
-  it("quantifies the drift of a count that rounds up", () => {
-    // 4 × $13.970,00 = $55.880,00, the figure the catalog task already pinned.
-    const { catalog, priceArs } = derive(VERMOUTH);
-    const adjustment = papAdjustment(catalog, priceArs);
-
-    expect(adjustment.direction).toBe("above");
-    expect(adjustment.sentence).toBe("Queda $5.880 arriba de 1 PAP");
-  });
-
-  it("keeps a single presentation worth more than 1 PAP honest", () => {
-    // One horma is $66.474,60 and still trades as 1 PAP, so the card must say
-    // what the trade really costs instead of hiding it behind a fraction.
-    const { catalog, priceArs } = derive(ONE_HEAVY_UNIT);
-    const adjustment = papAdjustment(catalog, priceArs);
-
-    expect(adjustment.direction).toBe("above");
-    expect(adjustment.sentence).toBe("Queda $16.475 arriba de 1 PAP");
-  });
-
-  it("never states a fraction of a PAP", () => {
-    for (const facts of [HALF_LITRE_OIL, LITRE_OIL, GOUDA, VERMOUTH]) {
-      const { catalog, priceArs } = derive(facts);
-      const adjustment = papAdjustment(catalog, priceArs);
-
-      expect(adjustment.sentence).not.toContain("real ");
-      expect(adjustment.compact).not.toContain("real ");
-    }
-  });
-});
 
 describe("packagingLabel names the containers only when there are some", () => {
   it("counts the printed presentations a counted package holds", () => {

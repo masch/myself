@@ -194,12 +194,13 @@ describe("external state: empty lists and rejected commands", () => {
       },
     });
 
-    // The readable half is applied: the peer's stock for a package both tabs
-    // carry wins, and the unparseable match is the only thing dropped.
+    // The readable half is applied — but only the matches: the peer's
+    // packages never enter this gondola (seed stock stays 1), and the
+    // unparseable match is the only thing dropped.
     expect(
       store.getState().packages.find((pkg) => pkg.id === SEED_PACKAGES[0].id)
         ?.stockUnits,
-    ).toBe(7);
+    ).toBe(1);
     expect(store.getState().matches).toHaveLength(1);
     expect(store.getState().matches[0].id).toBe(MATCH.id);
     expect(peer.posted).toHaveLength(0);

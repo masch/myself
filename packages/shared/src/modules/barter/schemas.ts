@@ -38,25 +38,55 @@ export const productMeasureSchema = z.enum(PRODUCT_MEASURES);
  *
  * A package whose quantity is derived from a printed price has to disclose the
  * price it started from, or the user cannot compare the price the catalog loaded
- * with the price this app gives it: `listPriceArs` and `listPriceBasis` are what
- * the PDF prints, `quantity` + `measure` is what the package hands over,
- * `presentationCount` × `presentationSize` is how that quantity is packaged,
- * `realPriceArs` is what that quantity really costs and `realPapValue` is its
- * exact value in PAP — the fraction the whole-PAP count cannot express.
+ * with the price this app gives it.
  *
- * The block is optional because a package that is not derived from a printed row
- * carries none, and every package stored before this block existed keeps parsing.
+ * The block is a discriminated union because **the sale form the producer
+ * declares decides what the rest of the block means**:
+ *
+ * - `granel`: the buyer chooses the measure, so the only real fact is how much
+ *   of `measure` one PAP buys (`quantity`) and the reference price is per
+ *   measure. There is no container — `presentationCount`/`presentationSize`
+ *   would be fiction.
+ * - `empaquetado`: the buyer takes whole containers, so `presentationCount` ×
+ *   `presentationSize` is the real fact and the handed quantity always derives
+ *   from it — never stored, so it cannot drift. The reference price is what one
+ *   container costs.
+ *
+ * One sale form is one package; the same product may exist in both forms. The
+ * block is optional because a package that is not derived from a catalog source
+ * carries none, and every package stored before this block existed keeps
+ * parsing.
  */
-export const productPackageCatalogSchema = z.object({
-  quantity: z.number().positive(),
+export const granelCatalogSchema = z.object({
+  kind: z.literal("granel"),
   measure: productMeasureSchema,
-  presentationCount: z.number().int().positive(),
-  presentationSize: z.number().positive(),
+  /** What one PAP buys, in `measure` units — the form's only real fact. */
+  quantity: z.number().positive(),
+  /** Reference price per `listPriceBasis` of `measure`. */
   listPriceArs: z.number().positive(),
   listPriceBasis: z.string().min(1),
   realPriceArs: z.number().positive(),
   realPapValue: z.number().positive(),
 });
+
+export const packagedCatalogSchema = z.object({
+  kind: z.literal("empaquetado"),
+  measure: productMeasureSchema,
+  /** How many containers the package hands over. */
+  presentationCount: z.number().int().positive(),
+  /** How much of `measure` one container holds. */
+  presentationSize: z.number().positive(),
+  /** Reference price per `listPriceBasis` of one container. */
+  listPriceArs: z.number().positive(),
+  listPriceBasis: z.string().min(1),
+  realPriceArs: z.number().positive(),
+  realPapValue: z.number().positive(),
+});
+
+export const productPackageCatalogSchema = z.discriminatedUnion("kind", [
+  granelCatalogSchema,
+  packagedCatalogSchema,
+]);
 
 export const productPackageSchema = z.object({
   id: z.string().min(1),
