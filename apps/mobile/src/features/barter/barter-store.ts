@@ -96,7 +96,14 @@ const SEED_PACKAGE_BY_ID = new Map(SEED_PACKAGES.map((pkg) => [pkg.id, pkg]));
 
 /** The seed by package id, derived against one PAP value. */
 function seedPackagesFor(papConfigArs: number) {
-  return new Map(catalogPackages(papConfigArs).map((pkg) => [pkg.id, pkg]));
+  return new Map(
+    [
+      ...catalogPackages(papConfigArs),
+      ...DIRECT_SEED_PRODUCTS.map((input) =>
+        deriveDirectCatalogPackage(input, papConfigArs),
+      ),
+    ].map((pkg) => [pkg.id, pkg]),
+  );
 }
 
 export interface BarterState {
@@ -382,6 +389,57 @@ export function keepOnlyCatalogPackages(
   });
 
   return { ...state, packages, matches };
+}
+
+/**
+ * Keeps only the matches whose sides this build derives, and the matches
+ * that a retired id remaps onto.
+ *
+ * The package-filtering half of `keepOnlyCatalogPackages`, alone: the boot
+ * and the broadcast both leave the catalog as the seed, but a peer trade
+ * naming a package this build does not print must still not survive — a
+ * trade with a side that does not exist can neither be shown nor accepted.
+ */
+export function keepOnlyCatalogMatches(
+  state: Partial<BarterState>,
+  catalogIds: ReadonlySet<string> = CATALOG_PACKAGE_IDS,
+): Partial<BarterState> {
+  const remap = (packageId: string): string | null =>
+    catalogIds.has(packageId)
+      ? packageId
+      : (RETIRED_PACKAGE_REMAP[packageId] ?? null);
+
+  const matches = asList<TradeMatch>(state.matches)?.flatMap((match) => {
+    const offered = remap(match.offeredPackageId);
+    const target = remap(match.targetPackageId);
+
+    if (offered === null || target === null) {
+      return [];
+    }
+
+    const { counterOfferHistory, ...rest } = match;
+    const previous = counterOfferHistory
+      ? remap(counterOfferHistory.previousOfferedPackageId)
+      : null;
+
+    return [
+      {
+        ...rest,
+        offeredPackageId: offered,
+        targetPackageId: target,
+        ...(counterOfferHistory && previous !== null
+          ? {
+              counterOfferHistory: {
+                ...counterOfferHistory,
+                previousOfferedPackageId: previous,
+              },
+            }
+          : {}),
+      },
+    ];
+  });
+
+  return { ...state, matches };
 }
 
 /**
@@ -675,26 +733,28 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
         const { packages, matches, papConfigArs } = event.data.payload;
         // A tab still running the previous bundle broadcasts the former ids,
         // and one from before the catalog broadcasts packages and trades this
-        // build cannot derive. Both are rewritten before validation, so a peer
-        // can neither resurrect a retired package nor hand over a trade with a
-        // side that does not exist.
-        const synced = keepOnlyCatalogPackages(
-          migratePersistedState({ packages, matches, papConfigArs }),
+        // build cannot derive. Matches are rewritten before validation, so a
+        // peer can never hand over a trade with a side that does not exist.
+        // Packages are deliberately NOT applied: the catalog is this build's
+        // seed alone (the same rule the boot follows), and a peer tab running
+        // another bundle must not inject its package list into this gondola.
+        // Only the trades — the runtime state the two tabs actually share —
+        // travel across.
+        const synced = keepOnlyCatalogMatches(
+          migratePersistedState({ matches }),
         );
         const validated = parseExternalState(synced);
 
-        // A message where neither slice carries anything readable is dropped
+        // A message whose matches slice carries nothing readable is dropped
         // before it reaches the state (and it is never echoed back to the
         // peer).
-        if (!validated) {
+        if (!validated?.matches) {
           return;
         }
 
         state = {
           ...state,
-          packages: mergePeerPackages(state.packages, validated.packages),
-          matches: validated.matches ?? state.matches,
-          papConfigArs: validated.papConfigArs ?? state.papConfigArs,
+          matches: validated.matches,
         };
         // Notify local components without re-broadcasting
         notify(false);
@@ -1048,7 +1108,12 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       // Cancelling rolls back stock, so only the two parties may do it.
       assertProducerIsParty(match, producerId);
 
-      // Rollback stock if previously deducted
+      // Rollback stock if previously deducted. The restore is capped at the
+      // stock the current build documents: a match retained across a reload
+      // carries a rollback obligation against inventory the seed re-derived
+      // (the boot never restores consumed stock), so restoring could give a
+      // unit that was never deducted. The cap keeps cancellation honest with
+      // the only stock figure this build records.
       let nextPackages = state.packages;
       if (requiresStockRollback(match.status, "CANCELLED_BY_PRODUCER")) {
         nextPackages = state.packages.map((pkg) => {
@@ -1056,7 +1121,11 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
             pkg.id === match.offeredPackageId ||
             pkg.id === match.targetPackageId
           ) {
-            return { ...pkg, stockUnits: pkg.stockUnits + 1 };
+            const seedStock = SEED_PACKAGE_BY_ID.get(pkg.id)?.stockUnits;
+
+            return seedStock === undefined || pkg.stockUnits < seedStock
+              ? { ...pkg, stockUnits: pkg.stockUnits + 1 }
+              : pkg;
           }
           return pkg;
         });

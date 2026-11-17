@@ -85,3 +85,39 @@ describe("barter store: the state it writes itself", () => {
     expect(second.getState().matches[0]?.status).toBe("WAITING_DELIVERY");
   });
 });
+
+describe("a reload with a live delivery and seed stock", () => {
+  it("caps the rollback of a retained match at the seed stock", () => {
+    // The boot never restores consumed stock: packages come from the seed.
+    // A retained WAITING_DELIVERY match is a live trade the two producers
+    // still see, but its rollback obligation must not exceed the inventory
+    // this build records — cancelling restores one unit, never phantom ones.
+    const first = boot();
+    const proposal = first.createTradeProposal({
+      requesterId: PRODUCER_IDS.VERMUT,
+      targetProducerId: PRODUCER_IDS.QUESO,
+      offeredPackageId: "cat-890",
+      targetPackageId: "cat-5",
+    });
+    first.acceptTradeMatch(proposal.id);
+    const raw = mem.get(STORAGE_KEY);
+
+    const second = boot(raw);
+    const retained = second
+      .getState()
+      .matches.find((m) => m.id === proposal.id);
+
+    expect(retained?.status).toBe("WAITING_DELIVERY");
+    expect(
+      second.getState().packages.find((p) => p.id === "cat-890")?.stockUnits,
+    ).toBe(1);
+
+    second.cancelTradeMatch(proposal.id, PRODUCER_IDS.VERMUT);
+
+    // The rollback restores the one unit the seed documents — the cap, not
+    // the two units a naive increment against a restored stock would give.
+    expect(
+      second.getState().packages.find((p) => p.id === "cat-890")?.stockUnits,
+    ).toBe(1);
+  });
+});

@@ -106,7 +106,8 @@ describe("SEED_PACKAGES", () => {
 
     if (rosso.kind !== "empaquetado") throw new Error("not empaquetado");
     expect(rosso.presentationCount * rosso.presentationSize).toBe(3.75);
-    expect(rosso.listPriceArs).toBeCloseTo(DEFAULT_PAP_VALUE_ARS / 3.75, 6);
+    // The reference price is per container: 1 PAP over 5 bottles.
+    expect(rosso.listPriceArs).toBeCloseTo(DEFAULT_PAP_VALUE_ARS / 5, 6);
     expect(rosso.listPriceBasis).toContain("por");
   });
 

@@ -102,8 +102,9 @@ describe("deriveCatalogPackage — sold by measure", () => {
 
 describe("deriveCatalogPackage — whole presentations", () => {
   it("counts whole bottles when the printed price is per bottle", () => {
-    // #890: Vermut Rosso x 750 ml, $13.970 la botella: four bottles are
-    // $55.880, which is 1,1176 PAP, so the package is four bottles and 1 PAP.
+    // #890: Vermut Rosso x 750 ml, $13.970 la botella: three bottles are
+    // $41.910, the whole count 1 PAP buys — the package is three bottles and
+    // exactly 1 PAP (never a count that trades above the PAP it asks).
     const derived = deriveCatalogPackage(row(890));
 
     expect(derived.papValue).toBe(1);
@@ -111,12 +112,12 @@ describe("deriveCatalogPackage — whole presentations", () => {
     expect(derived.catalog).toEqual({
       kind: "empaquetado",
       measure: "litro",
-      presentationCount: 4,
+      presentationCount: 3,
       presentationSize: 0.75,
       listPriceArs: 13970,
       listPriceBasis: "por 750 ml",
-      realPriceArs: 55880,
-      realPapValue: 1.1176,
+      realPriceArs: 41910,
+      realPapValue: 0.8382,
     });
   });
 
@@ -158,8 +159,8 @@ describe("deriveCatalogPackage — whole presentations", () => {
       madeUpRow(null, 49950000, 1, "unidad"),
     );
 
-    expect(derived.papValue).toBe(10);
-    expect(derived.priceArs).toBe(500000);
+    expect(derived.papValue).toBe(1);
+    expect(derived.priceArs).toBe(50000);
     if (derived.catalog.kind !== "empaquetado")
       throw new Error("not empaquetado");
     expect(derived.catalog.presentationCount).toBe(1);
@@ -175,19 +176,19 @@ describe("deriveCatalogPackage — whole presentations", () => {
     expect(derived.catalog.measure).toBe("unidad");
     if (derived.catalog.kind !== "empaquetado")
       throw new Error("not empaquetado");
-    expect(derived.catalog.presentationCount).toBe(2);
-    expect(catalogQuantity(derived.catalog)).toBe(36);
+    expect(derived.catalog.presentationCount).toBe(1);
+    expect(catalogQuantity(derived.catalog)).toBe(18);
     expect(derived.catalog.listPriceBasis).toBe("por 18 unidades");
   });
 
   it("keeps one presentation when a per-unit price is the only price printed", () => {
     // #27: Tintura madre $7.352,42 the frasco: no presentation size, so it is a
-    // whole count of seven frascos.
+    // whole count of six frascos — what 1 PAP buys, never one more.
     const derived = deriveCatalogPackage(row(27));
 
     if (derived.catalog.kind !== "empaquetado")
       throw new Error("not empaquetado");
-    expect(derived.catalog.presentationCount).toBe(7);
+    expect(derived.catalog.presentationCount).toBe(6);
     expect(derived.catalog.presentationSize).toBe(0.06);
     expect(derived.catalog.listPriceBasis).toBe("por 60 ml");
   });
@@ -229,18 +230,24 @@ describe("deriveCatalogPackage — the invariants the barter relies on", () => {
     expect(problems).toEqual([]);
   });
 
-  it("discloses a fraction that never drifts more than half a PAP", () => {
-    // The whole count is the nearest one to the honest value, so the disclosed
-    // rounding is bounded: no row hides a package worth twice its PAP count.
+  it("every multi-count package stays under the PAP it trades; a costly single discloses itself", () => {
+    // The count is the floor of what 1 PAP buys, so a multi-count package is
+    // never worth more than the PAP it asks. A container costlier than 1 PAP
+    // trades as one container above its PAP — disclosed in realPapValue for
+    // the later validation stage, never hidden.
     const problems: string[] = [];
 
     for (const printed of PRODUCTS) {
       const { papValue, catalog } = deriveCatalogPackage(printed);
-      const deviation = Math.abs(catalog.realPapValue - papValue) / papValue;
+      const above = catalog.realPapValue > papValue;
 
-      if (deviation > 0.5) {
+      if (
+        above &&
+        catalog.kind === "empaquetado" &&
+        catalog.presentationCount > 1
+      ) {
         problems.push(
-          `#${printed[0]} ${printed[2]}: ${catalog.realPapValue} vs ${papValue} PAP`,
+          `#${printed[0]} ${printed[2]}: ${catalog.realPapValue} PAP over a ${catalog.presentationCount}-count package`,
         );
       }
     }
@@ -370,11 +377,11 @@ describe("what the printed price buys, spelled the way the catalog prints it", (
   });
 
   it("keeps a sub-gram presentation visible", () => {
-    // #953: $32,00 per 3 g saquito, sixteen of them for 1 PAP → 48 g, a
+    // #953: $32,00 per 3 g saquito, fifteen of them for 1 PAP → 45 g, a
     // quantity that a two-decimal kilogram would have rounded to zero.
     const derived = deriveCatalogPackage(row(953));
 
-    expect(catalogQuantity(derived.catalog)).toBeCloseTo(0.048, 4);
+    expect(catalogQuantity(derived.catalog)).toBeCloseTo(0.045, 4);
     expect(derived.catalog.listPriceBasis).toBe("por 3 g");
   });
 });

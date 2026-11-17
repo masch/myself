@@ -209,8 +209,9 @@ function derivePackagedCatalog(
     measure: input.measure,
     presentationCount: input.presentationCount,
     presentationSize: input.presentationSize,
-    listPriceArs:
-      papConfigArs / (input.presentationCount * input.presentationSize),
+    // The reference price is what ONE container costs: 1 PAP spread over the
+    // declared count of containers, not over the litres they add up to.
+    listPriceArs: papConfigArs / input.presentationCount,
     listPriceBasis: `por ${formatCatalogSize(
       input.presentationSize,
       input.measure,
@@ -451,17 +452,21 @@ export function deriveCatalogPackage(
   }
 
   const listPriceArs = presentationPriceCents / 100;
+  // The premise is exact: every package trades at 1 PAP, and the count of
+  // containers is the variable that carries the printed price — a product
+  // whose container costs more than 1 PAP trades as one container worth 1
+  // PAP (the margin is the producer's, per the platform decision), and a
+  // cheap one hands over the whole containers 1 PAP buys.
   const presentationCount = Math.max(
     1,
-    Math.round(papConfigArs / listPriceArs),
+    Math.floor(papConfigArs / listPriceArs),
   );
   const realPriceArs = (presentationCount * presentationPriceCents) / 100;
   const realPapValue = realPriceArs / papConfigArs;
-  const papValue = Math.max(1, Math.round(realPapValue));
 
   return {
-    papValue,
-    priceArs: papValue * papConfigArs,
+    papValue: 1,
+    priceArs: papConfigArs,
     catalog: {
       kind: "empaquetado",
       measure,

@@ -167,7 +167,7 @@ describe("Barter store: granularity of the external state", () => {
     expect(store.getState().matches).toEqual([]);
   });
 
-  it("applies the readable half of a broadcast instead of dropping the message", () => {
+  it("applies only the matches of a broadcast, never the peer's packages", () => {
     const { store, peer } = boot(undefined, true);
     const { deliveryConfirmation, ...incomplete } = MATCH;
     const postedBefore = peer.posted.length;
@@ -183,7 +183,9 @@ describe("Barter store: granularity of the external state", () => {
       },
     });
 
-    expect(stockOf(store, "cat-890")).toBe(2);
+    // The catalog is this build's seed alone — a peer tab running another
+    // bundle cannot inject its packages or stock (marked stock stays 1).
+    expect(stockOf(store, "cat-890")).toBe(1);
     expect(store.getState().matches).toHaveLength(1);
     expect(store.getState().matches[0]?.id).toBe(MATCH.id);
     // A synced message is never echoed back to the peer.
