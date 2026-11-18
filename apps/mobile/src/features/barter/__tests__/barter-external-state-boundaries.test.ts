@@ -73,10 +73,11 @@ const MATCH: TradeMatch = {
   id: "match-boundary",
   requesterId: PRODUCER_IDS.VERMUT,
   targetProducerId: PRODUCER_IDS.QUESO,
-  offeredPackageId: "cat-890",
-  targetPackageId: "cat-5",
+  offeredLines: [{ packageId: "cat-890", units: 1 }],
+  targetLines: [{ packageId: "cat-5", units: 1 }],
   papSnapshotArs: 50000,
   totalPap: 1,
+  round: 0,
   status: "WAITING_DELIVERY",
   deliveryConfirmation: {
     confirmedByRequester: false,
@@ -151,8 +152,8 @@ describe("external state: empty lists and rejected commands", () => {
           {
             ...MATCH,
             status: "PENDING",
-            offeredPackageId: "pkg-dropped",
-            targetPackageId: "pkg-dropped",
+            offeredLines: [{ packageId: "pkg-dropped", units: 1 }],
+            targetLines: [{ packageId: "pkg-dropped", units: 1 }],
           },
         ],
         papConfigArs: 50000,
@@ -171,8 +172,8 @@ describe("external state: empty lists and rejected commands", () => {
       store.createTradeProposal({
         requesterId: PRODUCER_IDS.VERMUT,
         targetProducerId: PRODUCER_IDS.QUESO,
-        offeredPackageId: "pkg-ghost",
-        targetPackageId: "pkg-ghost",
+        offeredLines: [{ packageId: "pkg-ghost", units: 1 }],
+        targetLines: [{ packageId: "pkg-ghost", units: 1 }],
       }),
     ).toThrow("Specified product packages not found in catalog");
 

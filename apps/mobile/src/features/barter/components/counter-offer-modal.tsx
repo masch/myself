@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Card, ThemedText, AppButton, Badge } from "@/components";
+import { primaryOfferedPackageId } from "..";
 import {
   colors,
   fontWeights,
@@ -70,7 +71,7 @@ export function CounterOfferModal({
               OFERTA ORIGINAL (SE REEMPLAZA):
             </ThemedText>
             <ThemedText variant="headline" style={styles.currentTitle}>
-              {currentOfferedPackage?.title ?? match.offeredPackageId}
+              {currentOfferedPackage?.title ?? primaryOfferedPackageId(match)}
             </ThemedText>
           </Card>
 

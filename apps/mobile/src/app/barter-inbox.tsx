@@ -14,6 +14,8 @@ import {
   TradeMatchCard,
   CounterOfferModal,
   getCounterOfferCandidates,
+  primaryOfferedPackageId,
+  primaryTargetPackageId,
 } from "@/features/barter";
 import type { TradeMatch } from "@myself/shared";
 
@@ -77,8 +79,8 @@ export default function BarterInboxScreen() {
     try {
       counterOfferTradeMatch({
         matchId: counterOfferMatch.id,
-        targetProducerId: activeProducer.id,
-        counterOfferedPackageId,
+        producerId: activeProducer.id,
+        offeredLines: [{ packageId: counterOfferedPackageId, units: 1 }],
       });
       toast.success("Contraoferta enviada. Esperando respuesta.");
       setCounterOfferMatch(null);
@@ -130,8 +132,8 @@ export default function BarterInboxScreen() {
               match={match}
               role="target"
               otherProducer={findProducer(match.requesterId)}
-              offeredPackage={findPackage(match.offeredPackageId)}
-              targetPackage={findPackage(match.targetPackageId)}
+              offeredPackage={findPackage(primaryOfferedPackageId(match))}
+              targetPackage={findPackage(primaryTargetPackageId(match))}
               onAccept={handleAccept}
               onReject={handleReject}
               onCounterOffer={setCounterOfferMatch}
@@ -159,8 +161,8 @@ export default function BarterInboxScreen() {
               match={match}
               role="requester"
               otherProducer={findProducer(match.targetProducerId)}
-              offeredPackage={findPackage(match.offeredPackageId)}
-              targetPackage={findPackage(match.targetPackageId)}
+              offeredPackage={findPackage(primaryOfferedPackageId(match))}
+              targetPackage={findPackage(primaryTargetPackageId(match))}
               onAccept={handleAccept}
               onReject={handleReject}
               onCounterOffer={setCounterOfferMatch}
@@ -179,7 +181,7 @@ export default function BarterInboxScreen() {
         match={counterOfferMatch}
         currentOfferedPackage={
           counterOfferMatch
-            ? findPackage(counterOfferMatch.offeredPackageId)
+            ? findPackage(primaryOfferedPackageId(counterOfferMatch))
             : undefined
         }
         candidates={

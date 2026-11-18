@@ -88,8 +88,8 @@ function propose(store: ReturnType<typeof createBarterStore>) {
   return store.createTradeProposal({
     requesterId: PRODUCER_IDS.VERMUT,
     targetProducerId: PRODUCER_IDS.QUESO,
-    offeredPackageId: "pkg-fixture-vermut-pack4",
-    targetPackageId: "pkg-fixture-queso-gouda",
+    offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+    targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
   });
 }
 
@@ -99,8 +99,8 @@ function counterOnce(
 ) {
   store.counterOfferTradeMatch({
     matchId,
-    targetProducerId: PRODUCER_IDS.QUESO,
-    counterOfferedPackageId: "pkg-fixture-vermut-miel",
+    producerId: PRODUCER_IDS.QUESO,
+    offeredLines: [{ packageId: "pkg-fixture-vermut-miel", units: 1 }],
   });
 }
 

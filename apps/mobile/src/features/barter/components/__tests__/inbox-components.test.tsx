@@ -16,8 +16,9 @@ function buildMatch(overrides: Partial<TradeMatch>): TradeMatch {
     id: "match-test",
     requesterId: requester.id,
     targetProducerId: target.id,
-    offeredPackageId: "pkg-fixture-vermut-pack4",
-    targetPackageId: "pkg-fixture-queso-gouda",
+    offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+    targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
+    round: 0,
     papSnapshotArs: 50000,
     totalPap: 1,
     status: "PENDING",
@@ -123,10 +124,14 @@ describe("Barter Inbox: counter-offer candidates", () => {
   });
 
   it("excludes the package currently offered in the match", () => {
-    const match = buildMatch({ offeredPackageId: "pkg-fixture-vermut-pack4" });
+    const match = buildMatch({
+      offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+    });
     const candidates = getCounterOfferCandidates(SEED_PACKAGES, match);
 
-    expect(candidates.some((p) => p.id === match.offeredPackageId)).toBe(false);
+    expect(
+      candidates.some((p) => p.id === match.offeredLines[0]?.packageId),
+    ).toBe(false);
   });
 
   it("excludes out-of-stock packages", () => {

@@ -16,6 +16,8 @@ import {
   getTradeRole,
   buildTradeCoordinationMessage,
   buildWhatsAppTradeUrl,
+  primaryOfferedPackageId,
+  primaryTargetPackageId,
 } from "@/features/barter";
 
 export default function BarterTradeScreen() {
@@ -54,8 +56,12 @@ export default function BarterTradeScreen() {
   const requester = producers.find((p) => p.id === match.requesterId);
   const target = producers.find((p) => p.id === match.targetProducerId);
   const counterpart = role === "requester" ? target : requester;
-  const offeredPackage = packages.find((p) => p.id === match.offeredPackageId);
-  const targetPackage = packages.find((p) => p.id === match.targetPackageId);
+  const offeredPackage = packages.find(
+    (p) => p.id === primaryOfferedPackageId(match),
+  );
+  const targetPackage = packages.find(
+    (p) => p.id === primaryTargetPackageId(match),
+  );
 
   const isWaitingDelivery = match.status === "WAITING_DELIVERY";
   const isCompleted = match.status === "COMPLETED";
@@ -74,8 +80,8 @@ export default function BarterTradeScreen() {
       counterpart.phone,
       buildTradeCoordinationMessage({
         counterpartName: counterpart.name,
-        offeredTitle: offeredPackage?.title ?? match.offeredPackageId,
-        targetTitle: targetPackage?.title ?? match.targetPackageId,
+        offeredTitle: offeredPackage?.title ?? primaryOfferedPackageId(match),
+        targetTitle: targetPackage?.title ?? primaryTargetPackageId(match),
       }),
     );
     try {

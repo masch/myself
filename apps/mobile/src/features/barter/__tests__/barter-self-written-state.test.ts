@@ -59,8 +59,8 @@ describe("barter store: the state it writes itself", () => {
     const proposal = first.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "cat-890",
-      targetPackageId: "cat-5",
+      offeredLines: [{ packageId: "cat-890", units: 1 }],
+      targetLines: [{ packageId: "cat-5", units: 1 }],
     });
     first.acceptTradeMatch(proposal.id);
     first.updatePackageStock("cat-890", 3);
@@ -96,8 +96,8 @@ describe("a reload with a live delivery and seed stock", () => {
     const proposal = first.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "cat-890",
-      targetPackageId: "cat-5",
+      offeredLines: [{ packageId: "cat-890", units: 1 }],
+      targetLines: [{ packageId: "cat-5", units: 1 }],
     });
     first.acceptTradeMatch(proposal.id);
     const raw = mem.get(STORAGE_KEY);

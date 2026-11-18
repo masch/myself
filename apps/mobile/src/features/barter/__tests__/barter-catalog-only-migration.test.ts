@@ -3,6 +3,8 @@ import {
   createBarterStore,
   PRODUCER_IDS,
   SEED_PACKAGES,
+  primaryOfferedPackageId,
+  primaryTargetPackageId,
 } from "../barter-store";
 
 /**
@@ -79,10 +81,11 @@ function storedMatch(overrides: Record<string, unknown> = {}) {
     id: "match-stored",
     requesterId: PRODUCER_IDS.VERMUT,
     targetProducerId: PRODUCER_IDS.QUESO,
-    offeredPackageId: "pkg-vermut-pack4",
-    targetPackageId: "pkg-queso-gouda",
+    offeredLines: [{ packageId: "pkg-vermut-pack4", units: 1 }],
+    targetLines: [{ packageId: "pkg-queso-gouda", units: 1 }],
     papSnapshotArs: 50000,
     totalPap: 1,
+    round: 0,
     status: "PENDING" as const,
     deliveryConfirmation: {
       confirmedByRequester: false,
@@ -169,18 +172,21 @@ describe("a stored install written before the catalog", () => {
     }).getState();
 
     expect(state.matches).toHaveLength(1);
-    expect(state.matches[0].offeredPackageId).toBe("cat-890");
-    expect(state.matches[0].targetPackageId).toBe("cat-5");
+    expect(primaryOfferedPackageId(state.matches[0])).toBe("cat-890");
+    expect(primaryTargetPackageId(state.matches[0])).toBe("cat-5");
   });
 
   it("drops a stored match whose product the catalog does not print", () => {
     const state = boot({
       packages: STORED_POC_PACKAGES,
       matches: [
-        storedMatch({ id: "match-miel", offeredPackageId: "pkg-vermut-miel" }),
+        storedMatch({
+          id: "match-miel",
+          offeredLines: [{ packageId: "pkg-vermut-miel", units: 1 }],
+        }),
         storedMatch({
           id: "match-provoleta",
-          targetPackageId: "pkg-queso-provoleta",
+          targetLines: [{ packageId: "pkg-queso-provoleta", units: 1 }],
         }),
       ],
       papConfigArs: 50000,
@@ -201,13 +207,16 @@ describe("a stored install written before the catalog", () => {
 
     const written = JSON.parse(storage.get(STORAGE_KEY) ?? "{}") as {
       packages?: { id: string }[];
-      matches?: { offeredPackageId: string }[];
+      matches?: {
+        offeredLines: { packageId: string; units: number }[];
+        targetLines: { packageId: string; units: number }[];
+      }[];
     };
 
     expect(
       written.packages?.filter((pkg) => pkg.id.startsWith("pkg-")),
     ).toEqual([]);
-    expect(written.matches?.[0]?.offeredPackageId).toBe("cat-890");
+    expect(written.matches?.[0]!.offeredLines[0]?.packageId).toBe("cat-890");
   });
 
   it("ignores a peer tab still broadcasting the retired packages", () => {
@@ -244,7 +253,7 @@ describe("a stored install written before the catalog", () => {
             storedMatch({ id: "match-peer" }),
             storedMatch({
               id: "match-peer-miel",
-              offeredPackageId: "pkg-vermut-miel",
+              offeredLines: [{ packageId: "pkg-vermut-miel", units: 1 }],
             }),
           ],
           papConfigArs: 50000,
@@ -255,7 +264,7 @@ describe("a stored install written before the catalog", () => {
     const matches = store.getState().matches;
 
     expect(matches.map((match) => match.id)).toEqual(["match-peer"]);
-    expect(matches[0]?.offeredPackageId).toBe("cat-890");
-    expect(matches[0]?.targetPackageId).toBe("cat-5");
+    expect(primaryOfferedPackageId(matches[0]!)).toBe("cat-890");
+    expect(primaryTargetPackageId(matches[0]!)).toBe("cat-5");
   });
 });

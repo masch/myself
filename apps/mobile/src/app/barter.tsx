@@ -115,7 +115,7 @@ export default function BarterScreen() {
           .filter(
             (m) => m.status === "PENDING" || m.status === "COUNTER_OFFERED",
           )
-          .map((m) => m.targetPackageId),
+          .flatMap((m) => m.targetLines.map((line) => line.packageId)),
       ),
     [outgoingMatches],
   );
@@ -144,8 +144,8 @@ export default function BarterScreen() {
       createTradeProposal({
         requesterId: activeProducer.id,
         targetProducerId: selectedTargetPackage.producerId,
-        offeredPackageId,
-        targetPackageId: selectedTargetPackage.id,
+        offeredLines: [{ packageId: offeredPackageId, units: 1 }],
+        targetLines: [{ packageId: selectedTargetPackage.id, units: 1 }],
       });
 
       toast.success(

@@ -89,10 +89,11 @@ const MATCH: TradeMatch = {
   id: "match-payload",
   requesterId: PRODUCER_IDS.VERMUT,
   targetProducerId: PRODUCER_IDS.QUESO,
-  offeredPackageId: "cat-890",
-  targetPackageId: "cat-5",
+  offeredLines: [{ packageId: "cat-890", units: 1 }],
+  targetLines: [{ packageId: "cat-5", units: 1 }],
   papSnapshotArs: 50000,
   totalPap: 1,
+  round: 0,
   status: "WAITING_DELIVERY",
   deliveryConfirmation: {
     confirmedByRequester: false,
@@ -146,7 +147,11 @@ describe("Barter store: granularity of the external state", () => {
     const raw = JSON.stringify({
       packages: [{ ...SEED_PACKAGES[0], id: "pkg-dropped", papValue: 0.5 }],
       matches: [
-        { ...MATCH, offeredPackageId: "pkg-dropped", status: "PENDING" },
+        {
+          ...MATCH,
+          offeredLines: [{ packageId: "pkg-dropped", units: 1 }],
+          status: "PENDING",
+        },
       ],
       papConfigArs: 50000,
     });

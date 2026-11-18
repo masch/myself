@@ -22,14 +22,24 @@ stock, configurable round limit (default 50) and lazy expiry.
 
 ## Tasks
 
-- T1 (S12, S1): Shared config constants (`MAX_COUNTER_ROUNDS`, `PROPOSAL_TTL_MS`) and `TradeLine` schema; commit.
-- T2 (S1, S2): `tradeMatchSchema` with `offeredLines/targetLines`, derived `totalPap`, `round`; RED tests for Σ===Σ and 1:1 regression; commit.
-- T3 (S3, S9, S10): `createTradeProposal` accepting carts: Σ validation, derivability, ownership, stock-minus-open-reservations; commit.
-- T4 (S4–S7, S9): `counterOfferTradeMatch` on line lists: free Σ, round limit, one active reservation; commit.
-- T5 (S3, S10, S11): accept/confirm/rollback per line with cascading cancellation; commit.
-- T6 (S8): lazy expiry per line model (release reservations on sweep); commit.
+- [x] T1 (S12, S1): Shared config constants (`MAX_COUNTER_ROUNDS`, `PROPOSAL_TTL_MS`) and `TradeLine` schema; commit.
+- [x] T2 (S1, S2): `tradeMatchSchema` with `offeredLines/targetLines`, derived `totalPap`, `round`; RED tests for Σ===Σ and 1:1 regression; commit.
+- [x] T3 (S3, S9, S10): `createTradeProposal` accepting carts: Σ validation, derivability, ownership, stock-minus-open-reservations; commit.
+- [x] T4 (S4–S7, S9): `counterOfferTradeMatch` on line lists: free Σ, round limit, one active reservation; commit.
+- [x] T5 (S3, S10, S11): accept/confirm/rollback per line with cascading cancellation; commit.
+- [x] T6 (S8): lazy expiry per line model (release reservations on sweep); commit.
 
 ## Log
 
 - L1: User request (verbatim): "podemos analizar que implica el issue 162?" then negotiation amendments — counter-offer may be 2 PAP with re-check by original offerer; counter-offer may exceed; "podemos poner un limite de 50 rondas configurable y también el tiempo de expieracion"; "ok" to start Step 1 (foundation, no UI).
 - L2: Issue #162 updated with Negotiation rules 7–11 (github.com/masch/myself/issues/162).
+- L3: Seed ships stock 1 per package, so cart tests raise stock with `updatePackageStock` to build real inventories.
+- L4: Accept semantics decided: the physical stock is the truth at accept; open reservations guard proposal-time overselling, and the cascade cancels the live matches a consumption starves (no FCFS-by-creation).
+- L5: FSM gained `COUNTER_OFFERED → COUNTER_OFFERED` for the negotiation ping-pong (rule 8).
+- L6: Store rejects trade lines whose package is not exactly 1 PAP — Σ units equals Σ PAP only under the 1-PAP catalog premise.
+
+- **Completion & Delivery**: Step 1 (foundation, no UI change) — commits on the
+  feature branch carry T1–T6; `make check-types`, `make check-lint` and
+  `make check-tests` green (784 mobile tests, 0 fail); the proposal/counter UI
+  keeps one package per side through `primaryOfferedPackageId` /
+  `primaryTargetPackageId` adapters (Step 2 replaces them with cart rendering).

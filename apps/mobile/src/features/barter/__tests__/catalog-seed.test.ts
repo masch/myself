@@ -13,6 +13,8 @@ import {
   PRODUCER_IDS,
   SEED_PACKAGES,
   type BarterState,
+  primaryOfferedPackageId,
+  primaryTargetPackageId,
 } from "../barter-store";
 import { catalogPackages } from "../catalog-packages";
 import { FIXTURE_PACKAGES, fixturePackage } from "./fixture-packages";
@@ -58,10 +60,11 @@ function storedMatch(overrides: Partial<TradeMatch> = {}): TradeMatch {
     id: "match-1",
     requesterId: PRODUCER_IDS.VERMUT,
     targetProducerId: PRODUCER_IDS.QUESO,
-    offeredPackageId: "cat-890",
-    targetPackageId: "cat-5",
+    offeredLines: [{ packageId: "cat-890", units: 1 }],
+    targetLines: [{ packageId: "cat-5", units: 1 }],
     papSnapshotArs: DEFAULT_PAP_VALUE_ARS,
     totalPap: 1,
+    round: 0,
     status: "PENDING",
     deliveryConfirmation: {
       confirmedByRequester: false,
@@ -149,15 +152,15 @@ describe("keepOnlyCatalogPackages", () => {
 
   it("moves a match onto the catalog package that carries the same product", () => {
     const match = storedMatch({
-      offeredPackageId: "pkg-vermut-pack4",
-      targetPackageId: "pkg-queso-gouda",
+      offeredLines: [{ packageId: "pkg-vermut-pack4", units: 1 }],
+      targetLines: [{ packageId: "pkg-queso-gouda", units: 1 }],
     });
 
     const state = keepOnlyCatalogPackages({ matches: [match] });
 
     expect(state.matches).toHaveLength(1);
-    expect(state.matches?.[0]?.offeredPackageId).toBe("cat-890");
-    expect(state.matches?.[0]?.targetPackageId).toBe("cat-5");
+    expect(primaryOfferedPackageId(state.matches?.[0]!)).toBe("cat-890");
+    expect(primaryTargetPackageId(state.matches?.[0]!)).toBe("cat-5");
     expect(state.matches?.[0]?.id).toBe(match.id);
     expect(state.matches?.[0]?.status).toBe(match.status);
   });
@@ -165,10 +168,13 @@ describe("keepOnlyCatalogPackages", () => {
   it("drops a match whose product the catalog does not print", () => {
     const state = keepOnlyCatalogPackages({
       matches: [
-        storedMatch({ id: "match-miel", offeredPackageId: "pkg-vermut-miel" }),
+        storedMatch({
+          id: "match-miel",
+          offeredLines: [{ packageId: "pkg-vermut-miel", units: 1 }],
+        }),
         storedMatch({
           id: "match-provoleta",
-          targetPackageId: "pkg-queso-provoleta",
+          targetLines: [{ packageId: "pkg-queso-provoleta", units: 1 }],
         }),
       ],
     });
@@ -286,14 +292,14 @@ describe("the seeded catalog trades 1:1", () => {
     const match = store.createTradeProposal({
       requesterId: offered.producerId,
       targetProducerId: target.producerId,
-      offeredPackageId: offered.id,
-      targetPackageId: target.id,
+      offeredLines: [{ packageId: offered.id, units: 1 }],
+      targetLines: [{ packageId: target.id, units: 1 }],
     });
 
     expect(match.status).toBe("PENDING");
     expect(match.totalPap).toBe(1);
-    expect(match.offeredPackageId).toBe(offered.id);
-    expect(match.targetPackageId).toBe(target.id);
+    expect(primaryOfferedPackageId(match)).toBe(offered.id);
+    expect(primaryTargetPackageId(match)).toBe(target.id);
     expect(store.getState().matches).toHaveLength(1);
   });
 });
