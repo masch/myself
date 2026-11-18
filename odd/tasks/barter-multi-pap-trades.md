@@ -53,3 +53,10 @@ stock, configurable round limit (default 50) and lazy expiry.
   Slice: 5 commits (`ffa1ea3`..`cbac2d2`, 1376 authored lines) on
   `feat/multi-pap-trades-2`; E2E web 48/48 after migrating the two trade
   fixtures to line lists.
+
+- **Completion & Delivery (Step 2)**: commit `c870446` (7 commits,
+  `ffa1ea3`..`c870446`, ~2250 authored lines) on `feat/multi-pap-trades-2`;
+  `make check-types/lint/tests` green (800 mobile tests) and E2E web 48/48.
+  Layout fix folded in: the modal scrolls as one body. Delivery strategy:
+  one PR from `feat/multi-pap-trades-2` (slices recorded above); push/PR is
+  the user's call.
