@@ -136,14 +136,16 @@ describe("Barter Domain Models & Schemas", () => {
   });
 
   it("validates a full TradeMatch entity with snapshot and timestamps", () => {
+    // The 1:1 trade survives the line-list model as one line per side, units 1.
     const validMatch = {
       id: "match-101",
       requesterId: "prod-1",
       targetProducerId: "prod-2",
-      offeredPackageId: "pkg-vermut",
-      targetPackageId: "pkg-gouda",
+      offeredLines: [{ packageId: "pkg-vermut", units: 1 }],
+      targetLines: [{ packageId: "pkg-gouda", units: 1 }],
       papSnapshotArs: 50000,
       totalPap: 1,
+      round: 0,
       status: "PENDING" as const,
       deliveryConfirmation: {
         confirmedByRequester: false,
@@ -169,6 +171,8 @@ describe("Barter FSM (Finite State Machine)", () => {
 
     expect(canTransition("COUNTER_OFFERED", "ACCEPTED")).toBe(true);
     expect(canTransition("COUNTER_OFFERED", "REJECTED")).toBe(true);
+    // Issue #162 rule 8: the negotiation ping-pongs between the two parties.
+    expect(canTransition("COUNTER_OFFERED", "COUNTER_OFFERED")).toBe(true);
 
     expect(canTransition("ACCEPTED", "WAITING_DELIVERY")).toBe(true);
     expect(canTransition("WAITING_DELIVERY", "COMPLETED")).toBe(true);

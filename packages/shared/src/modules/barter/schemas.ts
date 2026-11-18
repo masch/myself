@@ -32,6 +32,27 @@ export const tradeLineSchema = z.object({
   units: z.number().int().min(1),
 });
 
+/**
+ * Rule 1's counting form: Σ units(offered) must equal Σ units(target) and be
+ * at least 1. This is the schema-level half of the symmetry rule — the store
+ * adds ownership, derivability and stock on top of it.
+ */
+export const balancedLinesSchema = z
+  .object({
+    offeredLines: z.array(tradeLineSchema).min(1),
+    targetLines: z.array(tradeLineSchema).min(1),
+  })
+  .refine(
+    ({ offeredLines, targetLines }) => {
+      const sum = (lines: { units: number }[]) =>
+        lines.reduce((total, line) => total + line.units, 0);
+      return sum(offeredLines) === sum(targetLines) && sum(offeredLines) >= 1;
+    },
+    {
+      error: "Los dos lados deben sumar la misma cantidad de PAP",
+    },
+  );
+
 export const PRODUCTION_TYPES = [
   "ORGANIC",
   "AGROECOLOGICAL",
@@ -153,14 +174,15 @@ export const counterOfferHistorySchema = z.object({
   counterOfferedAt: z.iso.datetime(),
 });
 
-export const tradeMatchSchema = z.object({
+export const tradeMatchSchema = balancedLinesSchema.extend({
   id: z.string().min(1),
   requesterId: z.string().min(1),
   targetProducerId: z.string().min(1),
-  offeredPackageId: z.string().min(1),
-  targetPackageId: z.string().min(1),
   papSnapshotArs: z.number().positive(),
+  /** Derives from the carts: Σ units(offered) — the schema pins it to Σ target. */
   totalPap: z.number().int().positive(),
+  /** Counter-offer round: 0 is the original proposal (rule 9). */
+  round: z.number().int().min(0),
   status: tradeMatchStatusSchema,
   deliveryConfirmation: deliveryConfirmationSchema,
   counterOfferHistory: counterOfferHistorySchema.optional(),
@@ -169,11 +191,9 @@ export const tradeMatchSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 
-export const createTradeProposalInputSchema = z.object({
+export const createTradeProposalInputSchema = balancedLinesSchema.extend({
   requesterId: z.string().min(1),
   targetProducerId: z.string().min(1),
-  offeredPackageId: z.string().min(1),
-  targetPackageId: z.string().min(1),
   papConfigArs: z.number().positive().default(DEFAULT_PAP_VALUE_ARS),
   ttlHours: z.number().positive().default(48),
 });

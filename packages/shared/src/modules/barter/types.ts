@@ -13,6 +13,7 @@ import type {
   productPackageCatalogSchema,
   productPackageSchema,
   tradeMatchSchema,
+  tradeLineSchema,
   tradeMatchStatusSchema,
 } from "./schemas";
 
@@ -32,3 +33,4 @@ export type CreateTradeProposalInput = z.infer<
   typeof createTradeProposalInputSchema
 >;
 export type CounterOfferInput = z.infer<typeof counterOfferInputSchema>;
+export type TradeLine = z.infer<typeof tradeLineSchema>;
