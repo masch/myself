@@ -2,6 +2,36 @@ import { z } from "zod";
 
 export const DEFAULT_PAP_VALUE_ARS = 50000;
 
+/**
+ * Negotiation rules for trade proposals (issue #162, amendment rules 9-10).
+ *
+ * App-level constants, not user settings: the POC keeps every knob the
+ * negotiation turns on in one place, so a change is a code review, never a
+ * stored value that one install set differently.
+ */
+
+/**
+ * Rule 9: the maximum number of counter-offer rounds a match may carry. The
+ * receiver of a proposal at this round may only accept or reject.
+ */
+export const MAX_COUNTER_ROUNDS = 50;
+
+/**
+ * Rule 10: how long a live proposal stays answerable. Every live proposal
+ * stores an `expiresAt` derived from this value; expiry is lazy.
+ */
+export const PROPOSAL_TTL_MS = 48 * 3600 * 1000;
+
+/**
+ * Rule 3: one line of a two-sided trade cart — units ≥ 1 of one exact
+ * package. Every package is priced at exactly 1 PAP, so balancing carts is
+ * counting units, never price arithmetic.
+ */
+export const tradeLineSchema = z.object({
+  packageId: z.string().min(1),
+  units: z.number().int().min(1),
+});
+
 export const PRODUCTION_TYPES = [
   "ORGANIC",
   "AGROECOLOGICAL",
