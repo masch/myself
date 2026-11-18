@@ -43,3 +43,6 @@ stock, configurable round limit (default 50) and lazy expiry.
   `make check-tests` green (784 mobile tests, 0 fail); the proposal/counter UI
   keeps one package per side through `primaryOfferedPackageId` /
   `primaryTargetPackageId` adapters (Step 2 replaces them with cart rendering).
+  Slice: 5 commits (`ffa1ea3`..`cbac2d2`, 1376 authored lines) on
+  `feat/multi-pap-trades-2`; E2E web 48/48 after migrating the two trade
+  fixtures to line lists.
