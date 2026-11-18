@@ -89,12 +89,15 @@ export function getMatchActionAvailability(
  */
 export function getCounterOfferCandidates(
   allPackages: ProductPackage[],
-  match: Pick<TradeMatch, "requesterId" | "offeredPackageId" | "totalPap">,
+  match: Pick<TradeMatch, "requesterId" | "offeredLines" | "totalPap">,
 ): ProductPackage[] {
+  // The 1:1 modal still counters with one package: it replaces the offered
+  // side's first line while the cart UI (Step 2) is not built yet.
+  const currentOfferedId = match.offeredLines[0]?.packageId;
   return allPackages.filter(
     (pkg) =>
       pkg.producerId === match.requesterId &&
-      pkg.id !== match.offeredPackageId &&
+      pkg.id !== currentOfferedId &&
       pkg.stockUnits > 0 &&
       pkg.papValue === match.totalPap,
   );
