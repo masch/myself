@@ -86,12 +86,46 @@ describe("Barter Inbox: action availability", () => {
     expect(actions.canCounterOffer).toBe(false);
   });
 
-  it("target of a COUNTER_OFFERED match waits for the requester decision", () => {
-    const actions = getMatchActionAvailability("COUNTER_OFFERED", "target");
-    expect(actions.canAccept).toBe(false);
-    expect(actions.canReject).toBe(false);
-    expect(actions.canCounterOffer).toBe(false);
-    expect(actions.awaitingResponseFrom).toBe("requester");
+  it("round 0 is the requester's proposal: the target answers it", () => {
+    const actions = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "target",
+      true,
+      0,
+    );
+    expect(actions.canAccept).toBe(true);
+    expect(actions.canReject).toBe(true);
+    expect(actions.canCounterOffer).toBe(true);
+    expect(actions.awaitingResponseFrom).toBeNull();
+    const requesterSide = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "requester",
+      true,
+      0,
+    );
+    expect(requesterSide.canAccept).toBe(false);
+    // The waiting side sees who owes the answer: the target.
+    expect(requesterSide.awaitingResponseFrom).toBe("target");
+  });
+
+  it("after the target counters (round 1), the target owes nothing and the requester answers", () => {
+    const targetSide = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "target",
+      true,
+      1,
+    );
+    expect(targetSide.canAccept).toBe(false);
+    // The waiting side sees who owes the answer: the requester.
+    expect(targetSide.awaitingResponseFrom).toBe("requester");
+    const requesterSide = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "requester",
+      true,
+      1,
+    );
+    expect(requesterSide.canAccept).toBe(true);
+    expect(requesterSide.canCounterOffer).toBe(true);
   });
 
   it("offers no proposal actions once the trade is WAITING_DELIVERY", () => {
@@ -181,7 +215,7 @@ describe("Barter inbox: what each producer still has on its plate", () => {
 
   it("counts a counter-offer as an answer owed by the requester", () => {
     const summary = summarizeProducerTrades([
-      buildMatch({ status: "COUNTER_OFFERED" }),
+      buildMatch({ status: "COUNTER_OFFERED", round: 1 }),
     ]);
 
     expect(summary[requester.id].awaitingReply).toBe(1);

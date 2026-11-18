@@ -60,3 +60,13 @@ stock, configurable round limit (default 50) and lazy expiry.
   Layout fix folded in: the modal scrolls as one body. Delivery strategy:
   one PR from `feat/multi-pap-trades-2` (slices recorded above); push/PR is
   the user's call.
+
+- **Completion & Delivery (PR review round)**: commit after `c870446` addresses
+  the CodeRabbit findings on PR #163 — round-parity turn tracking (rule 8
+  ping-pong works beyond round 1), counter sends both carts with proportional
+  target scaling, per-entry cart isolation in remapMatches, totalPap pinned to
+  Σ offered at the schema, consumedUnits recorded per match for exact rollback,
+  1-PAP counter candidates with the current package kept eligible, mixed-target
+  gating fixed, reservation-adjusted steppers, removal at one unit, memoized
+  title index, theme tokens for stepper widths, stale CounterOfferInput type
+  aligned. 804 unit tests + 48 E2E green.

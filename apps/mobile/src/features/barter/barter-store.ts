@@ -6,6 +6,7 @@ import {
   productPackageSchema,
   requiresStockRollback,
   tradeMatchSchema,
+  type CounterOfferInput,
   type Producer,
   type ProductionType,
   type ProductPackage,
@@ -155,6 +156,19 @@ const BROADCAST_CHANNEL_NAME = "p2p_barter_sync_channel";
  * seed, never a different limit.
  */
 export const maxCounterRounds = MAX_COUNTER_ROUNDS;
+
+/**
+ * Units of `packageId` the open proposals reserve, minus this match's own —
+ * exported for the modals' steppers and submit gates (PR #163 review): the
+ * UI must show the same availability the store enforces at submission.
+ */
+export function openReservationUnitsFor(
+  matches: TradeMatch[],
+  packageId: string,
+  excludeMatchId?: string,
+): number {
+  return openReservationUnits(matches, packageId, excludeMatchId);
+}
 
 /** The live statuses whose lines hold an open stock reservation (rule 11). */
 const LIVE_STATUSES: TradeMatch["status"][] = ["PENDING", "COUNTER_OFFERED"];
@@ -448,13 +462,29 @@ function remapMatches(
       ? packageId
       : (RETIRED_PACKAGE_REMAP[packageId] ?? null);
 
-  const remapLines = (lines: TradeLine[]): TradeLine[] =>
+  const remapLines = (lines: unknown[]): TradeLine[] =>
     lines.flatMap((line) => {
-      const id = remap(line.packageId);
-      return id === null ? [] : [{ ...line, packageId: id }];
+      const entry = line as { packageId?: unknown; units?: unknown };
+      if (
+        typeof entry?.packageId !== "string" ||
+        typeof entry?.units !== "number"
+      ) {
+        return [];
+      }
+      const id = remap(entry.packageId);
+      return id === null ? [] : [{ packageId: id, units: entry.units }];
     });
 
   return asList<TradeMatch>(stored)?.flatMap((match) => {
+    // Bytes from another build: a match whose carts are not arrays (or whose
+    // line entries are not objects) is dropped alone — one malformed entry
+    // must not throw and discard its valid siblings (issue #83 granularity).
+    if (
+      !Array.isArray(match.offeredLines) ||
+      !Array.isArray(match.targetLines)
+    ) {
+      return [];
+    }
     const offeredLines = remapLines(match.offeredLines);
     const targetLines = remapLines(match.targetLines);
 
@@ -914,6 +944,20 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       notify(false);
     },
 
+    /**
+     * The availability the UI must show: declared stock minus what the open
+     * proposals already reserve (PR #163 review — the steppers and submit
+     * gates use the same calculation the store enforces at submission).
+     */
+    availableUnits: (packageId: string, excludeMatchId?: string): number => {
+      const pkg = state.packages.find((p) => p.id === packageId);
+      if (!pkg) return 0;
+      return (
+        pkg.stockUnits -
+        openReservationUnits(state.matches, packageId, excludeMatchId)
+      );
+    },
+
     updatePackageStock: (packageId: string, stock: number) => {
       state = {
         ...state,
@@ -1030,11 +1074,14 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
         return units ? { ...pkg, stockUnits: pkg.stockUnits - units } : pkg;
       });
 
-      // Update current match to WAITING_DELIVERY (transitioned via ACCEPTED)
+      // Update current match to WAITING_DELIVERY (transitioned via ACCEPTED),
+      // stamping the exact per-package deduction so a later rollback restores
+      // precisely these units — not a seed-capped guess (PR #163 review).
       const now = new Date().toISOString();
       const acceptedMatch: TradeMatch = {
         ...match,
         status: "WAITING_DELIVERY",
+        consumedUnits: Object.fromEntries(demand),
         updatedAt: now,
       };
 
@@ -1103,17 +1150,7 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       return updated;
     },
 
-    counterOfferTradeMatch: (input: {
-      matchId: string;
-      producerId: string;
-      /** New cart for the offered side: packages from the requester's catalog. */
-      offeredLines: TradeLine[];
-      /**
-       * Optional new cart for the target side. Omitted keeps the current one —
-       * only valid when the new offered Σ still balances it.
-       */
-      targetLines?: TradeLine[];
-    }): TradeMatch => {
+    counterOfferTradeMatch: (input: CounterOfferInput): TradeMatch => {
       const match = state.matches.find((m) => m.id === input.matchId);
       if (!match) throw new Error(`Match ${input.matchId} not found`);
 
@@ -1175,6 +1212,7 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
         round: match.round + 1,
         counterOfferHistory: {
           previousOfferedPackageId: match.offeredLines[0]?.packageId ?? "",
+          previousTotalPap: match.totalPap,
           counterOfferedAt: now,
         },
         updatedAt: now,
@@ -1245,15 +1283,17 @@ export function createBarterStore(options: CreateStoreOptions = {}) {
       // Cancelling rolls back stock, so only the two parties may do it.
       assertProducerIsParty(match, producerId);
 
-      // Rollback stock if previously deducted, per line (rule 5). The restore
-      // is capped at the stock the current build documents: a match retained
-      // across a reload carries a rollback obligation against inventory the
-      // seed re-derived (the boot never restores consumed stock), so restoring
-      // could give units that were never deducted. The cap keeps cancellation
-      // honest with the only stock figure this build records.
+      // Rollback restores exactly the units acceptance recorded on the match
+      // (consumedUnits): the deduction travels with the trade, so cancelling
+      // returns those units even across a reload, and operator-raised stock
+      // is never reduced by a seed cap (PR #163 review). A match without the
+      // stamp (written by an older bundle) falls back to its carts' demand,
+      // still capped at the stock this build documents.
       let nextPackages = state.packages;
       if (requiresStockRollback(match.status, "CANCELLED_BY_PRODUCER")) {
-        const demand = demandByPackage(matchLines(match));
+        const demand = match.consumedUnits
+          ? new Map(Object.entries(match.consumedUnits))
+          : demandByPackage(matchLines(match));
         nextPackages = state.packages.map((pkg) => {
           const units = demand.get(pkg.id);
           if (!units) return pkg;

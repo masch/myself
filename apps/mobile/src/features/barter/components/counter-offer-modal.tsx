@@ -16,7 +16,7 @@ import {
   spacing,
   radius,
 } from "@/theme";
-import type { ProductPackage, TradeMatch } from "@myself/shared";
+import type { ProductPackage, TradeLine, TradeMatch } from "@myself/shared";
 import { counterDeltaCopy } from "../cart-draft";
 
 interface CounterOfferModalProps {
@@ -28,7 +28,24 @@ interface CounterOfferModalProps {
   targetPackage?: ProductPackage;
   /** Alternative packages from the requester catalog, stock-filtered. */
   candidates: ProductPackage[];
-  onConfirm: (counterOfferedPackageId: string, counterUnits: number) => void;
+  /** Both producers' packages, for title and stock lookup of scaled lines. */
+  allPackages: ProductPackage[];
+  /**
+   * Stock minus what the open proposals already reserve, excluding this
+   * match's own reservation (PR #163 review): the counter edits the units its
+   * match already holds.
+   */
+  availableUnits: (packageId: string, excludeMatchId?: string) => number;
+  /**
+   * The counter sends BOTH carts: when `counterUnits` moves the total, the
+   * target cart must scale with it or the store rejects the symmetry (PR #163
+   * review). Same-total composition changes keep the receiver's cart.
+   */
+  onConfirm: (
+    counterOfferedPackageId: string,
+    counterUnits: number,
+    targetLines: TradeLine[],
+  ) => void;
   onClose: () => void;
 }
 
@@ -38,6 +55,8 @@ export function CounterOfferModal({
   currentOfferedPackage,
   targetPackage,
   candidates,
+  allPackages,
+  availableUnits,
   onConfirm,
   onClose,
 }: CounterOfferModalProps) {
@@ -51,12 +70,28 @@ export function CounterOfferModal({
 
   if (!match) return null;
 
+  const packagesById = new Map(allPackages.map((p) => [p.id, p]));
   const selectedPkg = candidates.find((p) => p.id === selectedPackageId);
+  // The match's own reservation does not count against its own counter: the
+  // units it holds stay editable.
+  const availabilityOf = (packageId: string) =>
+    availableUnits(packageId, match.id);
+  // The counter sends both carts (PR #163 review): the offered candidate must
+  // cover `counterUnits`, and every SCALED target line must fit its own
+  // package's stock — never one package covering the whole total.
+  const scaledTarget = scaleTargetLines(
+    match.targetLines,
+    match.totalPap,
+    counterUnits,
+  );
+  const scaledTargetFits = scaledTarget.every(
+    (line) => availabilityOf(line.packageId) >= line.units,
+  );
   const canSubmit =
     !!selectedPackageId &&
     counterUnits >= 1 &&
-    (selectedPkg?.stockUnits ?? 0) >= counterUnits &&
-    (targetPackage?.stockUnits ?? 0) >= counterUnits;
+    availabilityOf(selectedPackageId) >= counterUnits &&
+    scaledTargetFits;
 
   return (
     <Modal
@@ -111,10 +146,7 @@ export function CounterOfferModal({
               <AppButton
                 title="+"
                 variant="secondary"
-                disabled={
-                  counterUnits >= (selectedPkg?.stockUnits ?? 0) ||
-                  counterUnits >= (targetPackage?.stockUnits ?? 0)
-                }
+                disabled={counterUnits >= (selectedPkg?.stockUnits ?? 0)}
                 onPress={() => setCounterUnits((u) => u + 1)}
                 style={styles.unitsBtn}
                 accessibilityLabel="Agregar una unidad a la contraoferta"
@@ -200,7 +232,20 @@ export function CounterOfferModal({
               title="Enviar Contraoferta"
               variant="primary"
               disabled={!canSubmit}
-              onPress={() => onConfirm(selectedPackageId, counterUnits)}
+              onPress={() =>
+                onConfirm(
+                  selectedPackageId,
+                  counterUnits,
+                  // Scale every target line so the receiver's cart sums the
+                  // counter's total: proportional to its share of the old
+                  // total, with the remainder absorbed by the first line.
+                  scaleTargetLines(
+                    match.targetLines,
+                    match.totalPap,
+                    counterUnits,
+                  ),
+                )
+              }
               style={styles.submitBtn}
             />
           </View>
@@ -208,6 +253,36 @@ export function CounterOfferModal({
       </View>
     </Modal>
   );
+}
+
+/**
+ * Scales a target cart from its old total to the counter's total,
+ * proportionally per line, absorbing the rounding remainder in the first
+ * line — so the receiver's cart always sums the counter's total (PR #163
+ * review: a 2↔2 counter against a 1↔1 trade must carry the scaled target
+ * cart, or the store rejects the symmetry).
+ */
+function scaleTargetLines(
+  lines: TradeLine[],
+  previousTotal: number,
+  nextTotal: number,
+): TradeLine[] {
+  if (previousTotal <= 0 || lines.length === 0) return lines;
+  if (nextTotal === previousTotal) return lines;
+  let assigned = 0;
+  return lines.map((line, index) => {
+    if (index === lines.length - 1) {
+      const units = Math.max(nextTotal - assigned, 1);
+      assigned += units;
+      return { ...line, units };
+    }
+    const units = Math.max(
+      Math.floor((line.units * nextTotal) / previousTotal),
+      1,
+    );
+    assigned += units;
+    return { ...line, units };
+  });
 }
 
 const styles = StyleSheet.create({
@@ -242,10 +317,10 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   unitsBtn: {
-    minWidth: 36,
+    minWidth: spacing.xl,
   },
   unitsValue: {
-    minWidth: 20,
+    minWidth: spacing.lg,
     textAlign: "center",
     fontWeight: fontWeights.semibold,
   },

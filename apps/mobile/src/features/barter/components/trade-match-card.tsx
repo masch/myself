@@ -1,14 +1,14 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { Card, ThemedText, AppButton, Badge } from "@/components";
 import { colors, fontWeights, spacing, radius } from "@/theme";
 import type {
   Producer,
   ProductPackage,
+  TradeLine,
   TradeMatch,
   TradeMatchStatus,
 } from "@myself/shared";
-import { describeCartSide } from "../cart-draft";
 import { getMatchActionAvailability, type TradeRole } from "../inbox-utils";
 import { MAX_COUNTER_ROUNDS } from "@myself/shared";
 
@@ -55,11 +55,26 @@ export function TradeMatchCard({
   onCounterOffer,
   onOpenTrade,
 }: TradeMatchCardProps) {
-  // Rule 9: at the round limit the receiver may only accept or reject.
+  // Rule 9 at the limit leaves only accept/reject; rule 8's ping-pong means
+  // the round decides whose turn it is.
+  // One title lookup per card render, not one scan per cart line: the catalog
+  // carries ~1500 packages and longer carts would multiply the scans.
+  const titlesById = useMemo(
+    () => new Map(packages.map((p) => [p.id, p.title])),
+    [packages],
+  );
+  const describe = (lines: TradeLine[]) =>
+    lines
+      .map(
+        (line) =>
+          `${titlesById.get(line.packageId) ?? line.packageId} ×${line.units}`,
+      )
+      .join(" · ");
   const actions = getMatchActionAvailability(
     match.status,
     role,
     match.round < MAX_COUNTER_ROUNDS,
+    match.round,
   );
   const statusDisplay = STATUS_DISPLAY[match.status];
   const hasActions =
@@ -98,7 +113,7 @@ export function TradeMatchCard({
             {role === "target" ? "TE OFRECEN" : "OFRECÉS"}
           </ThemedText>
           <ThemedText variant="callout" style={styles.exchangeTitle}>
-            {describeCartSide(match.offeredLines, packages)}
+            {describe(match.offeredLines)}
           </ThemedText>
         </View>
         <ThemedText variant="title2" style={styles.exchangeArrow}>
@@ -109,7 +124,7 @@ export function TradeMatchCard({
             {role === "target" ? "PIDEN DE VOS" : "PEDÍS"}
           </ThemedText>
           <ThemedText variant="callout" style={styles.exchangeTitle}>
-            {describeCartSide(match.targetLines, packages)}
+            {describe(match.targetLines)}
           </ThemedText>
         </View>
       </View>

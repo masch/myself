@@ -54,6 +54,7 @@ export default function BarterScreen() {
     gondolaPackages,
     activeProducerPackages,
     packages,
+    availableUnits,
     incomingMatches,
     outgoingMatches,
     matches,
@@ -198,8 +199,7 @@ export default function BarterScreen() {
       packages.filter(
         (pkg) =>
           pkg.producerId === selectedTargetPackage?.producerId &&
-          pkg.stockUnits > 0 &&
-          pkg.id !== selectedTargetPackage?.id,
+          pkg.stockUnits > 0,
       ),
     [packages, selectedTargetPackage],
   );
@@ -329,6 +329,7 @@ export default function BarterScreen() {
         targetProducerName={targetProducer?.name}
         availableOwnPackages={activeProducerPackages}
         availableTargetPackages={targetProducerPackages}
+        availableUnits={availableUnits}
         onConfirmProposal={handleConfirmProposal}
         onClose={() => setSelectedTargetPackage(null)}
       />

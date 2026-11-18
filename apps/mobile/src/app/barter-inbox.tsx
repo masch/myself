@@ -17,7 +17,7 @@ import {
   primaryOfferedPackageId,
   primaryTargetPackageId,
 } from "@/features/barter";
-import type { TradeMatch } from "@myself/shared";
+import type { TradeLine, TradeMatch } from "@myself/shared";
 
 export default function BarterInboxScreen() {
   const toast = useToast();
@@ -25,6 +25,7 @@ export default function BarterInboxScreen() {
     activeProducer,
     producers,
     packages,
+    availableUnits,
     papConfigArs,
     incomingMatches,
     outgoingMatches,
@@ -76,16 +77,20 @@ export default function BarterInboxScreen() {
   const handleConfirmCounterOffer = (
     counterOfferedPackageId: string,
     counterUnits: number,
+    targetLines: TradeLine[],
   ) => {
     if (!counterOfferMatch || !activeProducer) return;
 
     try {
+      // When the counter moves the total, the modal scales the target cart to
+      // match — both carts travel, or the store rejects the symmetry.
       counterOfferTradeMatch({
         matchId: counterOfferMatch.id,
         producerId: activeProducer.id,
         offeredLines: [
           { packageId: counterOfferedPackageId, units: counterUnits },
         ],
+        targetLines,
       });
       toast.success("Contraoferta enviada. Esperando respuesta.");
       setCounterOfferMatch(null);
@@ -197,6 +202,8 @@ export default function BarterInboxScreen() {
             ? getCounterOfferCandidates(packages, counterOfferMatch)
             : []
         }
+        allPackages={packages}
+        availableUnits={availableUnits}
         onConfirm={handleConfirmCounterOffer}
         onClose={() => setCounterOfferMatch(null)}
       />

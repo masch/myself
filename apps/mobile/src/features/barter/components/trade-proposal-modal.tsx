@@ -44,6 +44,11 @@ interface TradeProposalModalProps {
   /** The target producer's in-stock inventory: the ask side is a cart too. */
   availableTargetPackages: ProductPackage[];
   /**
+   * Stock minus what the open proposals already reserve (PR #163 review): the
+   * steppers never offer a unit the store would refuse at submission.
+   */
+  availableUnits: (packageId: string) => number;
+  /**
    * The cart the modal sends: both sides are edited here, so the parent
    * receives full line lists instead of one offered package id.
    */
@@ -148,6 +153,7 @@ export function TradeProposalModal({
   targetProducerName,
   availableOwnPackages,
   availableTargetPackages,
+  availableUnits,
   onConfirmProposal,
   onClose,
 }: TradeProposalModalProps) {
@@ -229,6 +235,7 @@ export function TradeProposalModal({
               label="OFRECÉS"
               draft={offeredDraft}
               packages={availableOwnPackages}
+              stockOf={availableUnits}
               onSetUnits={(packageId, units, stock) =>
                 setOfferedDraft((current) =>
                   setCartLineUnits(current, packageId, units, stock),
@@ -243,6 +250,7 @@ export function TradeProposalModal({
               label="PEDÍS"
               draft={targetDraft}
               packages={[targetPackage!, ...availableTargetPackages]}
+              stockOf={availableUnits}
               onSetUnits={(packageId, units, stock) =>
                 setTargetDraft((current) =>
                   setCartLineUnits(current, packageId, units, stock),
@@ -406,12 +414,15 @@ function CartLines({
   label,
   draft,
   packages,
+  stockOf,
   onSetUnits,
   onRemove,
 }: {
   label: string;
   draft: CartDraft;
   packages: ProductPackage[];
+  /** Reservation-adjusted availability for one package (PR #163 review). */
+  stockOf: (packageId: string) => number;
   onSetUnits: (packageId: string, units: number, stock: number) => void;
   onRemove: (packageId: string) => void;
 }) {
@@ -426,7 +437,8 @@ function CartLines({
       </View>
       {draft.lines.map((line) => {
         const pkg = packages.find((p) => p.id === line.packageId);
-        const atStockCap = line.units >= (pkg?.stockUnits ?? 0);
+        const stock = Math.max(stockOf(line.packageId), 1);
+        const atStockCap = line.units >= stock;
         return (
           <View key={line.packageId} style={styles.cartLine}>
             <View style={styles.cartLineText}>
@@ -447,18 +459,17 @@ function CartLines({
               <AppButton
                 title="−"
                 variant="secondary"
-                disabled={line.units <= 1}
                 onPress={() =>
                   line.units <= 1
                     ? onRemove(line.packageId)
-                    : onSetUnits(
-                        line.packageId,
-                        line.units - 1,
-                        pkg?.stockUnits ?? 1,
-                      )
+                    : onSetUnits(line.packageId, line.units - 1, stock)
                 }
                 style={styles.stepperBtn}
-                accessibilityLabel={`Quitar una unidad de ${pkg?.title ?? line.packageId}`}
+                accessibilityLabel={
+                  line.units <= 1
+                    ? `Quitar ${pkg?.title ?? line.packageId} del carrito`
+                    : `Quitar una unidad de ${pkg?.title ?? line.packageId}`
+                }
               />
               <ThemedText variant="body" style={styles.stepperValue}>
                 {line.units}
@@ -468,11 +479,7 @@ function CartLines({
                 variant="secondary"
                 disabled={atStockCap}
                 onPress={() =>
-                  onSetUnits(
-                    line.packageId,
-                    line.units + 1,
-                    pkg?.stockUnits ?? 1,
-                  )
+                  onSetUnits(line.packageId, line.units + 1, stock)
                 }
                 style={styles.stepperBtn}
                 accessibilityLabel={`Agregar una unidad de ${pkg?.title ?? line.packageId}`}
@@ -699,10 +706,10 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   stepperBtn: {
-    minWidth: 36,
+    minWidth: spacing.xl,
   },
   stepperValue: {
-    minWidth: 20,
+    minWidth: spacing.lg,
     textAlign: "center",
     fontWeight: fontWeights.semibold,
   },

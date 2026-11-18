@@ -35,11 +35,14 @@ test("the proposal radios toggle cart lines independently", async ({
   const radios = page.getByTestId("own-package-list").getByRole("radio");
   await expect(radios).toHaveCount(3);
 
-  const checked = page.getByRole("radio", { checked: true });
+  const checked = page
+    .getByTestId("own-package-list")
+    .getByRole("radio", { checked: true });
   const first = radios.nth(0);
   const second = radios.nth(1);
 
-  // The cart starts empty: nothing is checked yet.
+  // The OFFER cart starts empty: nothing is checked in its section. (The ask
+  // side starts with the tapped card, by design.)
   await expect(checked).toHaveCount(0);
 
   // Choosing a package adds it to the cart: the radio checks.
@@ -60,4 +63,13 @@ test("the proposal radios toggle cart lines independently", async ({
   expect(await checked.getAttribute("aria-label")).toBe(
     await second.getAttribute("aria-label"),
   );
+
+  const raw = await page.evaluate(() =>
+    Array.from(
+      document
+        .querySelector('[data-testid="own-package-list"]')
+        ?.querySelectorAll('[role="radio"]') ?? [],
+    ).map((el) => el.getAttribute("aria-checked")),
+  );
+  expect(raw.filter((c) => c === "true")).toHaveLength(1);
 });

@@ -187,6 +187,7 @@ describe("keepOnlyCatalogPackages", () => {
       status: "COUNTER_OFFERED",
       counterOfferHistory: {
         previousOfferedPackageId: "pkg-vermut-pack4",
+        previousTotalPap: 1,
         counterOfferedAt: new Date().toISOString(),
       },
     });
@@ -203,6 +204,7 @@ describe("keepOnlyCatalogPackages", () => {
       status: "COUNTER_OFFERED",
       counterOfferHistory: {
         previousOfferedPackageId: "pkg-queso-provoleta",
+        previousTotalPap: 1,
         counterOfferedAt: new Date().toISOString(),
       },
     });

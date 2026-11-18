@@ -5,6 +5,10 @@ import {
   SEED_PACKAGES,
   type BarterStore,
 } from "../barter-store";
+import {
+  getMatchActionAvailability,
+  getCounterOfferCandidates,
+} from "../inbox-utils";
 
 const VERMUT = PRODUCER_IDS.VERMUT;
 const QUESO = PRODUCER_IDS.QUESO;
@@ -260,5 +264,99 @@ describe("counter-offer negotiation (issue #162 rules 7-9)", () => {
       targetLines: [{ packageId: QUESO_B, units: 2 }],
     });
     expect(second.totalPap).toBe(2);
+  });
+});
+
+describe("PR #163 review fixes", () => {
+  let store: BarterStore;
+
+  const VERMUT = PRODUCER_IDS.VERMUT;
+  const QUESO = PRODUCER_IDS.QUESO;
+  const ROSSO = "direct-vermut-rosso-750";
+  const BLANCO = "direct-vermut-blanco-750";
+  const QUESO_A = "cat-2";
+  const QUESO_B = "cat-3";
+
+  beforeEach(() => {
+    store = createBarterStore({ broadcastEnabled: false });
+    for (const id of [ROSSO, BLANCO, QUESO_A, QUESO_B]) {
+      store.updatePackageStock(id, 10);
+    }
+  });
+
+  it("persists the previous total on each counter (rule 8 re-check shows the delta)", () => {
+    const match = store.createTradeProposal({
+      requesterId: VERMUT,
+      targetProducerId: QUESO,
+      offeredLines: [{ packageId: ROSSO, units: 3 }],
+      targetLines: [{ packageId: QUESO_A, units: 3 }],
+    });
+    const countered = store.counterOfferTradeMatch({
+      matchId: match.id,
+      producerId: QUESO,
+      offeredLines: [{ packageId: ROSSO, units: 2 }],
+      targetLines: [{ packageId: QUESO_A, units: 2 }],
+    });
+    expect(countered.totalPap).toBe(2);
+    expect(countered.counterOfferHistory?.previousTotalPap).toBe(3);
+  });
+});
+
+describe("PR #163 negotiation-turn and candidates fixes", () => {
+  const VERMUT = PRODUCER_IDS.VERMUT;
+  const QUESO = PRODUCER_IDS.QUESO;
+  const ROSSO = "direct-vermut-rosso-750";
+  const QUESO_A = "cat-2";
+
+  it("tracks whose turn it is: round parity decides who answers (rule 8)", () => {
+    // Even round (0, 2, …): the proposal was made by the requester, so the
+    // target answers. Odd round: the target made the counter, the requester
+    // answers. The action selector must follow the round, not the status.
+    const pending = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "target",
+      true,
+      0,
+    );
+    expect(pending.canAccept).toBe(true);
+    const pendingReq = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "requester",
+      true,
+      0,
+    );
+    expect(pendingReq.canAccept).toBe(false);
+
+    const afterTargetCounter = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "requester",
+      true,
+      1,
+    );
+    expect(afterTargetCounter.canAccept).toBe(true);
+    const targetWaits = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "target",
+      true,
+      1,
+    );
+    expect(targetWaits.canAccept).toBe(false);
+  });
+
+  it("counter candidates: 1-PAP packages qualify regardless of the trade total", () => {
+    const packages = [
+      { id: "a", producerId: VERMUT, papValue: 1, stockUnits: 3, title: "A" },
+      { id: "b", producerId: VERMUT, papValue: 1, stockUnits: 2, title: "B" },
+    ] as unknown as Parameters<typeof getCounterOfferCandidates>[0];
+    const match = {
+      requesterId: VERMUT,
+      offeredLines: [{ packageId: "a", units: 3 }],
+      totalPap: 3,
+    };
+    const candidates = getCounterOfferCandidates(packages, match);
+    // Both 1-PAP packages qualify for a multi-PAP trade; the currently
+    // offered one is excluded unless it is the only choice (quantity-only
+    // counter must stay possible).
+    expect(candidates.map((p) => p.id)).toContain("b");
   });
 });
