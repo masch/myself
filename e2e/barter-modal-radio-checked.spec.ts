@@ -28,12 +28,11 @@ test("the proposal radios toggle cart lines independently", async ({
       exact: true,
     })
     .click();
-  await expect(page.getByRole("radio").first()).toBeVisible();
-
-  // Narrow the inventory to a handful of rows so every radio is in the list's
-  // scroll viewport.
+  // The modal carries two radio sections (issue #162); this test drives the
+  // offer side. Narrow the own inventory to a handful of rows so every radio
+  // is in the sheet's scroll viewport.
   await page.getByTestId("own-package-search").fill("aceite");
-  const radios = page.getByRole("radio");
+  const radios = page.getByTestId("own-package-list").getByRole("radio");
   await expect(radios).toHaveCount(3);
 
   const checked = page.getByRole("radio", { checked: true });

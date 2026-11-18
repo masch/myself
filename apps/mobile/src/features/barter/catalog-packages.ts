@@ -73,11 +73,12 @@ export const DIRECT_PRODUCT_PRODUCTION_TYPE = "AGROECOLOGICAL" as const;
  * How many packages of a catalog product are on offer (S7).
  *
  * The PDF prints no stock, so every catalog package takes one documented
- * default rather than an invented number: one presentation of 1 PAP on offer,
- * the same way the printed catalog prints no address and the producers took a
- * documented centroid.
+ * default rather than an invented number: ten presentations of 1 PAP on
+ * offer — enough units for multi-PAP carts (issue #162) to exercise real
+ * quantities — the same way the printed catalog prints no address and the
+ * producers took a documented centroid.
  */
-export const CATALOG_STOCK_UNITS = 1;
+export const CATALOG_STOCK_UNITS = 10;
 
 /**
  * What a catalog package discloses beside its 1-PAP equivalence, by sale form.

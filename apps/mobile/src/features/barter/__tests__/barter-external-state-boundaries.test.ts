@@ -9,6 +9,8 @@
  *    that need a package, and a rejected command leaves the bytes untouched.
  */
 import { afterEach, describe, expect, it } from "bun:test";
+
+import { CATALOG_STOCK_UNITS } from "../catalog-packages";
 import type { TradeMatch } from "@myself/shared";
 import {
   createBarterStore,
@@ -196,12 +198,12 @@ describe("external state: empty lists and rejected commands", () => {
     });
 
     // The readable half is applied — but only the matches: the peer's
-    // packages never enter this gondola (seed stock stays 1), and the
-    // unparseable match is the only thing dropped.
+    // packages never enter this gondola (seed stock stays the documented
+    // default), and the unparseable match is the only thing dropped.
     expect(
       store.getState().packages.find((pkg) => pkg.id === SEED_PACKAGES[0].id)
         ?.stockUnits,
-    ).toBe(1);
+    ).toBe(CATALOG_STOCK_UNITS);
     expect(store.getState().matches).toHaveLength(1);
     expect(store.getState().matches[0].id).toBe(MATCH.id);
     expect(peer.posted).toHaveLength(0);

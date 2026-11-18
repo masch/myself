@@ -53,6 +53,7 @@ export default function BarterScreen() {
     papConfigArs,
     gondolaPackages,
     activeProducerPackages,
+    packages,
     incomingMatches,
     outgoingMatches,
     matches,
@@ -188,6 +189,20 @@ export default function BarterScreen() {
   const targetProducer = producers.find(
     (p) => p.id === selectedTargetPackage?.producerId,
   );
+  // The ask side is a cart (issue #162): the target producer's in-stock
+  // inventory, so the operator may ask for several products of the same
+  // producer in one trade. The tapped card is excluded from the list — it is
+  // already the cart's first line.
+  const targetProducerPackages = useMemo(
+    () =>
+      packages.filter(
+        (pkg) =>
+          pkg.producerId === selectedTargetPackage?.producerId &&
+          pkg.stockUnits > 0 &&
+          pkg.id !== selectedTargetPackage?.id,
+      ),
+    [packages, selectedTargetPackage],
+  );
 
   // The header names the filter; a stored or shared id the catalog lost resolves to
   // no name, and the gondola is unfiltered by then (see `deriveGondolaPackages`).
@@ -313,6 +328,7 @@ export default function BarterScreen() {
         targetPackage={selectedTargetPackage}
         targetProducerName={targetProducer?.name}
         availableOwnPackages={activeProducerPackages}
+        availableTargetPackages={targetProducerPackages}
         onConfirmProposal={handleConfirmProposal}
         onClose={() => setSelectedTargetPackage(null)}
       />

@@ -27,8 +27,10 @@ test("the selector flags the producer that owes an answer", async ({
       exact: true,
     })
     .click();
-  // The cart starts empty: choose the package, then send (issue #162).
-  await page.getByRole("radio").first().click();
+  // The cart starts empty on both sides (issue #162): choose a package on the
+  // offer side — the first radios belong to the "Pedís a <producer>" section —
+  // and the tapped card balances it 1 ↔ 1.
+  await page.getByTestId("own-package-list").getByRole("radio").first().click();
   await page.getByRole("button", { name: "Enviar Match" }).click();
 
   await page.getByTestId("producer-switch-row").getByRole("button").click();

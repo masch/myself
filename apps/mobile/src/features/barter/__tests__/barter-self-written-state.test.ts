@@ -10,6 +10,8 @@
  * pins the granularity of payloads written from outside the store.
  */
 import { afterEach, describe, expect, it } from "bun:test";
+
+import { CATALOG_STOCK_UNITS } from "../catalog-packages";
 import { DEFAULT_PAP_VALUE_ARS } from "@myself/shared";
 import {
   createBarterStore,
@@ -108,16 +110,17 @@ describe("a reload with a live delivery and seed stock", () => {
       .matches.find((m) => m.id === proposal.id);
 
     expect(retained?.status).toBe("WAITING_DELIVERY");
-    expect(
-      second.getState().packages.find((p) => p.id === "cat-890")?.stockUnits,
-    ).toBe(1);
+    const seedStock = second
+      .getState()
+      .packages.find((p) => p.id === "cat-890")!.stockUnits;
+    expect(seedStock).toBe(CATALOG_STOCK_UNITS);
 
     second.cancelTradeMatch(proposal.id, PRODUCER_IDS.VERMUT);
 
-    // The rollback restores the one unit the seed documents — the cap, not
-    // the two units a naive increment against a restored stock would give.
+    // The rollback restores the one unit the trade consumed, capped at the
+    // stock the seed documents — never a naive increment past the seed.
     expect(
       second.getState().packages.find((p) => p.id === "cat-890")?.stockUnits,
-    ).toBe(1);
+    ).toBe(seedStock);
   });
 });

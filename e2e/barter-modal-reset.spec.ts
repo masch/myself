@@ -29,8 +29,13 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
       { timeout: 30000 },
     );
 
-    const proposalRadios = page.getByRole("radio");
-    const checkedRadio = page.getByRole("radio", { checked: true });
+    // The modal carries two radio sections (issue #162): the ask side lists
+    // the target producer's inventory and the offer side the operator's own.
+    // Every assertion scopes to one section, never to the whole sheet.
+    const ownRadios = page.getByTestId("own-package-list").getByRole("radio");
+    const ownChecked = page
+      .getByTestId("own-package-list")
+      .getByRole("radio", { checked: true });
     const submitProposal = page.getByRole("button", { name: "Enviar Match" });
 
     // First open, as Naturaleza Viva, for the one package Vermut Sabado prints:
@@ -46,23 +51,19 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
         exact: true,
       })
       .click();
-    // The cart starts empty (issue #162): nothing is preselected and the
-    // submit waits for a chosen package.
-    await expect(checkedRadio).toHaveCount(0);
+    // The cart starts empty on both sides (issue #162): nothing is preselected
+    // and the submit waits for a chosen package.
+    await expect(ownChecked).toHaveCount(0);
     await expect(submitProposal).toBeDisabled();
-    await proposalRadios.first().click();
-    await expect(checkedRadio).toHaveCount(1);
-    await expect(submitProposal).toBeEnabled();
     await page.getByTestId("own-package-search").fill("aceite de coco");
-    await expect(proposalRadios).toHaveCount(1);
-    // The chosen line lives in the cart, not in the radio group: narrowing the
-    // inventory does not check the filtered-out radio, and the submit stays
-    // armed because the cart still carries the pick.
-    await expect(checkedRadio).toHaveCount(0);
+    await expect(ownRadios).toHaveCount(1);
+    await ownRadios.first().click();
+    await expect(ownChecked).toHaveCount(1);
     await expect(submitProposal).toBeEnabled();
+    // The ask side keeps the tapped card: 1 PAP each, balanced.
 
     await page.getByRole("button", { name: "Cancelar" }).click();
-    await expect(proposalRadios).toHaveCount(0);
+    await expect(ownRadios).toHaveCount(0);
 
     // The operator becomes Vermut Sabado from the header switcher, without
     // reloading: a reload rebuilds the screen and hides the stale selection.
@@ -77,30 +78,39 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
     // Second open, now for a package of the other producer: the offers are the
     // new producer's inventory, not the previous one's. The cheese is Naturaleza
     // Viva's, and the oil the trade asks for is not on offer any more.
-    await page.getByTestId("gondola-search-input").fill("queso rallado");
+    await page.getByTestId("gondola-search-input").fill("queso de cabra");
     await page
       .getByRole("button", {
-        name: "Pedir match por Queso rallado",
+        name: "Pedir match por Queso de cabra horma 500 gr aprox",
         exact: true,
       })
       .click();
-    await expect(checkedRadio).toHaveCount(0);
-    await proposalRadios.first().click();
-    await expect(checkedRadio).toHaveCount(1);
-    await expect(submitProposal).toBeEnabled();
-    // The previous producer's inventory is not on offer any more...
+    // The modal remounts keyed on the producer+target pair: the cart resets
+    // and the search field is empty again.
+    await expect(ownChecked).toHaveCount(0);
+    await expect(page.getByTestId("own-package-search")).toBeVisible();
+    // The previous producer's inventory (Naturaleza Viva's oil) is not on
+    // offer any more...
     await page.getByTestId("own-package-search").fill("aceite de coco");
-    await expect(proposalRadios).toHaveCount(0);
+    await expect(ownRadios).toHaveCount(0);
     // ...and the new producer's own printed product is, by its unique seed
     // title — "vermut rosso" alone matches the three direct packages too, and
     // the printed row's title carries no size since the sizeless-title change.
     await page
       .getByTestId("own-package-search")
       .fill("vermut rosso (muy bueno)");
-    await expect(proposalRadios).toHaveCount(1);
-    await expect(checkedRadio).toHaveCount(1);
-    await expect(
-      page.getByRole("radio").filter({ hasText: "Vermut Rosso" }),
-    ).toBeVisible();
+    await expect(ownRadios).toHaveCount(1);
+    await ownRadios.first().click();
+    await expect(ownChecked).toHaveCount(1);
+    await expect(submitProposal).toBeEnabled();
+    await expect(ownRadios.filter({ hasText: "Vermut Rosso" })).toBeVisible();
+    // ...and the new producer's own printed product is, by its unique seed
+    // title — "vermut rosso" alone matches the three direct packages too, and
+    // the printed row's title carries no size since the sizeless-title change.
+    await page
+      .getByTestId("own-package-search")
+      .fill("vermut rosso (muy bueno)");
+    await expect(ownRadios).toHaveCount(1);
+    await expect(ownRadios.filter({ hasText: "Vermut Rosso" })).toBeVisible();
   });
 });

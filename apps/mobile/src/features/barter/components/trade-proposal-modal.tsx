@@ -41,6 +41,8 @@ interface TradeProposalModalProps {
   targetPackage: ProductPackage | null;
   targetProducerName?: string;
   availableOwnPackages: ProductPackage[];
+  /** The target producer's in-stock inventory: the ask side is a cart too. */
+  availableTargetPackages: ProductPackage[];
   /**
    * The cart the modal sends: both sides are edited here, so the parent
    * receives full line lists instead of one offered package id.
@@ -145,20 +147,23 @@ export function TradeProposalModal({
   targetPackage,
   targetProducerName,
   availableOwnPackages,
+  availableTargetPackages,
   onConfirmProposal,
   onClose,
 }: TradeProposalModalProps) {
   // The two-sided cart (issue #162): the offered side starts empty and the
   // target side starts with the tapped card at 1 unit. Both are edited here.
   const [offeredDraft, setOfferedDraft] = useState<CartDraft>({ lines: [] });
-  const [targetUnits, setTargetUnits] = useState(1);
+  // The ask side is a cart as well (issue #162): it starts with the tapped
+  // card at 1 unit and the operator may add more of that producer's products.
+  const [targetDraft, setTargetDraft] = useState<CartDraft>({
+    lines: targetPackage ? [{ packageId: targetPackage.id, units: 1 }] : [],
+  });
   const [ownQuery, setOwnQuery] = useState("");
+  const [targetQuery, setTargetQuery] = useState("");
 
   if (!targetPackage) return null;
 
-  const targetDraft: CartDraft = {
-    lines: [{ packageId: targetPackage.id, units: targetUnits }],
-  };
   const balanceError = cartBalanceError(offeredDraft, targetDraft);
   const canSubmit = balanceError === null;
 
@@ -220,108 +225,76 @@ export function TradeProposalModal({
               ) : null}
             </Card>
 
-            {/* The offered cart: one stepper per chosen line. */}
-            {offeredDraft.lines.length > 0 ? (
-              <View style={styles.cartBlock}>
-                <ThemedText variant="caption1" style={styles.cartHeader}>
-                  OFRECÉS ({cartTotal(offeredDraft)} PAP):
-                </ThemedText>
-                {offeredDraft.lines.map((line) => {
-                  const pkg = availableOwnPackages.find(
-                    (p) => p.id === line.packageId,
-                  );
-                  return (
-                    <View key={line.packageId} style={styles.cartLine}>
-                      <ThemedText
-                        variant="body"
-                        style={styles.cartLineTitle}
-                        numberOfLines={1}
-                      >
-                        {pkg?.title ?? line.packageId}
-                      </ThemedText>
-                      <View style={styles.stepper}>
-                        <AppButton
-                          title="−"
-                          variant="secondary"
-                          onPress={() =>
-                            line.units <= 1
-                              ? setOfferedDraft((current) =>
-                                  removeCartLine(current, line.packageId),
-                                )
-                              : setOfferedDraft((current) =>
-                                  setCartLineUnits(
-                                    current,
-                                    line.packageId,
-                                    line.units - 1,
-                                    pkg?.stockUnits ?? 1,
-                                  ),
-                                )
-                          }
-                          style={styles.stepperBtn}
-                          accessibilityLabel={`Quitar una unidad de ${pkg?.title ?? line.packageId}`}
-                        />
-                        <ThemedText variant="body" style={styles.stepperValue}>
-                          {line.units}
-                        </ThemedText>
-                        <AppButton
-                          title="+"
-                          variant="secondary"
-                          disabled={line.units >= (pkg?.stockUnits ?? 0)}
-                          onPress={() =>
-                            setOfferedDraft((current) =>
-                              setCartLineUnits(
-                                current,
-                                line.packageId,
-                                line.units + 1,
-                                pkg?.stockUnits ?? 1,
-                              ),
-                            )
-                          }
-                          style={styles.stepperBtn}
-                          accessibilityLabel={`Agregar una unidad de ${pkg?.title ?? line.packageId}`}
-                        />
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
+            <CartLines
+              label="OFRECÉS"
+              draft={offeredDraft}
+              packages={availableOwnPackages}
+              onSetUnits={(packageId, units, stock) =>
+                setOfferedDraft((current) =>
+                  setCartLineUnits(current, packageId, units, stock),
+                )
+              }
+              onRemove={(packageId) =>
+                setOfferedDraft((current) => removeCartLine(current, packageId))
+              }
+            />
+
+            <CartLines
+              label="PEDÍS"
+              draft={targetDraft}
+              packages={[targetPackage!, ...availableTargetPackages]}
+              onSetUnits={(packageId, units, stock) =>
+                setTargetDraft((current) =>
+                  setCartLineUnits(current, packageId, units, stock),
+                )
+              }
+              onRemove={(packageId) =>
+                setTargetDraft((current) => removeCartLine(current, packageId))
+              }
+            />
+
+            {/* The target producer's inventory: the ask side is a cart too —
+                the tapped card is the first line, more products of the same
+                producer may join it. */}
+            <ThemedText variant="headline" style={styles.sectionTitle}>
+              Pedís a {targetProducerName} (1 PAP por paquete):
+            </ThemedText>
+
+            {availableTargetPackages.length > 1 ? (
+              <ThemedTextInput
+                value={targetQuery}
+                onChangeText={(value) => setTargetQuery(value)}
+                placeholder={`Buscar en el inventario de ${targetProducerName ?? "tu contraparte"}`}
+                accessibilityLabel="Buscar en el inventario del productor"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                testID="target-package-search"
+              />
             ) : null}
 
-            {/* The target stepper: units of the tapped card. */}
-            <View style={styles.cartBlock}>
-              <ThemedText variant="caption1" style={styles.cartHeader}>
-                PEDÍS ({cartTotal(targetDraft)} PAP):
-              </ThemedText>
-              <View style={styles.cartLine}>
-                <ThemedText
-                  variant="body"
-                  style={styles.cartLineTitle}
-                  numberOfLines={1}
-                >
-                  {targetPackage.title}
-                </ThemedText>
-                <View style={styles.stepper}>
-                  <AppButton
-                    title="−"
-                    variant="secondary"
-                    disabled={targetUnits <= 1}
-                    onPress={() => setTargetUnits((u) => Math.max(u - 1, 1))}
-                    style={styles.stepperBtn}
-                    accessibilityLabel={`Quitar una unidad de ${targetPackage.title}`}
-                  />
-                  <ThemedText variant="body" style={styles.stepperValue}>
-                    {targetUnits}
-                  </ThemedText>
-                  <AppButton
-                    title="+"
-                    variant="secondary"
-                    disabled={targetUnits >= targetPackage.stockUnits}
-                    onPress={() => setTargetUnits((u) => u + 1)}
-                    style={styles.stepperBtn}
-                    accessibilityLabel={`Agregar una unidad de ${targetPackage.title}`}
-                  />
-                </View>
-              </View>
+            <View style={styles.packageList} testID="target-package-list">
+              {filterPackagesByTitle(availableTargetPackages, targetQuery).map(
+                (targetPkg) => {
+                  const line = targetDraft.lines.find(
+                    (l) => l.packageId === targetPkg.id,
+                  );
+                  return (
+                    <PackageOfferOption
+                      key={targetPkg.id}
+                      ownPackage={targetPkg}
+                      isSelected={!!line}
+                      onSelect={(packageId) => {
+                        setTargetDraft((current) =>
+                          line
+                            ? removeCartLine(current, packageId)
+                            : addCartLine(current, targetPkg),
+                        );
+                      }}
+                    />
+                  );
+                },
+              )}
             </View>
 
             {/* Own packages selection */}
@@ -342,7 +315,7 @@ export function TradeProposalModal({
               />
             ) : null}
 
-            <View style={styles.packageList}>
+            <View style={styles.packageList} testID="own-package-list">
               {availableOwnPackages.length === 0 ? (
                 <ThemedText variant="body" style={styles.emptyText}>
                   No tenés productos cargados en tu inventario para ofrecer.
@@ -374,15 +347,31 @@ export function TradeProposalModal({
                 })
               )}
             </View>
-
-            {/* Balance banner: the live totals and, when they diverge, why. */}
-            <View style={styles.balanceBanner}>
-              <ThemedText variant="caption1" style={styles.balanceText}>
-                {balanceError ??
-                  `⚖️ Trueque justo: ${cartTotal(offeredDraft)} PAP ↔ ${cartTotal(targetDraft)} PAP. El stock se reserva mientras la propuesta está abierta.`}
-              </ThemedText>
-            </View>
           </ScrollView>
+
+          {/* Balance banner, pinned above the buttons (issue #162): the live
+              totals and, when they diverge, why — always on screen while the
+              carts change, so the user reads the gap without scrolling. The
+              reason is the same one the store enforces, so the button's
+              disable state and its explanation can never disagree. */}
+          <View
+            style={[
+              styles.balanceBanner,
+              balanceError ? styles.balanceBannerError : null,
+            ]}
+          >
+            <ThemedText
+              variant="caption1"
+              style={[
+                styles.balanceText,
+                balanceError ? styles.balanceTextError : null,
+              ]}
+            >
+              {balanceError
+                ? `⚖️ Ofrecés ${cartTotal(offeredDraft)} PAP ↔ Pedís ${cartTotal(targetDraft)} PAP — ${balanceError}`
+                : `⚖️ Trueque justo: ${cartTotal(offeredDraft)} PAP ↔ ${cartTotal(targetDraft)} PAP. El stock se reserva mientras la propuesta está abierta.`}
+            </ThemedText>
+          </View>
 
           {/* Action buttons */}
           <View style={styles.actionsRow}>
@@ -396,6 +385,11 @@ export function TradeProposalModal({
               title="Enviar Match"
               variant="primary"
               disabled={!canSubmit}
+              accessibilityLabel={
+                canSubmit
+                  ? "Enviar Match"
+                  : `Enviar Match no disponible: ${balanceError}`
+              }
               onPress={() =>
                 onConfirmProposal(offeredDraft.lines, targetDraft.lines)
               }
@@ -405,6 +399,89 @@ export function TradeProposalModal({
         </View>
       </View>
     </Modal>
+  );
+}
+
+function CartLines({
+  label,
+  draft,
+  packages,
+  onSetUnits,
+  onRemove,
+}: {
+  label: string;
+  draft: CartDraft;
+  packages: ProductPackage[];
+  onSetUnits: (packageId: string, units: number, stock: number) => void;
+  onRemove: (packageId: string) => void;
+}) {
+  if (draft.lines.length === 0) return null;
+  return (
+    <View style={styles.cartBlock}>
+      <View style={styles.cartHeaderRow}>
+        <ThemedText variant="callout" style={styles.cartHeader}>
+          {label}:
+        </ThemedText>
+        <Badge label={`${cartTotal(draft)} PAP`} variant="primary" size="md" />
+      </View>
+      {draft.lines.map((line) => {
+        const pkg = packages.find((p) => p.id === line.packageId);
+        const atStockCap = line.units >= (pkg?.stockUnits ?? 0);
+        return (
+          <View key={line.packageId} style={styles.cartLine}>
+            <View style={styles.cartLineText}>
+              <ThemedText
+                variant="body"
+                style={styles.cartLineTitle}
+                numberOfLines={1}
+              >
+                {pkg?.title ?? line.packageId}
+              </ThemedText>
+              {atStockCap ? (
+                <ThemedText variant="caption2" style={styles.cartLineCap}>
+                  Sin más stock de este paquete
+                </ThemedText>
+              ) : null}
+            </View>
+            <View style={styles.stepper}>
+              <AppButton
+                title="−"
+                variant="secondary"
+                disabled={line.units <= 1}
+                onPress={() =>
+                  line.units <= 1
+                    ? onRemove(line.packageId)
+                    : onSetUnits(
+                        line.packageId,
+                        line.units - 1,
+                        pkg?.stockUnits ?? 1,
+                      )
+                }
+                style={styles.stepperBtn}
+                accessibilityLabel={`Quitar una unidad de ${pkg?.title ?? line.packageId}`}
+              />
+              <ThemedText variant="body" style={styles.stepperValue}>
+                {line.units}
+              </ThemedText>
+              <AppButton
+                title="+"
+                variant="secondary"
+                disabled={atStockCap}
+                onPress={() =>
+                  onSetUnits(
+                    line.packageId,
+                    line.units + 1,
+                    pkg?.stockUnits ?? 1,
+                  )
+                }
+                style={styles.stepperBtn}
+                accessibilityLabel={`Agregar una unidad de ${pkg?.title ?? line.packageId}`}
+              />
+            </View>
+          </View>
+        );
+      })}
+    </View>
   );
 }
 
@@ -570,10 +647,16 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
+  balanceBannerError: {
+    backgroundColor: colors.destructiveSubdued,
+  },
   balanceText: {
     color: colors.systemGreen,
     fontWeight: fontWeights.semibold,
     lineHeight: lineHeights.xs,
+  },
+  balanceTextError: {
+    color: colors.systemRed,
   },
   actionsRow: {
     flexDirection: "row",
@@ -584,10 +667,15 @@ const styles = StyleSheet.create({
   cartBlock: {
     marginBottom: spacing.md,
   },
+  cartHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.xs,
+  },
   cartHeader: {
     color: colors.secondaryLabel,
     fontWeight: fontWeights.semibold,
-    marginBottom: spacing.xs,
   },
   cartLine: {
     flexDirection: "row",
@@ -596,8 +684,14 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.xs,
   },
-  cartLineTitle: {
+  cartLineText: {
     flex: 1,
+  },
+  cartLineTitle: {
+    fontWeight: fontWeights.medium,
+  },
+  cartLineCap: {
+    color: colors.secondaryLabel,
   },
   stepper: {
     flexDirection: "row",

@@ -11,6 +11,8 @@
  * nothing at all is readable falls back to the seeds.
  */
 import { afterEach, describe, expect, it } from "bun:test";
+
+import { CATALOG_STOCK_UNITS } from "../catalog-packages";
 import type { TradeMatch } from "@myself/shared";
 import {
   createBarterStore,
@@ -117,7 +119,7 @@ describe("Barter store: granularity of the external state", () => {
 
     // Packages always boot from the seed — storage never restores stock —
     // and only the unusable match is gone from the stored ones.
-    expect(stockOf(store, "cat-890")).toBe(1);
+    expect(stockOf(store, "cat-890")).toBe(CATALOG_STOCK_UNITS);
     expect(store.getState().matches).toHaveLength(1);
     expect(store.getState().matches[0]?.id).toBe(MATCH.id);
   });
@@ -189,8 +191,8 @@ describe("Barter store: granularity of the external state", () => {
     });
 
     // The catalog is this build's seed alone — a peer tab running another
-    // bundle cannot inject its packages or stock (marked stock stays 1).
-    expect(stockOf(store, "cat-890")).toBe(1);
+    // bundle cannot inject its packages or stock (marked stock stays the seed default).
+    expect(stockOf(store, "cat-890")).toBe(CATALOG_STOCK_UNITS);
     expect(store.getState().matches).toHaveLength(1);
     expect(store.getState().matches[0]?.id).toBe(MATCH.id);
     // A synced message is never echoed back to the peer.
