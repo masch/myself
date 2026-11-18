@@ -67,12 +67,23 @@ describe("Barter Inbox: action availability", () => {
     expect(actions.awaitingResponseFrom).toBe("target");
   });
 
-  it("requester of a COUNTER_OFFERED match can accept or reject but NOT re-counter (single round)", () => {
+  it("requester of a COUNTER_OFFERED match can accept, reject or re-counter (rule 8 ping-pong)", () => {
     const actions = getMatchActionAvailability("COUNTER_OFFERED", "requester");
     expect(actions.canAccept).toBe(true);
     expect(actions.canReject).toBe(true);
-    expect(actions.canCounterOffer).toBe(false);
+    expect(actions.canCounterOffer).toBe(true);
     expect(actions.awaitingResponseFrom).toBeNull();
+  });
+
+  it("at the round limit the receiver may only accept or reject (rule 9)", () => {
+    const actions = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "requester",
+      false,
+    );
+    expect(actions.canAccept).toBe(true);
+    expect(actions.canReject).toBe(true);
+    expect(actions.canCounterOffer).toBe(false);
   });
 
   it("target of a COUNTER_OFFERED match waits for the requester decision", () => {

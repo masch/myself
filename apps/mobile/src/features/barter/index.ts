@@ -9,3 +9,5 @@ export * from "./inbox-utils";
 export * from "./whatsapp-utils";
 export * from "./components";
 export * from "./simulation-tab";
+
+export type { TradeLine } from "@myself/shared";

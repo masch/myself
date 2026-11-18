@@ -41,6 +41,8 @@ export interface MatchActionAvailability {
 export function getMatchActionAvailability(
   status: TradeMatchStatus,
   role: TradeRole,
+  /** Rule 9: at the round limit the receiver may only accept or reject. */
+  canCounter?: boolean,
 ): MatchActionAvailability {
   if (status === "PENDING") {
     return role === "target"
@@ -63,7 +65,10 @@ export function getMatchActionAvailability(
       ? {
           canAccept: true,
           canReject: true,
-          canCounterOffer: false,
+          // Issue #162 rule 8: the negotiation ping-pongs — the party answering
+          // a counter may counter again, unless the round limit (rule 9) leaves
+          // only accept or reject. The caller passes the round it knows.
+          canCounterOffer: canCounter ?? true,
           awaitingResponseFrom: null,
         }
       : {

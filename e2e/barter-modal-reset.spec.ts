@@ -46,11 +46,20 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
         exact: true,
       })
       .click();
+    // The cart starts empty (issue #162): nothing is preselected and the
+    // submit waits for a chosen package.
+    await expect(checkedRadio).toHaveCount(0);
+    await expect(submitProposal).toBeDisabled();
+    await proposalRadios.first().click();
     await expect(checkedRadio).toHaveCount(1);
     await expect(submitProposal).toBeEnabled();
     await page.getByTestId("own-package-search").fill("aceite de coco");
     await expect(proposalRadios).toHaveCount(1);
-    await expect(checkedRadio).toHaveCount(1);
+    // The chosen line lives in the cart, not in the radio group: narrowing the
+    // inventory does not check the filtered-out radio, and the submit stays
+    // armed because the cart still carries the pick.
+    await expect(checkedRadio).toHaveCount(0);
+    await expect(submitProposal).toBeEnabled();
 
     await page.getByRole("button", { name: "Cancelar" }).click();
     await expect(proposalRadios).toHaveCount(0);
@@ -75,6 +84,8 @@ test.describe("E2E barter proposal modal reset on producer switch", () => {
         exact: true,
       })
       .click();
+    await expect(checkedRadio).toHaveCount(0);
+    await proposalRadios.first().click();
     await expect(checkedRadio).toHaveCount(1);
     await expect(submitProposal).toBeEnabled();
     // The previous producer's inventory is not on offer any more...

@@ -52,6 +52,9 @@ export const SEED_PRODUCERS: Producer[] = [...PRIMAVERA_2026_PRODUCERS];
  * printed catalog row. The quantity is what one PAP buys — the producer said
  * it, the app repeats it — and the price of reference derives from it.
  */
+// Issue #162 rule 5: the three direct packages declare how many units really
+// exist. The producer said these numbers; PDF-derived packages keep the
+// documented default until real stock exists.
 const DIRECT_SEED_PRODUCTS: DirectProductInput[] = [
   {
     id: "vermut-rosso-750",
@@ -60,6 +63,7 @@ const DIRECT_SEED_PRODUCTS: DirectProductInput[] = [
     measure: "litro",
     presentationSize: 0.75,
     presentationCount: 5,
+    stockUnits: 12,
   },
   {
     id: "vermut-blanco-750",
@@ -68,6 +72,7 @@ const DIRECT_SEED_PRODUCTS: DirectProductInput[] = [
     measure: "litro",
     presentationSize: 0.75,
     presentationCount: 5,
+    stockUnits: 8,
   },
   {
     id: "vermut-rosso-1l",
@@ -76,6 +81,7 @@ const DIRECT_SEED_PRODUCTS: DirectProductInput[] = [
     measure: "litro",
     presentationSize: 1,
     presentationCount: 5,
+    stockUnits: 6,
   },
 ];
 

@@ -22,6 +22,7 @@ import {
   DEFAULT_CARD_VARIANT,
   type CardVariant,
   type GondolaPackage,
+  type TradeLine,
 } from "@/features/barter";
 import type { ProductPackage } from "@myself/shared";
 
@@ -137,15 +138,18 @@ export default function BarterScreen() {
     setProducerFilter(undefined);
   }, [setProducerFilter]);
 
-  const handleConfirmProposal = (offeredPackageId: string) => {
+  const handleConfirmProposal = (
+    offeredLines: TradeLine[],
+    targetLines: TradeLine[],
+  ) => {
     if (!selectedTargetPackage || !activeProducer) return;
 
     try {
       createTradeProposal({
         requesterId: activeProducer.id,
         targetProducerId: selectedTargetPackage.producerId,
-        offeredLines: [{ packageId: offeredPackageId, units: 1 }],
-        targetLines: [{ packageId: selectedTargetPackage.id, units: 1 }],
+        offeredLines,
+        targetLines,
       });
 
       toast.success(

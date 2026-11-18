@@ -118,7 +118,7 @@ export interface DerivedCatalogPackage {
  * - `empaquetado`: the declared containers are what one PAP buys, and the
  *   handed quantity is always `presentationCount × presentationSize`.
  */
-export type DirectProductInput =
+export type DirectProductInput = (
   | {
       id: string;
       title: string;
@@ -136,7 +136,15 @@ export type DirectProductInput =
       presentationCount: number;
       /** How much of `measure` one container holds. */
       presentationSize: number;
-    };
+    }
+) & {
+  /**
+   * How many units really exist (issue #162 rule 5): the direct seed
+   * declares real stock instead of the catalog default. Omitted keeps
+   * `CATALOG_STOCK_UNITS`.
+   */
+  stockUnits?: number;
+};
 
 /**
  * Derives the package of one directly declared product: always exactly 1 PAP.
@@ -161,7 +169,7 @@ export function deriveDirectCatalogPackage(
     productionType: DIRECT_PRODUCT_PRODUCTION_TYPE,
     priceArs: papConfigArs,
     papValue: 1,
-    stockUnits: CATALOG_STOCK_UNITS,
+    stockUnits: input.stockUnits ?? CATALOG_STOCK_UNITS,
     catalog,
   };
 }

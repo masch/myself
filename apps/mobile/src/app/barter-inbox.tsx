@@ -73,14 +73,19 @@ export default function BarterInboxScreen() {
     }
   };
 
-  const handleConfirmCounterOffer = (counterOfferedPackageId: string) => {
+  const handleConfirmCounterOffer = (
+    counterOfferedPackageId: string,
+    counterUnits: number,
+  ) => {
     if (!counterOfferMatch || !activeProducer) return;
 
     try {
       counterOfferTradeMatch({
         matchId: counterOfferMatch.id,
         producerId: activeProducer.id,
-        offeredLines: [{ packageId: counterOfferedPackageId, units: 1 }],
+        offeredLines: [
+          { packageId: counterOfferedPackageId, units: counterUnits },
+        ],
       });
       toast.success("Contraoferta enviada. Esperando respuesta.");
       setCounterOfferMatch(null);
@@ -132,8 +137,7 @@ export default function BarterInboxScreen() {
               match={match}
               role="target"
               otherProducer={findProducer(match.requesterId)}
-              offeredPackage={findPackage(primaryOfferedPackageId(match))}
-              targetPackage={findPackage(primaryTargetPackageId(match))}
+              packages={packages}
               onAccept={handleAccept}
               onReject={handleReject}
               onCounterOffer={setCounterOfferMatch}
@@ -161,8 +165,7 @@ export default function BarterInboxScreen() {
               match={match}
               role="requester"
               otherProducer={findProducer(match.targetProducerId)}
-              offeredPackage={findPackage(primaryOfferedPackageId(match))}
-              targetPackage={findPackage(primaryTargetPackageId(match))}
+              packages={packages}
               onAccept={handleAccept}
               onReject={handleReject}
               onCounterOffer={setCounterOfferMatch}
@@ -182,6 +185,11 @@ export default function BarterInboxScreen() {
         currentOfferedPackage={
           counterOfferMatch
             ? findPackage(primaryOfferedPackageId(counterOfferMatch))
+            : undefined
+        }
+        targetPackage={
+          counterOfferMatch
+            ? findPackage(primaryTargetPackageId(counterOfferMatch))
             : undefined
         }
         candidates={

@@ -17,15 +17,18 @@ import {
   radius,
 } from "@/theme";
 import type { ProductPackage, TradeMatch } from "@myself/shared";
+import { counterDeltaCopy } from "../cart-draft";
 
 interface CounterOfferModalProps {
   visible: boolean;
   match: TradeMatch | null;
   /** Packages the requester currently offers (the one being replaced). */
   currentOfferedPackage?: ProductPackage;
+  /** The package the requester asked for, whose units the counter may change. */
+  targetPackage?: ProductPackage;
   /** Alternative packages from the requester catalog, stock-filtered. */
   candidates: ProductPackage[];
-  onConfirm: (counterOfferedPackageId: string) => void;
+  onConfirm: (counterOfferedPackageId: string, counterUnits: number) => void;
   onClose: () => void;
 }
 
@@ -33,6 +36,7 @@ export function CounterOfferModal({
   visible,
   match,
   currentOfferedPackage,
+  targetPackage,
   candidates,
   onConfirm,
   onClose,
@@ -40,11 +44,19 @@ export function CounterOfferModal({
   const [selectedPackageId, setSelectedPackageId] = useState<string>(
     candidates[0]?.id ?? "",
   );
+  // The counter may move the total in either direction (rule 7): one stepper
+  // sets the units of the replacement line, and the delta copy tells the
+  // receiver what changed before they re-check.
+  const [counterUnits, setCounterUnits] = useState(match?.totalPap ?? 1);
 
   if (!match) return null;
 
   const selectedPkg = candidates.find((p) => p.id === selectedPackageId);
-  const canSubmit = !!selectedPackageId && (selectedPkg?.stockUnits ?? 0) > 0;
+  const canSubmit =
+    !!selectedPackageId &&
+    counterUnits >= 1 &&
+    (selectedPkg?.stockUnits ?? 0) >= counterUnits &&
+    (targetPackage?.stockUnits ?? 0) >= counterUnits;
 
   return (
     <Modal
@@ -60,8 +72,9 @@ export function CounterOfferModal({
               Contraofertar
             </ThemedText>
             <ThemedText variant="callout" style={styles.subtitle}>
-              Pedí un producto distinto del catálogo del solicitante. Solo hay
-              una ronda de contraoferta: la otra parte puede aceptar o rechazar.
+              Pedí un producto distinto del catálogo del solicitante, o cambiá
+              la cantidad. La contraoferta vuelve a la otra parte para
+              re-chequeo.
             </ThemedText>
           </View>
 
@@ -73,7 +86,41 @@ export function CounterOfferModal({
             <ThemedText variant="headline" style={styles.currentTitle}>
               {currentOfferedPackage?.title ?? primaryOfferedPackageId(match)}
             </ThemedText>
+            {/* Rule 8: the re-check reads the delta before deciding. */}
+            <ThemedText variant="caption1" style={styles.deltaText}>
+              {counterDeltaCopy(match.totalPap, counterUnits)}
+            </ThemedText>
           </Card>
+
+          {/* Units stepper: the counter proposes its own total, 1..stock of
+              both sides (rule 7). */}
+          <View style={styles.unitsRow}>
+            <ThemedText variant="body">Unidades (PAP por lado):</ThemedText>
+            <View style={styles.unitsStepper}>
+              <AppButton
+                title="−"
+                variant="secondary"
+                disabled={counterUnits <= 1}
+                onPress={() => setCounterUnits((u) => Math.max(u - 1, 1))}
+                style={styles.unitsBtn}
+                accessibilityLabel="Quitar una unidad de la contraoferta"
+              />
+              <ThemedText variant="body" style={styles.unitsValue}>
+                {counterUnits}
+              </ThemedText>
+              <AppButton
+                title="+"
+                variant="secondary"
+                disabled={
+                  counterUnits >= (selectedPkg?.stockUnits ?? 0) ||
+                  counterUnits >= (targetPackage?.stockUnits ?? 0)
+                }
+                onPress={() => setCounterUnits((u) => u + 1)}
+                style={styles.unitsBtn}
+                accessibilityLabel="Agregar una unidad a la contraoferta"
+              />
+            </View>
+          </View>
 
           <ThemedText variant="headline" style={styles.sectionTitle}>
             Elegí la alternativa (1 PAP):
@@ -133,11 +180,12 @@ export function CounterOfferModal({
             )}
           </ScrollView>
 
-          {/* Single-round notice */}
+          {/* Balance notice */}
           <View style={styles.noticeBanner}>
             <ThemedText variant="caption1" style={styles.noticeText}>
-              ⚖️ El trueque se mantiene justo 1:1 en PAP. Si el solicitante
-              acepta, el stock se descuenta de ambos paquetes.
+              ⚖️ Los dos lados siempre suman lo mismo. La contraoferta vuelve a
+              la otra parte para re-chequeo; el stock se reserva mientras la
+              propuesta está abierta.
             </ThemedText>
           </View>
 
@@ -152,7 +200,7 @@ export function CounterOfferModal({
               title="Enviar Contraoferta"
               variant="primary"
               disabled={!canSubmit}
-              onPress={() => onConfirm(selectedPackageId)}
+              onPress={() => onConfirm(selectedPackageId, counterUnits)}
               style={styles.submitBtn}
             />
           </View>
@@ -177,6 +225,29 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: spacing.md,
+  },
+  deltaText: {
+    marginTop: spacing.xs,
+    color: colors.secondaryLabel,
+  },
+  unitsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.md,
+  },
+  unitsStepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  unitsBtn: {
+    minWidth: 36,
+  },
+  unitsValue: {
+    minWidth: 20,
+    textAlign: "center",
+    fontWeight: fontWeights.semibold,
   },
   title: {
     color: colors.label,

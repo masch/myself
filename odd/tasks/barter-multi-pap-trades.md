@@ -20,7 +20,14 @@ stock, configurable round limit (default 50) and lazy expiry.
 - S11: Cascading cancellation: accepting a trade that depletes a package cancels other open proposals demanding it (existing behavior, now per-line).
 - S12: Config lives in one place (`shared/barter` config constants): `MAX_COUNTER_ROUNDS = 50`, `PROPOSAL_TTL_MS`.
 
-## Tasks
+## Tasks (Step 2 — product)
+
+- [x] S2.1 (S1, S2): cart UI in the proposal modal — two independently toggleable sides, per-line stepper clamped at real stock, live totals, submit disabled unless balanced.
+- [x] S2.2 (S5–S9): counter-offer modal shows the delta copy and a units stepper (1..min stock of both sides); round limit leaves only accept/reject.
+- [x] S2.3 (S1): match cards, inbox and the delivery screen render the carts with the shared `describeCartSide` formatter; WhatsApp message names both carts.
+- [x] S2.4 (S3): the three direct Vermut packages declare real `stockUnits` (12/8/6) in the seed; PDF-derived packages keep the default.
+
+## Tasks (Step 1 — foundation)
 
 - [x] T1 (S12, S1): Shared config constants (`MAX_COUNTER_ROUNDS`, `PROPOSAL_TTL_MS`) and `TradeLine` schema; commit.
 - [x] T2 (S1, S2): `tradeMatchSchema` with `offeredLines/targetLines`, derived `totalPap`, `round`; RED tests for Σ===Σ and 1:1 regression; commit.

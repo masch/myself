@@ -8,7 +8,9 @@ import type {
   TradeMatch,
   TradeMatchStatus,
 } from "@myself/shared";
+import { describeCartSide } from "../cart-draft";
 import { getMatchActionAvailability, type TradeRole } from "../inbox-utils";
+import { MAX_COUNTER_ROUNDS } from "@myself/shared";
 
 const STATUS_DISPLAY: Record<
   TradeMatchStatus,
@@ -35,8 +37,8 @@ interface TradeMatchCardProps {
   match: TradeMatch;
   role: TradeRole;
   otherProducer: Producer | undefined;
-  offeredPackage: ProductPackage | undefined;
-  targetPackage: ProductPackage | undefined;
+  /** Every package the two carts may name, for title lookup. */
+  packages: ProductPackage[];
   onAccept: (matchId: string) => void;
   onReject: (matchId: string) => void;
   onCounterOffer: (match: TradeMatch) => void;
@@ -47,14 +49,18 @@ export function TradeMatchCard({
   match,
   role,
   otherProducer,
-  offeredPackage,
-  targetPackage,
+  packages,
   onAccept,
   onReject,
   onCounterOffer,
   onOpenTrade,
 }: TradeMatchCardProps) {
-  const actions = getMatchActionAvailability(match.status, role);
+  // Rule 9: at the round limit the receiver may only accept or reject.
+  const actions = getMatchActionAvailability(
+    match.status,
+    role,
+    match.round < MAX_COUNTER_ROUNDS,
+  );
   const statusDisplay = STATUS_DISPLAY[match.status];
   const hasActions =
     actions.canAccept || actions.canReject || actions.canCounterOffer;
@@ -92,7 +98,7 @@ export function TradeMatchCard({
             {role === "target" ? "TE OFRECEN" : "OFRECÉS"}
           </ThemedText>
           <ThemedText variant="callout" style={styles.exchangeTitle}>
-            {offeredPackage?.title ?? "Paquete no disponible"}
+            {describeCartSide(match.offeredLines, packages)}
           </ThemedText>
         </View>
         <ThemedText variant="title2" style={styles.exchangeArrow}>
@@ -103,7 +109,7 @@ export function TradeMatchCard({
             {role === "target" ? "PIDEN DE VOS" : "PEDÍS"}
           </ThemedText>
           <ThemedText variant="callout" style={styles.exchangeTitle}>
-            {targetPackage?.title ?? "Paquete no disponible"}
+            {describeCartSide(match.targetLines, packages)}
           </ThemedText>
         </View>
       </View>
@@ -121,15 +127,10 @@ export function TradeMatchCard({
         ) : null}
       </View>
 
-      {/* Counter-offer history note */}
-      {match.counterOfferHistory ? (
+      {/* Negotiation history: the totals chain (issue #162 rules 7-8). */}
+      {match.round > 0 ? (
         <ThemedText variant="caption1" style={styles.counterNote}>
-          🔄 Contraoferta: antes se ofrecía &quot;
-          {offeredPackage?.id ===
-          match.counterOfferHistory.previousOfferedPackageId
-            ? offeredPackage.title
-            : match.counterOfferHistory.previousOfferedPackageId}
-          &quot;.
+          🔄 Ronda {match.round} de {match.totalPap} ↔ {match.totalPap} PAP.
         </ThemedText>
       ) : null}
 
