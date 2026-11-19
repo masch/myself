@@ -17,6 +17,7 @@ import {
   buildTradeCoordinationMessage,
   buildWhatsAppTradeUrl,
 } from "@/features/barter";
+import { describeCartSide } from "@/features/barter/cart-draft";
 
 export default function BarterTradeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -54,8 +55,10 @@ export default function BarterTradeScreen() {
   const requester = producers.find((p) => p.id === match.requesterId);
   const target = producers.find((p) => p.id === match.targetProducerId);
   const counterpart = role === "requester" ? target : requester;
-  const offeredPackage = packages.find((p) => p.id === match.offeredPackageId);
-  const targetPackage = packages.find((p) => p.id === match.targetPackageId);
+  // The carts travel whole to every surface (issue #162): the delivery screen
+  // and the WhatsApp message describe both sides with the shared formatter.
+  const offeredDescription = describeCartSide(match.offeredLines, packages);
+  const targetDescription = describeCartSide(match.targetLines, packages);
 
   const isWaitingDelivery = match.status === "WAITING_DELIVERY";
   const isCompleted = match.status === "COMPLETED";
@@ -74,8 +77,8 @@ export default function BarterTradeScreen() {
       counterpart.phone,
       buildTradeCoordinationMessage({
         counterpartName: counterpart.name,
-        offeredTitle: offeredPackage?.title ?? match.offeredPackageId,
-        targetTitle: targetPackage?.title ?? match.targetPackageId,
+        offeredTitle: offeredDescription,
+        targetTitle: targetDescription,
       }),
     );
     try {
@@ -138,7 +141,7 @@ export default function BarterTradeScreen() {
               {requester?.name ?? "Solicitante"} ENTREGA
             </ThemedText>
             <ThemedText variant="callout" style={styles.exchangeTitle}>
-              {offeredPackage?.title ?? "Paquete no disponible"}
+              {offeredDescription}
             </ThemedText>
           </View>
           <ThemedText variant="title2" style={styles.exchangeArrow}>
@@ -149,7 +152,7 @@ export default function BarterTradeScreen() {
               {target?.name ?? "Receptor"} ENTREGA
             </ThemedText>
             <ThemedText variant="callout" style={styles.exchangeTitle}>
-              {targetPackage?.title ?? "Paquete no disponible"}
+              {targetDescription}
             </ThemedText>
           </View>
         </View>

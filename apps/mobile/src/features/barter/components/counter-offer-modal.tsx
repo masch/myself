@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Card, ThemedText, AppButton, Badge } from "@/components";
+import { primaryOfferedPackageId } from "..";
 import {
   colors,
   fontWeights,
@@ -15,16 +16,36 @@ import {
   spacing,
   radius,
 } from "@/theme";
-import type { ProductPackage, TradeMatch } from "@myself/shared";
+import type { ProductPackage, TradeLine, TradeMatch } from "@myself/shared";
+import { counterDeltaCopy } from "../cart-draft";
 
 interface CounterOfferModalProps {
   visible: boolean;
   match: TradeMatch | null;
   /** Packages the requester currently offers (the one being replaced). */
   currentOfferedPackage?: ProductPackage;
+  /** The package the requester asked for, whose units the counter may change. */
+  targetPackage?: ProductPackage;
   /** Alternative packages from the requester catalog, stock-filtered. */
   candidates: ProductPackage[];
-  onConfirm: (counterOfferedPackageId: string) => void;
+  /** Both producers' packages, for title and stock lookup of scaled lines. */
+  allPackages: ProductPackage[];
+  /**
+   * Stock minus what the open proposals already reserve, excluding this
+   * match's own reservation (PR #163 review): the counter edits the units its
+   * match already holds.
+   */
+  availableUnits: (packageId: string, excludeMatchId?: string) => number;
+  /**
+   * The counter sends BOTH carts: when `counterUnits` moves the total, the
+   * target cart must scale with it or the store rejects the symmetry (PR #163
+   * review). Same-total composition changes keep the receiver's cart.
+   */
+  onConfirm: (
+    counterOfferedPackageId: string,
+    counterUnits: number,
+    targetLines: TradeLine[],
+  ) => void;
   onClose: () => void;
 }
 
@@ -32,18 +53,45 @@ export function CounterOfferModal({
   visible,
   match,
   currentOfferedPackage,
+  targetPackage,
   candidates,
+  allPackages,
+  availableUnits,
   onConfirm,
   onClose,
 }: CounterOfferModalProps) {
   const [selectedPackageId, setSelectedPackageId] = useState<string>(
     candidates[0]?.id ?? "",
   );
+  // The counter may move the total in either direction (rule 7): one stepper
+  // sets the units of the replacement line, and the delta copy tells the
+  // receiver what changed before they re-check.
+  const [counterUnits, setCounterUnits] = useState(match?.totalPap ?? 1);
 
   if (!match) return null;
 
+  const packagesById = new Map(allPackages.map((p) => [p.id, p]));
   const selectedPkg = candidates.find((p) => p.id === selectedPackageId);
-  const canSubmit = !!selectedPackageId && (selectedPkg?.stockUnits ?? 0) > 0;
+  // The match's own reservation does not count against its own counter: the
+  // units it holds stay editable.
+  const availabilityOf = (packageId: string) =>
+    availableUnits(packageId, match.id);
+  // The counter sends both carts (PR #163 review): the offered candidate must
+  // cover `counterUnits`, and every SCALED target line must fit its own
+  // package's stock — never one package covering the whole total.
+  const scaledTarget = scaleTargetLines(
+    match.targetLines,
+    match.totalPap,
+    counterUnits,
+  );
+  const scaledTargetFits = scaledTarget.every(
+    (line) => availabilityOf(line.packageId) >= line.units,
+  );
+  const canSubmit =
+    !!selectedPackageId &&
+    counterUnits >= 1 &&
+    availabilityOf(selectedPackageId) >= counterUnits &&
+    scaledTargetFits;
 
   return (
     <Modal
@@ -59,8 +107,9 @@ export function CounterOfferModal({
               Contraofertar
             </ThemedText>
             <ThemedText variant="callout" style={styles.subtitle}>
-              Pedí un producto distinto del catálogo del solicitante. Solo hay
-              una ronda de contraoferta: la otra parte puede aceptar o rechazar.
+              Pedí un producto distinto del catálogo del solicitante, o cambiá
+              la cantidad. La contraoferta vuelve a la otra parte para
+              re-chequeo.
             </ThemedText>
           </View>
 
@@ -70,9 +119,40 @@ export function CounterOfferModal({
               OFERTA ORIGINAL (SE REEMPLAZA):
             </ThemedText>
             <ThemedText variant="headline" style={styles.currentTitle}>
-              {currentOfferedPackage?.title ?? match.offeredPackageId}
+              {currentOfferedPackage?.title ?? primaryOfferedPackageId(match)}
+            </ThemedText>
+            {/* Rule 8: the re-check reads the delta before deciding. */}
+            <ThemedText variant="caption1" style={styles.deltaText}>
+              {counterDeltaCopy(match.totalPap, counterUnits)}
             </ThemedText>
           </Card>
+
+          {/* Units stepper: the counter proposes its own total, 1..stock of
+              both sides (rule 7). */}
+          <View style={styles.unitsRow}>
+            <ThemedText variant="body">Unidades (PAP por lado):</ThemedText>
+            <View style={styles.unitsStepper}>
+              <AppButton
+                title="−"
+                variant="secondary"
+                disabled={counterUnits <= 1}
+                onPress={() => setCounterUnits((u) => Math.max(u - 1, 1))}
+                style={styles.unitsBtn}
+                accessibilityLabel="Quitar una unidad de la contraoferta"
+              />
+              <ThemedText variant="body" style={styles.unitsValue}>
+                {counterUnits}
+              </ThemedText>
+              <AppButton
+                title="+"
+                variant="secondary"
+                disabled={counterUnits >= (selectedPkg?.stockUnits ?? 0)}
+                onPress={() => setCounterUnits((u) => u + 1)}
+                style={styles.unitsBtn}
+                accessibilityLabel="Agregar una unidad a la contraoferta"
+              />
+            </View>
+          </View>
 
           <ThemedText variant="headline" style={styles.sectionTitle}>
             Elegí la alternativa (1 PAP):
@@ -132,11 +212,12 @@ export function CounterOfferModal({
             )}
           </ScrollView>
 
-          {/* Single-round notice */}
+          {/* Balance notice */}
           <View style={styles.noticeBanner}>
             <ThemedText variant="caption1" style={styles.noticeText}>
-              ⚖️ El trueque se mantiene justo 1:1 en PAP. Si el solicitante
-              acepta, el stock se descuenta de ambos paquetes.
+              ⚖️ Los dos lados siempre suman lo mismo. La contraoferta vuelve a
+              la otra parte para re-chequeo; el stock se reserva mientras la
+              propuesta está abierta.
             </ThemedText>
           </View>
 
@@ -151,7 +232,20 @@ export function CounterOfferModal({
               title="Enviar Contraoferta"
               variant="primary"
               disabled={!canSubmit}
-              onPress={() => onConfirm(selectedPackageId)}
+              onPress={() =>
+                onConfirm(
+                  selectedPackageId,
+                  counterUnits,
+                  // Scale every target line so the receiver's cart sums the
+                  // counter's total: proportional to its share of the old
+                  // total, with the remainder absorbed by the first line.
+                  scaleTargetLines(
+                    match.targetLines,
+                    match.totalPap,
+                    counterUnits,
+                  ),
+                )
+              }
               style={styles.submitBtn}
             />
           </View>
@@ -159,6 +253,36 @@ export function CounterOfferModal({
       </View>
     </Modal>
   );
+}
+
+/**
+ * Scales a target cart from its old total to the counter's total,
+ * proportionally per line, absorbing the rounding remainder in the first
+ * line — so the receiver's cart always sums the counter's total (PR #163
+ * review: a 2↔2 counter against a 1↔1 trade must carry the scaled target
+ * cart, or the store rejects the symmetry).
+ */
+function scaleTargetLines(
+  lines: TradeLine[],
+  previousTotal: number,
+  nextTotal: number,
+): TradeLine[] {
+  if (previousTotal <= 0 || lines.length === 0) return lines;
+  if (nextTotal === previousTotal) return lines;
+  let assigned = 0;
+  return lines.map((line, index) => {
+    if (index === lines.length - 1) {
+      const units = Math.max(nextTotal - assigned, 1);
+      assigned += units;
+      return { ...line, units };
+    }
+    const units = Math.max(
+      Math.floor((line.units * nextTotal) / previousTotal),
+      1,
+    );
+    assigned += units;
+    return { ...line, units };
+  });
 }
 
 const styles = StyleSheet.create({
@@ -176,6 +300,29 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: spacing.md,
+  },
+  deltaText: {
+    marginTop: spacing.xs,
+    color: colors.secondaryLabel,
+  },
+  unitsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.md,
+  },
+  unitsStepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  unitsBtn: {
+    minWidth: spacing.xl,
+  },
+  unitsValue: {
+    minWidth: spacing.lg,
+    textAlign: "center",
+    fontWeight: fontWeights.semibold,
   },
   title: {
     color: colors.label,

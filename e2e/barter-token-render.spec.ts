@@ -71,6 +71,14 @@ test("token-replaced styles render their pre-change values", async ({
     .click();
   await expect(page.getByRole("radio").first()).toBeVisible();
 
+  // The cart starts empty (issue #162): choosing a package adds it to the
+  // offered cart and marks the radio. The styles below read the selected one.
+  await page.getByRole("radio").first().click();
+  await expect(page.getByRole("radio").first()).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+
   // Modal typography, each read from the element that owns the style.
   expect(
     await page

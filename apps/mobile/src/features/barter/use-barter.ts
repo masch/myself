@@ -7,6 +7,8 @@ import { deriveGondolaPackages, type GondolaPackage } from "./barter-selectors";
  * and automatic reactivity across window tabs via BroadcastChannel.
  */
 export function useBarter(): BarterState & {
+  /** Stock minus what the open proposals reserve (PR #163 review). */
+  availableUnits: (packageId: string, excludeMatchId?: string) => number;
   activeProducer: BarterState["producers"][number] | undefined;
   otherProducers: BarterState["producers"];
   activeProducerPackages: BarterState["packages"];
@@ -74,6 +76,7 @@ export function useBarter(): BarterState & {
     activeProducer,
     otherProducers,
     activeProducerPackages,
+    availableUnits: globalBarterStore.availableUnits,
     gondolaPackages,
     incomingMatches,
     outgoingMatches,

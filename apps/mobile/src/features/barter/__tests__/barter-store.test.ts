@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach } from "bun:test";
+import type { TradeMatch } from "@myself/shared";
 import {
   buildProducerLink,
   createBarterStore,
@@ -8,6 +9,8 @@ import {
   resolveProducerId,
   SEED_PRODUCERS,
   SEED_PACKAGES,
+  primaryOfferedPackageId,
+  primaryTargetPackageId,
 } from "../barter-store";
 import { FIXTURE_PACKAGES } from "./fixture-packages";
 import { calculateDistanceKm } from "../geo-utils";
@@ -76,8 +79,8 @@ describe("Barter Store & Concurrency Engine", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-fixture-vermut-pack4",
-      targetPackageId: "pkg-fixture-queso-gouda",
+      offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+      targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
       papConfigArs: 50000,
       ttlHours: 48,
     });
@@ -96,8 +99,8 @@ describe("Barter Store & Concurrency Engine", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-fixture-vermut-pack4",
-      targetPackageId: "pkg-fixture-queso-gouda",
+      offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+      targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
     });
 
     const vermutStockBefore = store
@@ -121,55 +124,124 @@ describe("Barter Store & Concurrency Engine", () => {
     expect(quesoStockAfter).toBe(quesoStockBefore - 1);
   });
 
-  it("cascades cancellation (CANCELLED_INSUFFICIENT_STOCK) to other pending matches when stock runs out", () => {
+  it("rejects a proposal that would oversell a package already reserved by an open proposal", () => {
     // Set stock of queso to exactly 1
     store.updatePackageStock("pkg-fixture-queso-gouda", 1);
 
-    // Producer A proposes match 1 for Queso Gouda
+    // Producer A reserves the only unit of Queso Gouda.
+    store.createTradeProposal({
+      requesterId: PRODUCER_IDS.VERMUT,
+      targetProducerId: PRODUCER_IDS.QUESO,
+      offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+      targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
+    });
+
+    // A second competing proposal cannot reserve the same unit: the sum of
+    // open reservations against a package must not exceed its stock.
+    expect(() =>
+      store.createTradeProposal({
+        requesterId: PRODUCER_IDS.VERMUT,
+        targetProducerId: PRODUCER_IDS.QUESO,
+        offeredLines: [{ packageId: "pkg-fixture-vermut-miel", units: 1 }],
+        targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
+      }),
+    ).toThrow(/available 0/);
+  });
+
+  it("cascades cancellation (CANCELLED_INSUFFICIENT_STOCK) to a live match the accepted trade starves", () => {
+    // Two units of stock: both proposals fit side by side, each reserving one.
+    store.updatePackageStock("pkg-fixture-queso-gouda", 2);
+
     const match1 = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-fixture-vermut-pack4",
-      targetPackageId: "pkg-fixture-queso-gouda",
+      offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+      targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
     });
 
-    // A second competing proposal for the same Queso Gouda package, from the
-    // other producer that ships a package in this seed.
     const match2 = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-fixture-vermut-miel",
-      targetPackageId: "pkg-fixture-queso-gouda",
+      offeredLines: [{ packageId: "pkg-fixture-vermut-miel", units: 1 }],
+      targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
     });
 
-    // Accept match 1 -> consumes the only 1 unit of stock
+    // The operator edits the stock down to 1: two live reservations now
+    // compete for one unit. The physical stock is the truth at accept — the
+    // accepted trade consumes the unit and the cascade cancels the starved
+    // competitor.
+    store.updatePackageStock("pkg-fixture-queso-gouda", 1);
     store.acceptTradeMatch(match1.id);
 
     const matches = store.getState().matches;
-    const resolvedMatch1 = matches.find((m) => m.id === match1.id)!;
-    const resolvedMatch2 = matches.find((m) => m.id === match2.id)!;
+    expect(matches.find((m) => m.id === match1.id)!.status).toBe(
+      "WAITING_DELIVERY",
+    );
+    expect(matches.find((m) => m.id === match2.id)!.status).toBe(
+      "CANCELLED_INSUFFICIENT_STOCK",
+    );
+  });
 
-    expect(resolvedMatch1.status).toBe("WAITING_DELIVERY");
-    expect(resolvedMatch2.status).toBe("CANCELLED_INSUFFICIENT_STOCK");
+  it("cancels overlapping live matches when an accept consumes below their demand", () => {
+    // Overlapping live matches can only exist through an external write (a
+    // peer sync or a reload across builds): creation itself refuses the
+    // overlap. The cascade is the safety net that keeps the catalog honest.
+    const overlap = (id: string): TradeMatch => ({
+      id,
+      requesterId: PRODUCER_IDS.VERMUT,
+      targetProducerId: PRODUCER_IDS.QUESO,
+      offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+      targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
+      papSnapshotArs: 50000,
+      totalPap: 1,
+      round: 0,
+      status: "PENDING",
+      deliveryConfirmation: {
+        confirmedByRequester: false,
+        confirmedByTarget: false,
+      },
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const overlapStore = createBarterStore({
+      initialProducers: SEED_PRODUCERS,
+      initialPackages: FIXTURE_PACKAGES,
+      initialMatches: [overlap("match-a"), overlap("match-b")],
+      broadcastEnabled: false,
+    });
+
+    // One unit of the shared target package: consuming it starves match-b.
+    overlapStore.updatePackageStock("pkg-fixture-queso-gouda", 1);
+    overlapStore.acceptTradeMatch("match-a");
+
+    const matches = overlapStore.getState().matches;
+    expect(matches.find((m) => m.id === "match-a")!.status).toBe(
+      "WAITING_DELIVERY",
+    );
+    expect(matches.find((m) => m.id === "match-b")!.status).toBe(
+      "CANCELLED_INSUFFICIENT_STOCK",
+    );
   });
 
   it("handles single-round counter-offer and transfers turn to requester", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-fixture-vermut-pack4",
-      targetPackageId: "pkg-fixture-queso-gouda",
+      offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+      targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
     });
 
     // Target producer counters proposing miel instead of vermut
     const countered = store.counterOfferTradeMatch({
       matchId: match.id,
-      targetProducerId: PRODUCER_IDS.QUESO,
-      counterOfferedPackageId: "pkg-fixture-vermut-miel",
+      producerId: PRODUCER_IDS.QUESO,
+      offeredLines: [{ packageId: "pkg-fixture-vermut-miel", units: 1 }],
     });
 
     expect(countered.status).toBe("COUNTER_OFFERED");
-    expect(countered.offeredPackageId).toBe("pkg-fixture-vermut-miel");
+    expect(primaryOfferedPackageId(countered)).toBe("pkg-fixture-vermut-miel");
     expect(countered.counterOfferHistory?.previousOfferedPackageId).toBe(
       "pkg-fixture-vermut-pack4",
     );
@@ -192,8 +264,8 @@ describe("Barter Store & Concurrency Engine", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-fixture-vermut-pack4",
-      targetPackageId: "pkg-fixture-queso-gouda",
+      offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+      targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
     });
     store.acceptTradeMatch(match.id);
 
@@ -220,8 +292,8 @@ describe("Barter Store & Concurrency Engine", () => {
     const match = store.createTradeProposal({
       requesterId: PRODUCER_IDS.VERMUT,
       targetProducerId: PRODUCER_IDS.QUESO,
-      offeredPackageId: "pkg-fixture-vermut-pack4",
-      targetPackageId: "pkg-fixture-queso-gouda",
+      offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+      targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
     });
 
     store.acceptTradeMatch(match.id);
@@ -324,8 +396,8 @@ describe("Renamed producer ids (migration)", () => {
       ...store.createTradeProposal({
         requesterId: PRODUCER_IDS.VERMUT,
         targetProducerId: PRODUCER_IDS.QUESO,
-        offeredPackageId: FIXTURE_PACKAGES[0].id,
-        targetPackageId: FIXTURE_PACKAGES[2].id,
+        offeredLines: [{ packageId: FIXTURE_PACKAGES[0].id, units: 1 }],
+        targetLines: [{ packageId: FIXTURE_PACKAGES[2].id, units: 1 }],
       }),
       requesterId: "prod-vermut",
       targetProducerId: "prod-queso",

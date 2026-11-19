@@ -1,14 +1,16 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { Card, ThemedText, AppButton, Badge } from "@/components";
 import { colors, fontWeights, spacing, radius } from "@/theme";
 import type {
   Producer,
   ProductPackage,
+  TradeLine,
   TradeMatch,
   TradeMatchStatus,
 } from "@myself/shared";
 import { getMatchActionAvailability, type TradeRole } from "../inbox-utils";
+import { MAX_COUNTER_ROUNDS } from "@myself/shared";
 
 const STATUS_DISPLAY: Record<
   TradeMatchStatus,
@@ -35,8 +37,8 @@ interface TradeMatchCardProps {
   match: TradeMatch;
   role: TradeRole;
   otherProducer: Producer | undefined;
-  offeredPackage: ProductPackage | undefined;
-  targetPackage: ProductPackage | undefined;
+  /** Every package the two carts may name, for title lookup. */
+  packages: ProductPackage[];
   onAccept: (matchId: string) => void;
   onReject: (matchId: string) => void;
   onCounterOffer: (match: TradeMatch) => void;
@@ -47,14 +49,33 @@ export function TradeMatchCard({
   match,
   role,
   otherProducer,
-  offeredPackage,
-  targetPackage,
+  packages,
   onAccept,
   onReject,
   onCounterOffer,
   onOpenTrade,
 }: TradeMatchCardProps) {
-  const actions = getMatchActionAvailability(match.status, role);
+  // Rule 9 at the limit leaves only accept/reject; rule 8's ping-pong means
+  // the round decides whose turn it is.
+  // One title lookup per card render, not one scan per cart line: the catalog
+  // carries ~1500 packages and longer carts would multiply the scans.
+  const titlesById = useMemo(
+    () => new Map(packages.map((p) => [p.id, p.title])),
+    [packages],
+  );
+  const describe = (lines: TradeLine[]) =>
+    lines
+      .map(
+        (line) =>
+          `${titlesById.get(line.packageId) ?? line.packageId} ×${line.units}`,
+      )
+      .join(" · ");
+  const actions = getMatchActionAvailability(
+    match.status,
+    role,
+    match.round < MAX_COUNTER_ROUNDS,
+    match.round,
+  );
   const statusDisplay = STATUS_DISPLAY[match.status];
   const hasActions =
     actions.canAccept || actions.canReject || actions.canCounterOffer;
@@ -92,7 +113,7 @@ export function TradeMatchCard({
             {role === "target" ? "TE OFRECEN" : "OFRECÉS"}
           </ThemedText>
           <ThemedText variant="callout" style={styles.exchangeTitle}>
-            {offeredPackage?.title ?? "Paquete no disponible"}
+            {describe(match.offeredLines)}
           </ThemedText>
         </View>
         <ThemedText variant="title2" style={styles.exchangeArrow}>
@@ -103,7 +124,7 @@ export function TradeMatchCard({
             {role === "target" ? "PIDEN DE VOS" : "PEDÍS"}
           </ThemedText>
           <ThemedText variant="callout" style={styles.exchangeTitle}>
-            {targetPackage?.title ?? "Paquete no disponible"}
+            {describe(match.targetLines)}
           </ThemedText>
         </View>
       </View>
@@ -121,15 +142,10 @@ export function TradeMatchCard({
         ) : null}
       </View>
 
-      {/* Counter-offer history note */}
-      {match.counterOfferHistory ? (
+      {/* Negotiation history: the totals chain (issue #162 rules 7-8). */}
+      {match.round > 0 ? (
         <ThemedText variant="caption1" style={styles.counterNote}>
-          🔄 Contraoferta: antes se ofrecía &quot;
-          {offeredPackage?.id ===
-          match.counterOfferHistory.previousOfferedPackageId
-            ? offeredPackage.title
-            : match.counterOfferHistory.previousOfferedPackageId}
-          &quot;.
+          🔄 Ronda {match.round} de {match.totalPap} ↔ {match.totalPap} PAP.
         </ThemedText>
       ) : null}
 

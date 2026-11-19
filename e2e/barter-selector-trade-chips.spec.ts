@@ -17,8 +17,9 @@ test("the selector shows each producer's trade chips", async ({ page }) => {
   test.setTimeout(120000);
 
   const baseMatch = {
-    offeredPackageId: "cat-890",
-    targetPackageId: "cat-5",
+    offeredLines: [{ packageId: "cat-890", units: 1 }],
+    targetLines: [{ packageId: "cat-5", units: 1 }],
+    round: 0,
     papSnapshotArs: 50000,
     totalPap: 1,
     deliveryConfirmation: {

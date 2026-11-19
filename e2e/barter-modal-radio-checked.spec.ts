@@ -1,16 +1,16 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * The checked radio must follow the selection, not only exist.
+ * The offered side of the proposal modal is a cart (issue #162): each package
+ * is an independently toggleable option, and choosing one does not uncheck the
+ * others. Every checked radio is a cart line; unchecking removes the line.
  *
- * The reset spec asserts the count of checked radios after each open; this one
- * pins which offer is checked and that picking another one moves the checked
- * state, plus the raw `aria-checked` pair on the two offers.
- *
- * Found by the independent verification of the token/a11y sweep as its
- * accessibility probe.
+ * The list is narrowed with the modal's own search so every radio fits in the
+ * scroll viewport: the assertions read real toggles, not scroll acrobatics.
  */
-test("the checked proposal radio follows the selection", async ({ page }) => {
+test("the proposal radios toggle cart lines independently", async ({
+  page,
+}) => {
   test.setTimeout(120000);
   await page.goto("/barter?producerId=naturaleza-viva");
   await expect(page.getByTestId("active-producer-name")).toHaveText(
@@ -28,40 +28,48 @@ test("the checked proposal radio follows the selection", async ({ page }) => {
       exact: true,
     })
     .click();
-  // A printed producer ships up to 77 packages, so the count is not the point:
-  // what matters is that the list offers more than one and exactly one is
-  // checked. The modal's own search is how an operator reaches one of the 77.
-  await expect(page.getByRole("radio").first()).toBeVisible();
-  expect(await page.getByRole("radio").count()).toBeGreaterThan(1);
+  // The modal carries two radio sections (issue #162); this test drives the
+  // offer side. Narrow the own inventory to a handful of rows so every radio
+  // is in the sheet's scroll viewport.
+  await page.getByTestId("own-package-search").fill("aceite");
+  const radios = page.getByTestId("own-package-list").getByRole("radio");
+  await expect(radios).toHaveCount(3);
 
-  const checked = page.getByRole("radio", { checked: true });
-  const first = page.getByRole("radio").nth(0);
-  const second = page.getByRole("radio").nth(1);
+  const checked = page
+    .getByTestId("own-package-list")
+    .getByRole("radio", { checked: true });
+  const first = radios.nth(0);
+  const second = radios.nth(1);
 
-  await expect(checked).toHaveCount(1);
-  expect(await checked.getAttribute("aria-label")).toBe(
-    await first.getAttribute("aria-label"),
-  );
+  // The OFFER cart starts empty: nothing is checked in its section. (The ask
+  // side starts with the tapped card, by design.)
+  await expect(checked).toHaveCount(0);
 
+  // Choosing a package adds it to the cart: the radio checks.
   await second.click();
   await expect(checked).toHaveCount(1);
   expect(await checked.getAttribute("aria-label")).toBe(
     await second.getAttribute("aria-label"),
   );
 
+  // The cart is multi-select: a second package checks without unchecking the
+  // first — two lines, two PAP offered.
+  await first.click();
+  await expect(checked).toHaveCount(2);
+
+  // Unchecking removes the line: back to one line, still the second package.
   await first.click();
   await expect(checked).toHaveCount(1);
   expect(await checked.getAttribute("aria-label")).toBe(
-    await first.getAttribute("aria-label"),
+    await second.getAttribute("aria-label"),
   );
 
   const raw = await page.evaluate(() =>
-    Array.from(document.querySelectorAll('[role="radio"]')).map((el) => ({
-      ariaChecked: el.getAttribute("aria-checked"),
-    })),
+    Array.from(
+      document
+        .querySelector('[data-testid="own-package-list"]')
+        ?.querySelectorAll('[role="radio"]') ?? [],
+    ).map((el) => el.getAttribute("aria-checked")),
   );
-  expect(raw.filter((r) => r.ariaChecked === "true")).toHaveLength(1);
-  expect(raw.filter((r) => r.ariaChecked === "false")).toHaveLength(
-    raw.length - 1,
-  );
+  expect(raw.filter((c) => c === "true")).toHaveLength(1);
 });

@@ -9,6 +9,9 @@ const ALLOWED_TRANSITIONS: Record<TradeMatchStatus, TradeMatchStatus[]> = {
     "CANCELLED_INSUFFICIENT_STOCK",
   ],
   COUNTER_OFFERED: [
+    // Rule 8 of issue #162: a counter-offer returns to the other producer, who
+    // may counter again — the negotiation ping-pongs on the same match.
+    "COUNTER_OFFERED",
     "ACCEPTED",
     "REJECTED",
     "EXPIRED",

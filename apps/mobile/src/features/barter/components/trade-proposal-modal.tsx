@@ -22,18 +22,40 @@ import {
   spacing,
   radius,
 } from "@/theme";
-import type { ProductPackage } from "@myself/shared";
+import type { ProductPackage, TradeLine } from "@myself/shared";
 import { productionTypeLabel } from "../production-type-labels";
 import { filterPackagesByTitle } from "../barter-selectors";
 import { catalogQuantity, formatCatalogQuantity } from "../catalog-packages";
 import { packagingLabel } from "../product-card-copy";
+import {
+  addCartLine,
+  cartBalanceError,
+  cartTotal,
+  removeCartLine,
+  setCartLineUnits,
+  type CartDraft,
+} from "../cart-draft";
 
 interface TradeProposalModalProps {
   visible: boolean;
   targetPackage: ProductPackage | null;
   targetProducerName?: string;
   availableOwnPackages: ProductPackage[];
-  onConfirmProposal: (offeredPackageId: string) => void;
+  /** The target producer's in-stock inventory: the ask side is a cart too. */
+  availableTargetPackages: ProductPackage[];
+  /**
+   * Stock minus what the open proposals already reserve (PR #163 review): the
+   * steppers never offer a unit the store would refuse at submission.
+   */
+  availableUnits: (packageId: string) => number;
+  /**
+   * The cart the modal sends: both sides are edited here, so the parent
+   * receives full line lists instead of one offered package id.
+   */
+  onConfirmProposal: (
+    offeredLines: TradeLine[],
+    targetLines: TradeLine[],
+  ) => void;
   onClose: () => void;
 }
 
@@ -130,25 +152,29 @@ export function TradeProposalModal({
   targetPackage,
   targetProducerName,
   availableOwnPackages,
+  availableTargetPackages,
+  availableUnits,
   onConfirmProposal,
   onClose,
 }: TradeProposalModalProps) {
-  const [selectedPackageId, setSelectedPackageId] = useState<string>(
-    availableOwnPackages[0]?.id ?? "",
-  );
+  // The two-sided cart (issue #162): the offered side starts empty and the
+  // target side starts with the tapped card at 1 unit. Both are edited here.
+  const [offeredDraft, setOfferedDraft] = useState<CartDraft>({ lines: [] });
+  // The ask side is a cart as well (issue #162): it starts with the tapped
+  // card at 1 unit and the operator may add more of that producer's products.
+  const [targetDraft, setTargetDraft] = useState<CartDraft>({
+    lines: targetPackage ? [{ packageId: targetPackage.id, units: 1 }] : [],
+  });
   const [ownQuery, setOwnQuery] = useState("");
+  const [targetQuery, setTargetQuery] = useState("");
 
   if (!targetPackage) return null;
 
-  const selectedPkg = availableOwnPackages.find(
-    (p) => p.id === selectedPackageId,
-  );
-  const canSubmit = !!selectedPackageId && (selectedPkg?.stockUnits ?? 0) > 0;
+  const balanceError = cartBalanceError(offeredDraft, targetDraft);
+  const canSubmit = balanceError === null;
 
   // A printed producer carries up to 77 packages, so the offer list is searched
-  // instead of scrolled. Narrowing it moves the selection to the first offer
-  // still visible: keeping a hidden selection would let "Enviar Match" submit a
-  // package the operator can no longer see.
+  // instead of scrolled.
   const visibleOffers = filterPackagesByTitle(availableOwnPackages, ownQuery);
 
   return (
@@ -169,88 +195,189 @@ export function TradeProposalModal({
             </ThemedText>
           </View>
 
-          {/* Requested item card */}
-          <Card variant="subdued" style={styles.targetCard}>
-            <ThemedText variant="caption1" style={styles.cardHeader}>
-              PRODUCTO QUE QUERÉS:
-            </ThemedText>
-            <ThemedText variant="headline" style={styles.targetTitle}>
-              {targetPackage.title}
-            </ThemedText>
-            <View style={styles.targetMeta}>
-              <Badge
-                label={`${targetPackage.papValue} PAP ($${targetPackage.priceArs.toLocaleString("es-AR")})`}
-                variant="primary"
-                size="sm"
-              />
-              <Badge
-                label={productionTypeLabel(targetPackage.productionType)}
-                variant="outline"
-                size="sm"
-              />
-            </View>
-            {/* What the target really means: how much of it 1 PAP buys, and what
-                the rounding costs, in the same words the gondola cards use. */}
-            {targetPackage.catalog ? (
-              <View style={styles.targetCatalogBlock}>
-                <CatalogDisclosure pkg={targetPackage} variant="caption1" />
-              </View>
-            ) : null}
-          </Card>
-
-          {/* Own packages selection */}
-          <ThemedText variant="headline" style={styles.sectionTitle}>
-            Elegí qué entregás a cambio (1 PAP):
-          </ThemedText>
-
-          {availableOwnPackages.length > 0 ? (
-            <ThemedTextInput
-              value={ownQuery}
-              onChangeText={(value) => {
-                setOwnQuery(value);
-                setSelectedPackageId((current) =>
-                  resolveSelectedOffer(
-                    filterPackagesByTitle(availableOwnPackages, value),
-                    current,
-                  ),
-                );
-              }}
-              placeholder="Buscar en tu inventario"
-              accessibilityLabel="Buscar en tu inventario"
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="search"
-              testID="own-package-search"
-            />
-          ) : null}
-
-          <ScrollView style={styles.packageList}>
-            {availableOwnPackages.length === 0 ? (
-              <ThemedText variant="body" style={styles.emptyText}>
-                No tenés productos cargados en tu inventario para ofrecer.
+          {/* One scroll body (issue #162): the carts, the inventory search and
+              the list share the sheet's only scroll container, so nothing can
+              escape its bounds and overlay its neighbours. */}
+          <ScrollView
+            style={styles.sheetBody}
+            contentContainerStyle={styles.sheetBodyContent}
+          >
+            {/* Requested item card */}
+            <Card variant="subdued" style={styles.targetCard}>
+              <ThemedText variant="caption1" style={styles.cardHeader}>
+                PRODUCTO QUE QUERÉS:
               </ThemedText>
-            ) : visibleOffers.length === 0 ? (
-              <ThemedText variant="body" style={styles.emptyText}>
-                Ningún producto tuyo coincide con “{ownQuery.trim()}”. Probá con
-                otra palabra o limpiá la búsqueda.
+              <ThemedText variant="headline" style={styles.targetTitle}>
+                {targetPackage.title}
               </ThemedText>
-            ) : (
-              visibleOffers.map((ownPkg) => (
-                <PackageOfferOption
-                  key={ownPkg.id}
-                  ownPackage={ownPkg}
-                  isSelected={ownPkg.id === selectedPackageId}
-                  onSelect={setSelectedPackageId}
+              <View style={styles.targetMeta}>
+                <Badge
+                  label={`${targetPackage.papValue} PAP ($${targetPackage.priceArs.toLocaleString("es-AR")})`}
+                  variant="primary"
+                  size="sm"
                 />
-              ))
-            )}
+                <Badge
+                  label={productionTypeLabel(targetPackage.productionType)}
+                  variant="outline"
+                  size="sm"
+                />
+              </View>
+              {/* What the target really means: how much of it 1 PAP buys, and what
+                the rounding costs, in the same words the gondola cards use. */}
+              {targetPackage.catalog ? (
+                <View style={styles.targetCatalogBlock}>
+                  <CatalogDisclosure pkg={targetPackage} variant="caption1" />
+                </View>
+              ) : null}
+            </Card>
+
+            <CartLines
+              label="OFRECÉS"
+              draft={offeredDraft}
+              packages={availableOwnPackages}
+              stockOf={availableUnits}
+              onSetUnits={(packageId, units, stock) =>
+                setOfferedDraft((current) =>
+                  setCartLineUnits(current, packageId, units, stock),
+                )
+              }
+              onRemove={(packageId) =>
+                setOfferedDraft((current) => removeCartLine(current, packageId))
+              }
+            />
+
+            <CartLines
+              label="PEDÍS"
+              draft={targetDraft}
+              packages={[targetPackage!, ...availableTargetPackages]}
+              stockOf={availableUnits}
+              onSetUnits={(packageId, units, stock) =>
+                setTargetDraft((current) =>
+                  setCartLineUnits(current, packageId, units, stock),
+                )
+              }
+              onRemove={(packageId) =>
+                setTargetDraft((current) => removeCartLine(current, packageId))
+              }
+            />
+
+            {/* The target producer's inventory: the ask side is a cart too —
+                the tapped card is the first line, more products of the same
+                producer may join it. */}
+            <ThemedText variant="headline" style={styles.sectionTitle}>
+              Pedís a {targetProducerName} (1 PAP por paquete):
+            </ThemedText>
+
+            {availableTargetPackages.length > 1 ? (
+              <ThemedTextInput
+                value={targetQuery}
+                onChangeText={(value) => setTargetQuery(value)}
+                placeholder={`Buscar en el inventario de ${targetProducerName ?? "tu contraparte"}`}
+                accessibilityLabel="Buscar en el inventario del productor"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                testID="target-package-search"
+              />
+            ) : null}
+
+            <View style={styles.packageList} testID="target-package-list">
+              {filterPackagesByTitle(availableTargetPackages, targetQuery).map(
+                (targetPkg) => {
+                  const line = targetDraft.lines.find(
+                    (l) => l.packageId === targetPkg.id,
+                  );
+                  return (
+                    <PackageOfferOption
+                      key={targetPkg.id}
+                      ownPackage={targetPkg}
+                      isSelected={!!line}
+                      onSelect={(packageId) => {
+                        setTargetDraft((current) =>
+                          line
+                            ? removeCartLine(current, packageId)
+                            : addCartLine(current, targetPkg),
+                        );
+                      }}
+                    />
+                  );
+                },
+              )}
+            </View>
+
+            {/* Own packages selection */}
+            <ThemedText variant="headline" style={styles.sectionTitle}>
+              Elegí qué entregás a cambio (1 PAP por paquete):
+            </ThemedText>
+
+            {availableOwnPackages.length > 0 ? (
+              <ThemedTextInput
+                value={ownQuery}
+                onChangeText={(value) => setOwnQuery(value)}
+                placeholder="Buscar en tu inventario"
+                accessibilityLabel="Buscar en tu inventario"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                testID="own-package-search"
+              />
+            ) : null}
+
+            <View style={styles.packageList} testID="own-package-list">
+              {availableOwnPackages.length === 0 ? (
+                <ThemedText variant="body" style={styles.emptyText}>
+                  No tenés productos cargados en tu inventario para ofrecer.
+                </ThemedText>
+              ) : visibleOffers.length === 0 ? (
+                <ThemedText variant="body" style={styles.emptyText}>
+                  Ningún producto tuyo coincide con “{ownQuery.trim()}”. Probá
+                  con otra palabra o limpiá la búsqueda.
+                </ThemedText>
+              ) : (
+                visibleOffers.map((ownPkg) => {
+                  const line = offeredDraft.lines.find(
+                    (l) => l.packageId === ownPkg.id,
+                  );
+                  return (
+                    <PackageOfferOption
+                      key={ownPkg.id}
+                      ownPackage={ownPkg}
+                      isSelected={!!line}
+                      onSelect={(packageId) => {
+                        setOfferedDraft((current) =>
+                          line
+                            ? removeCartLine(current, packageId)
+                            : addCartLine(current, ownPkg),
+                        );
+                      }}
+                    />
+                  );
+                })
+              )}
+            </View>
           </ScrollView>
 
-          {/* Balance confirmation banner */}
-          <View style={styles.balanceBanner}>
-            <ThemedText variant="caption1" style={styles.balanceText}>
-              ⚖️ Trueque Justo 1:1: Ofrecés 1 PAP por 1 PAP solicitado. El stock
-              no se bloquea hasta que la contraparte acepte.
+          {/* Balance banner, pinned above the buttons (issue #162): the live
+              totals and, when they diverge, why — always on screen while the
+              carts change, so the user reads the gap without scrolling. The
+              reason is the same one the store enforces, so the button's
+              disable state and its explanation can never disagree. */}
+          <View
+            style={[
+              styles.balanceBanner,
+              balanceError ? styles.balanceBannerError : null,
+            ]}
+          >
+            <ThemedText
+              variant="caption1"
+              style={[
+                styles.balanceText,
+                balanceError ? styles.balanceTextError : null,
+              ]}
+            >
+              {balanceError
+                ? `⚖️ Ofrecés ${cartTotal(offeredDraft)} PAP ↔ Pedís ${cartTotal(targetDraft)} PAP — ${balanceError}`
+                : `⚖️ Trueque justo: ${cartTotal(offeredDraft)} PAP ↔ ${cartTotal(targetDraft)} PAP. El stock se reserva mientras la propuesta está abierta.`}
             </ThemedText>
           </View>
 
@@ -266,13 +393,102 @@ export function TradeProposalModal({
               title="Enviar Match"
               variant="primary"
               disabled={!canSubmit}
-              onPress={() => onConfirmProposal(selectedPackageId)}
+              accessibilityLabel={
+                canSubmit
+                  ? "Enviar Match"
+                  : `Enviar Match no disponible: ${balanceError}`
+              }
+              onPress={() =>
+                onConfirmProposal(offeredDraft.lines, targetDraft.lines)
+              }
               style={styles.submitBtn}
             />
           </View>
         </View>
       </View>
     </Modal>
+  );
+}
+
+function CartLines({
+  label,
+  draft,
+  packages,
+  stockOf,
+  onSetUnits,
+  onRemove,
+}: {
+  label: string;
+  draft: CartDraft;
+  packages: ProductPackage[];
+  /** Reservation-adjusted availability for one package (PR #163 review). */
+  stockOf: (packageId: string) => number;
+  onSetUnits: (packageId: string, units: number, stock: number) => void;
+  onRemove: (packageId: string) => void;
+}) {
+  if (draft.lines.length === 0) return null;
+  return (
+    <View style={styles.cartBlock}>
+      <View style={styles.cartHeaderRow}>
+        <ThemedText variant="callout" style={styles.cartHeader}>
+          {label}:
+        </ThemedText>
+        <Badge label={`${cartTotal(draft)} PAP`} variant="primary" size="md" />
+      </View>
+      {draft.lines.map((line) => {
+        const pkg = packages.find((p) => p.id === line.packageId);
+        const stock = Math.max(stockOf(line.packageId), 1);
+        const atStockCap = line.units >= stock;
+        return (
+          <View key={line.packageId} style={styles.cartLine}>
+            <View style={styles.cartLineText}>
+              <ThemedText
+                variant="body"
+                style={styles.cartLineTitle}
+                numberOfLines={1}
+              >
+                {pkg?.title ?? line.packageId}
+              </ThemedText>
+              {atStockCap ? (
+                <ThemedText variant="caption2" style={styles.cartLineCap}>
+                  Sin más stock de este paquete
+                </ThemedText>
+              ) : null}
+            </View>
+            <View style={styles.stepper}>
+              <AppButton
+                title="−"
+                variant="secondary"
+                onPress={() =>
+                  line.units <= 1
+                    ? onRemove(line.packageId)
+                    : onSetUnits(line.packageId, line.units - 1, stock)
+                }
+                style={styles.stepperBtn}
+                accessibilityLabel={
+                  line.units <= 1
+                    ? `Quitar ${pkg?.title ?? line.packageId} del carrito`
+                    : `Quitar una unidad de ${pkg?.title ?? line.packageId}`
+                }
+              />
+              <ThemedText variant="body" style={styles.stepperValue}>
+                {line.units}
+              </ThemedText>
+              <AppButton
+                title="+"
+                variant="secondary"
+                disabled={atStockCap}
+                onPress={() =>
+                  onSetUnits(line.packageId, line.units + 1, stock)
+                }
+                style={styles.stepperBtn}
+                accessibilityLabel={`Agregar una unidad de ${pkg?.title ?? line.packageId}`}
+              />
+            </View>
+          </View>
+        );
+      })}
+    </View>
   );
 }
 
@@ -367,8 +583,13 @@ const styles = StyleSheet.create({
     color: colors.label,
     marginBottom: spacing.xs,
   },
+  sheetBody: {
+    flexGrow: 0,
+  },
+  sheetBodyContent: {
+    paddingBottom: spacing.sm,
+  },
   packageList: {
-    maxHeight: 220,
     marginBottom: spacing.sm,
   },
   packageOption: {
@@ -433,14 +654,64 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
+  balanceBannerError: {
+    backgroundColor: colors.destructiveSubdued,
+  },
   balanceText: {
     color: colors.systemGreen,
     fontWeight: fontWeights.semibold,
     lineHeight: lineHeights.xs,
   },
+  balanceTextError: {
+    color: colors.systemRed,
+  },
   actionsRow: {
     flexDirection: "row",
     gap: spacing.sm,
+  },
+  // Cart blocks (issue #162): the running totals per side, with one stepper
+  // row per chosen line.
+  cartBlock: {
+    marginBottom: spacing.md,
+  },
+  cartHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.xs,
+  },
+  cartHeader: {
+    color: colors.secondaryLabel,
+    fontWeight: fontWeights.semibold,
+  },
+  cartLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  cartLineText: {
+    flex: 1,
+  },
+  cartLineTitle: {
+    fontWeight: fontWeights.medium,
+  },
+  cartLineCap: {
+    color: colors.secondaryLabel,
+  },
+  stepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  stepperBtn: {
+    minWidth: spacing.xl,
+  },
+  stepperValue: {
+    minWidth: spacing.lg,
+    textAlign: "center",
+    fontWeight: fontWeights.semibold,
   },
   cancelBtn: {
     flex: 1,

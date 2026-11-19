@@ -133,8 +133,8 @@ describe("producer rename migration on the paths a user can reach", () => {
       store.createTradeProposal({
         requesterId: PRODUCER_IDS.VERMUT,
         targetProducerId: PRODUCER_IDS.QUESO,
-        offeredPackageId: "nope",
-        targetPackageId: "nope",
+        offeredLines: [{ packageId: "nope", units: 1 }],
+        targetLines: [{ packageId: "nope", units: 1 }],
       }),
     ).toThrow("Specified product packages not found in catalog");
 
@@ -151,10 +151,11 @@ describe("external payload validation", () => {
       id: "match-malformed",
       requesterId: "prod-vermut",
       targetProducerId: "prod-queso",
-      offeredPackageId: legacyPackage.id,
-      targetPackageId: legacyPackage.id,
+      offeredLines: [{ packageId: legacyPackage.id, units: 1 }],
+      targetLines: [{ packageId: legacyPackage.id, units: 1 }],
       papSnapshotArs: 50000,
       totalPap: 1,
+      round: 0,
       status: "WAITING_DELIVERY" as const,
       expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
       createdAt: new Date().toISOString(),
@@ -249,10 +250,11 @@ function createMatch(
     id,
     requesterId,
     targetProducerId,
-    offeredPackageId: legacyPackage.id,
-    targetPackageId: legacyPackage.id,
+    offeredLines: [{ packageId: legacyPackage.id, units: 1 }],
+    targetLines: [{ packageId: legacyPackage.id, units: 1 }],
     papSnapshotArs: 50000,
     totalPap: 1,
+    round: 0,
     status: "PENDING" as const,
     deliveryConfirmation: {
       confirmedByRequester: false,

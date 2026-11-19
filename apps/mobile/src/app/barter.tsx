@@ -22,6 +22,7 @@ import {
   DEFAULT_CARD_VARIANT,
   type CardVariant,
   type GondolaPackage,
+  type TradeLine,
 } from "@/features/barter";
 import type { ProductPackage } from "@myself/shared";
 
@@ -52,6 +53,8 @@ export default function BarterScreen() {
     papConfigArs,
     gondolaPackages,
     activeProducerPackages,
+    packages,
+    availableUnits,
     incomingMatches,
     outgoingMatches,
     matches,
@@ -115,7 +118,7 @@ export default function BarterScreen() {
           .filter(
             (m) => m.status === "PENDING" || m.status === "COUNTER_OFFERED",
           )
-          .map((m) => m.targetPackageId),
+          .flatMap((m) => m.targetLines.map((line) => line.packageId)),
       ),
     [outgoingMatches],
   );
@@ -137,15 +140,18 @@ export default function BarterScreen() {
     setProducerFilter(undefined);
   }, [setProducerFilter]);
 
-  const handleConfirmProposal = (offeredPackageId: string) => {
+  const handleConfirmProposal = (
+    offeredLines: TradeLine[],
+    targetLines: TradeLine[],
+  ) => {
     if (!selectedTargetPackage || !activeProducer) return;
 
     try {
       createTradeProposal({
         requesterId: activeProducer.id,
         targetProducerId: selectedTargetPackage.producerId,
-        offeredPackageId,
-        targetPackageId: selectedTargetPackage.id,
+        offeredLines,
+        targetLines,
       });
 
       toast.success(
@@ -183,6 +189,19 @@ export default function BarterScreen() {
 
   const targetProducer = producers.find(
     (p) => p.id === selectedTargetPackage?.producerId,
+  );
+  // The ask side is a cart (issue #162): the target producer's in-stock
+  // inventory, so the operator may ask for several products of the same
+  // producer in one trade. The tapped card is excluded from the list — it is
+  // already the cart's first line.
+  const targetProducerPackages = useMemo(
+    () =>
+      packages.filter(
+        (pkg) =>
+          pkg.producerId === selectedTargetPackage?.producerId &&
+          pkg.stockUnits > 0,
+      ),
+    [packages, selectedTargetPackage],
   );
 
   // The header names the filter; a stored or shared id the catalog lost resolves to
@@ -309,6 +328,8 @@ export default function BarterScreen() {
         targetPackage={selectedTargetPackage}
         targetProducerName={targetProducer?.name}
         availableOwnPackages={activeProducerPackages}
+        availableTargetPackages={targetProducerPackages}
+        availableUnits={availableUnits}
         onConfirmProposal={handleConfirmProposal}
         onClose={() => setSelectedTargetPackage(null)}
       />

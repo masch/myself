@@ -2,6 +2,57 @@ import { z } from "zod";
 
 export const DEFAULT_PAP_VALUE_ARS = 50000;
 
+/**
+ * Negotiation rules for trade proposals (issue #162, amendment rules 9-10).
+ *
+ * App-level constants, not user settings: the POC keeps every knob the
+ * negotiation turns on in one place, so a change is a code review, never a
+ * stored value that one install set differently.
+ */
+
+/**
+ * Rule 9: the maximum number of counter-offer rounds a match may carry. The
+ * receiver of a proposal at this round may only accept or reject.
+ */
+export const MAX_COUNTER_ROUNDS = 50;
+
+/**
+ * Rule 10: how long a live proposal stays answerable. Every live proposal
+ * stores an `expiresAt` derived from this value; expiry is lazy.
+ */
+export const PROPOSAL_TTL_MS = 48 * 3600 * 1000;
+
+/**
+ * Rule 3: one line of a two-sided trade cart — units ≥ 1 of one exact
+ * package. Every package is priced at exactly 1 PAP, so balancing carts is
+ * counting units, never price arithmetic.
+ */
+export const tradeLineSchema = z.object({
+  packageId: z.string().min(1),
+  units: z.number().int().min(1),
+});
+
+/**
+ * Rule 1's counting form: Σ units(offered) must equal Σ units(target) and be
+ * at least 1. This is the schema-level half of the symmetry rule — the store
+ * adds ownership, derivability and stock on top of it.
+ */
+export const balancedLinesSchema = z
+  .object({
+    offeredLines: z.array(tradeLineSchema).min(1),
+    targetLines: z.array(tradeLineSchema).min(1),
+  })
+  .refine(
+    ({ offeredLines, targetLines }) => {
+      const sum = (lines: { units: number }[]) =>
+        lines.reduce((total, line) => total + line.units, 0);
+      return sum(offeredLines) === sum(targetLines) && sum(offeredLines) >= 1;
+    },
+    {
+      error: "Los dos lados deben sumar la misma cantidad de PAP",
+    },
+  );
+
 export const PRODUCTION_TYPES = [
   "ORGANIC",
   "AGROECOLOGICAL",
@@ -120,38 +171,65 @@ export const deliveryConfirmationSchema = z.object({
 
 export const counterOfferHistorySchema = z.object({
   previousOfferedPackageId: z.string().min(1),
+  /** The total the previous round traded, so the re-check shows the delta. */
+  previousTotalPap: z.number().int().positive(),
   counterOfferedAt: z.iso.datetime(),
 });
 
-export const tradeMatchSchema = z.object({
-  id: z.string().min(1),
-  requesterId: z.string().min(1),
-  targetProducerId: z.string().min(1),
-  offeredPackageId: z.string().min(1),
-  targetPackageId: z.string().min(1),
-  papSnapshotArs: z.number().positive(),
-  totalPap: z.number().int().positive(),
-  status: tradeMatchStatusSchema,
-  deliveryConfirmation: deliveryConfirmationSchema,
-  counterOfferHistory: counterOfferHistorySchema.optional(),
-  expiresAt: z.iso.datetime(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
-});
+export const tradeMatchSchema = balancedLinesSchema
+  .extend({
+    id: z.string().min(1),
+    requesterId: z.string().min(1),
+    targetProducerId: z.string().min(1),
+    papSnapshotArs: z.number().positive(),
+    /**
+     * Derives from the carts and is pinned to them by the refinement below: a
+     * payload whose total disagrees with the carts it carries is rejected, not
+     * displayed (PR #163 review — a peer 2↔2 payload with totalPap 1 would
+     * show 1 PAP and consume two units per side).
+     */
+    totalPap: z.number().int().positive(),
+    /** Counter-offer round: 0 is the original proposal (rule 9). */
+    round: z.number().int().min(0),
+    /**
+     * The exact per-package units acceptance consumed, recorded by the accept
+     * transition. A later rollback restores these units, not a seed-capped
+     * guess: operator-raised stock must never be reduced by cancelling (PR #163
+     * review).
+     */
+    consumedUnits: z.record(z.string(), z.number().int().positive()).optional(),
+    status: tradeMatchStatusSchema,
+    deliveryConfirmation: deliveryConfirmationSchema,
+    counterOfferHistory: counterOfferHistorySchema.optional(),
+    expiresAt: z.iso.datetime(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  })
+  .refine(
+    ({ offeredLines, totalPap }) => {
+      const offeredTotal = offeredLines.reduce(
+        (total, line) => total + line.units,
+        0,
+      );
+      return offeredTotal === totalPap;
+    },
+    { error: "totalPap must equal Σ units of the offered cart" },
+  );
 
-export const createTradeProposalInputSchema = z.object({
+export const createTradeProposalInputSchema = balancedLinesSchema.extend({
   requesterId: z.string().min(1),
   targetProducerId: z.string().min(1),
-  offeredPackageId: z.string().min(1),
-  targetPackageId: z.string().min(1),
   papConfigArs: z.number().positive().default(DEFAULT_PAP_VALUE_ARS),
   ttlHours: z.number().positive().default(48),
 });
 
 export const counterOfferInputSchema = z.object({
   matchId: z.string().min(1),
-  targetProducerId: z.string().min(1),
-  counterOfferedPackageId: z.string().min(1),
+  /** Either party may counter (rule 8); the offer re-check returns to the other. */
+  producerId: z.string().min(1),
+  offeredLines: z.array(tradeLineSchema).min(1),
+  /** Omitted keeps the current target cart — valid when the offered Σ still balances it. */
+  targetLines: z.array(tradeLineSchema).optional(),
 });
 
 /**

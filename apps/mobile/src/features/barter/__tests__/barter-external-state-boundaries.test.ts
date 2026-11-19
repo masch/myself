@@ -9,6 +9,8 @@
  *    that need a package, and a rejected command leaves the bytes untouched.
  */
 import { afterEach, describe, expect, it } from "bun:test";
+
+import { CATALOG_STOCK_UNITS } from "../catalog-packages";
 import type { TradeMatch } from "@myself/shared";
 import {
   createBarterStore,
@@ -73,10 +75,11 @@ const MATCH: TradeMatch = {
   id: "match-boundary",
   requesterId: PRODUCER_IDS.VERMUT,
   targetProducerId: PRODUCER_IDS.QUESO,
-  offeredPackageId: "cat-890",
-  targetPackageId: "cat-5",
+  offeredLines: [{ packageId: "cat-890", units: 1 }],
+  targetLines: [{ packageId: "cat-5", units: 1 }],
   papSnapshotArs: 50000,
   totalPap: 1,
+  round: 0,
   status: "WAITING_DELIVERY",
   deliveryConfirmation: {
     confirmedByRequester: false,
@@ -151,8 +154,8 @@ describe("external state: empty lists and rejected commands", () => {
           {
             ...MATCH,
             status: "PENDING",
-            offeredPackageId: "pkg-dropped",
-            targetPackageId: "pkg-dropped",
+            offeredLines: [{ packageId: "pkg-dropped", units: 1 }],
+            targetLines: [{ packageId: "pkg-dropped", units: 1 }],
           },
         ],
         papConfigArs: 50000,
@@ -171,8 +174,8 @@ describe("external state: empty lists and rejected commands", () => {
       store.createTradeProposal({
         requesterId: PRODUCER_IDS.VERMUT,
         targetProducerId: PRODUCER_IDS.QUESO,
-        offeredPackageId: "pkg-ghost",
-        targetPackageId: "pkg-ghost",
+        offeredLines: [{ packageId: "pkg-ghost", units: 1 }],
+        targetLines: [{ packageId: "pkg-ghost", units: 1 }],
       }),
     ).toThrow("Specified product packages not found in catalog");
 
@@ -195,12 +198,12 @@ describe("external state: empty lists and rejected commands", () => {
     });
 
     // The readable half is applied — but only the matches: the peer's
-    // packages never enter this gondola (seed stock stays 1), and the
-    // unparseable match is the only thing dropped.
+    // packages never enter this gondola (seed stock stays the documented
+    // default), and the unparseable match is the only thing dropped.
     expect(
       store.getState().packages.find((pkg) => pkg.id === SEED_PACKAGES[0].id)
         ?.stockUnits,
-    ).toBe(1);
+    ).toBe(CATALOG_STOCK_UNITS);
     expect(store.getState().matches).toHaveLength(1);
     expect(store.getState().matches[0].id).toBe(MATCH.id);
     expect(peer.posted).toHaveLength(0);

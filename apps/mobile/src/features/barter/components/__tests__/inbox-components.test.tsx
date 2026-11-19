@@ -16,8 +16,9 @@ function buildMatch(overrides: Partial<TradeMatch>): TradeMatch {
     id: "match-test",
     requesterId: requester.id,
     targetProducerId: target.id,
-    offeredPackageId: "pkg-fixture-vermut-pack4",
-    targetPackageId: "pkg-fixture-queso-gouda",
+    offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+    targetLines: [{ packageId: "pkg-fixture-queso-gouda", units: 1 }],
+    round: 0,
     papSnapshotArs: 50000,
     totalPap: 1,
     status: "PENDING",
@@ -66,20 +67,65 @@ describe("Barter Inbox: action availability", () => {
     expect(actions.awaitingResponseFrom).toBe("target");
   });
 
-  it("requester of a COUNTER_OFFERED match can accept or reject but NOT re-counter (single round)", () => {
+  it("requester of a COUNTER_OFFERED match can accept, reject or re-counter (rule 8 ping-pong)", () => {
     const actions = getMatchActionAvailability("COUNTER_OFFERED", "requester");
     expect(actions.canAccept).toBe(true);
     expect(actions.canReject).toBe(true);
-    expect(actions.canCounterOffer).toBe(false);
+    expect(actions.canCounterOffer).toBe(true);
     expect(actions.awaitingResponseFrom).toBeNull();
   });
 
-  it("target of a COUNTER_OFFERED match waits for the requester decision", () => {
-    const actions = getMatchActionAvailability("COUNTER_OFFERED", "target");
-    expect(actions.canAccept).toBe(false);
-    expect(actions.canReject).toBe(false);
+  it("at the round limit the receiver may only accept or reject (rule 9)", () => {
+    const actions = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "requester",
+      false,
+    );
+    expect(actions.canAccept).toBe(true);
+    expect(actions.canReject).toBe(true);
     expect(actions.canCounterOffer).toBe(false);
-    expect(actions.awaitingResponseFrom).toBe("requester");
+  });
+
+  it("round 0 is the requester's proposal: the target answers it", () => {
+    const actions = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "target",
+      true,
+      0,
+    );
+    expect(actions.canAccept).toBe(true);
+    expect(actions.canReject).toBe(true);
+    expect(actions.canCounterOffer).toBe(true);
+    expect(actions.awaitingResponseFrom).toBeNull();
+    const requesterSide = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "requester",
+      true,
+      0,
+    );
+    expect(requesterSide.canAccept).toBe(false);
+    // The waiting side sees who owes the answer: the target.
+    expect(requesterSide.awaitingResponseFrom).toBe("target");
+  });
+
+  it("after the target counters (round 1), the target owes nothing and the requester answers", () => {
+    const targetSide = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "target",
+      true,
+      1,
+    );
+    expect(targetSide.canAccept).toBe(false);
+    // The waiting side sees who owes the answer: the requester.
+    expect(targetSide.awaitingResponseFrom).toBe("requester");
+    const requesterSide = getMatchActionAvailability(
+      "COUNTER_OFFERED",
+      "requester",
+      true,
+      1,
+    );
+    expect(requesterSide.canAccept).toBe(true);
+    expect(requesterSide.canCounterOffer).toBe(true);
   });
 
   it("offers no proposal actions once the trade is WAITING_DELIVERY", () => {
@@ -123,10 +169,14 @@ describe("Barter Inbox: counter-offer candidates", () => {
   });
 
   it("excludes the package currently offered in the match", () => {
-    const match = buildMatch({ offeredPackageId: "pkg-fixture-vermut-pack4" });
+    const match = buildMatch({
+      offeredLines: [{ packageId: "pkg-fixture-vermut-pack4", units: 1 }],
+    });
     const candidates = getCounterOfferCandidates(SEED_PACKAGES, match);
 
-    expect(candidates.some((p) => p.id === match.offeredPackageId)).toBe(false);
+    expect(
+      candidates.some((p) => p.id === match.offeredLines[0]?.packageId),
+    ).toBe(false);
   });
 
   it("excludes out-of-stock packages", () => {
@@ -165,7 +215,7 @@ describe("Barter inbox: what each producer still has on its plate", () => {
 
   it("counts a counter-offer as an answer owed by the requester", () => {
     const summary = summarizeProducerTrades([
-      buildMatch({ status: "COUNTER_OFFERED" }),
+      buildMatch({ status: "COUNTER_OFFERED", round: 1 }),
     ]);
 
     expect(summary[requester.id].awaitingReply).toBe(1);

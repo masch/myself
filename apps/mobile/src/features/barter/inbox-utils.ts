@@ -1,3 +1,4 @@
+import { MAX_COUNTER_ROUNDS } from "@myself/shared";
 import type {
   ProductPackage,
   TradeMatch,
@@ -41,6 +42,16 @@ export interface MatchActionAvailability {
 export function getMatchActionAvailability(
   status: TradeMatchStatus,
   role: TradeRole,
+  /** Rule 9: at the round limit the receiver may only accept or reject. */
+  canCounter?: boolean,
+  /**
+   * The round the caller read from the match. Rule 8's ping-pong means the
+   * round decides whose turn it is: an even round (0, 2, …) was proposed by
+   * the requester, so the target answers; an odd round was proposed by the
+   * target, so the requester answers. Passing no round keeps the legacy
+   * single-counter behaviour (the requester always answers a counter).
+   */
+  round?: number,
 ): MatchActionAvailability {
   if (status === "PENDING") {
     return role === "target"
@@ -59,19 +70,27 @@ export function getMatchActionAvailability(
   }
 
   if (status === "COUNTER_OFFERED") {
-    return role === "requester"
-      ? {
-          canAccept: true,
-          canReject: true,
-          canCounterOffer: false,
-          awaitingResponseFrom: null,
-        }
-      : {
-          canAccept: false,
-          canReject: false,
-          canCounterOffer: false,
-          awaitingResponseFrom: "requester",
-        };
+    // Even round: the requester proposed, the target answers. Odd round: the
+    // target countered, the requester answers (or, from round 2 on, whoever
+    // did NOT make the latest counter).
+    const answersIsRequester = round === undefined ? true : round % 2 === 1;
+    const answering = answersIsRequester ? "requester" : "target";
+    const waiting = answering === "requester" ? "target" : "requester";
+
+    if (role === answering) {
+      return {
+        canAccept: true,
+        canReject: true,
+        canCounterOffer: canCounter ?? true,
+        awaitingResponseFrom: null,
+      };
+    }
+    return {
+      canAccept: false,
+      canReject: false,
+      canCounterOffer: false,
+      awaitingResponseFrom: answering,
+    };
   }
 
   return {
@@ -89,14 +108,18 @@ export function getMatchActionAvailability(
  */
 export function getCounterOfferCandidates(
   allPackages: ProductPackage[],
-  match: Pick<TradeMatch, "requesterId" | "offeredPackageId" | "totalPap">,
+  match: Pick<TradeMatch, "requesterId" | "offeredLines" | "totalPap">,
 ): ProductPackage[] {
+  // Every package is priced at exactly 1 PAP (issue #162), so a candidate is
+  // any stocked package of the requester's that trades at 1 PAP — never a
+  // comparison against the trade's total, which is units, not package value.
+  // The currently offered package stays eligible: a quantity-only counter
+  // must remain possible when it is the requester's only package.
   return allPackages.filter(
     (pkg) =>
       pkg.producerId === match.requesterId &&
-      pkg.id !== match.offeredPackageId &&
       pkg.stockUnits > 0 &&
-      pkg.papValue === match.totalPap,
+      pkg.papValue === 1,
   );
 }
 
@@ -108,13 +131,21 @@ export function getCounterOfferCandidates(
  * turn it is: a party owes an answer exactly when the FSM offers it an action.
  */
 export function isAwaitingReply(
-  match: Pick<TradeMatch, "requesterId" | "targetProducerId" | "status">,
+  match: Pick<
+    TradeMatch,
+    "requesterId" | "targetProducerId" | "status" | "round"
+  >,
   producerId: string,
 ): boolean {
   const role = getTradeRole(match, producerId);
   if (!role) return false;
 
-  const availability = getMatchActionAvailability(match.status, role);
+  const availability = getMatchActionAvailability(
+    match.status,
+    role,
+    match.round < MAX_COUNTER_ROUNDS,
+    match.round,
+  );
   return (
     availability.canAccept ||
     availability.canReject ||
@@ -172,7 +203,11 @@ function hasConfirmedOwnDelivery(
 export function summarizeProducerTrades(
   matches: Pick<
     TradeMatch,
-    "requesterId" | "targetProducerId" | "status" | "deliveryConfirmation"
+    | "requesterId"
+    | "targetProducerId"
+    | "status"
+    | "deliveryConfirmation"
+    | "round"
   >[],
 ): Record<string, ProducerTradeSummary> {
   const summaries: Record<string, ProducerTradeSummary> = {};

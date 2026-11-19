@@ -73,11 +73,12 @@ export const DIRECT_PRODUCT_PRODUCTION_TYPE = "AGROECOLOGICAL" as const;
  * How many packages of a catalog product are on offer (S7).
  *
  * The PDF prints no stock, so every catalog package takes one documented
- * default rather than an invented number: one presentation of 1 PAP on offer,
- * the same way the printed catalog prints no address and the producers took a
- * documented centroid.
+ * default rather than an invented number: ten presentations of 1 PAP on
+ * offer — enough units for multi-PAP carts (issue #162) to exercise real
+ * quantities — the same way the printed catalog prints no address and the
+ * producers took a documented centroid.
  */
-export const CATALOG_STOCK_UNITS = 1;
+export const CATALOG_STOCK_UNITS = 10;
 
 /**
  * What a catalog package discloses beside its 1-PAP equivalence, by sale form.
@@ -118,7 +119,7 @@ export interface DerivedCatalogPackage {
  * - `empaquetado`: the declared containers are what one PAP buys, and the
  *   handed quantity is always `presentationCount × presentationSize`.
  */
-export type DirectProductInput =
+export type DirectProductInput = (
   | {
       id: string;
       title: string;
@@ -136,7 +137,15 @@ export type DirectProductInput =
       presentationCount: number;
       /** How much of `measure` one container holds. */
       presentationSize: number;
-    };
+    }
+) & {
+  /**
+   * How many units really exist (issue #162 rule 5): the direct seed
+   * declares real stock instead of the catalog default. Omitted keeps
+   * `CATALOG_STOCK_UNITS`.
+   */
+  stockUnits?: number;
+};
 
 /**
  * Derives the package of one directly declared product: always exactly 1 PAP.
@@ -161,7 +170,7 @@ export function deriveDirectCatalogPackage(
     productionType: DIRECT_PRODUCT_PRODUCTION_TYPE,
     priceArs: papConfigArs,
     papValue: 1,
-    stockUnits: CATALOG_STOCK_UNITS,
+    stockUnits: input.stockUnits ?? CATALOG_STOCK_UNITS,
     catalog,
   };
 }

@@ -11,6 +11,8 @@
  * nothing at all is readable falls back to the seeds.
  */
 import { afterEach, describe, expect, it } from "bun:test";
+
+import { CATALOG_STOCK_UNITS } from "../catalog-packages";
 import type { TradeMatch } from "@myself/shared";
 import {
   createBarterStore,
@@ -89,10 +91,11 @@ const MATCH: TradeMatch = {
   id: "match-payload",
   requesterId: PRODUCER_IDS.VERMUT,
   targetProducerId: PRODUCER_IDS.QUESO,
-  offeredPackageId: "cat-890",
-  targetPackageId: "cat-5",
+  offeredLines: [{ packageId: "cat-890", units: 1 }],
+  targetLines: [{ packageId: "cat-5", units: 1 }],
   papSnapshotArs: 50000,
   totalPap: 1,
+  round: 0,
   status: "WAITING_DELIVERY",
   deliveryConfirmation: {
     confirmedByRequester: false,
@@ -116,7 +119,7 @@ describe("Barter store: granularity of the external state", () => {
 
     // Packages always boot from the seed — storage never restores stock —
     // and only the unusable match is gone from the stored ones.
-    expect(stockOf(store, "cat-890")).toBe(1);
+    expect(stockOf(store, "cat-890")).toBe(CATALOG_STOCK_UNITS);
     expect(store.getState().matches).toHaveLength(1);
     expect(store.getState().matches[0]?.id).toBe(MATCH.id);
   });
@@ -146,7 +149,11 @@ describe("Barter store: granularity of the external state", () => {
     const raw = JSON.stringify({
       packages: [{ ...SEED_PACKAGES[0], id: "pkg-dropped", papValue: 0.5 }],
       matches: [
-        { ...MATCH, offeredPackageId: "pkg-dropped", status: "PENDING" },
+        {
+          ...MATCH,
+          offeredLines: [{ packageId: "pkg-dropped", units: 1 }],
+          status: "PENDING",
+        },
       ],
       papConfigArs: 50000,
     });
@@ -184,8 +191,8 @@ describe("Barter store: granularity of the external state", () => {
     });
 
     // The catalog is this build's seed alone — a peer tab running another
-    // bundle cannot inject its packages or stock (marked stock stays 1).
-    expect(stockOf(store, "cat-890")).toBe(1);
+    // bundle cannot inject its packages or stock (marked stock stays the seed default).
+    expect(stockOf(store, "cat-890")).toBe(CATALOG_STOCK_UNITS);
     expect(store.getState().matches).toHaveLength(1);
     expect(store.getState().matches[0]?.id).toBe(MATCH.id);
     // A synced message is never echoed back to the peer.
