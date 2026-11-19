@@ -22,25 +22,34 @@ mock.module("@/modules/meditation-session", () => ({
   addSessionErrorListener: mockAddErrorListener,
 }));
 
-// Mock MeditationNotificationService with both aliases
+// Mock MeditationNotificationService with both aliases. The mock must carry
+// the service's FULL public surface: bun's mock.module is process-wide per
+// resolved module, so another test file importing the real service later
+// would otherwise see missing methods (PR CI failure, 2026-11).
 const mockSchedule = mock(async () => "notif-id-1");
 const mockCancelAll = mock(async () => {});
 const mockSubscribeEvents = mock((_cb: () => void) => mock(() => {}));
+const mockSetupChannel = mock(async () => {});
+const mockCancelOne = mock(async (_id: string | null) => {});
+
+const mockNotificationService = {
+  setupNotificationChannel: mockSetupChannel,
+  scheduleNotification: mockSchedule,
+  cancelNotification: mockCancelOne,
+  cancelAllNotifications: mockCancelAll,
+  subscribeNotificationEvents: mockSubscribeEvents,
+};
 
 mock.module("../../meditation-notification.service", () => ({
-  MeditationNotificationService: {
-    scheduleNotification: mockSchedule,
-    cancelAllNotifications: mockCancelAll,
-    subscribeNotificationEvents: mockSubscribeEvents,
-  },
+  MEDITATION_NOTIFICATION_CHANNEL_ID: "meditation_notifications_v1",
+  MEDITATION_NOTIFICATION_TYPE: "meditation_session_complete",
+  MeditationNotificationService: mockNotificationService,
 }));
 
 mock.module("../meditation-notification.service", () => ({
-  MeditationNotificationService: {
-    scheduleNotification: mockSchedule,
-    cancelAllNotifications: mockCancelAll,
-    subscribeNotificationEvents: mockSubscribeEvents,
-  },
+  MEDITATION_NOTIFICATION_CHANNEL_ID: "meditation_notifications_v1",
+  MEDITATION_NOTIFICATION_TYPE: "meditation_session_complete",
+  MeditationNotificationService: mockNotificationService,
 }));
 
 describe("AndroidMeditationSessionService", () => {

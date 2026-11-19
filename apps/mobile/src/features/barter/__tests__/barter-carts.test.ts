@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   createBarterStore,
   PRODUCER_IDS,
@@ -16,6 +16,28 @@ const ROSSO = "direct-vermut-rosso-750";
 const BLANCO = "direct-vermut-blanco-750";
 const QUESO_A = "cat-2";
 const QUESO_B = "cat-3";
+
+// Cart tests must be hermetic: another test file may stub globalThis
+// window/localStorage while these run (bun test interleaves files under
+// --randomize, and CI seeds reorder too), and a stubbed localStorage would
+// carry reservations across stores. Non-web mode never persists.
+const savedGlobals = new Map<string, unknown>();
+
+beforeEach(() => {
+  for (const key of ["window", "localStorage", "BroadcastChannel"]) {
+    savedGlobals.set(key, (globalThis as Record<string, unknown>)[key]);
+  }
+  (globalThis as Record<string, unknown>).window = undefined;
+  (globalThis as Record<string, unknown>).localStorage = undefined;
+  (globalThis as Record<string, unknown>).BroadcastChannel = undefined;
+});
+
+afterEach(() => {
+  for (const [key, value] of savedGlobals) {
+    (globalThis as Record<string, unknown>)[key] = value;
+  }
+  savedGlobals.clear();
+});
 
 describe("createTradeProposal with carts (issue #162)", () => {
   let store: BarterStore;
