@@ -1220,6 +1220,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionTitle: {
+    // Same section rank as the gondola's headers. The 18px literal this replaced
+    // was outside the scale, so the migration landed on the nearest real rank
+    // and moved the heading by one point on purpose, not by accident.
     fontSize: typography.title2.fontSize,
     fontWeight: "700",
   },

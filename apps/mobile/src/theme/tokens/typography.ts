@@ -64,9 +64,11 @@ export const fontWeights = {
 
 /**
  * Shared numeric font-size scale for component styles that need a size outside
- * the typography variants. Keep it in step with `typography` so mixed text on
- * one screen never jumps: `lg` ~ title2, `md` ~ headline/body, `sm` ~ callout,
- * `xs` ~ caption1.
+ * the typography variants. Each step sits one notch below the variant it is used
+ * next to, so side-by-side text keeps its rank instead of matching it: `lg` 17
+ * under title2 19, `md` 14 under headline/body 15, `sm` 13 under callout 14, `xs`
+ * 10 under caption1 11. State the pixels, not an equivalence: the ladder is not
+ * a synonym map, and pretending otherwise makes a reader pick the wrong step.
  */
 export const fontSizes = {
   xs: 10,
