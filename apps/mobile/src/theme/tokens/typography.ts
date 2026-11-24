@@ -55,6 +55,10 @@ export const typography = {
  * of repeating string literals.
  */
 export const fontWeights = {
+  /** Hairline emphasis for oversized readouts. */
+  extraLight: "200",
+  /** Light emphasis for punctuation and separators between heavy glyphs. */
+  light: "300",
   regular: "400",
   medium: "500",
   semibold: "600",
@@ -94,6 +98,11 @@ export const lineHeights = {
  * Shared letter-spacing scale so component styles reference tokens instead of
  * repeating literals. `caption` tracks the uppercase micro headers used above
  * card and section titles.
+ *
+ * Two section-title steps coexist: `sectionTitle` is the tab-screen default and
+ * `sectionTitleWide` is the looser tracking the readings screen keeps, so the
+ * longer reading titles read as airier. They are distinct rendered values, not
+ * synonyms of one another.
  */
 export const letterSpacings = {
   caption: 0.5,
@@ -101,6 +110,14 @@ export const letterSpacings = {
   title: 0.3,
   /** Long-form verse and prose. */
   body: 0.2,
+  /** Section titles on the tab screens. */
+  sectionTitle: 0.6,
+  /** The looser section-title tracking used on the readings screen. */
+  sectionTitleWide: 0.8,
+  /** Uppercase micro labels at the smallest size. */
+  microLabel: 1,
+  /** Tabular timer readout at the largest size. */
+  timer: 2,
 } as const;
 
 export type Typography = typeof typography;

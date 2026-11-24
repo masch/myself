@@ -11,7 +11,9 @@ import {
 import {
   colors,
   fontSizes,
+  fontWeights,
   layout,
+  letterSpacings,
   lineHeights,
   radius,
   spacing,
@@ -880,7 +882,7 @@ export default function ReflectionsScreen() {
                         <ThemedText
                           variant="callout"
                           style={{
-                            fontWeight: "600",
+                            fontWeight: fontWeights.semibold,
                           }}
                         >
                           📅 El programa comienza el{" "}
@@ -922,7 +924,7 @@ export default function ReflectionsScreen() {
                               <ThemedText
                                 variant="callout"
                                 style={{
-                                  fontWeight: "600",
+                                  fontWeight: fontWeights.semibold,
                                 }}
                               >
                                 ✨ Paso de hoy completado
@@ -1065,7 +1067,9 @@ export default function ReflectionsScreen() {
                                     <ThemedText
                                       variant="callout"
                                       color={colors.secondaryLabel}
-                                      style={{ fontWeight: "600" }}
+                                      style={{
+                                        fontWeight: fontWeights.semibold,
+                                      }}
                                     >
                                       Pasos completados ({completedSteps.length}
                                       )
@@ -1224,7 +1228,7 @@ const styles = StyleSheet.create({
     // was outside the scale, so the migration landed on the nearest real rank
     // and moved the heading by one point on purpose, not by accident.
     fontSize: typography.title2.fontSize,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   sectionSubtitle: {
     fontSize: fontSizes.sm,
@@ -1239,7 +1243,7 @@ const styles = StyleSheet.create({
   },
   subsectionTitle: {
     fontSize: typography.body.fontSize,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   subsectionSubtitle: {
     fontSize: typography.caption1.fontSize,
@@ -1256,7 +1260,7 @@ const styles = StyleSheet.create({
   },
   missedTitle: {
     fontSize: fontSizes.md,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
     marginBottom: 2,
   },
   missedSubtitle: {
@@ -1269,7 +1273,7 @@ const styles = StyleSheet.create({
   },
   cohortTitle: {
     fontSize: fontSizes.lg,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   cohortHeaderRow: {
     flexDirection: "row",
@@ -1280,7 +1284,7 @@ const styles = StyleSheet.create({
   },
   subHeader: {
     fontSize: fontSizes.sm,
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     marginBottom: 4,
   },
   answeredMacroBlock: {
@@ -1307,9 +1311,9 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   preparatoryBadge: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacings.caption,
     marginBottom: spacing.xs / 2,
   },
 });

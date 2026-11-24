@@ -10,7 +10,15 @@ import {
   Divider,
 } from "@/components";
 import { useReadingForm } from "@/hooks/use-reading-form";
-import { colors, fontSizes, layout, lineHeights, typography } from "@/theme";
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  layout,
+  letterSpacings,
+  lineHeights,
+  typography,
+} from "@/theme";
 import { SimulationTabNotice } from "@/features/barter/components/simulation-tab-notice";
 import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
 import { router, Stack, useLocalSearchParams } from "expo-router";
@@ -313,8 +321,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: typography.caption1.fontSize,
-    fontWeight: "600",
-    letterSpacing: 0.6,
+    fontWeight: fontWeights.semibold,
+    letterSpacing: letterSpacings.sectionTitle,
   },
   authorsRow: {
     flexDirection: "row",
@@ -337,7 +345,7 @@ const styles = StyleSheet.create({
   },
   quoteSign: {
     fontSize: typography.title1.fontSize,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
     marginBottom: -4,
   },
   contentInput: {

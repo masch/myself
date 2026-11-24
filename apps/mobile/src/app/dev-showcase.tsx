@@ -21,7 +21,9 @@ import {
 } from "@/components";
 import {
   colors,
+  fontWeights,
   layout,
+  letterSpacings,
   lineHeights,
   spacing,
   typography,
@@ -614,7 +616,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   heroTitle: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   heroSubtitle: {
     marginTop: spacing.xs,
@@ -627,11 +629,11 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   groupTitle: {
-    letterSpacing: 0.5,
-    fontWeight: "600",
+    letterSpacing: letterSpacings.caption,
+    fontWeight: fontWeights.semibold,
   },
   boldText: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
   swatchGrid: {
     flexDirection: "row",

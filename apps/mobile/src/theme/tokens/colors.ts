@@ -70,6 +70,8 @@ export const colors = {
   whiteSubdued: "rgba(255, 255, 255, 0.8)" as const,
   /** systemGray at 15% opacity — used as background for subdued/gray buttons. */
   systemGray15: "rgba(142, 142, 147, 0.15)" as const,
+  /** systemGray at 20% opacity — used for hairlines that must stay visible on white. */
+  systemGray20: "rgba(142, 142, 147, 0.2)" as const,
   /** Semi-transparent backdrop scrim for modals and bottom sheets. */
   scrim: "rgba(0, 0, 0, 0.45)" as const,
   /** Default shadow color for elevated cards and buttons. */

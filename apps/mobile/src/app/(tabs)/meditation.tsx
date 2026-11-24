@@ -35,6 +35,8 @@ import {
 import {
   colors,
   fontSizes,
+  fontWeights,
+  letterSpacings,
   lineHeights,
   shadows,
   spacing,
@@ -517,7 +519,10 @@ export default function MeditationScreen() {
           />
           <ThemedText variant="callout" style={styles.readRegisteredText}>
             Lectura de{" "}
-            <ThemedText variant="callout" style={{ fontWeight: "600" }}>
+            <ThemedText
+              variant="callout"
+              style={{ fontWeight: fontWeights.semibold }}
+            >
               {activeReading.author_name}
             </ThemedText>{" "}
             registrada como leída en esta sesión.
@@ -778,9 +783,9 @@ const styles = StyleSheet.create({
   },
   timerText: {
     fontSize: typography.largeTitle.fontSize,
-    fontWeight: "200",
+    fontWeight: fontWeights.extraLight,
     fontVariant: ["tabular-nums"],
-    letterSpacing: 2,
+    letterSpacing: letterSpacings.timer,
     marginVertical: 4,
   },
   momentContainer: {
@@ -790,21 +795,21 @@ const styles = StyleSheet.create({
   },
   momentStep: {
     fontSize: typography.caption1.fontSize,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacings.caption,
     marginBottom: 2,
   },
   momentTitle: {
     fontSize: typography.title2.fontSize,
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     textAlign: "center",
   },
   scheduledNotice: {
     fontSize: fontSizes.sm,
     textAlign: "center",
     marginTop: 6,
-    fontWeight: "500",
+    fontWeight: fontWeights.medium,
   },
   momentSubtitle: {
     fontSize: fontSizes.sm,
@@ -846,13 +851,13 @@ const styles = StyleSheet.create({
   },
   readingCardTag: {
     fontSize: fontSizes.xs,
-    fontWeight: "700",
-    letterSpacing: 0.6,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.sectionTitle,
     marginBottom: 2,
   },
   readingAuthorName: {
     fontSize: fontSizes.lg,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   readingAuthorBio: {
     fontSize: typography.caption1.fontSize,
@@ -863,8 +868,8 @@ const styles = StyleSheet.create({
   },
   readingTitle: {
     fontSize: fontSizes.lg,
-    fontWeight: "700",
-    letterSpacing: 0.3,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.title,
   },
   reflectionText: {
     fontSize: typography.body.fontSize,
@@ -883,7 +888,7 @@ const styles = StyleSheet.create({
   },
   readCountBadge: {
     fontSize: typography.caption1.fontSize,
-    fontWeight: "500",
+    fontWeight: fontWeights.medium,
   },
   autoRecordHint: {
     fontSize: typography.caption1.fontSize,
@@ -922,8 +927,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: typography.caption1.fontSize,
-    fontWeight: "600",
-    letterSpacing: 0.6,
+    fontWeight: fontWeights.semibold,
+    letterSpacing: letterSpacings.sectionTitle,
     marginLeft: 4,
   },
   card: {
@@ -943,7 +948,7 @@ const styles = StyleSheet.create({
   },
   settingTitle: {
     fontSize: fontSizes.lg,
-    fontWeight: "500",
+    fontWeight: fontWeights.medium,
   },
   settingSubtitle: {
     fontSize: fontSizes.sm,
@@ -967,17 +972,17 @@ const styles = StyleSheet.create({
   },
   pickerLabel: {
     fontSize: fontSizes.xs,
-    fontWeight: "700",
-    letterSpacing: 1,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.microLabel,
   },
   pickerValue: {
     fontSize: typography.title1.fontSize,
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     fontVariant: ["tabular-nums"],
   },
   colonSeparator: {
     fontSize: typography.title1.fontSize,
-    fontWeight: "300",
+    fontWeight: fontWeights.light,
     marginTop: 14,
   },
   iconSetting: {
@@ -1009,7 +1014,7 @@ const styles = StyleSheet.create({
   },
   dndNoticeTitle: {
     fontSize: fontSizes.md,
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     marginBottom: 2,
   },
   dndNoticeSubtitle: {

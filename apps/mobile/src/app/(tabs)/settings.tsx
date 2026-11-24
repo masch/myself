@@ -14,7 +14,14 @@ import {
 
 import { useAuth } from "@/context/auth-context";
 import { resetDatabase } from "@/infrastructure/persistence/database";
-import { colors, fontSizes, lineHeights, typography } from "@/theme";
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  letterSpacings,
+  lineHeights,
+  typography,
+} from "@/theme";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -778,8 +785,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: typography.caption1.fontSize,
-    fontWeight: "600",
-    letterSpacing: 0.6,
+    fontWeight: fontWeights.semibold,
+    letterSpacing: letterSpacings.sectionTitle,
     paddingHorizontal: 4,
   },
   card: {
@@ -804,14 +811,14 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     fontSize: fontSizes.lg,
-    fontWeight: "500",
+    fontWeight: fontWeights.medium,
   },
   rowSubtitle: {
     fontSize: fontSizes.sm,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(142, 142, 147, 0.2)",
+    backgroundColor: colors.systemGray20,
     marginLeft: 36,
   },
   accountsContainer: {
@@ -820,7 +827,7 @@ const styles = StyleSheet.create({
   },
   subheading: {
     fontSize: typography.caption1.fontSize,
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
     marginLeft: 36,
   },
   chipsRow: {
@@ -850,7 +857,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: typography.title2.fontSize,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   modalBody: {
     gap: 12,
@@ -866,7 +873,7 @@ const styles = StyleSheet.create({
   },
   aboutTitle: {
     fontSize: typography.title2.fontSize,
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
     marginTop: 8,
   },
   aboutVersion: {
