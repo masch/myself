@@ -99,9 +99,10 @@ export const lineHeights = {
  * repeating literals. `caption` tracks the uppercase micro headers used above
  * card and section titles.
  *
- * One section-title step, not two: `sectionTitle` covers the tab screens and the
- * readings screen alike. A second step 0.2 below it carried no distinct intent,
- * only a second number to pick between.
+ * One section-title step, not two. `sectionTitle` now also covers the readings
+ * screen, which used to run 0.2 looser. Consolidating moved that screen's
+ * rendered tracking on purpose: the second step was a second number to pick
+ * wrong, not a designed nuance worth keeping.
  */
 export const letterSpacings = {
   caption: 0.5,

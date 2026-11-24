@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 2, // 10px baseline
-    minHeight: layout.minInteractiveTarget, // standard accessible touch/input target
+    minHeight: layout.minInteractiveTarget,
   },
   multiline: {
     minHeight: 88,
