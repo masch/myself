@@ -9,7 +9,7 @@ import {
   type ColorValue,
   View,
 } from "react-native";
-import { colors, spacing, radius } from "@/theme";
+import { colors, layout, spacing, radius } from "@/theme";
 import { AppIcon } from "./app-icon";
 import { ThemedText } from "./themed-text";
 
@@ -165,10 +165,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderCurve: "continuous",
-    minHeight: 44,
+    minHeight: layout.minInteractiveTarget,
   },
   compactButton: {
-    minHeight: 40,
+    minHeight: layout.compactControlHeight,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
