@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet } from "react-native";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
-import { colors, opacities, spacing } from "@/theme";
+import { colors, layout, opacities, spacing } from "@/theme";
 
 export type AccordionProps = AccordionPrimitive.RootProps;
 
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: spacing.md,
-    minHeight: 44,
+    minHeight: layout.minInteractiveTarget,
   },
   triggerPressed: {
     opacity: opacities.pressedSoft,

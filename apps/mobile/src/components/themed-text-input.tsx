@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import {
   colors,
+  layout,
   spacing,
   radius,
   typography,
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 2, // 10px baseline
-    minHeight: 44, // standard accessible touch/input target
+    minHeight: layout.minInteractiveTarget,
   },
   multiline: {
     minHeight: 88,

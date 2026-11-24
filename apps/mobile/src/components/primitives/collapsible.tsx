@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet } from "react-native";
 
 import * as CollapsiblePrimitive from "@rn-primitives/collapsible";
-import { opacities, spacing } from "@/theme";
+import { layout, opacities, spacing } from "@/theme";
 
 export type CollapsibleProps = CollapsiblePrimitive.RootProps;
 
@@ -63,7 +63,7 @@ export function CollapsibleContent({
 
 const styles = StyleSheet.create({
   trigger: {
-    minHeight: 44,
+    minHeight: layout.minInteractiveTarget,
     justifyContent: "center",
   },
   triggerPressed: {

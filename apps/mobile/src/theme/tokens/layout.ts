@@ -14,6 +14,10 @@ export const layout = {
   screenBottomOffset: spacing.md, // 16
   cardGap: spacing.md, // 16
   cardPadding: spacing.compact, // 12
+  /**
+   * The accessible minimum touch target. Every control a finger must hit reads
+   * this, so the reason lives here instead of trailing each call site.
+   */
   minInteractiveTarget: 44,
   rowHeight: 44,
   /**
