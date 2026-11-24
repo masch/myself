@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm + 4,
   },
   sectionTitle: {
-    letterSpacing: letterSpacings.sectionTitleWide,
+    letterSpacing: letterSpacings.sectionTitle,
     paddingHorizontal: spacing.xs,
   },
 });

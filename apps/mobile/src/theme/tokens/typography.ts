@@ -99,10 +99,9 @@ export const lineHeights = {
  * repeating literals. `caption` tracks the uppercase micro headers used above
  * card and section titles.
  *
- * Two section-title steps coexist: `sectionTitle` is the tab-screen default and
- * `sectionTitleWide` is the looser tracking the readings screen keeps, so the
- * longer reading titles read as airier. They are distinct rendered values, not
- * synonyms of one another.
+ * One section-title step, not two: `sectionTitle` covers the tab screens and the
+ * readings screen alike. A second step 0.2 below it carried no distinct intent,
+ * only a second number to pick between.
  */
 export const letterSpacings = {
   caption: 0.5,
@@ -110,10 +109,8 @@ export const letterSpacings = {
   title: 0.3,
   /** Long-form verse and prose. */
   body: 0.2,
-  /** Section titles on the tab screens. */
+  /** Section titles on every screen, the readings list included. */
   sectionTitle: 0.6,
-  /** The looser section-title tracking used on the readings screen. */
-  sectionTitleWide: 0.8,
   /** Uppercase micro labels at the smallest size. */
   microLabel: 1,
   /** Tabular timer readout at the largest size. */
