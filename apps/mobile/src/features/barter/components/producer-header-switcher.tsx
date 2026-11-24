@@ -269,24 +269,19 @@ export function ProducerHeaderSwitcher({
     <Card variant="elevated" style={styles.card}>
       <View style={styles.topRow}>
         <View style={styles.producerInfo}>
-          <ThemedText variant="caption2" style={styles.label}>
-            ESTÁS OPERANDO COMO
-          </ThemedText>
-          <ThemedText
-            variant="headline"
-            style={styles.producerName}
-            numberOfLines={1}
-            testID="active-producer-name"
-          >
-            {activeProducer?.name ?? "Seleccionar productor"}
-          </ThemedText>
-          <ThemedText
-            variant="caption1"
-            style={styles.locationText}
-            numberOfLines={1}
-          >
-            📍 {activeProducer?.address}
-          </ThemedText>
+          <View style={styles.producerLine}>
+            <ThemedText variant="caption1" style={styles.label}>
+              Productor:
+            </ThemedText>
+            <ThemedText
+              variant="title2"
+              style={styles.producerName}
+              numberOfLines={1}
+              testID="active-producer-name"
+            >
+              {activeProducer?.name ?? "Seleccionar productor"}
+            </ThemedText>
+          </View>
         </View>
 
         {/* The destructive reset is an icon with a spoken name: in a card this
@@ -432,7 +427,6 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: spacing.md,
     marginTop: spacing.sm,
-    marginBottom: spacing.md,
     backgroundColor: colors.secondarySystemBackground,
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -442,7 +436,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   producerInfo: {
     flex: 1,
@@ -451,16 +445,16 @@ const styles = StyleSheet.create({
   label: {
     color: colors.secondaryLabel,
     fontWeight: fontWeights.bold,
-    letterSpacing: letterSpacings.caption,
+  },
+  producerLine: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: spacing.xs,
   },
   producerName: {
     color: colors.label,
-    fontWeight: fontWeights.heavy,
-    marginTop: spacing.xxs,
-  },
-  locationText: {
-    color: colors.secondaryLabel,
-    marginTop: spacing.xxs,
+    fontWeight: fontWeights.semibold,
+    flexShrink: 1,
   },
   badgeColumn: {
     alignItems: "flex-end",
@@ -472,7 +466,6 @@ const styles = StyleSheet.create({
   switchRow: {
     flexDirection: "row",
     gap: spacing.xs,
-    paddingVertical: spacing.xxs,
   },
   selectorHeader: {
     flexDirection: "row",

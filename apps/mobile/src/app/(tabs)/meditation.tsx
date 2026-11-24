@@ -32,7 +32,16 @@ import {
   NativeSwitch,
 } from "@/components";
 
-import { colors, shadows, spacing } from "@/theme";
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  letterSpacings,
+  lineHeights,
+  shadows,
+  spacing,
+  typography,
+} from "@/theme";
 
 function formatTime(totalSeconds: number): string {
   const mins = Math.floor(totalSeconds / 60);
@@ -510,7 +519,10 @@ export default function MeditationScreen() {
           />
           <ThemedText variant="callout" style={styles.readRegisteredText}>
             Lectura de{" "}
-            <ThemedText variant="callout" style={{ fontWeight: "600" }}>
+            <ThemedText
+              variant="callout"
+              style={{ fontWeight: fontWeights.semibold }}
+            >
               {activeReading.author_name}
             </ThemedText>{" "}
             registrada como leída en esta sesión.
@@ -770,10 +782,10 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   timerText: {
-    fontSize: 60,
-    fontWeight: "200",
+    fontSize: typography.largeTitle.fontSize,
+    fontWeight: fontWeights.extraLight,
     fontVariant: ["tabular-nums"],
-    letterSpacing: 2,
+    letterSpacing: letterSpacings.timer,
     marginVertical: 4,
   },
   momentContainer: {
@@ -782,25 +794,25 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   momentStep: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: typography.caption1.fontSize,
+    fontWeight: fontWeights.bold,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacings.caption,
     marginBottom: 2,
   },
   momentTitle: {
-    fontSize: 19,
-    fontWeight: "600",
+    fontSize: typography.title2.fontSize,
+    fontWeight: fontWeights.semibold,
     textAlign: "center",
   },
   scheduledNotice: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     textAlign: "center",
     marginTop: 6,
-    fontWeight: "500",
+    fontWeight: fontWeights.medium,
   },
   momentSubtitle: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     textAlign: "center",
     marginTop: 4,
   },
@@ -838,30 +850,30 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   readingCardTag: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.6,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.sectionTitle,
     marginBottom: 2,
   },
   readingAuthorName: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
   },
   readingAuthorBio: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
   },
   quoteBox: {
     paddingLeft: 4,
     gap: 8,
   },
   readingTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 0.3,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.title,
   },
   reflectionText: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: typography.body.fontSize,
+    lineHeight: lineHeights.xl,
     fontStyle: "italic",
     marginTop: -6,
   },
@@ -875,11 +887,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   readCountBadge: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: typography.caption1.fontSize,
+    fontWeight: fontWeights.medium,
   },
   autoRecordHint: {
-    fontSize: 11,
+    fontSize: typography.caption1.fontSize,
     fontStyle: "italic",
   },
   readRegisteredBadge: {
@@ -891,7 +903,7 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
   },
   readRegisteredText: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     flex: 1,
   },
   actionSection: {
@@ -914,9 +926,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.6,
+    fontSize: typography.caption1.fontSize,
+    fontWeight: fontWeights.semibold,
+    letterSpacing: letterSpacings.sectionTitle,
     marginLeft: 4,
   },
   card: {
@@ -935,11 +947,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   settingTitle: {
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.medium,
   },
   settingSubtitle: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
@@ -959,18 +971,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   pickerLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.microLabel,
   },
   pickerValue: {
-    fontSize: 28,
-    fontWeight: "600",
+    fontSize: typography.title1.fontSize,
+    fontWeight: fontWeights.semibold,
     fontVariant: ["tabular-nums"],
   },
   colonSeparator: {
-    fontSize: 32,
-    fontWeight: "300",
+    fontSize: typography.title1.fontSize,
+    fontWeight: fontWeights.light,
     marginTop: 14,
   },
   iconSetting: {
@@ -1001,12 +1013,12 @@ const styles = StyleSheet.create({
     height: 24,
   },
   dndNoticeTitle: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
     marginBottom: 2,
   },
   dndNoticeSubtitle: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: typography.caption1.fontSize,
+    lineHeight: lineHeights.xs,
   },
 });

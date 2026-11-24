@@ -21,20 +21,21 @@ test("token-replaced styles render their pre-change values", async ({
     timeout: 30000,
   });
 
-  // The producer name carries the heavy weight and the 2px step itself.
+  // The producer name is the semibold datum of the "Productor:" row. It owned
+  // the 2px step back when the origin line still lived in the header; that line
+  // is gone, so the name now sits on the row baseline with no top margin.
   expect(
     await activeProducerName.evaluate((el) => {
       const cs = getComputedStyle(el);
       return { fontWeight: cs.fontWeight, marginTop: cs.marginTop };
     }),
-  ).toEqual({ fontWeight: "800", marginTop: "2px" });
+  ).toEqual({ fontWeight: "600", marginTop: "0px" });
 
-  // The location line below it: the 2px step.
-  expect(
-    await page
-      .getByText("📍 Chacra Alimento, Umepay", { exact: true })
-      .evaluate((el) => getComputedStyle(el).marginTop),
-  ).toBe("2px");
+  // The header states which producer you are operating as, not where it is: the
+  // origin stays in the selector rows that list every producer.
+  await expect(
+    page.getByText("📍 Chacra Alimento, Umepay", { exact: true }),
+  ).toHaveCount(0);
 
   // The badge column: the 4px step as a gap.
   expect(
@@ -43,15 +44,16 @@ test("token-replaced styles render their pre-change values", async ({
       .evaluate((el) => getComputedStyle(el).gap),
   ).toBe("4px");
 
-  // The identity trigger row: it owns the 4px gap and the 2px vertical padding
-  // that the chip row's scroll content container used to carry, so the element
-  // asserted is the row itself instead of its first child.
+  // The identity trigger row owns the 4px gap. Its 2px vertical padding is gone:
+  // it stacked with the card's own spacing and doubled the black band between
+  // the header and the inbox entry point, so vertical rhythm is the card's job
+  // alone. The element asserted is the row itself instead of its first child.
   expect(
     await page.getByTestId("producer-switch-row").evaluate((el) => {
       const cs = getComputedStyle(el);
       return { gap: cs.gap, paddingTop: cs.paddingTop };
     }),
-  ).toEqual({ gap: "4px", paddingTop: "2px" });
+  ).toEqual({ gap: "4px", paddingTop: "0px" });
 
   // The identity switch is the success variant, whose background is the subdued
   // system green the palette exposes instead of a local literal. It carries its

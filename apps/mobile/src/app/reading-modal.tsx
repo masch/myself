@@ -10,7 +10,15 @@ import {
   Divider,
 } from "@/components";
 import { useReadingForm } from "@/hooks/use-reading-form";
-import { colors, layout } from "@/theme";
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  layout,
+  letterSpacings,
+  lineHeights,
+  typography,
+} from "@/theme";
 import { SimulationTabNotice } from "@/features/barter/components/simulation-tab-notice";
 import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
 import { router, Stack, useLocalSearchParams } from "expo-router";
@@ -312,9 +320,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.6,
+    fontSize: typography.caption1.fontSize,
+    fontWeight: fontWeights.semibold,
+    letterSpacing: letterSpacings.sectionTitle,
   },
   authorsRow: {
     flexDirection: "row",
@@ -336,14 +344,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   quoteSign: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: typography.title1.fontSize,
+    fontWeight: fontWeights.bold,
     marginBottom: -4,
   },
   contentInput: {
     minHeight: 120,
     textAlignVertical: "top",
-    lineHeight: 22,
+    lineHeight: lineHeights.xl,
   },
   divider: {
     marginLeft: 34,
@@ -354,16 +362,16 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   emptyPreviewText: {
-    fontSize: 14,
+    fontSize: fontSizes.md,
     fontStyle: "italic",
     textAlign: "center",
     paddingVertical: 20,
   },
   formatHelpText: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
     fontStyle: "italic",
     paddingHorizontal: 4,
-    lineHeight: 16,
+    lineHeight: lineHeights.xs,
   },
 });
 

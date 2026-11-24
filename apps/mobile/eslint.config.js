@@ -40,8 +40,9 @@ module.exports = [
     files: [
       "src/components/**/*.{ts,tsx}",
       "src/features/**/components/**/*.{ts,tsx}",
+      "src/app/**/*.{ts,tsx}",
     ],
-    ignores: ["**/__tests__/**"],
+    ignores: ["**/__tests__/**", "src/app/**/*.test.{ts,tsx}"],
     rules: {
       // Design tokens live in @/theme. A component style that hardcodes a
       // typographic or color value is drift the design system cannot see, so the

@@ -14,7 +14,7 @@ import {
 } from "@/components";
 import { ReadingCard } from "@/features/readings/components/reading-card";
 import { confirmDelete } from "@/features/readings/confirm-delete";
-import { colors, spacing } from "@/theme";
+import { colors, fontWeights, letterSpacings, spacing } from "@/theme";
 import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
 
 export default function ReadingsScreen() {
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statNumber: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   statDivider: {
     width: 1,
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm + 4,
   },
   sectionTitle: {
-    letterSpacing: 0.8,
+    letterSpacing: letterSpacings.sectionTitleWide,
     paddingHorizontal: spacing.xs,
   },
 });

@@ -12,7 +12,13 @@ import {
   FormRow,
   Divider,
 } from "@/components";
-import { colors, layout } from "@/theme";
+import {
+  colors,
+  fontWeights,
+  layout,
+  letterSpacings,
+  typography,
+} from "@/theme";
 import { SimulationTabNotice } from "@/features/barter/components/simulation-tab-notice";
 import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
 
@@ -152,9 +158,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.6,
+    fontSize: typography.caption1.fontSize,
+    fontWeight: fontWeights.semibold,
+    letterSpacing: letterSpacings.sectionTitle,
     paddingHorizontal: 4,
   },
   categoriesRow: {

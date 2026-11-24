@@ -16,6 +16,13 @@ export const layout = {
   cardPadding: spacing.compact, // 12
   minInteractiveTarget: 44,
   rowHeight: 44,
+  /**
+   * Compact control height: a dense entry point that sits inside a scrolled
+   * header, where the list is the subject. It trades 4 points of touch area for
+   * vertical rhythm, so reserve it for secondary controls, never for the one
+   * action a screen exists for.
+   */
+  compactControlHeight: 40,
   rowPaddingVertical: 6,
   inputMinHeight: 44,
   inputMultilineMaxHeight: 110,

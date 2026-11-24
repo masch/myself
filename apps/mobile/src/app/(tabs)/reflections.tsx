@@ -8,7 +8,17 @@ import {
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { colors, layout, radius, spacing } from "@/theme";
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  layout,
+  letterSpacings,
+  lineHeights,
+  radius,
+  spacing,
+  typography,
+} from "@/theme";
 import {
   ScreenContainer,
   Accordion,
@@ -872,7 +882,7 @@ export default function ReflectionsScreen() {
                         <ThemedText
                           variant="callout"
                           style={{
-                            fontWeight: "600",
+                            fontWeight: fontWeights.semibold,
                           }}
                         >
                           📅 El programa comienza el{" "}
@@ -883,7 +893,7 @@ export default function ReflectionsScreen() {
                           color={colors.secondaryLabel}
                           style={{
                             textAlign: "center",
-                            lineHeight: 18,
+                            lineHeight: lineHeights.sm,
                           }}
                         >
                           Estás inscripto en esta convocatoria. El programa
@@ -914,7 +924,7 @@ export default function ReflectionsScreen() {
                               <ThemedText
                                 variant="callout"
                                 style={{
-                                  fontWeight: "600",
+                                  fontWeight: fontWeights.semibold,
                                 }}
                               >
                                 ✨ Paso de hoy completado
@@ -924,7 +934,7 @@ export default function ReflectionsScreen() {
                                 color={colors.secondaryLabel}
                                 style={{
                                   textAlign: "center",
-                                  lineHeight: 18,
+                                  lineHeight: lineHeights.sm,
                                 }}
                               >
                                 El Paso {active.currentStep} se desbloqueará el{" "}
@@ -1057,7 +1067,9 @@ export default function ReflectionsScreen() {
                                     <ThemedText
                                       variant="callout"
                                       color={colors.secondaryLabel}
-                                      style={{ fontWeight: "600" }}
+                                      style={{
+                                        fontWeight: fontWeights.semibold,
+                                      }}
                                     >
                                       Pasos completados ({completedSteps.length}
                                       )
@@ -1212,11 +1224,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    // Same section rank as the gondola's headers. The 18px literal this replaced
+    // was outside the scale, so the migration landed on the nearest real rank
+    // and moved the heading by one point on purpose, not by accident.
+    fontSize: typography.title2.fontSize,
+    fontWeight: fontWeights.bold,
   },
   sectionSubtitle: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     marginTop: 2,
   },
   upcomingSection: {
@@ -1227,11 +1242,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subsectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: typography.body.fontSize,
+    fontWeight: fontWeights.bold,
   },
   subsectionSubtitle: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
     marginTop: 2,
   },
   missedSection: {
@@ -1244,12 +1259,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   missedTitle: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
     marginBottom: 2,
   },
   missedSubtitle: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
   },
   cohortBox: {
     padding: layout.cardPadding,
@@ -1257,8 +1272,8 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   cohortTitle: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
   },
   cohortHeaderRow: {
     flexDirection: "row",
@@ -1268,8 +1283,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   subHeader: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
     marginBottom: 4,
   },
   answeredMacroBlock: {
@@ -1296,9 +1311,9 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   preparatoryBadge: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: letterSpacings.caption,
     marginBottom: spacing.xs / 2,
   },
 });

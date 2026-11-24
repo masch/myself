@@ -19,7 +19,16 @@ import {
   NativeSwitch,
   NativePicker,
 } from "@/components";
-import { colors, layout, spacing, typography, radius } from "@/theme";
+import {
+  colors,
+  fontWeights,
+  layout,
+  letterSpacings,
+  lineHeights,
+  spacing,
+  typography,
+  radius,
+} from "@/theme";
 
 const COLOR_SWATCHES: {
   category: string;
@@ -607,7 +616,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   heroTitle: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   heroSubtitle: {
     marginTop: spacing.xs,
@@ -620,11 +629,11 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   groupTitle: {
-    letterSpacing: 0.5,
-    fontWeight: "600",
+    letterSpacing: letterSpacings.caption,
+    fontWeight: fontWeights.semibold,
   },
   boldText: {
-    fontWeight: "600",
+    fontWeight: fontWeights.semibold,
   },
   swatchGrid: {
     flexDirection: "row",
@@ -693,7 +702,7 @@ const styles = StyleSheet.create({
   },
   collapsibleBody: {
     marginTop: spacing.xs,
-    lineHeight: 20,
+    lineHeight: lineHeights.lg,
   },
   primitiveDivider: {
     height: StyleSheet.hairlineWidth,

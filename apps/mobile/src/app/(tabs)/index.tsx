@@ -12,7 +12,7 @@ import {
   ThemedText,
   EmptyState,
 } from "@/components";
-import { colors, spacing } from "@/theme";
+import { colors, fontWeights, letterSpacings, spacing } from "@/theme";
 import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
 
 export default function HomeScreen() {
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statNumber: {
-    fontWeight: "700",
+    fontWeight: fontWeights.bold,
   },
   statDivider: {
     width: 1,
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sectionTitle: {
-    letterSpacing: 0.6,
+    letterSpacing: letterSpacings.sectionTitle,
     paddingHorizontal: spacing.xs,
   },
 });
