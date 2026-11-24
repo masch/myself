@@ -14,7 +14,7 @@ import {
 
 import { useAuth } from "@/context/auth-context";
 import { resetDatabase } from "@/infrastructure/persistence/database";
-import { colors } from "@/theme";
+import { colors, fontSizes, lineHeights, typography } from "@/theme";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -777,7 +777,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
     fontWeight: "600",
     letterSpacing: 0.6,
     paddingHorizontal: 4,
@@ -803,11 +803,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rowTitle: {
-    fontSize: 16,
+    fontSize: fontSizes.lg,
     fontWeight: "500",
   },
   rowSubtitle: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   subheading: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
     fontWeight: "600",
     marginLeft: 36,
   },
@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: typography.title2.fontSize,
     fontWeight: "700",
   },
   modalBody: {
@@ -865,18 +865,18 @@ const styles = StyleSheet.create({
     height: 48,
   },
   aboutTitle: {
-    fontSize: 20,
+    fontSize: typography.title2.fontSize,
     fontWeight: "700",
     marginTop: 8,
   },
   aboutVersion: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     marginTop: 2,
   },
   aboutDescription: {
-    fontSize: 14,
+    fontSize: fontSizes.md,
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: lineHeights.lg,
     marginTop: 8,
   },
 });

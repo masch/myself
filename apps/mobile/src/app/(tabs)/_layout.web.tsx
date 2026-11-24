@@ -2,6 +2,7 @@ import "./tabs-web.css";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { SimulationTabNotice } from "@/features/barter/components/simulation-tab-notice";
 import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
+import { typography } from "@/theme";
 
 export default function TabLayout() {
   // A simulation tab has no local database by design, so every screen that needs
@@ -11,7 +12,7 @@ export default function TabLayout() {
   }
 
   return (
-    <NativeTabs labelStyle={{ fontSize: 11 }}>
+    <NativeTabs labelStyle={{ fontSize: typography.caption1.fontSize }}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Icon sf="house.fill" md="home" />
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>

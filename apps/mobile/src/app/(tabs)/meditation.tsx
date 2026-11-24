@@ -32,7 +32,14 @@ import {
   NativeSwitch,
 } from "@/components";
 
-import { colors, shadows, spacing } from "@/theme";
+import {
+  colors,
+  fontSizes,
+  lineHeights,
+  shadows,
+  spacing,
+  typography,
+} from "@/theme";
 
 function formatTime(totalSeconds: number): string {
   const mins = Math.floor(totalSeconds / 60);
@@ -770,7 +777,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   timerText: {
-    fontSize: 60,
+    fontSize: typography.largeTitle.fontSize,
     fontWeight: "200",
     fontVariant: ["tabular-nums"],
     letterSpacing: 2,
@@ -782,25 +789,25 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   momentStep: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   momentTitle: {
-    fontSize: 19,
+    fontSize: typography.title2.fontSize,
     fontWeight: "600",
     textAlign: "center",
   },
   scheduledNotice: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     textAlign: "center",
     marginTop: 6,
     fontWeight: "500",
   },
   momentSubtitle: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     textAlign: "center",
     marginTop: 4,
   },
@@ -838,30 +845,30 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   readingCardTag: {
-    fontSize: 10,
+    fontSize: fontSizes.xs,
     fontWeight: "700",
     letterSpacing: 0.6,
     marginBottom: 2,
   },
   readingAuthorName: {
-    fontSize: 16,
+    fontSize: fontSizes.lg,
     fontWeight: "700",
   },
   readingAuthorBio: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
   },
   quoteBox: {
     paddingLeft: 4,
     gap: 8,
   },
   readingTitle: {
-    fontSize: 16,
+    fontSize: fontSizes.lg,
     fontWeight: "700",
     letterSpacing: 0.3,
   },
   reflectionText: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: typography.body.fontSize,
+    lineHeight: lineHeights.xl,
     fontStyle: "italic",
     marginTop: -6,
   },
@@ -875,11 +882,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   readCountBadge: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
     fontWeight: "500",
   },
   autoRecordHint: {
-    fontSize: 11,
+    fontSize: typography.caption1.fontSize,
     fontStyle: "italic",
   },
   readRegisteredBadge: {
@@ -891,7 +898,7 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
   },
   readRegisteredText: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     flex: 1,
   },
   actionSection: {
@@ -914,7 +921,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
     fontWeight: "600",
     letterSpacing: 0.6,
     marginLeft: 4,
@@ -935,11 +942,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   settingTitle: {
-    fontSize: 16,
+    fontSize: fontSizes.lg,
     fontWeight: "500",
   },
   settingSubtitle: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
@@ -959,17 +966,17 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   pickerLabel: {
-    fontSize: 10,
+    fontSize: fontSizes.xs,
     fontWeight: "700",
     letterSpacing: 1,
   },
   pickerValue: {
-    fontSize: 28,
+    fontSize: typography.title1.fontSize,
     fontWeight: "600",
     fontVariant: ["tabular-nums"],
   },
   colonSeparator: {
-    fontSize: 32,
+    fontSize: typography.title1.fontSize,
     fontWeight: "300",
     marginTop: 14,
   },
@@ -1001,12 +1008,12 @@ const styles = StyleSheet.create({
     height: 24,
   },
   dndNoticeTitle: {
-    fontSize: 14,
+    fontSize: fontSizes.md,
     fontWeight: "600",
     marginBottom: 2,
   },
   dndNoticeSubtitle: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: typography.caption1.fontSize,
+    lineHeight: lineHeights.xs,
   },
 });

@@ -238,6 +238,7 @@ export default function BarterScreen() {
               : "Bandeja de Trueques"
           }
           variant="secondary"
+          size="compact"
           onPress={() => router.push("/barter-inbox")}
         />
       </View>

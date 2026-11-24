@@ -1,22 +1,22 @@
 import "@/infrastructure/crypto/polyfill";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 
-import {
-  ThemeProvider,
-  DarkTheme,
-  DefaultTheme,
-} from "expo-router/react-navigation";
-import { useCallback, useState } from "react";
-import { Platform, useColorScheme } from "react-native";
-import { SQLiteProvider } from "expo-sqlite";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "@/infrastructure/query/query-client";
+import { AppButton, EmptyState, ToastProvider } from "@/components";
+import { AuthProvider } from "@/context/auth-context";
+import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
 import { initDatabase } from "@/infrastructure/persistence/database";
 import { isDatabaseInUseError } from "@/infrastructure/persistence/database-open-error";
-import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
-import { AuthProvider } from "@/context/auth-context";
-import { AppButton, EmptyState, ToastProvider } from "@/components";
+import { queryClient } from "@/infrastructure/query/query-client";
 import { colors, spacing } from "@/theme";
+import { QueryClientProvider } from "@tanstack/react-query";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "expo-router/react-navigation";
+import { SQLiteProvider } from "expo-sqlite";
+import { useCallback, useState } from "react";
+import { Platform, useColorScheme } from "react-native";
 
 /**
  * Global Error Boundary for Expo Router.
@@ -158,7 +158,7 @@ function AppShell() {
           <Stack.Screen
             name="barter"
             options={{
-              headerTitle: "Góndola Trueque P2P",
+              headerTitle: "Mercado de productores",
             }}
           />
           <Stack.Screen

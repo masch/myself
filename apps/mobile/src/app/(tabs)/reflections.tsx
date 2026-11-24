@@ -8,7 +8,15 @@ import {
   type ThemeCohort,
   type UserReflection,
 } from "@myself/shared";
-import { colors, layout, radius, spacing } from "@/theme";
+import {
+  colors,
+  fontSizes,
+  layout,
+  lineHeights,
+  radius,
+  spacing,
+  typography,
+} from "@/theme";
 import {
   ScreenContainer,
   Accordion,
@@ -883,7 +891,7 @@ export default function ReflectionsScreen() {
                           color={colors.secondaryLabel}
                           style={{
                             textAlign: "center",
-                            lineHeight: 18,
+                            lineHeight: lineHeights.sm,
                           }}
                         >
                           Estás inscripto en esta convocatoria. El programa
@@ -924,7 +932,7 @@ export default function ReflectionsScreen() {
                                 color={colors.secondaryLabel}
                                 style={{
                                   textAlign: "center",
-                                  lineHeight: 18,
+                                  lineHeight: lineHeights.sm,
                                 }}
                               >
                                 El Paso {active.currentStep} se desbloqueará el{" "}
@@ -1212,11 +1220,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: typography.title2.fontSize,
     fontWeight: "700",
   },
   sectionSubtitle: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     marginTop: 2,
   },
   upcomingSection: {
@@ -1227,11 +1235,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subsectionTitle: {
-    fontSize: 15,
+    fontSize: typography.body.fontSize,
     fontWeight: "700",
   },
   subsectionSubtitle: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
     marginTop: 2,
   },
   missedSection: {
@@ -1244,12 +1252,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   missedTitle: {
-    fontSize: 14,
+    fontSize: fontSizes.md,
     fontWeight: "700",
     marginBottom: 2,
   },
   missedSubtitle: {
-    fontSize: 12,
+    fontSize: typography.caption1.fontSize,
   },
   cohortBox: {
     padding: layout.cardPadding,
@@ -1257,7 +1265,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   cohortTitle: {
-    fontSize: 17,
+    fontSize: fontSizes.lg,
     fontWeight: "700",
   },
   cohortHeaderRow: {
@@ -1268,7 +1276,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   subHeader: {
-    fontSize: 13,
+    fontSize: fontSizes.sm,
     fontWeight: "600",
     marginBottom: 4,
   },

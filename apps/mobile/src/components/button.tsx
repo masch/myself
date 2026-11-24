@@ -16,11 +16,19 @@ import { ThemedText } from "./themed-text";
 export type ButtonVariant =
   "primary" | "secondary" | "purple" | "green" | "destructive" | "gray";
 
+/**
+ * `regular` is the full-height action. `compact` trades a little touch area for
+ * vertical density, for entry points that sit inside a scrolled header where the
+ * list, not the button, is the subject.
+ */
+export type ButtonSize = "regular" | "compact";
+
 export interface ButtonProps extends Omit<PressableProps, "style"> {
   title: string;
   subtitle?: string;
   icon?: string;
   variant?: ButtonVariant;
+  size?: ButtonSize;
   backgroundColor?: ColorValue;
   style?: StyleProp<ViewStyle>;
   titleStyle?: StyleProp<TextStyle>;
@@ -32,6 +40,7 @@ export function AppButton({
   subtitle,
   icon,
   variant = "primary",
+  size = "regular",
   backgroundColor,
   style,
   titleStyle,
@@ -107,6 +116,7 @@ export function AppButton({
       aria-label={finalAccessibilityLabel}
       style={({ pressed }) => [
         styles.baseButton,
+        size === "compact" && styles.compactButton,
         {
           backgroundColor: finalBg as any,
           opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
@@ -118,7 +128,13 @@ export function AppButton({
       {...props}
     >
       <View style={styles.contentRow}>
-        {icon && <AppIcon name={icon} size={20} color={iconColor as any} />}
+        {icon && (
+          <AppIcon
+            name={icon}
+            size={size === "compact" ? 16 : 20}
+            color={iconColor as any}
+          />
+        )}
         <ThemedText
           variant="headline"
           color={textColor}
@@ -150,6 +166,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderCurve: "continuous",
     minHeight: 44,
+  },
+  compactButton: {
+    minHeight: 40,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
   },
   contentRow: {
     flexDirection: "row",

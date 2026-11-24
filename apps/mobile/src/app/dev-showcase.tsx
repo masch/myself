@@ -19,7 +19,14 @@ import {
   NativeSwitch,
   NativePicker,
 } from "@/components";
-import { colors, layout, spacing, typography, radius } from "@/theme";
+import {
+  colors,
+  layout,
+  lineHeights,
+  spacing,
+  typography,
+  radius,
+} from "@/theme";
 
 const COLOR_SWATCHES: {
   category: string;
@@ -693,7 +700,7 @@ const styles = StyleSheet.create({
   },
   collapsibleBody: {
     marginTop: spacing.xs,
-    lineHeight: 20,
+    lineHeight: lineHeights.lg,
   },
   primitiveDivider: {
     height: StyleSheet.hairlineWidth,

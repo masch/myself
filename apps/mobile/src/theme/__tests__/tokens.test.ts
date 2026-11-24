@@ -76,18 +76,29 @@ describe("Design System Tokens", () => {
     });
 
     it("should expose the shared font-size scale", () => {
-      expect(fontSizes.xs).toBe(11);
-      expect(fontSizes.sm).toBe(14);
-      expect(fontSizes.md).toBe(16);
-      expect(fontSizes.lg).toBe(19);
+      expect(fontSizes.xs).toBe(10);
+      expect(fontSizes.sm).toBe(13);
+      expect(fontSizes.md).toBe(14);
+      expect(fontSizes.lg).toBe(17);
     });
 
     it("should expose the shared line-height scale", () => {
-      expect(lineHeights.xs).toBe(18);
-      expect(lineHeights.sm).toBe(20);
-      expect(lineHeights.md).toBe(21);
-      expect(lineHeights.lg).toBe(22);
-      expect(lineHeights.xl).toBe(25);
+      expect(lineHeights.xs).toBe(16);
+      expect(lineHeights.sm).toBe(18);
+      expect(lineHeights.md).toBe(19);
+      expect(lineHeights.lg).toBe(20);
+      expect(lineHeights.xl).toBe(22);
+    });
+
+    it("should expose the compact variant sizes", () => {
+      expect(typography.largeTitle.fontSize).toBe(30);
+      expect(typography.title1.fontSize).toBe(24);
+      expect(typography.title2.fontSize).toBe(19);
+      expect(typography.headline.fontSize).toBe(15);
+      expect(typography.body.fontSize).toBe(15);
+      expect(typography.callout.fontSize).toBe(14);
+      expect(typography.caption1.fontSize).toBe(11);
+      expect(typography.caption2.fontSize).toBe(10);
     });
 
     it("should expose the shared letter-spacing scale", () => {
