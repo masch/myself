@@ -1,10 +1,14 @@
 import "@/infrastructure/crypto/polyfill";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 
-import { AppButton, EmptyState, ToastProvider } from "@/components";
-import { AuthProvider } from "@/context/auth-context";
+import { AppButton, EmptyState, Spinner, ToastProvider } from "@/components";
+import { SessionProvider, useSession } from "@/context/session-context";
+import { deriveSessionGate } from "@/context/session-gate";
 import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
-import { initDatabase } from "@/infrastructure/persistence/database";
+import {
+  initDatabase,
+  upsertSessionUser,
+} from "@/infrastructure/persistence/database";
 import { isDatabaseInUseError } from "@/infrastructure/persistence/database-open-error";
 import { queryClient } from "@/infrastructure/query/query-client";
 import { colors, spacing } from "@/theme";
@@ -14,8 +18,8 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "expo-router/react-navigation";
-import { SQLiteProvider } from "expo-sqlite";
-import { useCallback, useState } from "react";
+import { SQLiteProvider, useSQLiteContext } from "expo-sqlite";
+import { useCallback, useEffect, useState } from "react";
 import { Platform, useColorScheme } from "react-native";
 
 /**
@@ -119,12 +123,49 @@ function DatabaseGate() {
 }
 
 /**
+ * Which navigator the root stack contributes (S13).
+ *
+ * `ungated` is the barter simulation tab: it renders without the database and
+ * therefore without a session, exactly as it did before authentication existed.
+ */
+type AppShellMode = "authenticated" | "unauthenticated" | "ungated";
+
+/**
+ * Shown while the stored session is being restored, instead of a sign-in flash.
+ */
+function SessionLoadingScreen() {
+  return (
+    <EmptyState
+      testID="session-loading-screen"
+      icon="sf:person.crop.circle.badge.questionmark"
+      iconColor={colors.secondaryLabel}
+      iconSize={48}
+      title="Restoring your session"
+      description="One moment…"
+      action={<Spinner size="md" label="Loading" />}
+      style={{
+        flex: 1,
+        backgroundColor: colors.systemBackground,
+        padding: spacing.xl,
+        justifyContent: "center",
+      }}
+    />
+  );
+}
+
+/**
  * Renders the app's route stack with color-scheme theming and shared toast
  * notifications. It deliberately excludes the providers that own the SQLite
  * database, so a barter simulation tab can render without opening one.
  */
-function AppShell() {
+function AppShell({ mode }: { mode: AppShellMode }) {
   const colorScheme = useColorScheme();
+
+  // The guards are what enforce the gate: a screen tree whose guard is false is not
+  // registered in the navigator, so an unauthenticated client has no app route to
+  // reach and a signed-in one has no auth route to land on.
+  const showAppScreens = mode !== "unauthenticated";
+  const showAuthScreens = mode === "unauthenticated";
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -134,45 +175,51 @@ function AppShell() {
             contentStyle: { backgroundColor: colors.transparent },
           }}
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="modal"
-            options={{
-              presentation: "modal",
-              headerTitle: "New Task",
-            }}
-          />
-          <Stack.Screen
-            name="reading-modal"
-            options={{
-              presentation: "modal",
-              headerTitle: "Meditation Reading",
-            }}
-          />
-          <Stack.Screen
-            name="dev-showcase"
-            options={{
-              headerTitle: "Design System",
-            }}
-          />
-          <Stack.Screen
-            name="barter"
-            options={{
-              headerTitle: "Mercado de productores",
-            }}
-          />
-          <Stack.Screen
-            name="barter-inbox"
-            options={{
-              headerTitle: "Bandeja de Trueques",
-            }}
-          />
-          <Stack.Screen
-            name="barter-trade/[id]"
-            options={{
-              headerTitle: "Entrega de Trueque",
-            }}
-          />
+          <Stack.Protected guard={showAuthScreens}>
+            <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+            <Stack.Screen name="sign-up" options={{ headerShown: false }} />
+          </Stack.Protected>
+          <Stack.Protected guard={showAppScreens}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="modal"
+              options={{
+                presentation: "modal",
+                headerTitle: "New Task",
+              }}
+            />
+            <Stack.Screen
+              name="reading-modal"
+              options={{
+                presentation: "modal",
+                headerTitle: "Meditation Reading",
+              }}
+            />
+            <Stack.Screen
+              name="dev-showcase"
+              options={{
+                headerTitle: "Design System",
+              }}
+            />
+            <Stack.Screen
+              name="barter"
+              options={{
+                headerTitle: "Mercado de productores",
+              }}
+            />
+            <Stack.Screen
+              name="barter-inbox"
+              options={{
+                headerTitle: "Bandeja de Trueques",
+              }}
+            />
+            <Stack.Screen
+              name="barter-trade/[id]"
+              options={{
+                headerTitle: "Entrega de Trueque",
+              }}
+            />
+          </Stack.Protected>
         </Stack>
       </ToastProvider>
     </ThemeProvider>
@@ -180,14 +227,63 @@ function AppShell() {
 }
 
 /**
- * Renders the app's route stack with authentication, color-scheme theming,
- * and shared toast notifications.
+ * The root session gate (S13).
+ *
+ * Three states, one navigator tree: while the stored session is being restored the
+ * app shows a loading surface (never the sign-in form, which would flash at a
+ * signed-in user); a resolved session opens the app screens; no session opens only
+ * the sign-up and sign-in screens. It sits below `SQLiteProvider` on purpose — the
+ * database gate still runs first, so a device without a usable database reports that
+ * before any session work happens — and outside `DatabaseGate` for the barter
+ * simulation tab, which renders without either.
+ */
+function SessionGate() {
+  const { user, isLoading } = useSession();
+  const state = deriveSessionGate({ user, isLoading });
+
+  if (state === "loading") {
+    return <SessionLoadingScreen />;
+  }
+
+  return <AppShell mode={state} />;
+}
+
+/**
+ * Keeps a local `user` row for whoever is signed in (`S13`).
+ *
+ * Every per-user row on the device owns a `user_id` foreign key, and the session identity
+ * comes from the server: without this mirror the admin, or an account created a second
+ * ago, could not create its first task or reflection. It runs where both the database and
+ * the session exist (below `SQLiteProvider`, inside `SessionProvider`) and never blocks
+ * rendering — a failed mirror is reported and the app keeps working.
+ */
+function LocalSessionUser() {
+  const db = useSQLiteContext();
+  const { user } = useSession();
+
+  useEffect(() => {
+    if (!user) return;
+
+    upsertSessionUser(db, user).catch((error: unknown) => {
+      console.warn(
+        "[session] Failed to mirror the signed-in identity into the local database:",
+        error,
+      );
+    });
+  }, [db, user]);
+
+  return null;
+}
+
+/**
+ * Wraps the app in the session the whole authenticated tree reads (`S13`).
  */
 function AppNavigation() {
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <SessionProvider>
+      <LocalSessionUser />
+      <SessionGate />
+    </SessionProvider>
   );
 }
 
@@ -210,7 +306,7 @@ export default function RootLayout() {
   if (isBarterSimulationTab()) {
     return (
       <QueryClientProvider client={queryClient}>
-        <AppShell />
+        <AppShell mode="ungated" />
       </QueryClientProvider>
     );
   }

@@ -127,6 +127,65 @@ export async function addUser(
 export const createUser = addUser;
 
 /**
+ * Writes the signed-in identity into the local `user` table (S13).
+ *
+ * Every per-user row on the device — tasks, reflections, preferences, theme progress —
+ * owns a `user_id` foreign key, and the identity of a session lives on the server. The
+ * admin, and any account created a moment ago, therefore has no local row, so the first
+ * local write would fail the constraint. This mirror keeps the FK owner present for
+ * whoever is authenticated, and it is an upsert so signing in again only refreshes the
+ * profile fields: `created_at` is never rewritten, and a seeded row (the demo identity)
+ * keeps its id, its content and its insertion time.
+ *
+ * Name and email go through the same schema as every other local write, because the
+ * domain `User` that `mapUserRow` builds refuses a blank name or a malformed email.
+ * `email_verified` is written as 0: verification state is the server's (`S23`), nothing on
+ * the device reads the column, and claiming `1` here would be a lie.
+ */
+export async function upsertSessionUser(
+  db: SQLiteDatabase,
+  sessionUser: {
+    id: string;
+    name: string;
+    email: string;
+    /** Mirrored for faithfulness; nothing on the device reads the column (L20). */
+    role?: string | null;
+    imageUrl?: string | null;
+  },
+): Promise<void> {
+  const parsed = userNameAndEmailSchema.safeParse({
+    name: sessionUser.name,
+    email: sessionUser.email,
+  });
+  if (!parsed.success) {
+    throw new Error(
+      parsed.error.issues[0]?.message ?? "Invalid user name or email",
+    );
+  }
+
+  const now = DateTime.now().toMillis();
+  await db.runAsync(
+    `INSERT INTO "user" (id, name, email, image, email_verified, role, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 0, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       name = excluded.name,
+       email = excluded.email,
+       image = COALESCE(excluded.image, "user".image),
+       role = COALESCE(excluded.role, "user".role),
+       updated_at = excluded.updated_at`,
+    [
+      sessionUser.id,
+      parsed.data.name,
+      parsed.data.email,
+      sessionUser.imageUrl ?? null,
+      sessionUser.role ?? null,
+      now,
+      now,
+    ],
+  );
+}
+
+/**
  * Task Operations
  */
 
