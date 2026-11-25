@@ -24,6 +24,12 @@ export type ApiBindings = {
   BETTER_AUTH_URL?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  /**
+   * Password of the single admin identity the seed creates (S20, R1-001). A secret:
+   * the repository carries no admin credential, and an absent value means the seed
+   * creates no admin at all.
+   */
+  ADMIN_USER_PASSWORD?: string;
 };
 
 export type ApiVariables = {

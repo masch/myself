@@ -19,14 +19,21 @@ import type { RepositoriesDependencies } from "../../middleware/repositories";
 export interface TestDatabaseOptions {
   seed?: boolean;
   url?: string;
+  /**
+   * Password for the seeded admin identity (S20, R1-001). The seed carries no admin
+   * credential of its own, so a suite that needs an admin session passes its own value
+   * here; without it the seed skips the admin and warns.
+   */
+  adminPassword?: string;
 }
 
 /**
- * Credentials of the two seeded identities, re-exported for the mobile-side integration
- * test, which signs in over the API it drives in-process. Both come from the seed,
- * which refuses to run in production (`ENVIRONMENT !== "production"`).
+ * Credential of the seeded demo identity, re-exported for the mobile-side integration
+ * test, which signs in over the API it drives in-process. It comes from the seed, which
+ * refuses to run in production (`ENVIRONMENT !== "production"`). The admin credential is
+ * deliberately not re-exported: it is caller-supplied (`TestDatabaseOptions`).
  */
-export { ADMIN_USER_PASSWORD, DEMO_USER_PASSWORD } from "./seed";
+export { DEMO_USER_PASSWORD } from "./seed";
 
 export async function createTestDatabase(
   options: TestDatabaseOptions = { seed: true },
@@ -39,7 +46,7 @@ export async function createTestDatabase(
   await migrate(db, { migrationsFolder });
 
   if (options.seed) {
-    await seedDatabase(db);
+    await seedDatabase(db, { adminPassword: options.adminPassword });
   }
 
   return db;

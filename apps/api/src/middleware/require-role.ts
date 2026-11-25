@@ -2,7 +2,7 @@ import { createMiddleware } from "hono/factory";
 import type { MiddlewareHandler } from "hono";
 import type { AppEnv } from "../types";
 import type { Auth } from "../auth";
-import { ForbiddenError, UnauthorizedError } from "../errors";
+import { AppError, ForbiddenError, UnauthorizedError } from "../errors";
 
 /**
  * The role a session carries, as read from the session user (S5).
@@ -77,18 +77,45 @@ export function hasRole(
 }
 
 /**
+ * Answers one question: which role, if any, does this request's session carry?
+ *
+ * A rejected lookup is a dependency failure, not "no session" (R3-001). Letting the
+ * rejection escape would make the answer depend on what the resolver rejected with:
+ * Hono hands an `Error` to `handleApiError`, which renders the 500 envelope, but any
+ * other value is re-thrown as-is and never reaches the error handler at all — an
+ * uncontrolled failure with no envelope, which is exactly what a malformed bearer token
+ * or a database outage must not produce. Wrapping it in an `Error` (keeping the original
+ * as `cause`, so the log still shows it) guarantees the controlled 500. An `AppError`
+ * thrown by a resolver is already a decided response and is re-thrown unchanged.
+ */
+async function resolveSessionRole(
+  resolveRole: SessionRoleResolver,
+  headers: Headers,
+): Promise<SessionRole | null> {
+  try {
+    return await resolveRole(headers);
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw new Error("Session lookup failed", { cause: error });
+  }
+}
+
+/**
  * Gate for the curated-content writes (S5, S6).
  *
  * 401 when there is no session and 403 when the session does not hold `required`.
  * Both are thrown as the project's `AppError` subclasses so `handleApiError` renders
- * the usual `{ error, code }` envelope every `/v1` route uses.
+ * the usual `{ error, code }` envelope every `/v1` route uses. A resolver rejection is
+ * a 500 in that same envelope (see `resolveSessionRole`).
  */
 export function requireRole(
   required: string,
   resolveRole: SessionRoleResolver,
 ): MiddlewareHandler<AppEnv> {
   return createMiddleware<AppEnv>(async (c, next) => {
-    const session = await resolveRole(c.req.raw.headers);
+    const session = await resolveSessionRole(resolveRole, c.req.raw.headers);
 
     if (!session) {
       throw new UnauthorizedError("Authentication required");

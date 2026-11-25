@@ -29,16 +29,24 @@ import { AppConfig } from "../../config";
 /**
  * Demo credential for the seeded demo account (D4). Development and staging only:
  * the seed refuses to run in production, so this never reaches a deployed surface.
+ *
+ * This one stays committed on purpose and is not an admin: it belongs to the shared
+ * demo identity (`S11`) that every checkout and every device owns, and it grants
+ * nothing beyond a normal `"user"` session.
  */
 export const DEMO_USER_PASSWORD = "myself-demo-password";
 
 /**
- * Credential for the seeded admin identity (S20). Same gate as the demo identity:
- * `seedAdminIdentity` only runs when `ENVIRONMENT !== "production"`, so this value
- * never reaches a deployed surface. Documented here, in one place, so the seed and
- * the tests that sign the admin in read the same credential.
+ * Exact warning the seed prints when no admin credential is configured (R1-001).
+ *
+ * The admin password is deployment configuration (`ADMIN_USER_PASSWORD`), not a value
+ * this repository can carry: a committed admin credential would publish a write-capable
+ * curated-content account in every deploy that runs the seed.
  */
-export const ADMIN_USER_PASSWORD = "myself-admin-password";
+export const ADMIN_SEED_SKIPPED_WARNING =
+  "[seed] Skipping the admin identity: ADMIN_USER_PASSWORD is not set. " +
+  "Curated-content writes require the admin role, so set ADMIN_USER_PASSWORD " +
+  "(for example in apps/api/.dev.vars) and run the seed again.";
 
 function isDemoSeedAllowed(): boolean {
   if (typeof process === "undefined" || !process.env) {
@@ -52,7 +60,12 @@ interface SeedIdentity {
   name: string;
   email: string;
   role: string;
-  password: string;
+}
+
+/** Options for `seedDatabase`; the admin credential has no default on purpose. */
+export interface SeedOptions {
+  /** Password for the seeded admin identity (S20). Absent means "seed no admin". */
+  adminPassword?: string;
 }
 
 /**
@@ -67,6 +80,7 @@ interface SeedIdentity {
 async function seedIdentity(
   db: DbClient,
   identity: SeedIdentity,
+  password: string,
 ): Promise<void> {
   const now = new Date();
 
@@ -91,7 +105,7 @@ async function seedIdentity(
       accountId: identity.id,
       providerId: "credential",
       userId: identity.id,
-      password: await hashPassword(identity.password),
+      password: await hashPassword(password),
       createdAt: now,
       updatedAt: now,
     })
@@ -103,27 +117,37 @@ const DEMO_IDENTITY: SeedIdentity = {
   name: DEMO_USER_NAME,
   email: DEMO_USER_EMAIL,
   role: "user",
-  password: DEMO_USER_PASSWORD,
 };
 
 /**
  * The only admin the app has (S20). Nothing else grants the role: the admin plugin's
- * `/admin/set-role` endpoint is disabled in `createAuth`.
+ * `/admin/set-role` endpoint is disabled in `createAuth`, and its credential comes from
+ * `ADMIN_USER_PASSWORD` at seed time instead of from this repository (R1-001).
  */
 const ADMIN_IDENTITY: SeedIdentity = {
   id: ADMIN_USER_ID,
   name: ADMIN_USER_NAME,
   email: ADMIN_USER_EMAIL,
   role: ADMIN_ROLE,
-  password: ADMIN_USER_PASSWORD,
 };
 
-export async function seedDatabase(db: DbClient): Promise<void> {
+export async function seedDatabase(
+  db: DbClient,
+  options: SeedOptions = {},
+): Promise<void> {
   // 0. Seeded identities (dev/staging only): the shared demo identity (D4) and the
-  //    single admin the curated-content writes need (S20).
+  //    single admin the curated-content writes need (S20). The admin only exists when
+  //    the environment supplies its credential; there is no fallback, because a
+  //    committed one would be a published admin password in every seeded deploy.
   if (isDemoSeedAllowed()) {
-    await seedIdentity(db, DEMO_IDENTITY);
-    await seedIdentity(db, ADMIN_IDENTITY);
+    await seedIdentity(db, DEMO_IDENTITY, DEMO_USER_PASSWORD);
+
+    const adminPassword = options.adminPassword?.trim();
+    if (adminPassword) {
+      await seedIdentity(db, ADMIN_IDENTITY, adminPassword);
+    } else {
+      console.warn(ADMIN_SEED_SKIPPED_WARNING);
+    }
   }
 
   // 1. Seed Authors
@@ -189,7 +213,7 @@ export async function seedFromConfig(config: AppConfig): Promise<void> {
     );
     await migrate(db, { migrationsFolder });
   }
-  await seedDatabase(db);
+  await seedDatabase(db, { adminPassword: config.adminUserPassword });
 }
 
 if (import.meta.main) {

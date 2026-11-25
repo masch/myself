@@ -174,6 +174,55 @@ describe("requireRole middleware (S5, S6)", () => {
     expect(nextReached()).toBe(false);
   });
 
+  /**
+   * Runs `run` with `console.error` silenced: the dependency-failure cases below make
+   * `handleApiError` log the underlying error, which is intended and would otherwise
+   * pollute the suite output.
+   */
+  async function withoutConsoleError<T>(run: () => Promise<T>): Promise<T> {
+    const original = console.error;
+    console.error = () => {};
+    try {
+      return await run();
+    } finally {
+      console.error = original;
+    }
+  }
+
+  it("answers a controlled envelope when the session lookup rejects", async () => {
+    const { app, nextReached } = appWith(async () => {
+      throw new Error("SQLITE_BUSY: database is locked");
+    });
+
+    const res = await withoutConsoleError(() => post(app));
+
+    expect(res.status).toBe(500);
+    // The envelope, not the raw error: a database failure must not leak its message and
+    // must answer the same shape every other /v1 error uses.
+    const body = (await res.json()) as { error: string; code: string };
+    expect(body).toEqual({
+      error: "Internal Server Error",
+      code: ErrorCode.INTERNAL_ERROR,
+    });
+    expect(nextReached()).toBe(false);
+  });
+
+  it("answers a controlled envelope when the resolver rejects without an Error", async () => {
+    const { app, nextReached } = appWith(() =>
+      Promise.reject("session lookup failed with a bare string"),
+    );
+
+    const res = await withoutConsoleError(() => post(app));
+
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { error: string; code: string };
+    expect(body).toEqual({
+      error: "Internal Server Error",
+      code: ErrorCode.INTERNAL_ERROR,
+    });
+    expect(nextReached()).toBe(false);
+  });
+
   it("hands the request headers to the resolver, so the session is what decides", async () => {
     const { app, seenHeaders } = appWith(async () => ({ role: "admin" }));
 

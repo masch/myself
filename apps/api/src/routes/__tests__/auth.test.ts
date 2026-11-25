@@ -19,7 +19,6 @@ import {
   type DbClient,
 } from "../../infrastructure/persistence/client";
 import {
-  ADMIN_USER_PASSWORD,
   DEMO_USER_PASSWORD,
   seedFromConfig,
 } from "../../infrastructure/persistence/seed";
@@ -27,6 +26,12 @@ import {
 // Throwaway value for the API's own test instance: it only ever guards a database
 // created in the system temp directory and deleted when this file finishes.
 const AUTH_SECRET = "dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWZvci1iZXR0ZXItYXV0aA==";
+
+/**
+ * The admin credential is deployment configuration (R1-001), so this suite supplies its
+ * own value through the app's environment instead of importing one from the seed.
+ */
+const ADMIN_TEST_PASSWORD = "auth-suite-admin-password";
 
 /**
  * Every test in this file talks to the API over HTTP through the real Hono app,
@@ -85,6 +90,7 @@ describe("POST /api/auth/* over HTTP (S1)", () => {
       TURSO_DATABASE_URL: database.url,
       BETTER_AUTH_SECRET: AUTH_SECRET,
       BETTER_AUTH_URL: "http://localhost:8787",
+      ADMIN_USER_PASSWORD: ADMIN_TEST_PASSWORD,
     });
     await seedFromConfig(config);
     db = createDb({ url: database.url });
@@ -379,7 +385,7 @@ describe("POST /api/auth/* over HTTP (S1)", () => {
     const res = await app.request(
       jsonRequest("/api/auth/sign-in/email", {
         email: ADMIN_USER_EMAIL,
-        password: ADMIN_USER_PASSWORD,
+        password: ADMIN_TEST_PASSWORD,
       }),
     );
 
@@ -404,7 +410,7 @@ describe("POST /api/auth/* over HTTP (S1)", () => {
   });
 
   it("disables the admin-plugin endpoints this app does not use (S5, S7, S20)", async () => {
-    const token = await signIn(app, ADMIN_USER_EMAIL, ADMIN_USER_PASSWORD);
+    const token = await signIn(app, ADMIN_USER_EMAIL, ADMIN_TEST_PASSWORD);
 
     // Every one of these is a mutating identity surface this single-role app has no
     // feature for; disabling them is what keeps "no endpoint grants the admin role"
@@ -441,7 +447,7 @@ describe("POST /api/auth/* over HTTP (S1)", () => {
   });
 
   it("keeps the admin-only user listing that replaces /v1/users (S7)", async () => {
-    const token = await signIn(app, ADMIN_USER_EMAIL, ADMIN_USER_PASSWORD);
+    const token = await signIn(app, ADMIN_USER_EMAIL, ADMIN_TEST_PASSWORD);
 
     const listRes = await app.request(
       new Request("http://localhost/api/auth/admin/list-users", {

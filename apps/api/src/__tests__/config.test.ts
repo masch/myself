@@ -120,9 +120,56 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
         process.env.TURSO_DATABASE_URL = originalUrl;
       }
     });
+
+    it("maps ADMIN_USER_PASSWORD from process.env (R1-001)", () => {
+      const original = process.env.ADMIN_USER_PASSWORD;
+      process.env.ADMIN_USER_PASSWORD = "admin-password-from-the-environment";
+      try {
+        expect(getProcessEnv().ADMIN_USER_PASSWORD).toBe(
+          "admin-password-from-the-environment",
+        );
+      } finally {
+        if (original === undefined) {
+          delete process.env.ADMIN_USER_PASSWORD;
+        } else {
+          process.env.ADMIN_USER_PASSWORD = original;
+        }
+      }
+    });
   });
 
   describe("AppConfig", () => {
+    it("keeps the admin seed password optional, trimmed and never defaulted (R1-001)", () => {
+      // The developer's own environment must not decide what this test observes.
+      const original = process.env.ADMIN_USER_PASSWORD;
+      delete process.env.ADMIN_USER_PASSWORD;
+      try {
+        const absent = AppConfig.from({
+          ENVIRONMENT: "test",
+          TURSO_DATABASE_URL: ":memory:",
+        });
+        expect(absent.adminUserPassword).toBeUndefined();
+
+        const blank = AppConfig.from({
+          ENVIRONMENT: "test",
+          TURSO_DATABASE_URL: ":memory:",
+          ADMIN_USER_PASSWORD: "   ",
+        });
+        expect(blank.adminUserPassword).toBeUndefined();
+
+        const supplied = AppConfig.from({
+          ENVIRONMENT: "test",
+          TURSO_DATABASE_URL: ":memory:",
+          ADMIN_USER_PASSWORD: "  supplied-by-the-operator  ",
+        });
+        expect(supplied.adminUserPassword).toBe("supplied-by-the-operator");
+      } finally {
+        if (original !== undefined) {
+          process.env.ADMIN_USER_PASSWORD = original;
+        }
+      }
+    });
+
     it("loads config from explicit bindings", () => {
       const config = AppConfig.from({
         ENVIRONMENT: Environments.STAGING,

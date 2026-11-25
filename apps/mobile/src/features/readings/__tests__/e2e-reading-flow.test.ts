@@ -12,10 +12,7 @@ import {
 } from "@myself/shared";
 import { createApp } from "@myself/api/src/app";
 import { AppConfig } from "@myself/api/src/config";
-import {
-  ADMIN_USER_PASSWORD,
-  createTestRepositories,
-} from "@myself/api/src/infrastructure/persistence/test-db";
+import { createTestRepositories } from "@myself/api/src/infrastructure/persistence/test-db";
 import { SqliteReadingRepository } from "../infrastructure/sqlite-reading.repository";
 import { SyncEngine } from "../../../infrastructure/sync/sync-engine";
 import { HttpReadingApiAdapter } from "../infrastructure/http-reading-api.adapter";
@@ -27,6 +24,12 @@ import { Reading } from "@myself/shared";
  */
 // Throwaway secret for the API instance this test drives in-process.
 const AUTH_SECRET = "dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWZvci10aGUtbW9iaWxlLWUyZQ==";
+
+/**
+ * The admin credential is deployment configuration (R1-001), so this suite supplies its
+ * own value to the backend seed instead of importing one from the API package.
+ */
+const ADMIN_TEST_PASSWORD = "mobile-e2e-suite-admin-password";
 
 /**
  * The curated-content writes need an admin session (S6), and Better Auth reads that
@@ -95,6 +98,7 @@ describe("E2E Vertical Integration: Mobile Front ➔ SQLite Outbox ➔ Hono API 
     backendRepos = await createTestRepositories({
       seed: true,
       url: backendDatabase.url,
+      adminPassword: ADMIN_TEST_PASSWORD,
     });
     backendApp = createApp(backendConfig, backendRepos);
 
@@ -103,7 +107,7 @@ describe("E2E Vertical Integration: Mobile Front ➔ SQLite Outbox ➔ Hono API 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: ADMIN_USER_EMAIL,
-        password: ADMIN_USER_PASSWORD,
+        password: ADMIN_TEST_PASSWORD,
       }),
     });
     expect(signIn.status).toBe(200);

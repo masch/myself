@@ -111,7 +111,22 @@ export function getProcessEnv(): Partial<ApiBindings> {
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    ADMIN_USER_PASSWORD: process.env.ADMIN_USER_PASSWORD,
   };
+}
+
+/**
+ * Password of the single admin identity the seed creates (S20, R1-001).
+ *
+ * Deliberately not part of `AuthConfig`: it is not an option of the Better Auth
+ * instance, it is the value the seed hashes into the admin account. Absent (or blank)
+ * means "seed no admin" and the seed warns — there is no fallback credential, because
+ * a committed one would hand every deploy that runs the seed a published admin account.
+ */
+export function resolveAdminUserPassword(
+  bindings: Partial<ApiBindings> = {},
+): string | undefined {
+  return bindings.ADMIN_USER_PASSWORD?.trim() || undefined;
 }
 
 export function resolveDatabaseConfig(
@@ -132,6 +147,8 @@ export class AppConfig {
   readonly environment: Environment;
   readonly port: number;
   readonly auth: AuthConfig;
+  /** Admin seed credential (S20, R1-001); `undefined` means "seed no admin". */
+  readonly adminUserPassword?: string;
 
   constructor(bindings: Partial<ApiBindings> = {}) {
     this.environment = resolveEnvironment(bindings.ENVIRONMENT);
@@ -141,6 +158,7 @@ export class AppConfig {
       bindings.TURSO_DATABASE_URL,
       bindings.TURSO_AUTH_TOKEN,
     );
+    this.adminUserPassword = resolveAdminUserPassword(bindings);
   }
 
   static from(env?: Partial<ApiBindings>): AppConfig {

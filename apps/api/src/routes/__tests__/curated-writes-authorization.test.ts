@@ -20,12 +20,15 @@ import {
   createDb,
   type DbClient,
 } from "../../infrastructure/persistence/client";
-import {
-  ADMIN_USER_PASSWORD,
-  seedFromConfig,
-} from "../../infrastructure/persistence/seed";
+import { seedFromConfig } from "../../infrastructure/persistence/seed";
 
 const AUTH_SECRET = "dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWZvci1jdXJhdGVkLXdyaXRlcw==";
+
+/**
+ * The admin credential is deployment configuration (R1-001), so this suite supplies its
+ * own value through the app's environment instead of importing one from the seed.
+ */
+const ADMIN_TEST_PASSWORD = "curated-writes-suite-admin-password";
 
 const SEEDED_READING_ID = "b0000000-0000-4000-8000-000000000001";
 const NEW_AUTHOR_ID = "a0000000-0000-4000-8000-0000000000ff" as EntityId;
@@ -124,12 +127,13 @@ describe("curated-content writes require the admin role (S5, S6, S17)", () => {
       TURSO_DATABASE_URL: database.url,
       BETTER_AUTH_SECRET: AUTH_SECRET,
       BETTER_AUTH_URL: "http://localhost:8787",
+      ADMIN_USER_PASSWORD: ADMIN_TEST_PASSWORD,
     });
     await seedFromConfig(config);
     db = createDb({ url: database.url });
     app = createApp(config);
 
-    adminToken = await signIn(app, ADMIN_USER_EMAIL, ADMIN_USER_PASSWORD);
+    adminToken = await signIn(app, ADMIN_USER_EMAIL, ADMIN_TEST_PASSWORD);
     userToken = await signUp(app, "reader@example.com", "Reader");
 
     // A second identity used only by the comma-separated role case below, so the
@@ -353,33 +357,37 @@ describe("curated-content writes require the admin role (S5, S6, S17)", () => {
   it("treats the comma-separated role convention as membership (S5)", async () => {
     // The role column is a comma-separated convention, not a single value; "user,admin"
     // is an admin. Written straight to the row because no endpoint may grant the role.
+    // The restore is in `finally`: a failing assertion below must not leave an admin
+    // session behind for every later test in the suite.
     await db
       .update(user)
       .set({ role: "user,admin" })
       .where(eq(user.email, "writer@example.com"));
 
-    const token = await signIn(
-      app,
-      "writer@example.com",
-      "a-long-enough-password",
-    );
+    try {
+      const token = await signIn(
+        app,
+        "writer@example.com",
+        "a-long-enough-password",
+      );
 
-    const res = await app.request(
-      jsonRequest(
-        "/v1/authors",
-        "POST",
-        { name: "Autor multi-rol", bio: "Escrito con una sesión user,admin" },
-        token,
-      ),
-    );
+      const res = await app.request(
+        jsonRequest(
+          "/v1/authors",
+          "POST",
+          { name: "Autor multi-rol", bio: "Escrito con una sesión user,admin" },
+          token,
+        ),
+      );
 
-    expect(res.status).toBe(201);
-
-    // Restore the single role so the earlier assertions remain representative.
-    await db
-      .update(user)
-      .set({ role: "user" })
-      .where(eq(user.email, "writer@example.com"));
+      expect(res.status).toBe(201);
+    } finally {
+      // Restore the single role so the earlier assertions remain representative.
+      await db
+        .update(user)
+        .set({ role: "user" })
+        .where(eq(user.email, "writer@example.com"));
+    }
   });
 
   it("does not let a normal sign-up grant itself the admin role (S20)", async () => {

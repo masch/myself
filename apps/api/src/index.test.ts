@@ -16,15 +16,18 @@ import { createApp } from "./index";
 import { AppConfig } from "./config";
 import { createRepositories } from "./middleware/repositories";
 import { createTestRepositories } from "./infrastructure/persistence/test-db";
-import {
-  ADMIN_USER_PASSWORD,
-  seedFromConfig,
-} from "./infrastructure/persistence/seed";
+import { seedFromConfig } from "./infrastructure/persistence/seed";
 
 // Throwaway value for the API's own test instance: it only guards a database created
 // in the system temp directory and deleted when this file finishes.
 const AUTH_SECRET =
   "dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWZvci10aGUtZ2F0ZXdheS1zdWl0ZQ==";
+
+/**
+ * The admin credential is deployment configuration (R1-001), so this suite supplies its
+ * own value through the app's environment instead of importing one from the seed.
+ */
+const ADMIN_TEST_PASSWORD = "gateway-suite-admin-password";
 
 /**
  * The curated-content writes need an admin session (S6), and Better Auth reads that
@@ -52,6 +55,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       TURSO_DATABASE_URL: database.url,
       BETTER_AUTH_SECRET: AUTH_SECRET,
       BETTER_AUTH_URL: "http://localhost:8787",
+      ADMIN_USER_PASSWORD: ADMIN_TEST_PASSWORD,
     });
     await seedFromConfig(testConfig);
     app = createApp(testConfig, createRepositories(testConfig));
@@ -68,7 +72,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: ADMIN_USER_EMAIL,
-        password: ADMIN_USER_PASSWORD,
+        password: ADMIN_TEST_PASSWORD,
       }),
     });
     expect(res.status).toBe(200);
@@ -79,7 +83,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
 
   describe("Root & System Health", () => {
     it("createApp supports passing custom required dependencies directly", async () => {
-      const testRepos = await createTestRepositories({ seed: true });
+      const testRepos = await createTestRepositories({
+        seed: true,
+        adminPassword: ADMIN_TEST_PASSWORD,
+      });
       const customApp = createApp(testConfig, testRepos);
       const res = await customApp.request("/v1/authors");
       expect(res.status).toBe(200);
@@ -119,7 +126,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
     });
 
     it("GET /health reflects app environment from configuration", async () => {
-      const testRepos = await createTestRepositories({ seed: true });
+      const testRepos = await createTestRepositories({
+        seed: true,
+        adminPassword: ADMIN_TEST_PASSWORD,
+      });
       const stagingConfig = AppConfig.from({
         ENVIRONMENT: "staging",
         TURSO_DATABASE_URL: ":memory:",

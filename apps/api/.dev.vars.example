@@ -25,3 +25,12 @@ BETTER_AUTH_URL="http://localhost:8787"
 # commented out is the normal state for a checkout without Google credentials.
 # GOOGLE_CLIENT_ID="<google-oauth-client-id>.apps.googleusercontent.com"
 # GOOGLE_CLIENT_SECRET="<google-oauth-client-secret>"
+
+# Password of the single admin identity the seed creates (S20).
+# The seed refuses to run in production, and outside production it skips the admin
+# identity whenever this is unset, printing one warning that names this variable. There is
+# no default: the repository deliberately carries no admin credential, so a deploy that
+# seeds without ADMIN_USER_PASSWORD has no admin and nothing can write curated content
+# until the seed is re-run with it. Generate a strong, unique value per environment and
+# set it with `wrangler secret put ADMIN_USER_PASSWORD` where the Worker needs it.
+ADMIN_USER_PASSWORD="replace-with-a-strong-admin-password"
