@@ -6,6 +6,23 @@ export interface DatabaseConfig {
   authToken?: string;
 }
 
+export interface GoogleProviderConfig {
+  clientId: string;
+  clientSecret: string;
+}
+
+/**
+ * Everything the Better Auth instance needs from the environment (S1).
+ *
+ * Google is optional as a whole: a checkout without Google credentials must still
+ * boot, so the provider is only described when both of its values are present.
+ */
+export interface AuthConfig {
+  secret?: string;
+  baseUrl: string;
+  google?: GoogleProviderConfig;
+}
+
 export const DEFAULT_ENVIRONMENT: Environment = "development";
 
 export function resolveEnvironment(raw?: string): Environment {
@@ -39,6 +56,21 @@ export function resolvePort(raw?: string): number {
   return parsed;
 }
 
+export const DEFAULT_AUTH_BASE_URL = "http://localhost:8787";
+
+export function resolveAuthConfig(
+  bindings: Partial<ApiBindings> = {},
+): AuthConfig {
+  const clientId = bindings.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = bindings.GOOGLE_CLIENT_SECRET?.trim();
+
+  return {
+    secret: bindings.BETTER_AUTH_SECRET?.trim() || undefined,
+    baseUrl: bindings.BETTER_AUTH_URL?.trim() || DEFAULT_AUTH_BASE_URL,
+    google: clientId && clientSecret ? { clientId, clientSecret } : undefined,
+  };
+}
+
 export function getProcessEnv(): Partial<ApiBindings> {
   if (typeof process === "undefined" || !process.env) {
     return {};
@@ -48,6 +80,10 @@ export function getProcessEnv(): Partial<ApiBindings> {
     TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
     TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
     PORT: process.env.PORT,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   };
 }
 
@@ -68,10 +104,12 @@ export class AppConfig {
   readonly database: DatabaseConfig;
   readonly environment: Environment;
   readonly port: number;
+  readonly auth: AuthConfig;
 
   constructor(bindings: Partial<ApiBindings> = {}) {
     this.environment = resolveEnvironment(bindings.ENVIRONMENT);
     this.port = resolvePort(bindings.PORT);
+    this.auth = resolveAuthConfig(bindings);
     this.database = resolveDatabaseConfig(
       bindings.TURSO_DATABASE_URL,
       bindings.TURSO_AUTH_TOKEN,

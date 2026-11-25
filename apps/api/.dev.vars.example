@@ -1,6 +1,9 @@
 # Local development environment secrets for Cloudflare Workers (wrangler dev)
 # Copy this file to .dev.vars to configure your remote or local Turso database credentials.
 #
+# Never commit a real .dev.vars. In deployment these values are set with
+# `wrangler secret put <NAME>` and are deliberately absent from wrangler.jsonc `vars`.
+#
 # Turso Database URL:
 # - Cloud database: libsql://myself-db-<org>.turso.io
 # - Local Turso server ('turso dev'): http://127.0.0.1:8080
@@ -8,3 +11,17 @@ TURSO_DATABASE_URL="libsql://myself-db-<org>.turso.io"
 
 # Turso Database Authentication Token (optional when using local 'turso dev')
 TURSO_AUTH_TOKEN="your-turso-auth-token"
+
+# Better Auth session signing secret (generate with `bunx auth secret`).
+# Required in staging and production: auth refuses to issue sessions without it.
+BETTER_AUTH_SECRET="replace-with-a-random-32-byte-secret"
+
+# Public base URL of this API, used to build verification and reset links.
+# Defaults to http://localhost:8787 when unset.
+BETTER_AUTH_URL="http://localhost:8787"
+
+# Google sign-in (S1). Both values are required to enable the provider; when either
+# is missing the provider is not registered and the API still boots, so leaving these
+# commented out is the normal state for a checkout without Google credentials.
+# GOOGLE_CLIENT_ID="<google-oauth-client-id>.apps.googleusercontent.com"
+# GOOGLE_CLIENT_SECRET="<google-oauth-client-secret>"

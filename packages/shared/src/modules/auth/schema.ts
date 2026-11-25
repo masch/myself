@@ -1,11 +1,22 @@
 /**
  * Better Auth identity schema — the single owner of the identity tables (S3).
  *
- * Generated authoritatively with `bunx @better-auth/cli generate`
- * (better-auth 1.7.28, @better-auth/cli 1.4.21) from a config holding
- * `emailAndPassword: { enabled: true }` and the `bearer()` + `admin()` plugins, so
- * `user` carries the admin-plugin columns (`role`, `banned`, `ban_reason`,
- * `ban_expires`) and `session` carries `impersonated_by`.
+ * Generated authoritatively with the Better Auth CLI, which is published as the `auth`
+ * package and shares the runtime's release train (devDependency `auth@^1.7.28`, so the
+ * generator and `better-auth` are the same version):
+ *
+ *   cd apps/api && bun x auth@1.7.28 generate --config <scratch-config.ts> \
+ *     --adapter drizzle --dialect sqlite \
+ *     --output ../../packages/shared/src/modules/auth/schema.ts
+ *
+ * The scratch config is a throwaway file that carries only what shapes the schema:
+ * `emailAndPassword: { enabled: true }` and `plugins: [bearer(), admin()]`. It is
+ * never committed. The deprecated `@better-auth/cli` is not used: it stops at 1.4.x
+ * and pulls a nested `better-auth@1.4.x`, so generation would run against a different
+ * line than the runtime.
+ *
+ * Because of those plugins, `user` carries the admin-plugin columns (`role`, `banned`,
+ * `ban_reason`, `ban_expires`) and `session` carries `impersonated_by`.
  *
  * Do not hand-edit the column list: regenerate it when the auth config changes.
  * Timestamps stay `integer` / `timestamp_ms` on purpose — the libSQL date-binding
