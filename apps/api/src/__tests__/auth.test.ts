@@ -1,10 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { APIError } from "better-auth/api";
 import { decryptOAuthToken, setTokenUtil } from "better-auth/oauth2";
-import { entityIdSchema } from "@myself/shared";
+import { DateTime, type EntityId, entityIdSchema, User } from "@myself/shared";
 import { AppConfig, DEFAULT_AUTH_BASE_URL, resolveAuthConfig } from "../config";
 import { createAuth, runWithExecutionContext } from "../auth";
-import { mapUserRow } from "../infrastructure/persistence/mappers/user.mapper";
 
 function testConfig(bindings: Record<string, string> = {}): AppConfig {
   return AppConfig.from({
@@ -164,16 +163,18 @@ describe("Better Auth instance (S1, S14)", () => {
       expect(id).not.toMatch(/^[0-9a-z]{32}$/);
       expect(() => entityIdSchema.parse(id)).not.toThrow();
 
-      // The mapper the API uses on every read of a `user` row builds the domain
-      // entity, which parses the id with `entityIdSchema`.
-      expect(() =>
-        mapUserRow({
-          id,
-          name: "Ada Lovelace",
-          email: "ada@example.com",
-          image: null,
-          createdAt: new Date(),
-        }),
+      // The domain `User` is what every consumer builds from an identity id, and it
+      // parses that id with `entityIdSchema` (the removed `/v1/users` mapper used to
+      // be the API-side proof; S7 moved the same assertion onto the domain entity).
+      expect(
+        () =>
+          new User({
+            id: id as EntityId,
+            name: "Ada Lovelace",
+            email: "ada@example.com",
+            imageUrl: null,
+            createdAt: DateTime.from(new Date().toISOString()),
+          }),
       ).not.toThrow();
     }
   });

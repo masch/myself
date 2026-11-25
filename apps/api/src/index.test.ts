@@ -1,5 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
+  ADMIN_USER_EMAIL,
   APP_NAME,
   SEED_AUTHORS,
   SEED_AUTHOR_IDS,
@@ -12,19 +16,66 @@ import { createApp } from "./index";
 import { AppConfig } from "./config";
 import { createRepositories } from "./middleware/repositories";
 import { createTestRepositories } from "./infrastructure/persistence/test-db";
+import {
+  ADMIN_USER_PASSWORD,
+  seedFromConfig,
+} from "./infrastructure/persistence/seed";
+
+// Throwaway value for the API's own test instance: it only guards a database created
+// in the system temp directory and deleted when this file finishes.
+const AUTH_SECRET =
+  "dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWZvci10aGUtZ2F0ZXdheS1zdWl0ZQ==";
+
+/**
+ * The curated-content writes need an admin session (S6), and Better Auth reads that
+ * session from the same database the repositories use. `:memory:` gives each client its
+ * own empty database, so this suite uses one throwaway libSQL file for both.
+ */
+function createTempDatabase(): { url: string; cleanup: () => void } {
+  const dir = mkdtempSync(join(tmpdir(), "myself-gateway-"));
+  return {
+    url: `file:${join(dir, "gateway.db")}`,
+    cleanup: () => rmSync(dir, { recursive: true, force: true }),
+  };
+}
 
 describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", () => {
   let app: ReturnType<typeof createApp>;
   let testConfig: AppConfig;
+  let database: ReturnType<typeof createTempDatabase>;
+  let adminToken: string;
 
   beforeAll(async () => {
+    database = createTempDatabase();
     testConfig = AppConfig.from({
       ENVIRONMENT: "test",
-      TURSO_DATABASE_URL: ":memory:",
+      TURSO_DATABASE_URL: database.url,
+      BETTER_AUTH_SECRET: AUTH_SECRET,
+      BETTER_AUTH_URL: "http://localhost:8787",
     });
-    const repos = await createTestRepositories({ seed: true });
-    app = createApp(testConfig, repos);
+    await seedFromConfig(testConfig);
+    app = createApp(testConfig, createRepositories(testConfig));
+    adminToken = await signInAsAdmin(app);
   });
+
+  afterAll(() => {
+    database.cleanup();
+  });
+
+  async function signInAsAdmin(target: ReturnType<typeof createApp>) {
+    const res = await target.request("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: ADMIN_USER_EMAIL,
+        password: ADMIN_USER_PASSWORD,
+      }),
+    });
+    expect(res.status).toBe(200);
+    const token = res.headers.get("set-auth-token");
+    expect(typeof token).toBe("string");
+    return token!;
+  }
 
   describe("Root & System Health", () => {
     it("createApp supports passing custom required dependencies directly", async () => {
@@ -121,7 +172,8 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       };
       expect(doc.openapi).toBe("3.1.0");
       expect(doc.info.title).toBe("myself API");
-      expect(doc.paths["/v1/users"]).toBeDefined();
+      // S7 removed the anonymous users surface, so it is no longer published.
+      expect(doc.paths["/v1/users"]).toBeUndefined();
       expect(doc.paths["/v1/authors"]).toBeDefined();
       expect(doc.paths["/v1/readings"]).toBeDefined();
     });
@@ -232,7 +284,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const uniqueName = `Test Author ${Date.now()}`;
       const res = await app.request("/v1/authors", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({
           name: uniqueName,
           bio: "Functional test author biography",
@@ -251,7 +306,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
     it("POST /v1/authors rejects empty or missing name with 400 Bad Request", async () => {
       const resEmpty = await app.request("/v1/authors", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({
           name: "   ",
         }),
@@ -345,7 +403,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
 
       const res = await app.request("/v1/readings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify(payload),
       });
       expect(res.status).toBe(201);
@@ -389,7 +450,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       for (const payload of invalidPayloads) {
         const res = await app.request("/v1/readings", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            authorization: `Bearer ${adminToken}`,
+          },
           body: JSON.stringify(payload),
         });
         expect(res.status).toBe(400);

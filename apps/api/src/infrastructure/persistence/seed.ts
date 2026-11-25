@@ -3,6 +3,10 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import { hashPassword } from "better-auth/crypto";
 import {
   account,
+  ADMIN_ROLE,
+  ADMIN_USER_EMAIL,
+  ADMIN_USER_ID,
+  ADMIN_USER_NAME,
   authors,
   DEMO_USER_EMAIL,
   DEMO_USER_ID,
@@ -28,6 +32,14 @@ import { AppConfig } from "../../config";
  */
 export const DEMO_USER_PASSWORD = "myself-demo-password";
 
+/**
+ * Credential for the seeded admin identity (S20). Same gate as the demo identity:
+ * `seedAdminIdentity` only runs when `ENVIRONMENT !== "production"`, so this value
+ * never reaches a deployed surface. Documented here, in one place, so the seed and
+ * the tests that sign the admin in read the same credential.
+ */
+export const ADMIN_USER_PASSWORD = "myself-admin-password";
+
 function isDemoSeedAllowed(): boolean {
   if (typeof process === "undefined" || !process.env) {
     return false;
@@ -35,27 +47,38 @@ function isDemoSeedAllowed(): boolean {
   return process.env.ENVIRONMENT !== "production";
 }
 
+interface SeedIdentity {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  password: string;
+}
+
 /**
- * Seeds the demo identity shared with the device seed (D4).
+ * Seeds one identity with a real credential (D4, S20).
  *
  * Coupling worth naming: the hash is produced by Better Auth's own
  * `hashPassword` and the row mirrors what `signUpEmail` writes for the credential
  * provider (`provider_id = "credential"`, `account_id = user.id`). The sign-in path
- * verifies it with `verifyPassword`, so signing in as the demo user exercises the
- * real credential flow instead of a shortcut.
+ * verifies it with `verifyPassword`, so signing in as either seeded identity
+ * exercises the real credential flow instead of a shortcut.
  */
-async function seedDemoIdentity(db: DbClient): Promise<void> {
+async function seedIdentity(
+  db: DbClient,
+  identity: SeedIdentity,
+): Promise<void> {
   const now = new Date();
 
   await db
     .insert(user)
     .values({
-      id: DEMO_USER_ID,
-      name: DEMO_USER_NAME,
-      email: DEMO_USER_EMAIL,
+      id: identity.id,
+      name: identity.name,
+      email: identity.email,
       emailVerified: true,
       image: null,
-      role: "user",
+      role: identity.role,
       createdAt: now,
       updatedAt: now,
     })
@@ -64,21 +87,43 @@ async function seedDemoIdentity(db: DbClient): Promise<void> {
   await db
     .insert(account)
     .values({
-      id: `account-${DEMO_USER_ID}`,
-      accountId: DEMO_USER_ID,
+      id: `account-${identity.id}`,
+      accountId: identity.id,
       providerId: "credential",
-      userId: DEMO_USER_ID,
-      password: await hashPassword(DEMO_USER_PASSWORD),
+      userId: identity.id,
+      password: await hashPassword(identity.password),
       createdAt: now,
       updatedAt: now,
     })
     .onConflictDoNothing();
 }
 
+const DEMO_IDENTITY: SeedIdentity = {
+  id: DEMO_USER_ID,
+  name: DEMO_USER_NAME,
+  email: DEMO_USER_EMAIL,
+  role: "user",
+  password: DEMO_USER_PASSWORD,
+};
+
+/**
+ * The only admin the app has (S20). Nothing else grants the role: the admin plugin's
+ * `/admin/set-role` endpoint is disabled in `createAuth`.
+ */
+const ADMIN_IDENTITY: SeedIdentity = {
+  id: ADMIN_USER_ID,
+  name: ADMIN_USER_NAME,
+  email: ADMIN_USER_EMAIL,
+  role: ADMIN_ROLE,
+  password: ADMIN_USER_PASSWORD,
+};
+
 export async function seedDatabase(db: DbClient): Promise<void> {
-  // 0. Demo identity (dev/staging only)
+  // 0. Seeded identities (dev/staging only): the shared demo identity (D4) and the
+  //    single admin the curated-content writes need (S20).
   if (isDemoSeedAllowed()) {
-    await seedDemoIdentity(db);
+    await seedIdentity(db, DEMO_IDENTITY);
+    await seedIdentity(db, ADMIN_IDENTITY);
   }
 
   // 1. Seed Authors

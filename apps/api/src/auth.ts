@@ -106,6 +106,40 @@ function assertValidUserIdentity(
 }
 
 /**
+ * The admin-plugin endpoints this app does not use (S5, S7, S20).
+ *
+ * `disabledPaths` is read by Better Auth's own router before the endpoint runs, so a
+ * disabled path is a plain 404 and cannot be reached with any credentials. Only the
+ * two read-only identity lookups S7 needs stay enabled (`/admin/list-users` and
+ * `/admin/get-user`); everything else is a mutating identity surface with no feature
+ * behind it, and disabling `/admin/set-role` is what makes S20's "no endpoint can
+ * grant the admin role" true even for an admin caller.
+ *
+ * Scope note: this blocks the HTTP surface only. Server-side `auth.api.*` calls (the
+ * seed, the tests) do not pass through the router.
+ */
+export const ADMIN_DISABLED_PATHS = [
+  // Impersonation: no such feature, and it is the highest-risk surface here.
+  "/admin/impersonate-user",
+  "/admin/stop-impersonating",
+  // Roles: the seed is the only producer of `admin` (S20), so nothing may set one.
+  "/admin/set-role",
+  "/admin/has-permission",
+  // Identity lifecycle: accounts come from sign-up, not from an admin call.
+  "/admin/create-user",
+  "/admin/update-user",
+  "/admin/remove-user",
+  "/admin/set-user-password",
+  // Moderation: v1 has no ban feature.
+  "/admin/ban-user",
+  "/admin/unban-user",
+  // Session administration: reset revocation belongs to the reset flow (S2, T4).
+  "/admin/list-user-sessions",
+  "/admin/revoke-user-session",
+  "/admin/revoke-user-sessions",
+];
+
+/**
  * The Better Auth instance (S1).
  *
  * Wiring notes that must not be lost:
@@ -167,6 +201,7 @@ export function createAuth(config: AppConfig) {
       },
     },
     plugins: [bearer(), admin()],
+    disabledPaths: ADMIN_DISABLED_PATHS,
     advanced: {
       database: {
         generateId: () => crypto.randomUUID(),

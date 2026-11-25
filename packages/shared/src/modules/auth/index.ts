@@ -2,6 +2,7 @@ import { account, session, user, verification } from "./schema";
 
 export * from "./schema";
 export * from "./demo-user";
+export * from "./admin-user";
 
 /**
  * The explicit schema object the Drizzle adapter needs (L10).

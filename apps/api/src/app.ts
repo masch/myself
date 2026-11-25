@@ -11,14 +11,18 @@ import {
   type RepositoriesDependencies,
   type RepositoriesProvider,
 } from "./middleware/repositories";
+import {
+  createSessionRoleResolver,
+  requireRole,
+} from "./middleware/require-role";
 import { handleApiError } from "./errors";
 import { authorsRoute } from "./routes/authors";
 import { readingsRoute } from "./routes/readings";
-import { usersRoute } from "./routes/users";
 import { createSystemRouter } from "./routes/system";
 import { registerDocs } from "./docs";
 import { fail } from "./lib/response";
 import { defaultHook } from "./lib/validator";
+import { ADMIN_ROLE } from "@myself/shared";
 
 export function createApp(
   config: AppConfig,
@@ -28,6 +32,7 @@ export function createApp(
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
   const startedAt = performance.now();
   const auth = createAuth(config);
+  const resolveSessionRole = createSessionRoleResolver(auth);
 
   // Global Middlewares
   app.use("*", logger());
@@ -70,9 +75,16 @@ export function createApp(
   // v1 API Route Group (requires database repositories)
   const v1 = new OpenAPIHono<AppEnv>({ defaultHook })
     .use("*", repositoriesMiddleware(resolveDeps))
+    // Curated-content writes require the admin role (S6); reads stay public. The gate
+    // is registered per write method because Hono middleware matches paths, not
+    // methods, and it runs before the route handler, so an unauthenticated bad body
+    // is 401 instead of 400.
+    .on("POST", "/readings", requireRole(ADMIN_ROLE, resolveSessionRole))
+    .on("PUT", "/readings/:id", requireRole(ADMIN_ROLE, resolveSessionRole))
+    .on("DELETE", "/readings/:id", requireRole(ADMIN_ROLE, resolveSessionRole))
+    .on("POST", "/authors", requireRole(ADMIN_ROLE, resolveSessionRole))
     .route("/authors", authorsRoute)
-    .route("/readings", readingsRoute)
-    .route("/users", usersRoute);
+    .route("/readings", readingsRoute);
 
   app.route("/v1", v1);
 

@@ -5,7 +5,6 @@ import { AppConfig } from "../../config";
 import { createRepositories, repositoriesMiddleware } from "../repositories";
 import { SqliteAuthorRepository } from "../../infrastructure/persistence/repositories/sqlite-author.repository";
 import { SqliteReadingRepository } from "../../infrastructure/persistence/repositories/sqlite-reading.repository";
-import { SqliteUserRepository } from "../../infrastructure/persistence/repositories/sqlite-user.repository";
 
 describe("repositoriesMiddleware & createRepositories Unit Tests", () => {
   it("creates Drizzle repositories when database url is local file", () => {
@@ -16,7 +15,6 @@ describe("repositoriesMiddleware & createRepositories Unit Tests", () => {
     const repos = createRepositories(config);
     expect(repos.authorRepo instanceof SqliteAuthorRepository).toBe(true);
     expect(repos.readingRepo instanceof SqliteReadingRepository).toBe(true);
-    expect(repos.userRepo instanceof SqliteUserRepository).toBe(true);
   });
 
   it("creates SQLite repositories when database url is :memory:", () => {
@@ -27,13 +25,11 @@ describe("repositoriesMiddleware & createRepositories Unit Tests", () => {
     const repos = createRepositories(config);
     expect(repos.authorRepo instanceof SqliteAuthorRepository).toBe(true);
     expect(repos.readingRepo instanceof SqliteReadingRepository).toBe(true);
-    expect(repos.userRepo instanceof SqliteUserRepository).toBe(true);
   });
 
   it("injects required repositories into Hono context strictly", async () => {
     const customAuthorRepo = {} as any;
     const customReadingRepo = {} as any;
-    const customUserRepo = {} as any;
 
     const app = new Hono<AppEnv>();
     app.use(
@@ -41,18 +37,15 @@ describe("repositoriesMiddleware & createRepositories Unit Tests", () => {
       repositoriesMiddleware({
         authorRepo: customAuthorRepo,
         readingRepo: customReadingRepo,
-        userRepo: customUserRepo,
       }),
     );
 
     let injectedAuthorRepo: unknown;
     let injectedReadingRepo: unknown;
-    let injectedUserRepo: unknown;
 
     app.get("/test-custom", (c) => {
       injectedAuthorRepo = c.var.authorRepo;
       injectedReadingRepo = c.var.readingRepo;
-      injectedUserRepo = c.var.userRepo;
       return c.json({ ok: true });
     });
 
@@ -60,13 +53,11 @@ describe("repositoriesMiddleware & createRepositories Unit Tests", () => {
     expect(res.status).toBe(200);
     expect(injectedAuthorRepo).toBe(customAuthorRepo);
     expect(injectedReadingRepo).toBe(customReadingRepo);
-    expect(injectedUserRepo).toBe(customUserRepo);
   });
 
   it("injects repositories when passed a RepositoriesProvider function", async () => {
     const customAuthorRepo = {} as any;
     const customReadingRepo = {} as any;
-    const customUserRepo = {} as any;
 
     const app = new Hono<AppEnv>();
     app.use(
@@ -74,7 +65,6 @@ describe("repositoriesMiddleware & createRepositories Unit Tests", () => {
       repositoriesMiddleware(() => ({
         authorRepo: customAuthorRepo,
         readingRepo: customReadingRepo,
-        userRepo: customUserRepo,
       })),
     );
 

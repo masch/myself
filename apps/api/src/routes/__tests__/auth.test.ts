@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { eq } from "drizzle-orm";
 import {
+  ADMIN_USER_EMAIL,
+  ADMIN_USER_ID,
   DEMO_USER_EMAIL,
   DEMO_USER_ID,
   entityIdSchema,
@@ -17,10 +19,10 @@ import {
   type DbClient,
 } from "../../infrastructure/persistence/client";
 import {
+  ADMIN_USER_PASSWORD,
   DEMO_USER_PASSWORD,
   seedFromConfig,
 } from "../../infrastructure/persistence/seed";
-import { mapUserRow } from "../../infrastructure/persistence/mappers/user.mapper";
 
 // Throwaway value for the API's own test instance: it only ever guards a database
 // created in the system temp directory and deleted when this file finishes.
@@ -51,6 +53,24 @@ function jsonRequest(path: string, body: unknown, token?: string): Request {
     headers,
     body: JSON.stringify(body),
   });
+}
+
+/**
+ * Signs an identity in through the real HTTP handler and returns the bearer token the
+ * native client would store (S8).
+ */
+async function signIn(
+  app: ReturnType<typeof createApp>,
+  email: string,
+  password: string,
+): Promise<string> {
+  const res = await app.request(
+    jsonRequest("/api/auth/sign-in/email", { email, password }),
+  );
+  expect(res.status).toBe(200);
+  const token = res.headers.get("set-auth-token");
+  expect(typeof token).toBe("string");
+  return token!;
 }
 
 describe("POST /api/auth/* over HTTP (S1)", () => {
@@ -94,17 +114,16 @@ describe("POST /api/auth/* over HTTP (S1)", () => {
     expect(body.user.id).not.toMatch(/^[0-9a-zA-Z]{32}$/);
     expect(() => entityIdSchema.parse(body.user.id)).not.toThrow();
 
+    // Direct row assertion: the stored identity is readable and carries the id the
+    // request returned, without going through the removed `mapUserRow` (S7).
     const [row] = await db.select().from(user).where(eq(user.id, body.user.id));
     expect(row).toBeDefined();
     expect(row.email).toBe("ada@example.com");
+    expect(row.id).toBe(body.user.id);
 
-    // Reading the stored row through the API mapper must not throw either.
-    const mapped = mapUserRow(row);
-    expect(mapped.id as string).toBe(body.user.id);
-
-    // The domain id reaches the versioned API surface, whose param schema is a UUID.
+    // The anonymous users surface is gone (S7): the same path is now a 404.
     const byId = await app.request(`/v1/users/${body.user.id}`);
-    expect(byId.status).toBe(200);
+    expect(byId.status).toBe(404);
   });
 
   it("resolves the user from the Bearer token returned as set-auth-token", async () => {
@@ -277,8 +296,9 @@ describe("POST /api/auth/* over HTTP (S1)", () => {
       .from(user)
       .where(eq(user.id, created.user.id));
     expect(unchanged.name).toBe("Ada Null");
-    // The stored row must still be readable through the domain mapper.
-    expect(() => mapUserRow(unchanged)).not.toThrow();
+    // The stored row must still carry a valid domain id and a readable name.
+    expect(() => entityIdSchema.parse(unchanged.id)).not.toThrow();
+    expect(unchanged.name.trim().length).toBeGreaterThan(0);
   });
 
   it("rejects explicit nulls for both identity fields on update-user (R3-002)", async () => {
@@ -304,7 +324,8 @@ describe("POST /api/auth/* over HTTP (S1)", () => {
       .where(eq(user.id, created.user.id));
     expect(unchanged.name).toBe("Both Null");
     expect(unchanged.email).toBe("both.null@example.com");
-    expect(() => mapUserRow(unchanged)).not.toThrow();
+    expect(() => entityIdSchema.parse(unchanged.id)).not.toThrow();
+    expect(unchanged.email.trim().length).toBeGreaterThan(0);
   });
 
   it("keeps the seeded demo identity working through the real sign-in path", async () => {
@@ -352,5 +373,117 @@ describe("POST /api/auth/* over HTTP (S1)", () => {
     expect(
       Object.keys(spec.paths).some((path) => path.startsWith("/api/auth")),
     ).toBe(false);
+  });
+
+  it("signs the seeded admin in and reports the admin role (S20)", async () => {
+    const res = await app.request(
+      jsonRequest("/api/auth/sign-in/email", {
+        email: ADMIN_USER_EMAIL,
+        password: ADMIN_USER_PASSWORD,
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { user: { id: string; role?: string } };
+    expect(body.user.id).toBe(ADMIN_USER_ID);
+    expect(body.user.role).toBe("admin");
+
+    const sessionRes = await app.request(
+      new Request("http://localhost/api/auth/get-session", {
+        headers: {
+          authorization: `Bearer ${res.headers.get("set-auth-token")}`,
+        },
+      }),
+    );
+    expect(sessionRes.status).toBe(200);
+    const sessionBody = (await sessionRes.json()) as {
+      user: { id: string; role?: string };
+    };
+    expect(sessionBody.user.id).toBe(ADMIN_USER_ID);
+    expect(sessionBody.user.role).toBe("admin");
+  });
+
+  it("disables the admin-plugin endpoints this app does not use (S5, S7, S20)", async () => {
+    const token = await signIn(app, ADMIN_USER_EMAIL, ADMIN_USER_PASSWORD);
+
+    // Every one of these is a mutating identity surface this single-role app has no
+    // feature for; disabling them is what keeps "no endpoint grants the admin role"
+    // (S20) true even for an admin caller.
+    const disabledPaths = [
+      "/admin/impersonate-user",
+      "/admin/stop-impersonating",
+      "/admin/set-role",
+      "/admin/create-user",
+      "/admin/update-user",
+      "/admin/remove-user",
+      "/admin/set-user-password",
+      "/admin/ban-user",
+      "/admin/unban-user",
+      "/admin/list-user-sessions",
+      "/admin/revoke-user-session",
+      "/admin/revoke-user-sessions",
+      "/admin/has-permission",
+    ];
+
+    for (const path of disabledPaths) {
+      const res = await app.request(
+        new Request(`http://localhost/api/auth${path}`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${token}`,
+          },
+          body: "{}",
+        }),
+      );
+      expect(`${path} -> ${res.status}`).toBe(`${path} -> 404`);
+    }
+  });
+
+  it("keeps the admin-only user listing that replaces /v1/users (S7)", async () => {
+    const token = await signIn(app, ADMIN_USER_EMAIL, ADMIN_USER_PASSWORD);
+
+    const listRes = await app.request(
+      new Request("http://localhost/api/auth/admin/list-users", {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    );
+    expect(listRes.status).toBe(200);
+    const listBody = (await listRes.json()) as {
+      users: Array<{ id: string; role?: string }>;
+    };
+    expect(listBody.users.map((entry) => entry.id)).toContain(DEMO_USER_ID);
+
+    const getRes = await app.request(
+      new Request(
+        `http://localhost/api/auth/admin/get-user?id=${DEMO_USER_ID}`,
+        { headers: { authorization: `Bearer ${token}` } },
+      ),
+    );
+    expect(getRes.status).toBe(200);
+  });
+
+  it("refuses the kept admin endpoints without an admin session", async () => {
+    const anonymous = await app.request(
+      new Request("http://localhost/api/auth/admin/list-users"),
+    );
+    expect(anonymous.status).toBe(401);
+
+    const signUp = await app.request(
+      jsonRequest("/api/auth/sign-up/email", {
+        email: "plain.reader@example.com",
+        password: "a-long-enough-password",
+        name: "Plain Reader",
+      }),
+    );
+    expect(signUp.status).toBe(200);
+    const token = signUp.headers.get("set-auth-token")!;
+
+    const asUser = await app.request(
+      new Request("http://localhost/api/auth/admin/list-users", {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    );
+    expect(asUser.status).toBe(403);
   });
 });

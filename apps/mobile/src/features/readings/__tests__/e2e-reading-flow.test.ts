@@ -1,6 +1,10 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Database } from "bun:sqlite";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
+  ADMIN_USER_EMAIL,
   DateTime,
   generateEntityId,
   type EntityId,
@@ -8,7 +12,10 @@ import {
 } from "@myself/shared";
 import { createApp } from "@myself/api/src/app";
 import { AppConfig } from "@myself/api/src/config";
-import { createTestRepositories } from "@myself/api/src/infrastructure/persistence/test-db";
+import {
+  ADMIN_USER_PASSWORD,
+  createTestRepositories,
+} from "@myself/api/src/infrastructure/persistence/test-db";
 import { SqliteReadingRepository } from "../infrastructure/sqlite-reading.repository";
 import { SyncEngine } from "../../../infrastructure/sync/sync-engine";
 import { HttpReadingApiAdapter } from "../infrastructure/http-reading-api.adapter";
@@ -18,6 +25,22 @@ import { Reading } from "@myself/shared";
  * Adapter that connects Bun's native SQLite Database instance
  * to Expo SQLite's asynchronous interface.
  */
+// Throwaway secret for the API instance this test drives in-process.
+const AUTH_SECRET = "dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWZvci10aGUtbW9iaWxlLWUyZQ==";
+
+/**
+ * The curated-content writes need an admin session (S6), and Better Auth reads that
+ * session from the same database the repositories use, so the backend gets one
+ * throwaway libSQL file instead of two independent `:memory:` databases.
+ */
+function createBackendDatabase(): { url: string; cleanup: () => void } {
+  const dir = mkdtempSync(join(tmpdir(), "myself-mobile-e2e-"));
+  return {
+    url: `file:${join(dir, "backend.db")}`,
+    cleanup: () => rmSync(dir, { recursive: true, force: true }),
+  };
+}
+
 function createExpoSqliteAdapter(rawDb: Database) {
   return {
     async getAllAsync<T>(sql: string, params: any[] = []): Promise<T[]> {
@@ -56,16 +79,35 @@ describe("E2E Vertical Integration: Mobile Front ➔ SQLite Outbox ➔ Hono API 
   let frontRepository: SqliteReadingRepository;
   let backendApp: ReturnType<typeof createApp>;
   let backendRepos: Awaited<ReturnType<typeof createTestRepositories>>;
+  let backendDatabase: ReturnType<typeof createBackendDatabase>;
+  let adminToken: string;
   let testAuthorId: EntityId;
 
   beforeEach(async () => {
-    // 1. Setup Backend: InMemory SQLite DB, Drizzle Repositories, and Hono OpenAPI Gateway
+    // 1. Setup Backend: throwaway libSQL file, Drizzle Repositories, and Hono Gateway
+    backendDatabase = createBackendDatabase();
     const backendConfig = AppConfig.from({
       ENVIRONMENT: "test",
-      TURSO_DATABASE_URL: ":memory:",
+      TURSO_DATABASE_URL: backendDatabase.url,
+      BETTER_AUTH_SECRET: AUTH_SECRET,
+      BETTER_AUTH_URL: "http://localhost:8787",
     });
-    backendRepos = await createTestRepositories({ seed: true });
+    backendRepos = await createTestRepositories({
+      seed: true,
+      url: backendDatabase.url,
+    });
     backendApp = createApp(backendConfig, backendRepos);
+
+    const signIn = await backendApp.request("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: ADMIN_USER_EMAIL,
+        password: ADMIN_USER_PASSWORD,
+      }),
+    });
+    expect(signIn.status).toBe(200);
+    adminToken = signIn.headers.get("set-auth-token")!;
 
     // Get an author from the backend database seed
     const authors = await backendRepos.authorRepo.list({ limit: 1, offset: 0 });
@@ -113,6 +155,10 @@ describe("E2E Vertical Integration: Mobile Front ➔ SQLite Outbox ➔ Hono API 
     frontRepository = new SqliteReadingRepository(frontExpoDb);
   });
 
+  afterEach(() => {
+    backendDatabase.cleanup();
+  });
+
   it("successfully persists reading locally, registers outbox, syncs via HTTP to API, and persists in backend DB", async () => {
     // Step 1: User creates and saves a meditation reading in Mobile Front
     const readingId = generateEntityId();
@@ -157,9 +203,13 @@ describe("E2E Vertical Integration: Mobile Front ➔ SQLite Outbox ➔ Hono API 
     mockHttpApi.postReading = async (
       input: CreateReadingInput,
     ): Promise<boolean> => {
+      // A curated-content write carries the admin session the API now requires (S6).
       const response = await backendApp.request("/v1/readings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify(input),
       });
       return response.status === 201;
