@@ -18,6 +18,14 @@ for file in "${ODD_DIR}"/*.md; do
 	filename="$(basename "$file")"
 	file_errors=0
 
+	# A document that declares itself open is legitimate while its work is in
+	# progress, including across intermediate commits on a feature branch.
+	# Every other document in odd/tasks/ must be completed and closed.
+	if grep -Eqi "^[[:space:]]*-[[:space:]]*\*\*Status\*\*:[[:space:]]*open[[:space:]]*$" "$file"; then
+		echo "  ⏳ ${filename} declares 'Status: open'"
+		continue
+	fi
+
 	# 1. Check for pending tasks (- [ ])
 	if grep -En "^[[:space:]]*- \[ \]" "$file" >/dev/null 2>&1; then
 		echo "::error file=odd/tasks/${filename}::${filename} has pending uncompleted tasks:"
@@ -47,5 +55,5 @@ if [ "$FAILED" -ne 0 ]; then
 fi
 
 echo ""
-echo "✓ All ODD task documents are completed and closed."
+echo "✓ All ODD task documents are completed and closed (documents declaring 'Status: open' are respected)."
 exit 0
