@@ -90,9 +90,18 @@ export default function SettingsScreen() {
         cache: queryClient,
       });
 
-      if (!outcome.ok) {
-        console.error("Failed to sign out:", outcome.error);
+      if (outcome.local === "failed") {
+        console.error("Failed to sign out:", outcome.localError);
         Alert.alert("Error", "Could not sign out. Please try again.");
+      }
+
+      if (outcome.cache === "partial") {
+        // The cache was emptied; what failed is the reset that cancels in-flight refetches
+        // first, so a refetch started just before the sign-out may still resolve into it.
+        console.error(
+          "Sign-out emptied the query cache without cancelling its refetches:",
+          outcome.cacheError,
+        );
       }
     } finally {
       setIsSigningOut(false);

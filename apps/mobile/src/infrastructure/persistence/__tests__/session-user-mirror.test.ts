@@ -195,6 +195,42 @@ describe("upsertSessionUser (S13, S21 local ownership)", () => {
     });
   });
 
+  it("reports the owner when another write takes the address between the check and the insert", async () => {
+    const { db } = await createDeviceDatabase();
+    const elena = await getUserById(db, SEED_USER_IDS.ELENA_GOMEZ);
+    const identity = newIdentity({ email: elena!.email });
+
+    // The pre-check reads and the insert writes, so two callers can interleave: this
+    // database answers the pre-check as if the address were free, and the UNIQUE
+    // constraint is then what refuses the write. The residual of a read-then-write is
+    // reported as the same outcome instead of escaping as a driver error.
+    const racingDb = { ...db } as typeof db;
+    let staleLookup = true;
+    racingDb.getFirstAsync = (async <T>(
+      sql: string,
+      params: unknown[] = [],
+    ) => {
+      if (staleLookup && sql.includes("WHERE email = ?")) {
+        staleLookup = false;
+        return null;
+      }
+      return db.getFirstAsync<T>(sql, params as never[]);
+    }) as typeof db.getFirstAsync;
+
+    const result = await upsertSessionUser(racingDb, identity);
+
+    expect(result.status).toBe("email-owned-by-another-profile");
+    expect(
+      result.status === "email-owned-by-another-profile" && result.ownerId,
+    ).toBe(SEED_USER_IDS.ELENA_GOMEZ);
+    expect(await getUserById(db, identity.id)).toBeNull();
+    const owners = await db.getAllAsync<{ id: string }>(
+      'SELECT id FROM "user" WHERE email = ?',
+      [elena!.email],
+    );
+    expect(owners.map((row) => row.id)).toEqual([SEED_USER_IDS.ELENA_GOMEZ]);
+  });
+
   it("keeps a single row when the session email belongs to another local profile", async () => {
     const { db } = await createDeviceDatabase();
     const elena = await getUserById(db, SEED_USER_IDS.ELENA_GOMEZ);

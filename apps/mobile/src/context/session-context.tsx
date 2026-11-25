@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { AppState } from "react-native";
 import { sessionService } from "@/infrastructure/auth/session-service-instance";
 import type {
   SessionRestore,
@@ -54,17 +55,39 @@ export interface SessionContextValue {
 const RESTORE_FAILED_MESSAGE =
   "Your session could not be restored. Try again, or sign in again.";
 
+/**
+ * How the provider hears that the app came back to the foreground (T6c `m6`).
+ *
+ * Returns its own unsubscribe, so the provider never holds a subscription it cannot drop.
+ */
+export type ForegroundSubscription = (onForeground: () => void) => () => void;
+
+/**
+ * The real subscription: React Native's `AppState` reports `active` when the app returns
+ * from the background, which is when a session may have expired while nobody was looking.
+ */
+const subscribeToAppForeground: ForegroundSubscription = (onForeground) => {
+  const subscription = AppState.addEventListener("change", (state) => {
+    if (state === "active") onForeground();
+  });
+
+  return () => subscription.remove();
+};
+
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export interface SessionProviderProps {
   children: ReactNode;
   /** Test seam: the app passes its single service instance. */
   service?: SessionService;
+  /** Test seam: the foreground source, defaulting to React Native's `AppState`. */
+  subscribeToForeground?: ForegroundSubscription;
 }
 
 export function SessionProvider({
   children,
   service = sessionService,
+  subscribeToForeground = subscribeToAppForeground,
 }: SessionProviderProps) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -125,12 +148,59 @@ export function SessionProvider({
 
   useEffect(() => {
     isActive.current = true;
-    void runRestore();
 
     return () => {
       isActive.current = false;
     };
+  }, []);
+
+  useEffect(() => {
+    void runRestore();
   }, [runRestore]);
+
+  // The identity a foreground check has to re-check, read without re-subscribing to the
+  // foreground on every session change.
+  const currentUser = useRef<SessionUser | null>(null);
+
+  useEffect(() => {
+    currentUser.current = user;
+  }, [user]);
+
+  /**
+   * Re-checks the stored session when the app returns to the foreground (T6c `m6`).
+   *
+   * A session expires on the server (seven days by default, S25) while the process keeps
+   * rendering the identity it restored: every server call then answers 401 and the UI still
+   * claims the user is signed in. This is the cheapest correct revalidation — no timer, no
+   * polling, one request per return to the foreground — and it acts only on answers that
+   * judge the credential: a session the server still accepts refreshes the identity, a
+   * rejected one signs the tree out, and a server that could not answer changes nothing,
+   * because offline is not signed out (`M2`) and must not take a working tree away.
+   */
+  const revalidate = useCallback(() => {
+    if (!currentUser.current) return;
+
+    const generation = (restoreGeneration.current += 1);
+
+    void service.restore().then(
+      (outcome) => {
+        if (!isActive.current) return;
+        if (generation !== restoreGeneration.current) return;
+        if (outcome.status === "unavailable") return;
+        applyOutcome(outcome, generation);
+      },
+      (error: unknown) => {
+        // A revalidation is never allowed to disturb the tree: it is a check, and the
+        // session it was checking is still the one the user is using.
+        console.warn("[session] Failed to re-check the stored session:", error);
+      },
+    );
+  }, [service, applyOutcome]);
+
+  useEffect(
+    () => subscribeToForeground(revalidate),
+    [subscribeToForeground, revalidate],
+  );
 
   const signIn = useCallback(
     async (input: SignInInput) => {

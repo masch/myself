@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { deriveSessionGate } from "../session-gate";
+import {
+  appShellScreens,
+  deriveSessionGate,
+  type AppShellMode,
+} from "../session-gate";
 import type {
   SessionRestoreProblem,
   SessionUser,
@@ -66,5 +70,27 @@ describe("deriveSessionGate (S13 root gate)", () => {
         restoreProblem: OFFLINE_PROBLEM,
       }),
     ).toBe("authenticated");
+  });
+});
+
+describe("appShellScreens (T6c m3)", () => {
+  it("opens the app route tree only for the modes that name it", () => {
+    // Deliberately not `mode !== "unauthenticated"`: the simulation shell is listed by
+    // name, so the app routes are opened by a decision instead of by a negation.
+    expect(appShellScreens("authenticated")).toEqual({
+      app: true,
+      auth: false,
+    });
+    expect(appShellScreens("ungated")).toEqual({ app: true, auth: false });
+    expect(appShellScreens("unauthenticated")).toEqual({
+      app: false,
+      auth: true,
+    });
+  });
+
+  it("refuses a mode nobody decided about instead of opening the tree", () => {
+    expect(() => appShellScreens("future-mode" as AppShellMode)).toThrow(
+      /Unhandled app shell mode/,
+    );
   });
 });

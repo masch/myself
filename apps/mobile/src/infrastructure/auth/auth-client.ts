@@ -1,6 +1,7 @@
 import { createAuthClient } from "better-auth/client";
 import {
   mapSessionUser,
+  SESSION_TOKEN_STORAGE_FAILURE,
   type AuthApiPort,
   type AuthResult,
   type SignInInput,
@@ -64,6 +65,20 @@ export const COOKIE_MODE: RequestCredentials = "include";
 /** A transport failure, distinguished from an API answer by having no status. */
 const TRANSPORT_FAILURE_STATUS = 0;
 
+/**
+ * A failed write to the platform credential store (T6c `m7`).
+ *
+ * Captured out of the response hook rather than thrown out of it: the fetch layer turns a
+ * hook rejection into its own `{ status: 500 }` answer and drops the reason, so a keychain
+ * failure would reach the caller as an unexplained server error. Recording it here keeps
+ * the cause, and `call` below turns it into a result with its own code. Scope: this is per
+ * client instance and cleared before each call; if a write fails while two calls are in
+ * flight, both report the local failure, which is the same condition for the device.
+ */
+function asError(cause: unknown): Error {
+  return cause instanceof Error ? cause : new Error(String(cause));
+}
+
 function toResult(raw: {
   data?: unknown;
   error?: { code?: string; message?: string; status?: number } | null;
@@ -94,6 +109,22 @@ function transportFailure(error: unknown): AuthResult {
 }
 
 /**
+ * The sign-in succeeded and the device could not keep the credential (T6c `m7`).
+ *
+ * Deliberately without a `status`: the request answered, so nothing here is a transport
+ * failure, and `describeAuthFailure` reads the code and says what actually happened.
+ */
+function localStorageFailure(error: Error): AuthResult {
+  return {
+    user: null,
+    error: {
+      code: SESSION_TOKEN_STORAGE_FAILURE,
+      message: error.message,
+    },
+  };
+}
+
+/**
  * Adapts `better-auth/client` to the app's {@link AuthApiPort} (S8, S13).
  *
  * Two responsibilities, both here so no other module knows the library:
@@ -111,6 +142,9 @@ export function createAuthApi({
   requestTimeoutMs = AUTH_REQUEST_TIMEOUT_MS,
   credentials = COOKIE_MODE,
 }: AuthApiOptions): AuthApiPort {
+  /** The last failed write to the credential store, cleared at the start of every call. */
+  let storageFailure: Error | null = null;
+
   const client = createAuthClient({
     baseURL: baseUrl,
     fetchOptions: {
@@ -128,7 +162,15 @@ export function createAuthApi({
         const token = context.response.headers.get(
           SESSION_TOKEN_RESPONSE_HEADER,
         );
-        if (token) await storage.set(token);
+        if (!token) return;
+
+        try {
+          await storage.set(token);
+        } catch (error) {
+          // Recorded, not thrown: see `asError` above for why the throw would lose the
+          // reason, and `call` below for where it becomes a result.
+          storageFailure = asError(error);
+        }
       },
     },
   });
@@ -136,10 +178,17 @@ export function createAuthApi({
   async function call(
     operation: () => Promise<Parameters<typeof toResult>[0]>,
   ): Promise<AuthResult> {
+    storageFailure = null;
+
     try {
-      return toResult(await operation());
+      const result = toResult(await operation());
+      // A sign-in that answered but could not be remembered is a failure the user has to
+      // see, even though the server part worked (T6c `m7`).
+      return storageFailure ? localStorageFailure(storageFailure) : result;
     } catch (error) {
-      return transportFailure(error);
+      return storageFailure
+        ? localStorageFailure(storageFailure)
+        : transportFailure(error);
     }
   }
 

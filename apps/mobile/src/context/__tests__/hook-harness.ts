@@ -16,6 +16,11 @@ import React, { type ReactElement, type ReactNode } from "react";
  * uses. An unsupported hook throws instead of returning `undefined`, and the dispatcher
  * slot is React's private one, so a React upgrade that renames it fails these tests with
  * an explicit message rather than passing silently.
+ *
+ * Element types the harness cannot execute — React Native's `forwardRef` host components,
+ * and anything else that is an object rather than a function — are rendered as their
+ * children: there is no DOM here, and skipping their implementation is what lets a real
+ * screen (its container, its buttons, its fields) be driven without a renderer dependency.
  */
 
 interface ClientInternals {
@@ -68,9 +73,20 @@ interface HookDispatcher {
   useContext<T>(context: { _currentValue?: T }): T;
 }
 
+export interface RenderedComponent {
+  type: unknown;
+  props: Record<string, unknown>;
+}
+
 export interface HookHarness {
   /** Renders `element` and runs the effects the render scheduled. */
   render(element: ReactElement): void;
+  /**
+   * The function components the last render pass rendered, with the props they received
+   * (newest last). It is how a test reaches a control: the props a component was called
+   * with are what a press would deliver, and there is no DOM to query here.
+   */
+  components(): RenderedComponent[];
   /** Runs every effect cleanup, as unmounting the tree does. */
   unmount(): void;
   /** Drains pending state updates, re-rendering until nothing changes. */
@@ -101,6 +117,7 @@ function sameDeps(
 
 export function createHookHarness(): HookHarness {
   const components = new Map<unknown, ComponentState>();
+  const rendered: RenderedComponent[] = [];
   const contextStack: { context: unknown; value: unknown }[] = [];
   const scheduled: { slot: EffectSlot; state: ComponentState }[] = [];
 
@@ -211,6 +228,7 @@ export function createHookHarness(): HookHarness {
     type: (props: Record<string, unknown>) => ReactNode,
     props: Record<string, unknown>,
   ): void {
+    rendered.push({ type, props });
     const state = components.get(type) ?? { slots: [] };
     components.set(type, state);
 
@@ -270,11 +288,6 @@ export function createHookHarness(): HookHarness {
       return;
     }
 
-    if (typeof type === "string") {
-      renderNode(child.props.children as ReactNode);
-      return;
-    }
-
     if (typeof type === "function") {
       renderComponent(
         type as (props: Record<string, unknown>) => ReactNode,
@@ -283,14 +296,17 @@ export function createHookHarness(): HookHarness {
       return;
     }
 
-    throw new Error(
-      `The hook harness does not support the element type ${String(type)}.`,
-    );
+    // Host elements and the object wrapper types React ships (`forwardRef`, `memo`): the
+    // harness has no renderer for them, so what they contain is rendered and their own
+    // implementation is not run. That is what keeps a `TextInput`'s imperative handle and
+    // a `Pressable`'s press plumbing out of these tests while their children stay visible.
+    renderNode(child.props.children as ReactNode);
   }
 
   function renderPass(): void {
     if (!element || unmounted) return;
     renders += 1;
+    rendered.length = 0;
     contextStack.length = 0;
     const internals = requireClientInternals();
     const previousDispatcher = internals.H;
@@ -337,6 +353,10 @@ export function createHookHarness(): HookHarness {
 
     renderCount() {
       return renders;
+    },
+
+    components() {
+      return rendered.slice();
     },
   };
 }

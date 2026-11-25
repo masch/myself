@@ -167,6 +167,13 @@ export type SessionUserMirrorResult =
  * read for everybody throw. Name and email go through the same schema as every other
  * local write, and the email is checked against the rows that already exist before the
  * insert, because `user.email` is UNIQUE and the seeded profiles own two of them.
+ *
+ * That check is a pre-check, not a guarantee: it reads and the insert writes, so another
+ * caller could take the address between the two, and there is no transaction here to stop
+ * it (the identity mirror runs on a single connection but not in a single statement). The
+ * residual is stated instead of implied: the check is advisory, `user.email`'s UNIQUE
+ * constraint is the authority, and a write that loses that race is mapped to the same
+ * `email-owned-by-another-profile` outcome instead of escaping as a driver error.
  * `email_verified` is written as 0: verification state is the server's (`S23`), nothing on
  * the device reads the column, and claiming `1` here would be a lie.
  *
@@ -203,43 +210,71 @@ export async function upsertSessionUser(
     };
   }
 
-  // Checked before the write, not left to the constraint: an upsert that violates UNIQUE
-  // throws away the whole statement, so the identity would keep no local row and the
-  // caller would only see a driver error.
-  const owner = await db.getFirstAsync<{ id: string }>(
-    'SELECT id FROM "user" WHERE email = ?',
-    [parsed.data.email],
-  );
+  // Checked before the write as well as enforced by it: an upsert that violates UNIQUE
+  // throws away the whole statement, so the identity would keep no local row and the caller
+  // would only see a driver error. The pre-check produces the good message; the constraint
+  // below is what actually decides, because between the read and the insert another caller
+  // can take the address.
+  const owner = await findEmailOwner(db, parsed.data.email);
   if (owner && owner.id !== id.data) {
-    return {
-      status: "email-owned-by-another-profile",
-      ownerId: owner.id,
-      message: `The address ${parsed.data.email} already belongs to another profile on this device, so the signed-in identity has no local owner.`,
-    };
+    return emailOwnedByAnotherProfile(parsed.data.email, owner.id);
   }
 
   const now = DateTime.now().toMillis();
-  await db.runAsync(
-    `INSERT INTO "user" (id, name, email, image, email_verified, role, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 0, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       name = excluded.name,
-       email = excluded.email,
-       image = COALESCE(excluded.image, "user".image),
-       role = COALESCE(excluded.role, "user".role),
-       updated_at = excluded.updated_at`,
-    [
-      id.data,
-      parsed.data.name,
-      parsed.data.email,
-      sessionUser.imageUrl ?? null,
-      sessionUser.role ?? null,
-      now,
-      now,
-    ],
-  );
+  try {
+    await db.runAsync(
+      `INSERT INTO "user" (id, name, email, image, email_verified, role, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 0, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         name = excluded.name,
+         email = excluded.email,
+         image = COALESCE(excluded.image, "user".image),
+         role = COALESCE(excluded.role, "user".role),
+         updated_at = excluded.updated_at`,
+      [
+        id.data,
+        parsed.data.name,
+        parsed.data.email,
+        sessionUser.imageUrl ?? null,
+        sessionUser.role ?? null,
+        now,
+        now,
+      ],
+    );
+  } catch (error) {
+    // The write lost the race the pre-check cannot close: report the owner instead of
+    // letting a constraint error look like a broken database to the caller.
+    const racingOwner = await findEmailOwner(db, parsed.data.email);
+    if (racingOwner && racingOwner.id !== id.data) {
+      return emailOwnedByAnotherProfile(parsed.data.email, racingOwner.id);
+    }
+    throw error;
+  }
 
   return { status: "mirrored" };
+}
+
+/** The local row that owns an address, if any (the authority behind the UNIQUE constraint). */
+async function findEmailOwner(
+  db: SQLiteDatabase,
+  email: string,
+): Promise<{ id: string } | null> {
+  return db.getFirstAsync<{ id: string }>(
+    'SELECT id FROM "user" WHERE email = ?',
+    [email],
+  );
+}
+
+/** One outcome, built in one place so both the pre-check and the constraint say it alike. */
+function emailOwnedByAnotherProfile(
+  email: string,
+  ownerId: string,
+): SessionUserMirrorResult {
+  return {
+    status: "email-owned-by-another-profile",
+    ownerId,
+    message: `The address ${email} already belongs to another profile on this device, so the signed-in identity has no local owner.`,
+  };
 }
 
 /**

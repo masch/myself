@@ -100,6 +100,15 @@ const UNREACHABLE_SERVER =
 const RESTORE_TIMED_OUT =
   "The server did not answer in time. Check your connection and try again.";
 
+/**
+ * The local credential store refused the write (T6c `m7`).
+ *
+ * A client-side code, not an API one: nothing about the request failed. It exists because
+ * a keychain failure used to arrive as a transport failure, and the message then told the
+ * user to check a connection that had just carried a successful sign-in.
+ */
+export const SESSION_TOKEN_STORAGE_FAILURE = "SESSION_TOKEN_STORAGE_FAILED";
+
 /** A response-less failure: the transport never reached the server. */
 const NO_RESPONSE_STATUS = 0;
 
@@ -112,13 +121,19 @@ const FAILURE_MESSAGES: Record<string, string> = {
   PASSWORD_TOO_SHORT: "Password must be at least 8 characters.",
   PASSWORD_TOO_LONG: "Password must be at most 128 characters.",
   INVALID_EMAIL: "Enter a valid email address.",
+  // The sign-in worked and the device cannot remember it. This is deliberately not the
+  // "check your connection" text: the connection is the one thing that did its job.
+  [SESSION_TOKEN_STORAGE_FAILURE]:
+    "You're signed in, but this device could not save your session, so it will not survive a restart. Check this device's keychain access and try again.",
 };
 
 /**
  * Turns a failed auth response into text a person can act on.
  *
  * A `status` of 0 means no response arrived at all (the transport failed), which is
- * the one failure whose cause the user can fix themselves.
+ * the one failure whose cause the user can fix themselves. A local-storage failure has no
+ * status at all and carries its own code, so it is read from the code table instead of
+ * being mistaken for a connection problem (T6c `m7`).
  */
 export function describeAuthFailure(failure: AuthFailure | null): string {
   if (!failure) return GENERIC_FAILURE;

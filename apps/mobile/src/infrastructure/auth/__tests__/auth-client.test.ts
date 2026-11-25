@@ -16,7 +16,12 @@ import {
   AUTH_REQUEST_TIMEOUT_MS,
   type FetchLike,
 } from "../auth-client";
-import { createSessionService, type SessionRestore } from "../session-service";
+import {
+  createSessionService,
+  describeAuthFailure,
+  SESSION_TOKEN_STORAGE_FAILURE,
+  type SessionRestore,
+} from "../session-service";
 import type { SessionTokenStorage } from "../session-token-storage.contract";
 import { deriveSessionGate } from "@/context/session-gate";
 
@@ -226,6 +231,62 @@ describe("auth client over the real API (S8 bearer transport)", () => {
     expect(row.expiresAt.getTime() - row.createdAt.getTime()).toBe(
       EXPECTED_SESSION_LIFETIME_MS,
     );
+  });
+  describe("local credential storage failure (T6c m7)", () => {
+    /** A store whose write fails the way a locked or unavailable keychain does. */
+    function refusingStorage(): SessionTokenStorage {
+      return {
+        async get() {
+          return null;
+        },
+        async set() {
+          throw new Error("OSStatus error -34018: no keychain access");
+        },
+        async clear() {},
+      };
+    }
+
+    it("reports a failed keychain write as a local failure, not as an unreachable server", async () => {
+      const api = createAuthApi({
+        baseUrl: BASE_URL,
+        storage: refusingStorage(),
+        fetchImpl: inProcessFetch,
+      });
+
+      const result = await api.signInEmail({
+        email: DEMO_USER_EMAIL,
+        password: DEMO_USER_PASSWORD,
+      });
+
+      // The server accepted the sign-in; what failed is this device. Reporting `status: 0`
+      // here told the user to check a connection that had just worked.
+      expect(result.user).toBeNull();
+      expect(result.error?.code).toBe(SESSION_TOKEN_STORAGE_FAILURE);
+      expect(result.error?.status).toBeUndefined();
+
+      const message = describeAuthFailure(result.error);
+      expect(message).toContain("could not save your session");
+      expect(message).not.toContain("connection");
+      expect(message).not.toContain("reach the server");
+    });
+
+    it("surfaces the local failure through the session service the screens call", async () => {
+      const api = createAuthApi({
+        baseUrl: BASE_URL,
+        storage: refusingStorage(),
+        fetchImpl: inProcessFetch,
+      });
+      const service = createSessionService({ api, storage: refusingStorage() });
+
+      const failure = await service
+        .signIn({ email: DEMO_USER_EMAIL, password: DEMO_USER_PASSWORD })
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(Error);
+      expect((failure as Error).message).toContain(
+        "could not save your session",
+      );
+    });
   });
 });
 

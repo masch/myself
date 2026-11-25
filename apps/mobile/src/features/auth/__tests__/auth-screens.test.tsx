@@ -1,15 +1,25 @@
 import { beforeAll, describe, expect, it, mock } from "bun:test";
 import React from "react";
 import { renderToString } from "react-dom/server";
-import type { SessionService } from "@/infrastructure/auth/session-service";
+import { AppButton, ThemedText } from "@/components";
+import { createHookHarness } from "@/context/__tests__/hook-harness";
+import {
+  AuthenticationError,
+  type SessionService,
+} from "@/infrastructure/auth/session-service";
+import { AuthField } from "../auth-field";
 
 /**
- * The auth surfaces (S13).
+ * The auth surfaces (S13, T6c `m4`).
  *
- * Rendered to static markup so the assertions are about what a person (and a screen
- * reader) actually gets: a persistent accessible label on every input — a placeholder
- * disappears on the first keystroke, so it cannot be the accessible name — and no
- * Google button, because S8's federated path has no native module or client IDs here.
+ * Two kinds of assertion, and the split matters. Static markup is about what a person (and
+ * a screen reader) gets: a persistent accessible label on every input — a placeholder
+ * disappears on the first keystroke, so it cannot be the accessible name — the submit
+ * control itself (a `role="button"` carrying the action's label, not a string the page
+ * title already satisfies), and no Google button, because S8's federated path has no
+ * native module or client IDs here. Behaviour is driven through the hook harness, because
+ * a static render never runs an event handler: a sign-in the service rejects has to reach
+ * the error element.
  */
 mock.module("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -37,6 +47,14 @@ const unusedService: SessionService = {
   },
 };
 
+/** A service whose sign-in always fails the way an invalid password does. */
+const rejectingService: SessionService = {
+  ...unusedService,
+  async signIn() {
+    throw new AuthenticationError("Email or password is incorrect.");
+  },
+};
+
 mock.module("@/infrastructure/auth/session-service-instance", () => ({
   sessionService: unusedService,
 }));
@@ -55,9 +73,12 @@ beforeAll(async () => {
 });
 
 /** Renders a screen with the session it reads, exactly as the root stack does. */
-function renderScreen(Screen: ScreenComponent): string {
+function renderScreen(
+  Screen: ScreenComponent,
+  service: SessionService = unusedService,
+): string {
   return renderToString(
-    <SessionProvider service={unusedService}>
+    <SessionProvider service={service}>
       <Screen />
     </SessionProvider>,
   );
@@ -70,6 +91,19 @@ function labelledInputs(html: string): string[] {
   );
 }
 
+/**
+ * The accessible names of `role="button"` elements, i.e. of the controls a person can
+ * press. A page title is not one of these, which is what makes the assertion non-tautological.
+ */
+function buttonLabels(html: string): string[] {
+  const labels: string[] = [];
+  for (const tag of html.matchAll(/<[a-zA-Z][^>]*role="button"[^>]*>/g)) {
+    const label = /aria-label="([^"]*)"/.exec(tag[0]);
+    if (label) labels.push(label[1]);
+  }
+  return labels;
+}
+
 describe("sign-in screen", () => {
   it("labels the email and password inputs persistently", () => {
     const html = renderScreen(SignInScreen);
@@ -79,10 +113,12 @@ describe("sign-in screen", () => {
     expect(labels).toContain("Password");
   });
 
-  it("offers a submit action and a way to create an account", () => {
+  it("renders the submit control itself, not just the page title", () => {
     const html = renderScreen(SignInScreen);
 
-    expect(html).toContain("Sign in");
+    // "Sign in" alone proves nothing: the page title contains it. The control is a button
+    // whose accessible name is the action.
+    expect(buttonLabels(html)).toEqual(["Sign in"]);
     expect(html).toContain("Create one");
     expect(html).toContain('role="link"');
   });
@@ -91,6 +127,33 @@ describe("sign-in screen", () => {
     const html = renderScreen(SignInScreen);
 
     expect(html).not.toContain("Google");
+  });
+
+  it("shows the error element when the service rejects the sign-in", async () => {
+    const harness = createHookHarness();
+    harness.render(
+      <SessionProvider service={rejectingService}>
+        <SignInScreen />
+      </SessionProvider>,
+    );
+    await harness.flush();
+
+    fillField(harness, "Email address", "myself@example.com");
+    fillField(harness, "Password", "not-the-password");
+    await harness.flush();
+
+    const submit = harness
+      .components()
+      .find(
+        (component) =>
+          component.type === AppButton && component.props.title === "Sign in",
+      );
+    expect(submit).toBeDefined();
+
+    await (submit!.props.onPress as () => Promise<void>)();
+    await harness.flush();
+
+    expect(errorElement(harness)).toBe("Email or password is incorrect.");
   });
 });
 
@@ -104,11 +167,43 @@ describe("sign-up screen", () => {
     expect(labels).toContain("Password");
   });
 
-  it("offers a submit action and a way back to sign-in", () => {
+  it("renders the submit control itself, not just the page title", () => {
     const html = renderScreen(SignUpScreen);
 
-    expect(html).toContain("Create account");
+    // The title and the button share the text on purpose, so the assertion is on the
+    // control: a page with no submit button must fail here.
+    expect(buttonLabels(html)).toEqual(["Create account"]);
     expect(html).toContain("Sign in");
     expect(html).toContain('role="link"');
   });
 });
+
+/** Types into the field the screen labelled `label`, as a person would. */
+function fillField(
+  harness: ReturnType<typeof createHookHarness>,
+  label: string,
+  value: string,
+): void {
+  const field = harness
+    .components()
+    .find(
+      (component) =>
+        component.type === AuthField && component.props.label === label,
+    );
+  expect(field).toBeDefined();
+  (field!.props.onChangeText as (next: string) => void)(value);
+}
+
+/** The text of the screen's error element, or `null` when it is not rendered. */
+function errorElement(
+  harness: ReturnType<typeof createHookHarness>,
+): string | null {
+  const element = harness
+    .components()
+    .find(
+      (component) =>
+        component.type === ThemedText &&
+        component.props.testID === "auth-error",
+    );
+  return element ? String(element.props.children) : null;
+}

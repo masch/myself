@@ -93,19 +93,52 @@ function createProbe() {
   };
 }
 
+/**
+ * A foreground subscription the test fires itself, standing in for `AppState`.
+ *
+ * The provider takes it as a prop so the revalidation can be driven without a React Native
+ * runtime, which never delivers `AppState` changes in this test process.
+ */
+function createForeground() {
+  let listener: (() => void) | null = null;
+  let subscriptions = 0;
+
+  const subscribe = (onForeground: () => void) => {
+    subscriptions += 1;
+    listener = onForeground;
+    return () => {
+      listener = null;
+    };
+  };
+
+  return {
+    subscribe,
+    fire() {
+      if (!listener) throw new Error("Nothing subscribed to the foreground");
+      listener();
+    },
+    subscriptions: () => subscriptions,
+    isSubscribed: () => listener !== null,
+  };
+}
+
 function setup(options?: { signOutRejects?: boolean }) {
   const harness = createHookHarness();
   const { service, calls, pendingRestores } = createControlledService(options);
   const probe = createProbe();
+  const foreground = createForeground();
 
   const { Probe } = probe;
   harness.render(
-    <SessionProvider service={service}>
+    <SessionProvider
+      service={service}
+      subscribeToForeground={foreground.subscribe}
+    >
       <Probe />
     </SessionProvider>,
   );
 
-  return { harness, service, calls, pendingRestores, probe };
+  return { harness, service, calls, pendingRestores, probe, foreground };
 }
 
 describe("SessionProvider (T6c M3)", () => {
@@ -270,5 +303,89 @@ describe("SessionProvider (T6c M3)", () => {
     expect(probe.renders()).toBe(rendersBeforeUnmount);
     expect(probe.latest().user).toBeNull();
     expect(probe.latest().isLoading).toBe(true);
+  });
+});
+
+describe("foreground revalidation (T6c m6)", () => {
+  it("asks the server again when the app returns to the foreground", async () => {
+    const { harness, calls, pendingRestores, probe, foreground } = setup();
+
+    pendingRestores[0].resolve({ status: "authenticated", user: USER });
+    await harness.flush();
+    expect(probe.latest().user).toEqual(USER);
+
+    foreground.fire();
+    await harness.flush();
+
+    expect(calls.restore).toBe(2);
+  });
+
+  it("signs the tree out when the foreground check finds the session expired", async () => {
+    const { harness, pendingRestores, probe, foreground } = setup();
+
+    pendingRestores[0].resolve({ status: "authenticated", user: USER });
+    await harness.flush();
+
+    // The session expired while the app was in the background: the server rejects the
+    // stored credential, so the tree must stop claiming a signed-in identity.
+    foreground.fire();
+    await harness.flush();
+    expect(probe.latest().user).toEqual(USER);
+    expect(probe.latest().isLoading).toBe(false);
+
+    pendingRestores[1].resolve({ status: "unauthenticated" });
+    await harness.flush();
+
+    expect(probe.latest().user).toBeNull();
+    expect(probe.latest().restoreProblem).toBeNull();
+    expect(deriveSessionGate(probe.latest())).toBe("unauthenticated");
+  });
+
+  it("keeps the tree up when the foreground check cannot reach the server", async () => {
+    const { harness, pendingRestores, probe, foreground } = setup();
+
+    pendingRestores[0].resolve({ status: "authenticated", user: USER });
+    await harness.flush();
+
+    foreground.fire();
+    await harness.flush();
+
+    pendingRestores[1].resolve({
+      status: "unavailable",
+      reason: "offline",
+      message:
+        "Could not reach the server. Check your connection and try again.",
+    });
+    await harness.flush();
+
+    // Offline is not signed out (T6c `M2`), and a revalidation that could not answer must
+    // not take a working tree away either: no user is cleared and no retry surface appears.
+    expect(probe.latest().user).toEqual(USER);
+    expect(probe.latest().restoreProblem).toBeNull();
+    expect(deriveSessionGate(probe.latest())).toBe("authenticated");
+  });
+
+  it("checks nothing while nobody is signed in", async () => {
+    const { harness, calls, pendingRestores, foreground } = setup();
+
+    pendingRestores[0].resolve({ status: "unauthenticated" });
+    await harness.flush();
+
+    foreground.fire();
+    await harness.flush();
+
+    expect(calls.restore).toBe(1);
+  });
+
+  it("stops listening when the provider unmounts", async () => {
+    const { harness, pendingRestores, foreground } = setup();
+
+    pendingRestores[0].resolve({ status: "authenticated", user: USER });
+    await harness.flush();
+    expect(foreground.isSubscribed()).toBe(true);
+
+    harness.unmount();
+
+    expect(foreground.isSubscribed()).toBe(false);
   });
 });

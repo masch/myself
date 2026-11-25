@@ -35,3 +35,44 @@ export function deriveSessionGate(input: SessionGateInput): SessionGateState {
   if (input.restoreProblem) return "unavailable";
   return "unauthenticated";
 }
+
+/**
+ * Which navigator a resolved gate contributes (S13).
+ *
+ * `ungated` is the barter simulation tab: it renders without the database and therefore
+ * without a session, exactly as it did before authentication existed.
+ */
+export type AppShellMode = "authenticated" | "unauthenticated" | "ungated";
+
+/** The two route branches a shell mode registers. */
+export interface AppShellScreens {
+  /** The app screens — tabs, modals, dev showcase, barter. */
+  app: boolean;
+  /** The sign-in and sign-up screens. */
+  auth: boolean;
+}
+
+/**
+ * Which route branch a shell mode opens (T6c `m3`).
+ *
+ * The condition used to be `mode !== "unauthenticated"`, which opened every app route —
+ * including the modals and the dev showcase — for the simulation shell as a side effect of
+ * a negation, and would have opened them for any mode added later without anyone noticing.
+ * Here each mode names what it opens, and a mode nobody decided about is a type error and a
+ * thrown error rather than a silently opened tree.
+ */
+export function appShellScreens(mode: AppShellMode): AppShellScreens {
+  switch (mode) {
+    case "authenticated":
+    case "ungated":
+      return { app: true, auth: false };
+    case "unauthenticated":
+      return { app: false, auth: true };
+    default: {
+      // Exhaustiveness: adding a mode to the union makes this assignment fail to compile,
+      // and reaching it at runtime throws instead of opening the authenticated tree.
+      const undecided: never = mode;
+      throw new Error(`Unhandled app shell mode: ${String(undecided)}`);
+    }
+  }
+}
