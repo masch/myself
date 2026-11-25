@@ -12,37 +12,57 @@ fi
 FAILED=0
 
 # A document that declares itself open is legitimate while its work is in
-# progress, including across intermediate commits on a feature branch. Only a
-# top-level declaration in the document header counts: a quoted example or a
-# pasted log inside a fenced block, or an indented line, must not waive the gate
-# for the whole document.
+# progress, including across intermediate commits on a feature branch (S19).
+#
+# Only a top-level declaration in the document header counts. The header ends at
+# the first `## ` section heading, so a `## Log` entry quoting the marker cannot
+# waive the gate for the whole document, and no line-count heuristic is used.
+#
+# Fenced blocks are skipped with CommonMark's fence rules: a fence line may be
+# indented by up to three spaces, and it only closes on the same character, at a
+# length at least equal to the opener, with nothing but whitespace after it. Any
+# other fence-looking line stays inside the open fence.
+FENCE_RE='^ {0,3}(`{3,}|~{3,})(.*)$'
+FENCE_TAIL_RE='^[[:space:]]*$'
+
 declares_open() {
 	local file="$1"
 	local line=""
 	local line_lc=""
-	local fence=''
+	local fence_char=''
+	local fence_len=0
+	local seq=''
+	local rest=''
 	local cand=''
-	local count=0
+	local len=0
 
 	while IFS= read -r line; do
-		count=$((count + 1))
-		if [ "${count}" -gt 20 ]; then
-			break
-		fi
+		# The declaration must live in the document header.
 		case "${line}" in
-			'```'* | '~~~'*)
-				cand="${line:0:1}"
-				if [ -z "${fence}" ]; then
-					fence="${cand}"
-				elif [ "${cand}" = "${fence}" ]; then
-					fence=''
-				fi
-				continue
-				;;
+			'## '*) break ;;
 		esac
-		if [ -n "${fence}" ]; then
+
+		if [[ "${line}" =~ ${FENCE_RE} ]]; then
+			seq="${BASH_REMATCH[1]}"
+			rest="${BASH_REMATCH[2]}"
+			cand="${seq:0:1}"
+			len="${#seq}"
+			if [ -z "${fence_char}" ]; then
+				fence_char="${cand}"
+				fence_len="${len}"
+			elif [ "${cand}" = "${fence_char}" ] &&
+				[ "${len}" -ge "${fence_len}" ] &&
+				[[ "${rest}" =~ ${FENCE_TAIL_RE} ]]; then
+				fence_char=''
+				fence_len=0
+			fi
 			continue
 		fi
+
+		if [ -n "${fence_char}" ]; then
+			continue
+		fi
+
 		line_lc="${line,,}"
 		line_lc="${line_lc%"${line_lc##*[![:space:]]}"}"
 		if [ "${line_lc}" = "- **status**: open" ]; then
