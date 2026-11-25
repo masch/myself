@@ -858,12 +858,13 @@ export class SqliteReflectionRepository implements ReflectionRepositoryPort {
       reflection?: UserReflection | null;
     }[]
   > {
-    const userRow = await this.db.getFirstAsync<{ created_at: string }>(
-      "SELECT created_at FROM users WHERE id = ?",
+    const userRow = await this.db.getFirstAsync<{ created_at: number }>(
+      'SELECT created_at FROM "user" WHERE id = ?',
       [userId],
     );
+    // Better Auth stores `created_at` as integer milliseconds.
     const userCreatedDateStr = userRow?.created_at
-      ? userRow.created_at.slice(0, 10).replace(" ", "T")
+      ? new Date(Number(userRow.created_at)).toISOString().slice(0, 10)
       : todayDate;
 
     const routines = await this.getDailyRoutineQuestions(userId);

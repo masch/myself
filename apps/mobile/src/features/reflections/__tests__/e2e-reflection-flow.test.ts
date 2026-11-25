@@ -58,7 +58,7 @@ describe("E2E Vertical Integration: All 10 Seeded Reflections Registration Flow"
 
     userId = generateEntityId();
     await db.runAsync(
-      "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+      `INSERT INTO "user" (id, name, email, created_at, updated_at) VALUES (?, ?, ?, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000)`,
       [userId, "Filósofo Práctico", "filosofo@example.com"],
     );
 

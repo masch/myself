@@ -6,7 +6,7 @@ import {
   DateTime,
   generateAuthorId,
   type SupportedLocale,
-  type UserDto as User,
+  type User,
   type TaskItem,
   type AuthorDto as Author,
   type MeditationReading,
@@ -15,6 +15,7 @@ import {
   type MeditationReadingWithAuthor,
 } from "@myself/shared";
 import { seedDatabase } from "./seed";
+import { mapUserRow, type RawUserRecord } from "./mappers/user.mapper";
 import { MOBILE_MIGRATIONS } from "./migrations";
 import { runMigrations } from "./migrator";
 
@@ -40,7 +41,7 @@ export async function initDatabase(db: SQLiteDatabase) {
 
   await db.execAsync("PRAGMA foreign_keys = ON;");
 
-  // 1. Apply shared domain migrations (authors, readings, users, tasks)
+  // 1. Apply shared domain migrations (auth, authors, readings, tasks, reflections)
   await runMigrations(db, SHARED_MIGRATIONS);
 
   // 2. Apply mobile local infrastructure migrations (sync_outbox)
@@ -73,33 +74,40 @@ export async function resetDatabase(db: SQLiteDatabase): Promise<void> {
 }
 
 /**
- * User Operations
+ * User Operations (Better Auth `user` table, mapped into the domain entity)
  */
 
+const USER_COLUMNS = `id, name, email, image, created_at`;
+
 export async function getUsers(db: SQLiteDatabase): Promise<User[]> {
-  return await db.getAllAsync<User>(
-    "SELECT * FROM users ORDER BY created_at ASC",
+  const rows = await db.getAllAsync<RawUserRecord>(
+    `SELECT ${USER_COLUMNS} FROM "user" ORDER BY created_at ASC`,
   );
+  return rows.map(mapUserRow);
 }
 
 export async function getUserById(
   db: SQLiteDatabase,
   id: string,
 ): Promise<User | null> {
-  return await db.getFirstAsync<User>("SELECT * FROM users WHERE id = ?", [id]);
+  const row = await db.getFirstAsync<RawUserRecord>(
+    `SELECT ${USER_COLUMNS} FROM "user" WHERE id = ?`,
+    [id],
+  );
+  return row ? mapUserRow(row) : null;
 }
 
 export async function addUser(
   db: SQLiteDatabase,
   name: string,
   email: string,
-  avatarUrl: string = "",
+  imageUrl: string = "",
 ): Promise<string> {
   const id = generateUUID();
-  const createdAt = DateTime.now().toISOString();
+  const createdAt = DateTime.now().toMillis();
   await db.runAsync(
-    "INSERT INTO users (id, name, email, avatar_url, created_at) VALUES (?, ?, ?, ?, ?)",
-    [id, name, email, avatarUrl, createdAt],
+    'INSERT INTO "user" (id, name, email, image, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)',
+    [id, name, email, imageUrl, createdAt, createdAt],
   );
   return id;
 }
