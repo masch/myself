@@ -1,8 +1,4 @@
-import type {
-  AuthorRepository,
-  ReadingRepository,
-  UserRepository,
-} from "./ports";
+import type { AuthorRepository, ReadingRepository } from "./ports";
 
 export const Environments = {
   PRODUCTION: "production",
@@ -33,7 +29,6 @@ export type ApiBindings = {
 export type ApiVariables = {
   authorRepo: AuthorRepository;
   readingRepo: ReadingRepository;
-  userRepo: UserRepository;
   environment: Environment;
 };
 

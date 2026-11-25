@@ -11,10 +11,3 @@ export {
   type ListReadingsParams,
   type ListReadingsResult,
 } from "./reading.repository";
-
-export {
-  type UserRepository,
-  type UserRepositoryPort,
-  type ListUsersParams,
-  type ListUsersResult,
-} from "./user.repository";
