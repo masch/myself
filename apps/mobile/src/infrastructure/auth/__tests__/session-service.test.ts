@@ -17,6 +17,31 @@ const USER: SessionUser = {
   role: "user",
 };
 
+/** The message the user sees for a server that never answered (T6c `M2`). */
+const UNREACHABLE_MESSAGE =
+  "Could not reach the server. Check your connection and try again.";
+
+/**
+ * Awaits `promise`, or reports that it never settled.
+ *
+ * The deadline tests can only fail their expectation by hanging, so the sentinel turns a
+ * hang into a readable assertion instead of a runner timeout.
+ */
+async function settleWithin<T>(
+  promise: Promise<T>,
+  ms: number,
+): Promise<T | "never settled"> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const sentinel = new Promise<"never settled">((resolve) => {
+    timer = setTimeout(() => resolve("never settled"), ms);
+  });
+  try {
+    return await Promise.race([promise, sentinel]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function createStorage(initial: string | null = null) {
   const state = { token: initial, clears: 0, sets: [] as string[] };
   const storage: SessionTokenStorage = {
@@ -131,7 +156,10 @@ describe("createSessionService", () => {
       const { storage, state } = createStorage("token-abc");
       const service = createSessionService({ api, storage });
 
-      expect(await service.restore()).toEqual(USER);
+      expect(await service.restore()).toEqual({
+        status: "authenticated",
+        user: USER,
+      });
       expect(calls).toContain("getSession");
       expect(state.clears).toBe(0);
     });
@@ -145,9 +173,25 @@ describe("createSessionService", () => {
       const { storage, state } = createStorage("expired-token");
       const service = createSessionService({ api, storage });
 
-      expect(await service.restore()).toBeNull();
+      expect(await service.restore()).toEqual({ status: "unauthenticated" });
       expect(state.clears).toBe(1);
       expect(await storage.get()).toBeNull();
+    });
+
+    it("clears a token whose session the server reports as expired", async () => {
+      const { api } = createApi({
+        async getSession() {
+          return {
+            user: null,
+            error: { code: "SESSION_EXPIRED", status: 403 },
+          };
+        },
+      });
+      const { storage, state } = createStorage("expired-token");
+      const service = createSessionService({ api, storage });
+
+      expect(await service.restore()).toEqual({ status: "unauthenticated" });
+      expect(state.clears).toBe(1);
     });
 
     it("clears the token when the server answers with no session at all", async () => {
@@ -159,11 +203,37 @@ describe("createSessionService", () => {
       const { storage, state } = createStorage("stale-token");
       const service = createSessionService({ api, storage });
 
-      expect(await service.restore()).toBeNull();
+      expect(await service.restore()).toEqual({ status: "unauthenticated" });
       expect(state.clears).toBe(1);
     });
 
-    it("keeps the token when the server cannot be reached (offline cold start)", async () => {
+    it("keeps the token and reports the offline state for the result the client really produces", async () => {
+      // The production shape: `auth-client.ts` turns every transport throw into this
+      // result, so this — not a throwing `getSession` — is the branch that runs when the
+      // server is unreachable (T6c `M2`).
+      const { api } = createApi({
+        async getSession() {
+          return {
+            user: null,
+            error: { status: 0, message: "Failed to fetch" },
+          };
+        },
+      });
+      const { storage, state } = createStorage("still-valid-token");
+      const service = createSessionService({ api, storage });
+
+      expect(await service.restore()).toEqual({
+        status: "unavailable",
+        reason: "offline",
+        message: UNREACHABLE_MESSAGE,
+      });
+      expect(state.clears).toBe(0);
+      expect(await storage.get()).toBe("still-valid-token");
+    });
+
+    it("keeps the token when the call itself throws, and still reports the offline state", async () => {
+      // Defensive: the client converts every throw into the status-0 result above, so this
+      // path is kept only so a port that does throw cannot be read as "signed out".
       const { api } = createApi({
         async getSession() {
           throw new Error("fetch failed");
@@ -172,7 +242,58 @@ describe("createSessionService", () => {
       const { storage, state } = createStorage("still-valid-token");
       const service = createSessionService({ api, storage });
 
-      expect(await service.restore()).toBeNull();
+      expect(await service.restore()).toEqual({
+        status: "unavailable",
+        reason: "offline",
+        message: UNREACHABLE_MESSAGE,
+      });
+      expect(state.clears).toBe(0);
+      expect(await storage.get()).toBe("still-valid-token");
+    });
+
+    it("keeps the token when the server answers with a failure that judged no credential", async () => {
+      const { api } = createApi({
+        async getSession() {
+          return {
+            user: null,
+            error: { status: 500, message: "Internal Server Error" },
+          };
+        },
+      });
+      const { storage, state } = createStorage("still-valid-token");
+      const service = createSessionService({ api, storage });
+
+      expect(await service.restore()).toEqual({
+        status: "unavailable",
+        reason: "server-error",
+        message: "Internal Server Error",
+      });
+      expect(state.clears).toBe(0);
+    });
+
+    it("ends in the retryable state instead of hanging when the restore outlives its deadline", async () => {
+      // A connection that swallows packets never settles the promise; before T6c `M1`
+      // that was an unrecoverable launch screen.
+      const { api } = createApi({
+        getSession() {
+          return new Promise<AuthResult>(() => {});
+        },
+      });
+      const { storage, state } = createStorage("still-valid-token");
+      const service = createSessionService({
+        api,
+        storage,
+        restoreDeadlineMs: 20,
+      });
+
+      const outcome = await settleWithin(service.restore(), 1000);
+
+      expect(outcome).toEqual({
+        status: "unavailable",
+        reason: "timeout",
+        message:
+          "The server did not answer in time. Check your connection and try again.",
+      });
       expect(state.clears).toBe(0);
       expect(await storage.get()).toBe("still-valid-token");
     });

@@ -18,6 +18,15 @@ import type { SessionTokenStorage } from "./session-token-storage.contract";
  */
 export const SESSION_TOKEN_RESPONSE_HEADER = "set-auth-token";
 
+/**
+ * How long any auth request may stay unanswered (T6c `M1`).
+ *
+ * The same 10-second budget the app's HTTP client uses (`http-client.ts`): a request that
+ * outlives it is aborted, so a connection that swallows packets fails instead of leaving
+ * the launch waiting for an answer that will not come.
+ */
+export const AUTH_REQUEST_TIMEOUT_MS = 10_000;
+
 export type FetchLike = (
   input: RequestInfo | URL,
   init?: RequestInit,
@@ -28,6 +37,8 @@ export interface AuthApiOptions {
   storage: SessionTokenStorage;
   /** Test seam: route the client's traffic through an in-process app. */
   fetchImpl?: FetchLike;
+  /** Test seam: shorten the request deadline (T6c `M1`). */
+  requestTimeoutMs?: number;
   /**
    * Cookie mode for the browser. `include` is what makes the cookie jar the web session
    * (S22, S26); the API grants it now that T5 landed the credentialed allowlist.
@@ -97,12 +108,17 @@ export function createAuthApi({
   baseUrl,
   storage,
   fetchImpl,
+  requestTimeoutMs = AUTH_REQUEST_TIMEOUT_MS,
   credentials = COOKIE_MODE,
 }: AuthApiOptions): AuthApiPort {
   const client = createAuthClient({
     baseURL: baseUrl,
     fetchOptions: {
       credentials,
+      // Every auth request carries a deadline (T6c `M1`). The abort surfaces as a thrown
+      // transport failure, which `call` below turns into the status-0 result the session
+      // service reads as "unavailable" rather than "signed out".
+      timeout: requestTimeoutMs,
       ...(fetchImpl ? { customFetchImpl: fetchImpl } : {}),
       auth: {
         type: "Bearer",

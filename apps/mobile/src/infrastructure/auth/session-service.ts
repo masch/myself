@@ -36,6 +36,37 @@ export interface AuthResult {
 }
 
 /**
+ * Why a restore could not judge the stored credential (T6c `M2`).
+ *
+ * `offline` is a transport failure (no response at all), `timeout` is the restore
+ * outliving its deadline (T6c `M1`) and `server-error` is a response from a server that
+ * failed before it could answer the question — none of the three is a rejection of the
+ * credential, so none of them may be rendered as "signed out".
+ */
+export type SessionRestoreProblemReason =
+  "offline" | "timeout" | "server-error";
+
+/** The state the root gate shows with a retry affordance. */
+export interface SessionRestoreProblem {
+  reason: SessionRestoreProblemReason;
+  message: string;
+}
+
+/**
+ * What a cold-start restore found.
+ *
+ * Three outcomes, not two (T6c `M2`): a stored session the server still accepts, a
+ * credential the server rejected (or an explicit "no session"), and a session the app
+ * could not check at all. The third keeps the token and is the one the gate must offer a
+ * retry for, because asking a user with a valid session for a password does not work
+ * against a server that is not answering.
+ */
+export type SessionRestore =
+  | { status: "authenticated"; user: SessionUser }
+  | { status: "unauthenticated" }
+  | ({ status: "unavailable" } & SessionRestoreProblem);
+
+/**
  * The narrow port the session service needs from the auth client.
  *
  * It exists so the service can be tested without HTTP, and so the `better-auth/client`
@@ -60,12 +91,17 @@ export interface SessionService {
   signIn(input: SignInInput): Promise<SessionUser>;
   signUp(input: SignUpInput): Promise<SessionUser>;
   signOut(): Promise<void>;
-  restore(): Promise<SessionUser | null>;
+  restore(): Promise<SessionRestore>;
 }
 
 const GENERIC_FAILURE = "Authentication failed. Please try again.";
 const UNREACHABLE_SERVER =
   "Could not reach the server. Check your connection and try again.";
+const RESTORE_TIMED_OUT =
+  "The server did not answer in time. Check your connection and try again.";
+
+/** A response-less failure: the transport never reached the server. */
+const NO_RESPONSE_STATUS = 0;
 
 const FAILURE_MESSAGES: Record<string, string> = {
   INVALID_EMAIL_OR_PASSWORD: "Email or password is incorrect.",
@@ -86,7 +122,7 @@ const FAILURE_MESSAGES: Record<string, string> = {
  */
 export function describeAuthFailure(failure: AuthFailure | null): string {
   if (!failure) return GENERIC_FAILURE;
-  if (failure.status === 0) return UNREACHABLE_SERVER;
+  if (failure.status === NO_RESPONSE_STATUS) return UNREACHABLE_SERVER;
   if (failure.code && FAILURE_MESSAGES[failure.code]) {
     return FAILURE_MESSAGES[failure.code];
   }
@@ -115,6 +151,106 @@ export function mapSessionUser(raw: unknown): SessionUser | null {
 export interface SessionServiceDeps {
   api: AuthApiPort;
   storage: SessionTokenStorage;
+  /** Test seam: how long a restore may stay unanswered (T6c `M1`). */
+  restoreDeadlineMs?: number;
+}
+
+/**
+ * The hard deadline of a cold-start restore (T6c `M1`).
+ *
+ * The auth client already aborts its own request after `AUTH_REQUEST_TIMEOUT_MS` (10 s,
+ * the same budget the app's HTTP client uses), so this deadline should only fire when the
+ * transport ignores its abort. It is larger than that budget for exactly that reason, and
+ * it is the guarantee that a launch can never be stuck on the loading screen: the gate
+ * leaves `loading` even if the restore promise never settles.
+ */
+export const RESTORE_DEADLINE_MS = 15_000;
+
+/** How one restore call ended, before it is read as a session state. */
+type RestoreAttempt =
+  | { kind: "answer"; result: AuthResult }
+  | { kind: "threw" }
+  | { kind: "deadline" };
+
+/**
+ * Calls `getSession` and gives up after `deadlineMs`.
+ *
+ * The deadline resolves instead of rejecting on purpose: an unanswered restore is a state
+ * the gate can show, not an error it has to catch.
+ */
+function attemptRestore(
+  api: AuthApiPort,
+  deadlineMs: number,
+): Promise<RestoreAttempt> {
+  return new Promise<RestoreAttempt>((resolve) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const settle = (attempt: RestoreAttempt) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve(attempt);
+    };
+
+    timer = setTimeout(() => settle({ kind: "deadline" }), deadlineMs);
+
+    // Started inside a chain so a synchronous throw cannot escape the deadline, and with
+    // both handlers attached so an abandoned request cannot become an unhandled rejection.
+    Promise.resolve()
+      .then(() => api.getSession())
+      .then(
+        (result) => settle({ kind: "answer", result }),
+        () => settle({ kind: "threw" }),
+      );
+  });
+}
+
+/** Reads one attempt as the session state it means (T6c `M2`). */
+function classifyRestore(attempt: RestoreAttempt): SessionRestore {
+  if (attempt.kind === "deadline") {
+    return {
+      status: "unavailable",
+      reason: "timeout",
+      message: RESTORE_TIMED_OUT,
+    };
+  }
+
+  if (attempt.kind === "threw") {
+    // Defensive: `auth-client.ts` converts every transport throw into the status-0 answer
+    // below, so this branch only runs for a port that throws. It never judged the stored
+    // credential, so it is "unreachable", never "signed out".
+    return {
+      status: "unavailable",
+      reason: "offline",
+      message: UNREACHABLE_SERVER,
+    };
+  }
+
+  const { result } = attempt;
+  if (result.user) return { status: "authenticated", user: result.user };
+
+  const failure = result.error;
+  // No error at all is the server's explicit answer: this credential has no session.
+  if (!failure) return { status: "unauthenticated" };
+
+  const rejected = failure.status === 401 || failure.code === "SESSION_EXPIRED";
+  if (rejected) return { status: "unauthenticated" };
+
+  if (failure.status === NO_RESPONSE_STATUS) {
+    return {
+      status: "unavailable",
+      reason: "offline",
+      message: UNREACHABLE_SERVER,
+    };
+  }
+
+  // A server that answered and failed judged no credential: keep it and let the user retry.
+  return {
+    status: "unavailable",
+    reason: "server-error",
+    message: describeAuthFailure(failure),
+  };
 }
 
 /**
@@ -128,6 +264,7 @@ export interface SessionServiceDeps {
 export function createSessionService({
   api,
   storage,
+  restoreDeadlineMs = RESTORE_DEADLINE_MS,
 }: SessionServiceDeps): SessionService {
   async function authenticate(result: AuthResult): Promise<SessionUser> {
     if (result.user) return result.user;
@@ -159,28 +296,21 @@ export function createSessionService({
     },
 
     /**
-     * Cold-start restore.
+     * Cold-start restore (T6c `M1`, `M2`).
      *
-     * A server answer without a session clears the token; an unreachable server does
-     * not, because "offline" is not "signed out" and the credential is still valid.
+     * Only a rejection of the credential — a 401, an expired session, or an explicit
+     * "no session" answer — clears the token. An unreachable server, a deadline and a
+     * server-side failure keep it and report `unavailable`, because offline is not signed
+     * out and the credential is still worth keeping.
      */
     async restore() {
-      let result: AuthResult;
-      try {
-        result = await api.getSession();
-      } catch {
-        return null;
-      }
+      const outcome = classifyRestore(
+        await attemptRestore(api, restoreDeadlineMs),
+      );
 
-      if (result.user) return result.user;
+      if (outcome.status === "unauthenticated") await storage.clear();
 
-      const rejected =
-        !result.error ||
-        result.error.status === 401 ||
-        result.error.code === "SESSION_EXPIRED";
-      if (rejected) await storage.clear();
-
-      return null;
+      return outcome;
     },
   };
 }

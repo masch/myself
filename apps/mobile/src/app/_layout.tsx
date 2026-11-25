@@ -20,7 +20,7 @@ import {
 } from "expo-router/react-navigation";
 import { SQLiteProvider, useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect, useState } from "react";
-import { Platform, useColorScheme } from "react-native";
+import { Platform, StyleSheet, useColorScheme, View } from "react-native";
 
 /**
  * Global Error Boundary for Expo Router.
@@ -45,7 +45,9 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   );
 }
 
-/** Name of the SQLite database that persists across app launches. */
+/**
+ * Name of the SQLite database that persists across app launches.
+ */
 const PERSISTED_DATABASE_NAME = "myself.db";
 
 /**
@@ -143,12 +145,48 @@ function SessionLoadingScreen() {
       title="Restoring your session"
       description="One moment…"
       action={<Spinner size="md" label="Loading" />}
-      style={{
-        flex: 1,
-        backgroundColor: colors.systemBackground,
-        padding: spacing.xl,
-        justifyContent: "center",
-      }}
+      style={styles.gateScreen}
+    />
+  );
+}
+
+/**
+ * Shown when the stored session could not be checked (T6c `M1`, `M2`).
+ *
+ * Offline is not signed out: the token is still stored, so this screen offers a retry and,
+ * secondarily, a way into the auth tree for a user who would rather sign in. It is
+ * deliberately not a sign-in form — asking a user with a valid session for a password does
+ * not work against a server that is not answering.
+ */
+function SessionUnavailableScreen() {
+  const { restoreProblem, retryRestore, signInAnyway } = useSession();
+
+  return (
+    <EmptyState
+      testID="session-unavailable-screen"
+      icon="sf:wifi.exclamationmark"
+      iconColor={colors.systemOrange}
+      iconSize={48}
+      title="Can't reach the server"
+      description={
+        restoreProblem?.message ??
+        "Your session could not be restored. Try again, or sign in again."
+      }
+      action={
+        <View style={styles.gateActions}>
+          <AppButton
+            title="Try again"
+            variant="primary"
+            onPress={retryRestore}
+          />
+          <AppButton
+            title="Sign in anyway"
+            variant="secondary"
+            onPress={signInAnyway}
+          />
+        </View>
+      }
+      style={styles.gateScreen}
     />
   );
 }
@@ -227,22 +265,26 @@ function AppShell({ mode }: { mode: AppShellMode }) {
 }
 
 /**
- * The root session gate (S13).
+ * The root session gate (S13, T6c `M1`/`M2`).
  *
- * Three states, one navigator tree: while the stored session is being restored the
- * app shows a loading surface (never the sign-in form, which would flash at a
- * signed-in user); a resolved session opens the app screens; no session opens only
- * the sign-up and sign-in screens. It sits below `SQLiteProvider` on purpose — the
- * database gate still runs first, so a device without a usable database reports that
- * before any session work happens — and outside `DatabaseGate` for the barter
- * simulation tab, which renders without either.
+ * Four states, one navigator tree: while the stored session is being restored the app
+ * shows a loading surface (never the sign-in form, which would flash at a signed-in user);
+ * a resolved session opens the app screens; no session opens only the sign-up and sign-in
+ * screens; and a restore that could not answer opens a retry surface that keeps the token.
+ * It sits below `SQLiteProvider` on purpose — the database gate still runs first, so a
+ * device without a usable database reports that before any session work happens — and
+ * outside `DatabaseGate` for the barter simulation tab, which renders without either.
  */
 function SessionGate() {
-  const { user, isLoading } = useSession();
-  const state = deriveSessionGate({ user, isLoading });
+  const { user, isLoading, restoreProblem } = useSession();
+  const state = deriveSessionGate({ user, isLoading, restoreProblem });
 
   if (state === "loading") {
     return <SessionLoadingScreen />;
+  }
+
+  if (state === "unavailable") {
+    return <SessionUnavailableScreen />;
   }
 
   return <AppShell mode={state} />;
@@ -317,3 +359,15 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  gateScreen: {
+    flex: 1,
+    backgroundColor: colors.systemBackground,
+    padding: spacing.xl,
+    justifyContent: "center",
+  },
+  gateActions: {
+    gap: spacing.sm,
+  },
+});

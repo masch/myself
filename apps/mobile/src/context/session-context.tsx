@@ -4,11 +4,14 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { sessionService } from "@/infrastructure/auth/session-service-instance";
 import type {
+  SessionRestore,
+  SessionRestoreProblem,
   SessionService,
   SessionUser,
   SignInInput,
@@ -18,20 +21,38 @@ import type {
 /**
  * The session provider that replaces the device-local profile switcher (S13).
  *
- * It owns exactly one piece of state — the signed-in identity — and exposes the four
+ * It owns exactly one piece of state — the signed-in identity — and exposes the
  * transitions around it. Everything that needs "who is using the app right now" reads
  * `useSession().user`: local writes use `user.id`, the root gate uses `user`, and
  * Settings offers sign-out. There is no second source of identity anywhere.
+ *
+ * Since T6c the provider also owns the launch's failure state (M1, M2): a restore that
+ * cannot reach an answer leaves the gate in `unavailable`, which keeps the stored token,
+ * shows a retry and offers a way to sign in anyway. Neither a deadline nor an unreachable
+ * server may be rendered as "signed out".
  */
 export interface SessionContextValue {
   /** The signed-in identity, or `null` when nobody is signed in. */
   user: SessionUser | null;
   /** True while the stored session is still being restored on cold start. */
   isLoading: boolean;
+  /**
+   * Set when the last restore could not judge the stored credential: offline, past its
+   * deadline or a server-side failure. The token is kept and the gate offers a retry.
+   */
+  restoreProblem: SessionRestoreProblem | null;
   signIn: (input: SignInInput) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Runs the restore again from the retry state (T6c `M1`, `M2`). */
+  retryRestore: () => void;
+  /** Leaves the retry state for the auth tree, for a user who would rather sign in. */
+  signInAnyway: () => void;
 }
+
+/** Message for the one failure the service itself cannot classify. */
+const RESTORE_FAILED_MESSAGE =
+  "Your session could not be restored. Try again, or sign in again.";
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
@@ -47,32 +68,59 @@ export function SessionProvider({
 }: SessionProviderProps) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [restoreProblem, setRestoreProblem] =
+    useState<SessionRestoreProblem | null>(null);
+  // A restore that settles after unmount must not write state; the flag covers every
+  // write below, including the loading flag itself.
+  const isActive = useRef(true);
+
+  /** Writes one restore outcome into state, unless the provider already unmounted. */
+  const applyOutcome = useCallback((outcome: SessionRestore) => {
+    if (!isActive.current) return;
+
+    if (outcome.status === "authenticated") {
+      setUser(outcome.user);
+      setRestoreProblem(null);
+    } else if (outcome.status === "unauthenticated") {
+      setUser(null);
+      setRestoreProblem(null);
+    } else {
+      setUser(null);
+      setRestoreProblem({ reason: outcome.reason, message: outcome.message });
+    }
+
+    setIsLoading(false);
+  }, []);
+
+  const runRestore = useCallback(
+    () =>
+      service.restore().then(applyOutcome, (error: unknown) => {
+        // `restore()` reports its own failures, so reaching this means the service itself
+        // is broken. It still must not open the authenticated tree, and it still offers a
+        // retry, so it lands on the same state an unreachable server does.
+        console.warn("[session] Failed to restore the stored session:", error);
+        applyOutcome({
+          status: "unavailable",
+          reason: "server-error",
+          message: RESTORE_FAILED_MESSAGE,
+        });
+      }),
+    [service, applyOutcome],
+  );
 
   useEffect(() => {
-    let isActive = true;
-
-    service
-      .restore()
-      .then((restored) => {
-        if (isActive) setUser(restored);
-      })
-      .catch((error: unknown) => {
-        // A restore failure is "no session for this launch", never a crash: the gate
-        // then offers sign-in, which is the recoverable state.
-        console.warn("[session] Failed to restore the stored session:", error);
-      })
-      .finally(() => {
-        if (isActive) setIsLoading(false);
-      });
+    isActive.current = true;
+    void runRestore();
 
     return () => {
-      isActive = false;
+      isActive.current = false;
     };
-  }, [service]);
+  }, [runRestore]);
 
   const signIn = useCallback(
     async (input: SignInInput) => {
       setUser(await service.signIn(input));
+      setRestoreProblem(null);
     },
     [service],
   );
@@ -80,6 +128,7 @@ export function SessionProvider({
   const signUp = useCallback(
     async (input: SignUpInput) => {
       setUser(await service.signUp(input));
+      setRestoreProblem(null);
     },
     [service],
   );
@@ -92,12 +141,43 @@ export function SessionProvider({
       // `finally` of its own); clearing the state is what moves the gate back to the
       // auth tree, and it must happen even if the keychain write failed.
       setUser(null);
+      setRestoreProblem(null);
     }
   }, [service]);
 
+  const retryRestore = useCallback(() => {
+    // Set here, not in the effect that calls the restore: the launch already starts
+    // loading, and a synchronous `setState` inside an effect only causes a cascading
+    // render. A retry happens from a press, so it can enter the loading state directly.
+    setIsLoading(true);
+    void runRestore();
+  }, [runRestore]);
+
+  const signInAnyway = useCallback(() => {
+    setRestoreProblem(null);
+  }, []);
+
   const value = useMemo<SessionContextValue>(
-    () => ({ user, isLoading, signIn, signUp, signOut }),
-    [user, isLoading, signIn, signUp, signOut],
+    () => ({
+      user,
+      isLoading,
+      restoreProblem,
+      signIn,
+      signUp,
+      signOut,
+      retryRestore,
+      signInAnyway,
+    }),
+    [
+      user,
+      isLoading,
+      restoreProblem,
+      signIn,
+      signUp,
+      signOut,
+      retryRestore,
+      signInAnyway,
+    ],
   );
 
   return (
