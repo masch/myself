@@ -20,8 +20,8 @@ export type ApiBindings = {
   TURSO_AUTH_TOKEN?: string;
   ENVIRONMENT?: string;
   PORT?: string;
-  BETTER_AUTH_SECRET?: string;
-  BETTER_AUTH_URL?: string;
+  AUTH_SECRET?: string;
+  AUTH_URL?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   /**

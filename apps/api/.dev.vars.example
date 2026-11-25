@@ -14,11 +14,11 @@ TURSO_AUTH_TOKEN="your-turso-auth-token"
 
 # Better Auth session signing secret (generate with `bunx auth secret`).
 # Required in staging and production: auth refuses to issue sessions without it.
-BETTER_AUTH_SECRET="replace-with-a-random-32-byte-secret"
+AUTH_SECRET="replace-with-a-random-32-byte-secret"
 
 # Public base URL of this API, used to build verification and reset links.
 # Defaults to http://localhost:8787 when unset.
-BETTER_AUTH_URL="http://localhost:8787"
+AUTH_URL="http://localhost:8787"
 
 # Google sign-in (S1). Both values are required to enable the provider; when either
 # is missing the provider is not registered and the API still boots, so leaving these

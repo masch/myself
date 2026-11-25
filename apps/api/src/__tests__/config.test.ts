@@ -111,7 +111,7 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
       try {
         const config = AppConfig.from({
           ENVIRONMENT: "staging",
-          BETTER_AUTH_SECRET: "unit-test-secret",
+          AUTH_SECRET: "unit-test-secret",
         });
         expect(config.environment).toBe("staging");
         expect(config.database.url).toBe(":memory:");
@@ -175,7 +175,7 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
         ENVIRONMENT: Environments.STAGING,
         TURSO_DATABASE_URL: "libsql://example.turso.io",
         TURSO_AUTH_TOKEN: "secret-token",
-        BETTER_AUTH_SECRET: "unit-test-secret",
+        AUTH_SECRET: "unit-test-secret",
       });
 
       expect(config.environment).toBe(Environments.STAGING);
@@ -188,7 +188,7 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
       const config = AppConfig.from({
         ENVIRONMENT: Environments.STAGING,
         TURSO_DATABASE_URL: "libsql://example.turso.io",
-        BETTER_AUTH_SECRET: "unit-test-secret",
+        AUTH_SECRET: "unit-test-secret",
         PORT: "4000",
       });
       expect(config.port).toBe(4000);
@@ -204,7 +204,7 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
             ENVIRONMENT: Environments.STAGING,
             TURSO_DATABASE_URL: "libsql://example.turso.io",
           }),
-      ).toThrow(/BETTER_AUTH_SECRET/);
+      ).toThrow(/AUTH_SECRET/);
     });
 
     it("rejects a blank Better Auth secret in production", () => {
@@ -213,9 +213,9 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
           new AppConfig({
             ENVIRONMENT: Environments.PRODUCTION,
             TURSO_DATABASE_URL: "libsql://example.turso.io",
-            BETTER_AUTH_SECRET: "   ",
+            AUTH_SECRET: "   ",
           }),
-      ).toThrow(/BETTER_AUTH_SECRET/);
+      ).toThrow(/AUTH_SECRET/);
     });
 
     it("boots without a secret in development, local and test", () => {

@@ -177,7 +177,7 @@ export function createAuth(config: AppConfig) {
   // request: the operator needs to see it, but it must not flood the log.
   if (!encryptOAuthTokens) {
     console.warn(
-      "[auth] Provider tokens (Google access and refresh tokens) are stored unencrypted because BETTER_AUTH_SECRET is not set. Set BETTER_AUTH_SECRET to encrypt them; encrypting without one would use Better Auth's publicly known default key.",
+      "[auth] Provider tokens (Google access and refresh tokens) are stored unencrypted because AUTH_SECRET is not set. Set AUTH_SECRET to encrypt them; encrypting without one would use Better Auth's publicly known default key.",
     );
   }
 

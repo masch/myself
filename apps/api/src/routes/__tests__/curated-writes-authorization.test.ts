@@ -125,8 +125,8 @@ describe("curated-content writes require the admin role (S5, S6, S17)", () => {
     const config = AppConfig.from({
       ENVIRONMENT: "test",
       TURSO_DATABASE_URL: database.url,
-      BETTER_AUTH_SECRET: AUTH_SECRET,
-      BETTER_AUTH_URL: "http://localhost:8787",
+      AUTH_SECRET: AUTH_SECRET,
+      AUTH_URL: "http://localhost:8787",
       ADMIN_USER_PASSWORD: ADMIN_TEST_PASSWORD,
     });
     await seedFromConfig(config);

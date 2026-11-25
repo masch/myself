@@ -58,8 +58,8 @@ describe("registration writes are atomic (L22)", () => {
     const config = AppConfig.from({
       ENVIRONMENT: "test",
       TURSO_DATABASE_URL: database.url,
-      BETTER_AUTH_SECRET: AUTH_SECRET,
-      BETTER_AUTH_URL: "http://localhost:8787",
+      AUTH_SECRET: AUTH_SECRET,
+      AUTH_URL: "http://localhost:8787",
     });
     await seedFromConfig(config);
     db = createDb({ url: database.url });

@@ -29,8 +29,8 @@ describe("auth configuration (S1, S14)", () => {
 
   it("reads the secret and the base URL from the bindings", () => {
     const auth = resolveAuthConfig("test", {
-      BETTER_AUTH_SECRET: "unit-test-secret",
-      BETTER_AUTH_URL: "https://api.example.com",
+      AUTH_SECRET: "unit-test-secret",
+      AUTH_URL: "https://api.example.com",
     });
 
     expect(auth.secret).toBe("unit-test-secret");
@@ -39,7 +39,7 @@ describe("auth configuration (S1, S14)", () => {
 
   it("exposes the auth configuration through AppConfig", () => {
     const config = testConfig({
-      BETTER_AUTH_SECRET: "unit-test-secret",
+      AUTH_SECRET: "unit-test-secret",
       GOOGLE_CLIENT_ID: "client-id",
       GOOGLE_CLIENT_SECRET: "client-secret",
     });
@@ -87,24 +87,20 @@ describe("auth configuration (S1, S14)", () => {
     );
     expect(() =>
       resolveAuthConfig("not-an-environment" as unknown as "test", {
-        BETTER_AUTH_SECRET: "unit-test-secret",
+        AUTH_SECRET: "unit-test-secret",
       }),
     ).toThrow(/Invalid ENVIRONMENT configuration/);
   });
 
   it("reaches the staging secret guard only with an explicit environment", () => {
-    expect(() => resolveAuthConfig("staging", {})).toThrow(
-      /BETTER_AUTH_SECRET/,
-    );
-    expect(() => resolveAuthConfig("production", {})).toThrow(
-      /BETTER_AUTH_SECRET/,
-    );
+    expect(() => resolveAuthConfig("staging", {})).toThrow(/AUTH_SECRET/);
+    expect(() => resolveAuthConfig("production", {})).toThrow(/AUTH_SECRET/);
   });
 });
 
 describe("Better Auth instance (S1, S14)", () => {
   it("enables email/password and the bearer + admin plugins", () => {
-    const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
+    const auth = createAuth(testConfig({ AUTH_SECRET: "secret" }));
 
     expect(auth.options.emailAndPassword?.enabled).toBe(true);
     const pluginIds = (auth.options.plugins ?? []).map((plugin) => plugin.id);
@@ -115,8 +111,8 @@ describe("Better Auth instance (S1, S14)", () => {
   it("passes the secret and base URL through to Better Auth", () => {
     const auth = createAuth(
       testConfig({
-        BETTER_AUTH_SECRET: "secret",
-        BETTER_AUTH_URL: "https://api.example.com",
+        AUTH_SECRET: "secret",
+        AUTH_URL: "https://api.example.com",
       }),
     );
 
@@ -125,14 +121,12 @@ describe("Better Auth instance (S1, S14)", () => {
   });
 
   it("registers the Google provider only when it is configured", () => {
-    const withoutGoogle = createAuth(
-      testConfig({ BETTER_AUTH_SECRET: "secret" }),
-    );
+    const withoutGoogle = createAuth(testConfig({ AUTH_SECRET: "secret" }));
     expect(withoutGoogle.options.socialProviders?.google).toBeUndefined();
 
     const withGoogle = createAuth(
       testConfig({
-        BETTER_AUTH_SECRET: "secret",
+        AUTH_SECRET: "secret",
         GOOGLE_CLIENT_ID: "client-id",
         GOOGLE_CLIENT_SECRET: "client-secret",
       }),
@@ -144,7 +138,7 @@ describe("Better Auth instance (S1, S14)", () => {
   });
 
   it("reads client IPs from the Cloudflare Workers header (S14)", () => {
-    const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
+    const auth = createAuth(testConfig({ AUTH_SECRET: "secret" }));
 
     // `x-forwarded-for` is absent on Workers, so the default would collapse the auth
     // rate limiter into one bucket.
@@ -154,7 +148,7 @@ describe("Better Auth instance (S1, S14)", () => {
   });
 
   it("generates UUIDs the domain User accepts from Better Auth's id generator (L14 landmine)", () => {
-    const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
+    const auth = createAuth(testConfig({ AUTH_SECRET: "secret" }));
     const generateId = auth.options.advanced?.database?.generateId;
     expect(typeof generateId).toBe("function");
     const newId = generateId as (options: {
@@ -195,7 +189,7 @@ describe("user identity write hooks (S3)", () => {
   ) => Promise<unknown>;
 
   function hooksFor() {
-    const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
+    const auth = createAuth(testConfig({ AUTH_SECRET: "secret" }));
     const create = auth.options.databaseHooks?.user?.create
       ?.before as unknown as CreateHook;
     const update = auth.options.databaseHooks?.user?.update
@@ -348,14 +342,14 @@ describe("provider token encryption (S3)", () => {
   }
 
   it("enables encryptOAuthTokens in the Better Auth options", () => {
-    const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
+    const auth = createAuth(testConfig({ AUTH_SECRET: "secret" }));
 
     expect(auth.options.account?.encryptOAuthTokens).toBe(true);
   });
 
   it("enables encryption when a secret is configured and warns about nothing (R1-001)", () => {
     const { result: auth, warnings } = warningsWhile(() =>
-      createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" })),
+      createAuth(testConfig({ AUTH_SECRET: "secret" })),
     );
 
     expect(auth.options.account?.encryptOAuthTokens).toBe(true);
@@ -371,7 +365,7 @@ describe("provider token encryption (S3)", () => {
 
     expect(auth.options.account?.encryptOAuthTokens).toBe(false);
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain("BETTER_AUTH_SECRET");
+    expect(warnings[0]).toContain("AUTH_SECRET");
     expect(warnings[0]).toContain("unencrypted");
   });
 
@@ -387,7 +381,7 @@ describe("provider token encryption (S3)", () => {
   });
 
   it("stores provider tokens as ciphertext that round-trips through the context", async () => {
-    const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
+    const auth = createAuth(testConfig({ AUTH_SECRET: "secret" }));
     // The library types this parameter as its own `AuthContext`, which the
     // plugin-augmented context type does not structurally satisfy.
     type TokenContext = Parameters<typeof setTokenUtil>[1];
@@ -413,7 +407,7 @@ describe("auth rate limiting (S14, L22)", () => {
     return AppConfig.from({
       ENVIRONMENT: environment,
       TURSO_DATABASE_URL: ":memory:",
-      BETTER_AUTH_SECRET: RATE_LIMIT_SECRET,
+      AUTH_SECRET: RATE_LIMIT_SECRET,
     });
   }
 
@@ -457,7 +451,7 @@ describe("auth rate limiting (S14, L22)", () => {
           AppConfig.from({
             ENVIRONMENT: "production",
             TURSO_DATABASE_URL: url,
-            BETTER_AUTH_SECRET: RATE_LIMIT_SECRET,
+            AUTH_SECRET: RATE_LIMIT_SECRET,
           }),
         );
         const statuses: number[] = [];
@@ -493,7 +487,7 @@ describe("auth rate limiting (S14, L22)", () => {
         AppConfig.from({
           ENVIRONMENT: "test",
           TURSO_DATABASE_URL: url,
-          BETTER_AUTH_SECRET: RATE_LIMIT_SECRET,
+          AUTH_SECRET: RATE_LIMIT_SECRET,
         }),
       );
       for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -521,7 +515,7 @@ describe("auth rate limiting (S14, L22)", () => {
 
 describe("background task dispatch (S14)", () => {
   it("hands the promise to waitUntil instead of awaiting it", () => {
-    const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
+    const auth = createAuth(testConfig({ AUTH_SECRET: "secret" }));
     const handler = auth.options.advanced?.backgroundTasks?.handler;
     expect(typeof handler).toBe("function");
 
@@ -549,7 +543,7 @@ describe("background task dispatch (S14)", () => {
   });
 
   it("degrades safely when no Workers execution context exists", async () => {
-    const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
+    const auth = createAuth(testConfig({ AUTH_SECRET: "secret" }));
     const handler = auth.options.advanced?.backgroundTasks?.handler;
 
     let sent = false;

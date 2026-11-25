@@ -92,8 +92,8 @@ describe("E2E Vertical Integration: Mobile Front ➔ SQLite Outbox ➔ Hono API 
     const backendConfig = AppConfig.from({
       ENVIRONMENT: "test",
       TURSO_DATABASE_URL: backendDatabase.url,
-      BETTER_AUTH_SECRET: AUTH_SECRET,
-      BETTER_AUTH_URL: "http://localhost:8787",
+      AUTH_SECRET: AUTH_SECRET,
+      AUTH_URL: "http://localhost:8787",
     });
     backendRepos = await createTestRepositories({
       seed: true,

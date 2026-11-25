@@ -53,8 +53,8 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
     testConfig = AppConfig.from({
       ENVIRONMENT: "test",
       TURSO_DATABASE_URL: database.url,
-      BETTER_AUTH_SECRET: AUTH_SECRET,
-      BETTER_AUTH_URL: "http://localhost:8787",
+      AUTH_SECRET: AUTH_SECRET,
+      AUTH_URL: "http://localhost:8787",
       ADMIN_USER_PASSWORD: ADMIN_TEST_PASSWORD,
     });
     await seedFromConfig(testConfig);
@@ -135,8 +135,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
         TURSO_DATABASE_URL: ":memory:",
         // Staging refuses to boot without an explicit secret (Better Auth would
         // otherwise sign sessions with its public default).
-        BETTER_AUTH_SECRET:
-          "dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWZvci1iZXR0ZXItYXV0aA==",
+        AUTH_SECRET: "dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWZvci1iZXR0ZXItYXV0aA==",
       });
       const stagingApp = createApp(stagingConfig, testRepos);
       const res = await stagingApp.request("/health");

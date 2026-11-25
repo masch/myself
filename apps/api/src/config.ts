@@ -133,19 +133,19 @@ export function resolveAuthConfig(
   const resolvedEnvironment = resolveEnvironment(environment);
   const clientId = bindings.GOOGLE_CLIENT_ID?.trim();
   const clientSecret = bindings.GOOGLE_CLIENT_SECRET?.trim();
-  const secret = bindings.BETTER_AUTH_SECRET?.trim() || undefined;
+  const secret = bindings.AUTH_SECRET?.trim() || undefined;
 
   // Google stays independent of this check: a deployment without Google still
   // needs the secret, and a Google deployment without it is just as fatal.
   if (!secret && SECRET_REQUIRED_ENVIRONMENTS.includes(resolvedEnvironment)) {
     throw new Error(
-      `Missing required configuration: BETTER_AUTH_SECRET. ENVIRONMENT="${resolvedEnvironment}" requires an explicit secret, because Better Auth otherwise signs sessions with its public default secret`,
+      `Missing required configuration: AUTH_SECRET. ENVIRONMENT="${resolvedEnvironment}" requires an explicit secret, because Better Auth otherwise signs sessions with its public default secret`,
     );
   }
 
   return {
     secret,
-    baseUrl: bindings.BETTER_AUTH_URL?.trim() || DEFAULT_AUTH_BASE_URL,
+    baseUrl: bindings.AUTH_URL?.trim() || DEFAULT_AUTH_BASE_URL,
     google: clientId && clientSecret ? { clientId, clientSecret } : undefined,
     rateLimit: resolveRateLimitConfig(resolvedEnvironment),
   };
@@ -160,8 +160,8 @@ export function getProcessEnv(): Partial<ApiBindings> {
     TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
     TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
     PORT: process.env.PORT,
-    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
-    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    AUTH_SECRET: process.env.AUTH_SECRET,
+    AUTH_URL: process.env.AUTH_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     ADMIN_USER_PASSWORD: process.env.ADMIN_USER_PASSWORD,
