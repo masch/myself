@@ -16,9 +16,3 @@ export const ADMIN_USER_ID = "e0000000-0000-4000-8000-0000000000ad" as EntityId;
 export const ADMIN_USER_NAME = "Curated Admin";
 
 export const ADMIN_USER_EMAIL = "admin@example.com";
-
-/**
- * The only role the app treats as admin (S5). `user.role` is a comma-separated
- * string, so membership — not equality — is what `requireRole` checks.
- */
-export const ADMIN_ROLE = "admin";

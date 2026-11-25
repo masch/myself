@@ -14,6 +14,7 @@ import {
   meditationReadings,
   meditationReadingTranslations,
   readingLogs,
+  type Role,
   SEED_AUTHORS,
   SEED_READINGS,
   user,
@@ -59,7 +60,7 @@ interface SeedIdentity {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: Role;
 }
 
 /** Options for `seedDatabase`; the admin credential has no default on purpose. */

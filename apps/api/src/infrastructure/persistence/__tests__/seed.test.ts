@@ -10,6 +10,7 @@ import {
   DEMO_USER_EMAIL,
   DEMO_USER_ID,
   readingLogs,
+  isRole,
   user,
 } from "@myself/shared";
 import { createTestDatabase } from "../test-db";
@@ -200,6 +201,25 @@ describe("server admin identity seed (S20, R1-001)", () => {
       .from(user)
       .where(eq(user.id, DEMO_USER_ID));
     expect(demoUser.role).toBe("user");
+  });
+
+  it("stores only catalogue roles, never a comma list (S5)", async () => {
+    const db = await createTestDatabase({
+      seed: true,
+      adminPassword: TEST_ADMIN_PASSWORD,
+    });
+
+    const rows = await db.select().from(user);
+    const attributed = rows.filter((row) => row.role !== null);
+    expect(attributed.length).toBeGreaterThan(0);
+
+    for (const row of attributed) {
+      // A spaced list such as "admin, user" splits into a role nobody holds, so the
+      // gate answers 403 with no explanation. Assignment is seed-only, which makes the
+      // catalogue the whole vocabulary: anything outside it is a defect, not a feature.
+      expect(row.role).not.toContain(",");
+      expect(isRole(row.role)).toBe(true);
+    }
   });
 
   it("never seeds the admin identity in production", async () => {

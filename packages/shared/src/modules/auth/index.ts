@@ -1,6 +1,7 @@
 import { account, session, user, verification } from "./schema";
 
 export * from "./schema";
+export * from "./roles";
 export * from "./demo-user";
 export * from "./admin-user";
 
