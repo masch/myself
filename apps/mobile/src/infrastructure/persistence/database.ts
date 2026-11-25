@@ -4,6 +4,7 @@ import { generateUUID } from "@/utils/uuid";
 import {
   SHARED_MIGRATIONS,
   DateTime,
+  entityIdSchema,
   generateAuthorId,
   type SupportedLocale,
   type User,
@@ -127,6 +128,30 @@ export async function addUser(
 export const createUser = addUser;
 
 /**
+ * What a mirror attempt did (T6c `m1`).
+ *
+ * Returned rather than thrown, and never reduced to a log line: a mirror that did not
+ * happen means the signed-in identity has no local owner, so the first local write for
+ * that user fails its foreign key. That is a condition the code which depends on the
+ * mirror has to handle, not a diagnostic to write down and forget.
+ */
+export type SessionUserMirrorResult =
+  | { status: "mirrored" }
+  /** The id the read boundary would reject (`User` parses the same schema). */
+  | { status: "invalid-id"; message: string }
+  /** A blank name or a malformed email, as every other local user write refuses. */
+  | { status: "invalid-profile"; message: string }
+  /**
+   * `user.email` is UNIQUE and another local row already owns this address, so the row
+   * cannot be written without stealing it. Nothing is written and no duplicate is made.
+   */
+  | {
+      status: "email-owned-by-another-profile";
+      message: string;
+      ownerId: string;
+    };
+
+/**
  * Writes the signed-in identity into the local `user` table (S13).
  *
  * Every per-user row on the device — tasks, reflections, preferences, theme progress —
@@ -137,10 +162,16 @@ export const createUser = addUser;
  * profile fields: `created_at` is never rewritten, and a seeded row (the demo identity)
  * keeps its id, its content and its insertion time.
  *
- * Name and email go through the same schema as every other local write, because the
- * domain `User` that `mapUserRow` builds refuses a blank name or a malformed email.
+ * The id goes through `entityIdSchema` — the same rule `User` applies on read — because
+ * `getUsers()` maps the whole table: a single row with a non-UUID id makes every user
+ * read for everybody throw. Name and email go through the same schema as every other
+ * local write, and the email is checked against the rows that already exist before the
+ * insert, because `user.email` is UNIQUE and the seeded profiles own two of them.
  * `email_verified` is written as 0: verification state is the server's (`S23`), nothing on
  * the device reads the column, and claiming `1` here would be a lie.
+ *
+ * Never throws for a refused identity: every outcome is the returned {@link
+ * SessionUserMirrorResult}, so a caller cannot report success by accident (T6c `m1`).
  */
 export async function upsertSessionUser(
   db: SQLiteDatabase,
@@ -152,15 +183,39 @@ export async function upsertSessionUser(
     role?: string | null;
     imageUrl?: string | null;
   },
-): Promise<void> {
+): Promise<SessionUserMirrorResult> {
+  const id = entityIdSchema.safeParse(sessionUser.id);
+  if (!id.success) {
+    return {
+      status: "invalid-id",
+      message: id.error.issues[0]?.message ?? "Invalid ID format",
+    };
+  }
+
   const parsed = userNameAndEmailSchema.safeParse({
     name: sessionUser.name,
     email: sessionUser.email,
   });
   if (!parsed.success) {
-    throw new Error(
-      parsed.error.issues[0]?.message ?? "Invalid user name or email",
-    );
+    return {
+      status: "invalid-profile",
+      message: parsed.error.issues[0]?.message ?? "Invalid user name or email",
+    };
+  }
+
+  // Checked before the write, not left to the constraint: an upsert that violates UNIQUE
+  // throws away the whole statement, so the identity would keep no local row and the
+  // caller would only see a driver error.
+  const owner = await db.getFirstAsync<{ id: string }>(
+    'SELECT id FROM "user" WHERE email = ?',
+    [parsed.data.email],
+  );
+  if (owner && owner.id !== id.data) {
+    return {
+      status: "email-owned-by-another-profile",
+      ownerId: owner.id,
+      message: `The address ${parsed.data.email} already belongs to another profile on this device, so the signed-in identity has no local owner.`,
+    };
   }
 
   const now = DateTime.now().toMillis();
@@ -174,7 +229,7 @@ export async function upsertSessionUser(
        role = COALESCE(excluded.role, "user".role),
        updated_at = excluded.updated_at`,
     [
-      sessionUser.id,
+      id.data,
       parsed.data.name,
       parsed.data.email,
       sessionUser.imageUrl ?? null,
@@ -183,6 +238,8 @@ export async function upsertSessionUser(
       now,
     ],
   );
+
+  return { status: "mirrored" };
 }
 
 /**

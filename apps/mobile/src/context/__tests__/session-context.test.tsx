@@ -221,6 +221,44 @@ describe("SessionProvider (T6c M3)", () => {
     expect(deriveSessionGate(probe.latest())).toBe("unauthenticated");
   });
 
+  it("ends on the later retry's outcome when two retries overlap (R3-1)", async () => {
+    const { harness, calls, pendingRestores, probe } = setup();
+
+    pendingRestores[0].resolve({
+      status: "unavailable",
+      reason: "timeout",
+      message: "The server did not answer in time.",
+    });
+    await harness.flush();
+    expect(deriveSessionGate(probe.latest())).toBe("unavailable");
+
+    // Two presses before either restore answers: the first attempt is the slow one.
+    probe.latest().retryRestore();
+    await harness.flush();
+    probe.latest().retryRestore();
+    await harness.flush();
+    expect(calls.restore).toBe(3);
+
+    // The later attempt answers first, and it authenticates.
+    pendingRestores[2].resolve({ status: "authenticated", user: USER });
+    await harness.flush();
+    expect(deriveSessionGate(probe.latest())).toBe("authenticated");
+
+    // The earlier attempt answers afterwards with a failure. It is stale, so it may not
+    // drop the gate back out of the session the newer attempt just resolved: the outcome
+    // must not depend on the order the two settle in.
+    pendingRestores[1].resolve({
+      status: "unavailable",
+      reason: "timeout",
+      message: "The server did not answer in time.",
+    });
+    await harness.flush();
+
+    expect(probe.latest().user).toEqual(USER);
+    expect(probe.latest().restoreProblem).toBeNull();
+    expect(deriveSessionGate(probe.latest())).toBe("authenticated");
+  });
+
   it("does not write state when the restore settles after unmount", async () => {
     const { harness, pendingRestores, probe } = setup();
     const rendersBeforeUnmount = probe.renders();

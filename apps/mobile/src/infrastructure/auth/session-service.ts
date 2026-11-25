@@ -153,6 +153,8 @@ export interface SessionServiceDeps {
   storage: SessionTokenStorage;
   /** Test seam: how long a restore may stay unanswered (T6c `M1`). */
   restoreDeadlineMs?: number;
+  /** Test seam: how long a best-effort revoke may stay unanswered (T6c `m2`). */
+  revokeDeadlineMs?: number;
 }
 
 /**
@@ -166,6 +168,15 @@ export interface SessionServiceDeps {
  */
 export const RESTORE_DEADLINE_MS = 15_000;
 
+/**
+ * How long the best-effort revoke of a sign-out may stay unanswered (T6c `m2`).
+ *
+ * Deliberately smaller than the restore deadline: the local sign-out has already happened
+ * by the time the request leaves, so this only bounds how long the caller waits to learn
+ * that the server was told.
+ */
+export const SIGN_OUT_REVOKE_DEADLINE_MS = 5_000;
+
 /** How one restore call ended, before it is read as a session state. */
 type RestoreAttempt =
   | { kind: "answer"; result: AuthResult }
@@ -173,37 +184,53 @@ type RestoreAttempt =
   | { kind: "deadline" };
 
 /**
- * Calls `getSession` and gives up after `deadlineMs`.
+ * Runs `operation` and settles no later than `deadlineMs`.
  *
- * The deadline resolves instead of rejecting on purpose: an unanswered restore is a state
- * the gate can show, not an error it has to catch.
+ * Three invariants, all needed by its two callers (`M1`, `m2`): a synchronous throw inside
+ * `operation` becomes a failed attempt instead of escaping the timer; both handlers are
+ * attached before the deadline can win, so an abandoned request never becomes an
+ * unhandled rejection; and the deadline **resolves** with `onFailure("deadline")` instead
+ * of rejecting, because an unanswered request is a state the caller shows or records, not
+ * an error it has to catch.
  */
+function bounded<T>(
+  operation: () => Promise<T>,
+  deadlineMs: number,
+  onFailure: (cause: "deadline" | "error") => T,
+): Promise<T> {
+  return new Promise<T>((resolve) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const settle = (value: T) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve(value);
+    };
+
+    timer = setTimeout(() => settle(onFailure("deadline")), deadlineMs);
+
+    Promise.resolve()
+      .then(operation)
+      .then(settle, () => settle(onFailure("error")));
+  });
+}
+
+/** Calls `getSession` and gives up after `deadlineMs`. */
 function attemptRestore(
   api: AuthApiPort,
   deadlineMs: number,
 ): Promise<RestoreAttempt> {
-  return new Promise<RestoreAttempt>((resolve) => {
-    let settled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    const settle = (attempt: RestoreAttempt) => {
-      if (settled) return;
-      settled = true;
-      if (timer) clearTimeout(timer);
-      resolve(attempt);
-    };
-
-    timer = setTimeout(() => settle({ kind: "deadline" }), deadlineMs);
-
-    // Started inside a chain so a synchronous throw cannot escape the deadline, and with
-    // both handlers attached so an abandoned request cannot become an unhandled rejection.
-    Promise.resolve()
-      .then(() => api.getSession())
-      .then(
-        (result) => settle({ kind: "answer", result }),
-        () => settle({ kind: "threw" }),
-      );
-  });
+  return bounded(
+    () =>
+      api
+        .getSession()
+        .then<RestoreAttempt>((result) => ({ kind: "answer", result })),
+    deadlineMs,
+    (cause) =>
+      cause === "deadline" ? { kind: "deadline" } : { kind: "threw" },
+  );
 }
 
 /** Reads one attempt as the session state it means (T6c `M2`). */
@@ -265,6 +292,7 @@ export function createSessionService({
   api,
   storage,
   restoreDeadlineMs = RESTORE_DEADLINE_MS,
+  revokeDeadlineMs = SIGN_OUT_REVOKE_DEADLINE_MS,
 }: SessionServiceDeps): SessionService {
   async function authenticate(result: AuthResult): Promise<SessionUser> {
     if (result.user) return result.user;
@@ -281,18 +309,26 @@ export function createSessionService({
     },
 
     /**
-     * Always clears the local credential (S13): a network failure during sign-out
-     * must never leave the device holding a token the user asked to drop. The server
-     * session is revoked by the API call when it succeeds; when it does not, the row
-     * survives until its expiry, which is why S25 records that lifetime.
+     * Signs out (T6c `m2`).
+     *
+     * The local decision is authoritative and comes first: the stored token is cleared
+     * before anything is asked of the server, so an interruption between the two can never
+     * leave a live credential on the device while the UI shows the signed-in tree.
+     *
+     * The revoke is best-effort afterwards — bounded by its own deadline and swallowing
+     * both a failure and an unanswered request — so it can neither block the local
+     * sign-out nor fail the caller's cleanup. A session the server never revoked survives
+     * until its expiry, which is why S25 records the lifetime. A failure of the local clear
+     * itself still propagates: that is the one outcome the caller must not mistake for a
+     * completed sign-out.
      */
     async signOut() {
-      try {
-        await api.signOut();
-      } catch {
-        // Ignored on purpose: the local credential is cleared below either way.
-      }
       await storage.clear();
+      await bounded(
+        () => api.signOut().then(() => undefined),
+        revokeDeadlineMs,
+        () => undefined,
+      );
     },
 
     /**

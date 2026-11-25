@@ -6,6 +6,7 @@ import {
   addTask,
   getTasksByUserId,
   getUserById,
+  getUsers,
   initDatabase,
   upsertSessionUser,
 } from "../database";
@@ -92,7 +93,9 @@ describe("upsertSessionUser (S13, S21 local ownership)", () => {
     const { db } = await createDeviceDatabase();
     const identity = newIdentity();
 
-    await upsertSessionUser(db, identity);
+    expect(await upsertSessionUser(db, identity)).toEqual({
+      status: "mirrored",
+    });
 
     const stored = await getUserById(db, identity.id);
     expect(stored).not.toBeNull();
@@ -163,12 +166,54 @@ describe("upsertSessionUser (S13, S21 local ownership)", () => {
       'SELECT id FROM "user"',
     );
 
-    const failure = await upsertSessionUser(db, identity).catch(
-      (error: unknown) => error,
-    );
+    const result = await upsertSessionUser(db, identity);
 
-    expect((failure as Error).message).toBe("User name is required");
+    expect(result).toEqual({
+      status: "invalid-profile",
+      message: "User name is required",
+    });
     const after = await db.getAllAsync<{ id: string }>('SELECT id FROM "user"');
     expect(after.length).toBe(before.length);
+  });
+
+  it("refuses a session id the domain cannot read back, before writing a row", async () => {
+    const { db } = await createDeviceDatabase();
+    const identity = newIdentity({ id: "not-a-uuid" });
+    const before = await db.getAllAsync<{ id: string }>(
+      'SELECT id FROM "user"',
+    );
+
+    const result = await upsertSessionUser(db, identity);
+
+    // One row the domain refuses makes every later read throw, because `getUsers` maps
+    // the whole table (L29 `m1`). Nothing was written, so the table is still readable.
+    const users = await getUsers(db);
+    expect(users.length).toBe(before.length);
+    expect(result).toEqual({
+      status: "invalid-id",
+      message: "Invalid ID format",
+    });
+  });
+
+  it("keeps a single row when the session email belongs to another local profile", async () => {
+    const { db } = await createDeviceDatabase();
+    const elena = await getUserById(db, SEED_USER_IDS.ELENA_GOMEZ);
+    const identity = newIdentity({ email: elena!.email });
+
+    const result = await upsertSessionUser(db, identity);
+
+    // `user.email` is UNIQUE, so the insert cannot succeed. It must not be swallowed:
+    // the identity has no local owner and the caller has to know.
+    expect(result.status).toBe("email-owned-by-another-profile");
+    expect(
+      result.status === "email-owned-by-another-profile" && result.ownerId,
+    ).toBe(SEED_USER_IDS.ELENA_GOMEZ);
+
+    const owners = await db.getAllAsync<{ id: string }>(
+      'SELECT id FROM "user" WHERE email = ?',
+      [elena!.email],
+    );
+    expect(owners.map((row) => row.id)).toEqual([SEED_USER_IDS.ELENA_GOMEZ]);
+    expect(await getUserById(db, identity.id)).toBeNull();
   });
 });

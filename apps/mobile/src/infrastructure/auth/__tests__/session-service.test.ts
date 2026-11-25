@@ -300,7 +300,7 @@ describe("createSessionService", () => {
   });
 
   describe("signOut", () => {
-    it("clears the stored token after the server revokes the session", async () => {
+    it("clears the stored token and revokes the server session", async () => {
       const { api, calls } = createApi();
       const { storage, state } = createStorage("token-abc");
       const service = createSessionService({ api, storage });
@@ -308,6 +308,46 @@ describe("createSessionService", () => {
       await service.signOut();
 
       expect(calls).toContain("signOut");
+      expect(state.clears).toBe(1);
+      expect(await storage.get()).toBeNull();
+    });
+
+    it("clears the local credential before it asks the server to revoke anything", async () => {
+      const { storage, state } = createStorage("token-abc");
+      const seenByServer: (string | null)[] = [];
+      const { api } = createApi({
+        async signOut() {
+          seenByServer.push(await storage.get());
+        },
+      });
+      const service = createSessionService({ api, storage });
+
+      await service.signOut();
+      // A revoke that is not awaited needs one turn before it observes the store.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // The local decision is already made when the request leaves (T6c `m2`): an
+      // interruption between the two can no longer leave a live token behind.
+      expect(seenByServer).toEqual([null]);
+      expect(state.clears).toBe(1);
+    });
+
+    it("does not leave the device signed in when the revoke never answers", async () => {
+      const { api } = createApi({
+        async signOut() {
+          return new Promise<void>(() => {});
+        },
+      });
+      const { storage, state } = createStorage("token-abc");
+      const service = createSessionService({
+        api,
+        storage,
+        revokeDeadlineMs: 20,
+      });
+
+      const settled = await settleWithin(service.signOut(), 1000);
+
+      expect(settled).not.toBe("never settled");
       expect(state.clears).toBe(1);
       expect(await storage.get()).toBeNull();
     });

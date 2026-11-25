@@ -73,40 +73,55 @@ export function SessionProvider({
   // A restore that settles after unmount must not write state; the flag covers every
   // write below, including the loading flag itself.
   const isActive = useRef(true);
+  // The newest restore is the only one allowed to write state (T6c `R3-1`). Retry presses
+  // can overlap, and a slow earlier attempt settling after a later one authenticated used
+  // to drop the gate back to `unavailable`, so the outcome depended on settlement order.
+  const restoreGeneration = useRef(0);
 
-  /** Writes one restore outcome into state, unless the provider already unmounted. */
-  const applyOutcome = useCallback((outcome: SessionRestore) => {
-    if (!isActive.current) return;
+  /** Writes one restore outcome into state, unless it is no longer the current one. */
+  const applyOutcome = useCallback(
+    (outcome: SessionRestore, generation: number) => {
+      if (!isActive.current) return;
+      if (generation !== restoreGeneration.current) return;
 
-    if (outcome.status === "authenticated") {
-      setUser(outcome.user);
-      setRestoreProblem(null);
-    } else if (outcome.status === "unauthenticated") {
-      setUser(null);
-      setRestoreProblem(null);
-    } else {
-      setUser(null);
-      setRestoreProblem({ reason: outcome.reason, message: outcome.message });
-    }
+      if (outcome.status === "authenticated") {
+        setUser(outcome.user);
+        setRestoreProblem(null);
+      } else if (outcome.status === "unauthenticated") {
+        setUser(null);
+        setRestoreProblem(null);
+      } else {
+        setUser(null);
+        setRestoreProblem({ reason: outcome.reason, message: outcome.message });
+      }
 
-    setIsLoading(false);
-  }, []);
+      setIsLoading(false);
+    },
+    [],
+  );
 
-  const runRestore = useCallback(
-    () =>
-      service.restore().then(applyOutcome, (error: unknown) => {
+  const runRestore = useCallback(() => {
+    // Every start supersedes whatever is still in flight.
+    const generation = (restoreGeneration.current += 1);
+
+    return service.restore().then(
+      (outcome) => applyOutcome(outcome, generation),
+      (error: unknown) => {
         // `restore()` reports its own failures, so reaching this means the service itself
         // is broken. It still must not open the authenticated tree, and it still offers a
         // retry, so it lands on the same state an unreachable server does.
         console.warn("[session] Failed to restore the stored session:", error);
-        applyOutcome({
-          status: "unavailable",
-          reason: "server-error",
-          message: RESTORE_FAILED_MESSAGE,
-        });
-      }),
-    [service, applyOutcome],
-  );
+        applyOutcome(
+          {
+            status: "unavailable",
+            reason: "server-error",
+            message: RESTORE_FAILED_MESSAGE,
+          },
+          generation,
+        );
+      },
+    );
+  }, [service, applyOutcome]);
 
   useEffect(() => {
     isActive.current = true;
@@ -137,9 +152,9 @@ export function SessionProvider({
     try {
       await service.signOut();
     } finally {
-      // The local token is already gone at this point (the service clears it in a
-      // `finally` of its own); clearing the state is what moves the gate back to the
-      // auth tree, and it must happen even if the keychain write failed.
+      // The stored token is already gone at this point — the service clears it before it
+      // asks the server to revoke anything (T6c `m2`) — so clearing the state is what moves
+      // the gate back to the auth tree, and it happens even if the local clear failed.
       setUser(null);
       setRestoreProblem(null);
     }

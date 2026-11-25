@@ -1,7 +1,13 @@
 import "@/infrastructure/crypto/polyfill";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 
-import { AppButton, EmptyState, Spinner, ToastProvider } from "@/components";
+import {
+  AppButton,
+  EmptyState,
+  Spinner,
+  ThemedText,
+  ToastProvider,
+} from "@/components";
 import { SessionProvider, useSession } from "@/context/session-context";
 import { deriveSessionGate } from "@/context/session-gate";
 import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
@@ -11,7 +17,7 @@ import {
 } from "@/infrastructure/persistence/database";
 import { isDatabaseInUseError } from "@/infrastructure/persistence/database-open-error";
 import { queryClient } from "@/infrastructure/query/query-client";
-import { colors, spacing } from "@/theme";
+import { colors, radius, spacing } from "@/theme";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   DarkTheme,
@@ -291,28 +297,78 @@ function SessionGate() {
 }
 
 /**
+ * The one thing the tree does with a mirror that did not happen (T6c `m1`).
+ *
+ * A note, not a gate: the session is real and the tree is correct, but this device could
+ * not store an owner for it, so the user's own local writes (tasks, reflections,
+ * preferences) will fail their foreign key. The failure is rendered where it happens
+ * instead of being written to a log nobody reads.
+ */
+function LocalIdentityNotice({ message }: { message: string }) {
+  return (
+    <View testID="local-identity-notice" style={styles.identityNotice}>
+      <ThemedText variant="caption1" color={colors.systemOrange}>
+        {message}
+      </ThemedText>
+    </View>
+  );
+}
+
+/**
  * Keeps a local `user` row for whoever is signed in (`S13`).
  *
  * Every per-user row on the device owns a `user_id` foreign key, and the session identity
  * comes from the server: without this mirror the admin, or an account created a second
  * ago, could not create its first task or reflection. It runs where both the database and
  * the session exist (below `SQLiteProvider`, inside `SessionProvider`) and never blocks
- * rendering — a failed mirror is reported and the app keeps working.
+ * rendering.
+ *
+ * A mirror that did not happen is not swallowed here (T6c `m1`): `upsertSessionUser`
+ * reports every refusal as a result, and this component turns it into a state the tree
+ * renders, so a session with no local owner is visible instead of silent.
  */
-function LocalSessionUser() {
+function LocalSessionUser({
+  onMirrorProblem,
+}: {
+  onMirrorProblem: (message: string | null) => void;
+}) {
   const db = useSQLiteContext();
   const { user } = useSession();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      onMirrorProblem(null);
+      return;
+    }
 
-    upsertSessionUser(db, user).catch((error: unknown) => {
-      console.warn(
-        "[session] Failed to mirror the signed-in identity into the local database:",
-        error,
-      );
-    });
-  }, [db, user]);
+    // A sign-out, or another identity, makes this answer stale: only the newest attempt
+    // may report, so a slow write cannot describe a session that is no longer current.
+    let active = true;
+
+    void upsertSessionUser(db, user).then(
+      (result) => {
+        if (!active) return;
+        onMirrorProblem(result.status === "mirrored" ? null : result.message);
+      },
+      (error: unknown) => {
+        // The database itself refused the write (a driver error, not a refused identity):
+        // the mirror did not happen either, so it is reported the same way.
+        console.warn(
+          "[session] Failed to mirror the signed-in identity into the local database:",
+          error,
+        );
+        if (active) {
+          onMirrorProblem(
+            "Your profile could not be saved on this device, so new local data may not be saved.",
+          );
+        }
+      },
+    );
+
+    return () => {
+      active = false;
+    };
+  }, [db, user, onMirrorProblem]);
 
   return null;
 }
@@ -321,10 +377,15 @@ function LocalSessionUser() {
  * Wraps the app in the session the whole authenticated tree reads (`S13`).
  */
 function AppNavigation() {
+  const [mirrorProblem, setMirrorProblem] = useState<string | null>(null);
+
   return (
     <SessionProvider>
-      <LocalSessionUser />
-      <SessionGate />
+      <LocalSessionUser onMirrorProblem={setMirrorProblem} />
+      <View style={styles.appRoot}>
+        <SessionGate />
+        {mirrorProblem ? <LocalIdentityNotice message={mirrorProblem} /> : null}
+      </View>
     </SessionProvider>
   );
 }
@@ -361,6 +422,19 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  appRoot: {
+    flex: 1,
+  },
+  identityNotice: {
+    position: "absolute",
+    left: spacing.md,
+    right: spacing.md,
+    bottom: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.warningSubdued,
+  },
   gateScreen: {
     flex: 1,
     backgroundColor: colors.systemBackground,

@@ -11,6 +11,7 @@ import {
 } from "@/components";
 
 import { useSession } from "@/context/session-context";
+import { signOutAndClearCache } from "@/features/auth/sign-out";
 import { resetDatabase } from "@/infrastructure/persistence/database";
 import {
   colors,
@@ -74,17 +75,25 @@ export default function SettingsScreen() {
    * gate then sends this client back to the sign-in screen on its own. The device
    * database is untouched — local rows stay on the device, and the seeded profiles
    * stay in the `user` table even though no UI path reaches them any more.
+   *
+   * The query cache is cleared by `signOutAndClearCache` in a `finally` of its own
+   * (T6c `m2`): it used to be cleared after `await signOut()`, so a sign-out that
+   * rejected skipped it and left the previous identity's server state in memory.
    */
   const handleSignOut = async () => {
     if (isSigningOut) return;
+    setIsSigningOut(true);
+
     try {
-      setIsSigningOut(true);
-      await signOut();
-      await queryClient.resetQueries();
-      queryClient.clear();
-    } catch (error) {
-      console.error("Failed to sign out:", error);
-      Alert.alert("Error", "Could not sign out. Please try again.");
+      const outcome = await signOutAndClearCache({
+        signOut,
+        cache: queryClient,
+      });
+
+      if (!outcome.ok) {
+        console.error("Failed to sign out:", outcome.error);
+        Alert.alert("Error", "Could not sign out. Please try again.");
+      }
     } finally {
       setIsSigningOut(false);
     }
