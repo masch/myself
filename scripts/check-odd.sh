@@ -36,7 +36,11 @@ declares_open() {
 	local cand=''
 	local len=0
 
-	while IFS= read -r line; do
+	# `|| [ -n "${line}" ]` keeps a final line that has no trailing newline:
+	# `read` reports end-of-file without setting `line`, so an unterminated last
+	# line would otherwise be skipped and a marker on it would be invisible. On an
+	# empty file the condition is false, so the loop still ends immediately.
+	while IFS= read -r line || [ -n "${line}" ]; do
 		# The declaration must live in the document header.
 		case "${line}" in
 			'## '*) break ;;

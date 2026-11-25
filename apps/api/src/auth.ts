@@ -150,34 +150,48 @@ export const ADMIN_DISABLED_PATHS = [
  *   non-UUID id, which makes `mapUserRow` throw on real sign-ups.
  * - `ipAddressHeaders` is `cf-connecting-ip`: Workers do not send `X-Forwarded-For`,
  *   and without it the auth rate limiter collapses into a single bucket.
- * - `account.encryptOAuthTokens` keeps Google access, refresh and ID tokens out
- *   of the database in plaintext, but only when a real `secret` is configured
- *   (R1-001). The library derives its key from `secret` and falls back to a
- *   publicly known default, so encrypting without one would claim a
- *   confidentiality the deployment does not have. Fail-closed: never encrypt
- *   under the default key, warn once at startup instead.
+ * - `account.encryptOAuthTokens` keeps the Google access and refresh tokens out of
+ *   the database in plaintext, but only when a real `secret` is configured
+ *   (R1-001). Better Auth 1.7.28 encrypts exactly those two token columns and
+ *   writes `idToken` through unchanged, so no claim beyond them is made. The
+ *   library derives its key from `secret` and falls back to a publicly known
+ *   default, so encrypting without one would claim a confidentiality the
+ *   deployment does not have. Fail-closed: never encrypt under the default key,
+ *   warn once at startup instead.
+ * - `rateLimit.enabled` is set explicitly from the resolved `ENVIRONMENT` (L22):
+ *   the library only enables its limiter when `NODE_ENV` says production, which
+ *   this app never sets, so leaving it unset kept sign-in throttling off in every
+ *   environment, staging included.
+ * - `transaction` is enabled on the Drizzle adapter so Better Auth's
+ *   `runWithTransaction` wraps a sign-up's `user` and `account` writes in one
+ *   libSQL transaction (L22).
  * - Google is only registered when both credentials are configured, so a checkout
  *   without them still boots.
  */
 export function createAuth(config: AppConfig) {
   const db = createDb(config.database);
-  const { secret, baseUrl, google } = config.auth;
+  const { secret, baseUrl, google, rateLimit } = config.auth;
   const encryptOAuthTokens = Boolean(secret);
 
   // One warning per boot (createAuth runs once, when the app is built), not per
   // request: the operator needs to see it, but it must not flood the log.
   if (!encryptOAuthTokens) {
     console.warn(
-      "[auth] Provider tokens (Google access/refresh/ID tokens) are stored unencrypted because BETTER_AUTH_SECRET is not set. Set BETTER_AUTH_SECRET to encrypt them; encrypting without one would use Better Auth's publicly known default key.",
+      "[auth] Provider tokens (Google access and refresh tokens) are stored unencrypted because BETTER_AUTH_SECRET is not set. Set BETTER_AUTH_SECRET to encrypt them; encrypting without one would use Better Auth's publicly known default key.",
     );
   }
 
   return betterAuth({
     secret,
     baseURL: baseUrl,
+    rateLimit,
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema: authSchema,
+      // Better Auth wraps a sign-up in `runWithTransaction`; with the adapter's
+      // default this option is `false` and those writes are applied one by one, so
+      // a failed credential insert left an orphan user that blocked the retry.
+      transaction: true,
     }),
     emailAndPassword: {
       enabled: true,

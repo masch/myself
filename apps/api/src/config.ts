@@ -21,6 +21,58 @@ export interface AuthConfig {
   secret?: string;
   baseUrl: string;
   google?: GoogleProviderConfig;
+  rateLimit: AuthRateLimitConfig;
+}
+
+/**
+ * The auth rate limiter's rule, expressed in the library's own terms.
+ *
+ * `window` is in seconds and `max` is the number of requests allowed within it;
+ * both match Better Auth 1.7.28's defaults.
+ */
+export interface AuthRateLimitConfig {
+  enabled: boolean;
+  window: number;
+  max: number;
+}
+
+/**
+ * Environments where the auth rate limiter must run (S14, L22).
+ *
+ * Both are deployed and reachable from the internet, and better-auth's built-in rule
+ * (3 sign-in/sign-up attempts per 10 seconds per address) is the brute-force guard
+ * for the password endpoints. `development` and `test` are local, not internet-facing,
+ * and the library itself keeps its limiter off there; enabling it locally would only
+ * punish rapid manual sign-ins and throttle the test suite.
+ */
+export const RATE_LIMIT_ENVIRONMENTS: readonly Environment[] = [
+  Environments.STAGING,
+  Environments.PRODUCTION,
+];
+
+/** Better Auth 1.7.28 default window, in seconds. */
+export const RATE_LIMIT_WINDOW_SECONDS = 10;
+
+/** Better Auth 1.7.28 default request budget per window. */
+export const RATE_LIMIT_MAX_REQUESTS = 100;
+
+/**
+ * The limiter state for an environment, set explicitly.
+ *
+ * Better Auth enables its limiter only when `isProduction` (its `NODE_ENV` read) is
+ * true. This app sets `ENVIRONMENT`, not `NODE_ENV`, and Wrangler's build-time
+ * replacement does not reach the library's proxied read, so the library's default
+ * left sign-in throttling off everywhere. The decision is made here instead, from the
+ * environment the app actually resolves.
+ */
+export function resolveRateLimitConfig(
+  environment: Environment,
+): AuthRateLimitConfig {
+  return {
+    enabled: RATE_LIMIT_ENVIRONMENTS.includes(environment),
+    window: RATE_LIMIT_WINDOW_SECONDS,
+    max: RATE_LIMIT_MAX_REQUESTS,
+  };
 }
 
 export const DEFAULT_ENVIRONMENT: Environment = "development";
@@ -95,6 +147,7 @@ export function resolveAuthConfig(
     secret,
     baseUrl: bindings.BETTER_AUTH_URL?.trim() || DEFAULT_AUTH_BASE_URL,
     google: clientId && clientSecret ? { clientId, clientSecret } : undefined,
+    rateLimit: resolveRateLimitConfig(resolvedEnvironment),
   };
 }
 

@@ -1,9 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { APIError } from "better-auth/api";
 import { decryptOAuthToken, setTokenUtil } from "better-auth/oauth2";
 import { DateTime, type EntityId, entityIdSchema, User } from "@myself/shared";
 import { AppConfig, DEFAULT_AUTH_BASE_URL, resolveAuthConfig } from "../config";
 import { createAuth, runWithExecutionContext } from "../auth";
+import { createTestDatabase } from "../infrastructure/persistence/test-db";
 
 function testConfig(bindings: Record<string, string> = {}): AppConfig {
   return AppConfig.from({
@@ -371,6 +375,17 @@ describe("provider token encryption (S3)", () => {
     expect(warnings[0]).toContain("unencrypted");
   });
 
+  it("claims only the access and refresh tokens the library actually encrypts (L22)", () => {
+    // Better Auth 1.7.28 encrypts `account.access_token` and `account.refresh_token`
+    // and writes `id_token` as received, so the warning must not advertise
+    // ID-token encryption the library does not perform.
+    const { warnings } = warningsWhile(() => createAuth(testConfig()));
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("access and refresh tokens");
+    expect(warnings[0]).not.toContain("ID");
+  });
+
   it("stores provider tokens as ciphertext that round-trips through the context", async () => {
     const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
     // The library types this parameter as its own `AuthContext`, which the
@@ -388,6 +403,119 @@ describe("provider token encryption (S3)", () => {
     expect(stored).not.toBe(plaintext);
     expect(stored).not.toContain(plaintext);
     expect(await decryptOAuthToken(stored as string, ctx)).toBe(plaintext);
+  });
+});
+
+describe("auth rate limiting (S14, L22)", () => {
+  const RATE_LIMIT_SECRET = "rate-limit-unit-test-secret";
+
+  function configFor(environment: string): AppConfig {
+    return AppConfig.from({
+      ENVIRONMENT: environment,
+      TURSO_DATABASE_URL: ":memory:",
+      BETTER_AUTH_SECRET: RATE_LIMIT_SECRET,
+    });
+  }
+
+  it("enables the limiter in the deployed environments and keeps it off locally (L22)", () => {
+    // The limiter is explicit because Better Auth only enables it when `NODE_ENV`
+    // says production, and this app sets `ENVIRONMENT` instead: without this, the
+    // sign-in throttle is silently off in every environment, staging included.
+    const expected: Record<string, boolean> = {
+      production: true,
+      staging: true,
+      development: false,
+      test: false,
+    };
+
+    for (const [environment, enabled] of Object.entries(expected)) {
+      const auth = createAuth(configFor(environment));
+      expect(`${environment} -> ${auth.options.rateLimit?.enabled}`).toBe(
+        `${environment} -> ${enabled}`,
+      );
+    }
+  });
+
+  it("keeps the library's own windows and limits for the throttled environments (L22)", () => {
+    const production = createAuth(configFor("production")).options.rateLimit;
+
+    // Better Auth 1.7.28 defaults: 100 requests per 10 seconds, plus its stricter
+    // built-in rule for `/sign-in*` and `/sign-up*` (3 per 10 seconds).
+    expect(production?.window).toBe(10);
+    expect(production?.max).toBe(100);
+  });
+
+  it("throttles repeated sign-in attempts in production and not in test (L22)", async () => {
+    const database = mkdtempSync(join(tmpdir(), "myself-rate-limit-"));
+    const url = `file:${join(database, "rate-limit.db")}`;
+    try {
+      const db = await createTestDatabase({ seed: true, url });
+      expect(db).toBeDefined();
+
+      async function signInAttempts(ip: string): Promise<number[]> {
+        const auth = createAuth(
+          AppConfig.from({
+            ENVIRONMENT: "production",
+            TURSO_DATABASE_URL: url,
+            BETTER_AUTH_SECRET: RATE_LIMIT_SECRET,
+          }),
+        );
+        const statuses: number[] = [];
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+          const res = await auth.handler(
+            new Request("http://localhost/api/auth/sign-in/email", {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                "cf-connecting-ip": ip,
+              },
+              body: JSON.stringify({
+                email: "nobody@example.com",
+                password: "wrong-password",
+              }),
+            }),
+          );
+          statuses.push(res.status);
+        }
+        return statuses;
+      }
+
+      // The library's special sign-in rule is 3 requests per 10 seconds, so the
+      // fourth attempt from one address is refused before it reaches the handler.
+      const throttled = await signInAttempts("198.51.100.11");
+      expect(throttled.slice(0, 3)).toEqual([401, 401, 401]);
+      expect(throttled[3]).toBe(429);
+
+      // The same four attempts from the test environment are not throttled: local,
+      // deployment-free runs are not the surface this limiter protects.
+      const unthrottled: number[] = [];
+      const localAuth = createAuth(
+        AppConfig.from({
+          ENVIRONMENT: "test",
+          TURSO_DATABASE_URL: url,
+          BETTER_AUTH_SECRET: RATE_LIMIT_SECRET,
+        }),
+      );
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const res = await localAuth.handler(
+          new Request("http://localhost/api/auth/sign-in/email", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "cf-connecting-ip": "198.51.100.12",
+            },
+            body: JSON.stringify({
+              email: "nobody@example.com",
+              password: "wrong-password",
+            }),
+          }),
+        );
+        unthrottled.push(res.status);
+      }
+      expect(unthrottled).toEqual([401, 401, 401, 401]);
+    } finally {
+      rmSync(database, { recursive: true, force: true });
+    }
   });
 });
 
