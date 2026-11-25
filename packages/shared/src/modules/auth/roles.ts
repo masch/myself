@@ -26,7 +26,12 @@ export const DEFAULT_ROLE: Role = "user";
 export const ADMIN_ROLE: Role = "admin";
 
 export function isRole(value: unknown): value is Role {
-  return (
-    typeof value === "string" && (ROLES as readonly string[]).includes(value)
-  );
+  if (typeof value !== "string") {
+    return false;
+  }
+  // No cast: comparing each member against a narrowed string keeps the predicate
+  // sound by construction. Widening the tuple to a string array to reach `includes`
+  // would work too, but it hides the fact that the predicate is only sound while
+  // every member is a string.
+  return ROLES.some((role) => role === value);
 }
