@@ -26,23 +26,33 @@ Greenfield design: the app has no authentication today — only a device-local p
 
 **S10.** Per-user data (`tasks`, `user_reflections`, `user_reflection_items`, `user_theme_progress`, `user_question_preferences`) stays device-local. Out of scope, explicitly: server tables for them, push in the sync engine, conflict resolution, per-user encryption. The sync engine continues to push/pull curated content only.
 
-**S11.** Because local rows are keyed by a locally generated user id, the first successful sign-in performs a one-time local claim: `UPDATE user_id` from the previous local id to the server `user.id` in every affected local table. No user's local history is orphaned or lost.
+**S11.** There is no local claim and none is needed. Both seeds write one shared fixed `DEMO_USER_ID` — the server seed creates that identity with a real hashed credential outside production, the device seed writes the same row — so a demo sign-in already owns the seeded content. Rows keyed to the other seed profiles stay owned by those profile ids, and no user id is ever remapped at sign-in. This supersedes the original claim requirement (see L16).
 
 **S12.** `reading_logs` gains a `user_id` column. Read history is currently global on both server and device; device history must be attributable to the signed-in user.
 
-**S13.** The client gets a sign-in screen and a session gate in the root layout, replacing `src/context/auth-context.tsx` with a session provider exposing `session.user`. `currentUser` used for local writes becomes `session.user.id`.
+**S13.** The client replaces `src/context/auth-context.tsx` with a session provider exposing `session.user`, and gains four surfaces: a sign-up form (email + password), a sign-in form carrying a Google button, a password-reset screen reached through a deep link that carries the token, and a verification landing screen that reports whether the token verified or expired. Settings keeps a sign-out action replacing the profile switcher. `currentUser` used for local writes becomes `session.user.id`.
 
-**S14.** Workers configuration must satisfy Better Auth's documented constraints: `compatibility_date` at or above `2025-04-01` so `process.env` is populated (current value is `2025-02-01`), `advanced.ipAddress.config.ipAddressHeaders: ["cf-connecting-ip"]` (Workers do not send `X-Forwarded-For`; without this the auth rate limiter collapses into one bucket), and `advanced.backgroundTasks.handler` wired to `waitUntil` from `cloudflare:workers` so verification and reset emails are sent after the response (not awaited, to avoid timing attacks).
+**S14.** Workers configuration must satisfy Better Auth's constraints in the version actually installed (1.7.28): `compatibility_date` at or above `2025-04-01` so `process.env` is populated; `advanced.ipAddress.ipAddressHeaders: ["cf-connecting-ip"]` in its flat shape, because the nested `config.ipAddressHeaders` shape is silently ignored and the auth rate limiter then collapses into one bucket; and background dispatch wired through the request execution context (`c.executionCtx.waitUntil`, reached through AsyncLocalStorage) rather than a static `cloudflare:workers` import, so verification and reset emails are never awaited and the Bun test runner can still load the module.
 
 **S15.** CORS moves from the current wildcard to an explicit origin allowlist with credentials.
 
 **S16.** The email sender sits behind a single internal interface so the vendor is a detail. Until a vendor is chosen, the development implementation logs the verification/reset link and writes it to a file, mirroring Cloudflare's local `send_email` behaviour. Vendor decision is open: Cloudflare Email Service requires a domain whose DNS is on Cloudflare and Workers Paid for arbitrary recipients; Resend requires a verified domain on any DNS host.
 
-**S17.** Tests assert, for each write endpoint in S6: 401 without a session, 403 with a non-admin session, 2xx with an admin session, and that a rejected request leaves stored content unchanged. Plus: signup → verification link → verified; login; Google sign-in against a mocked IdP; password reset revokes existing sessions; first-sign-in claim preserves pre-existing local rows.
+**S17.** Tests assert, for each write endpoint in S6: 401 without a session, 403 with a non-admin session, 2xx with an admin session, and that a rejected request leaves stored content unchanged. Plus: sign-up over HTTP yields an id accepted by the domain `User`; Bearer session resolution works and a wrong password creates no session; the seeded admin can sign in and holds the admin role; Google sign-in against a mocked IdP; reset revokes existing sessions; and the mobile surfaces: sign-up creates an account, a reset deep link sets a new password, an expired verification token reports failure instead of success, and sign-out clears the stored session.
 
 **S18.** Turso + Drizzle adapter compatibility is unverified (no official documentation; the Better Auth demo uses Kysely for Turso). This is proven or disproven before any product schema change (T1).
 
 **S19.** A document in `odd/tasks/` may stay open across intermediate commits by declaring `- **Status**: open`. `scripts/check-odd.sh` then skips the closed-document requirements for that file only; any other document still fails when it has pending tasks or lacks a `- **Completion & Delivery**:` line. Closure replaces the open declaration with the completed tasks and the delivery record, so the escape cannot outlive the feature.
+
+**S20.** Exactly one admin exists after seeding: the seed creates a dedicated admin identity with `role: "admin"` through Better Auth, outside production, with a documented credential, and no endpoint can grant the admin role. Without it, enabling S6 would leave the app with nobody able to write curated content.
+
+**S21.** Device read history becomes attributable: every new insert into `reading_logs` on the device writes the current `session.user.id`, while rows written before sign-in stay NULL and are never backfilled. The sync engine's `reading_log` branch stays a no-op.
+
+**S22.** The web target is covered rather than ignored: `expo-secure-store` does not exist on web, so the web build keeps the session in memory and relies on Better Auth's cookie transport, while the native build uses SecureStore plus Bearer. No sign-in code path may assume SecureStore exists.
+
+**S23.** v1 does not require a verified email to sign in: `requireEmailVerification` stays off because S16's sender is still the development implementation, and enforcing verification before a real sender exists would lock every signup out. Turning it on is a separate change gated on a delivered sender.
+
+**S24.** Google account linking is explicit: a Google sign-in must never silently take over an existing password account whose email is unverified. If the library cannot express that guard, implicit linking stays disabled and the user gets an error instead of a takeover.
 
 ## Tasks
 
@@ -50,13 +60,16 @@ Greenfield design: the app has no authentication today — only a device-local p
 - [x] **T0** — Spike: Better Auth + `@better-auth/drizzle-adapter` (`provider: "sqlite"`) against a libSQL/Turso HTTP endpoint; run `signUpEmail` and `getSession`, check date/boolean binding. `S18`. Route: inline. **DONE — PASSED, see L10.**
 - [x] **T1** — Schema migration: auth tables (`user`, `session`, `account`, `verification`), `role`, five FK repoints, `reading_logs.user_id`. `S3`,`S4`,`S5`,`S12`. Route: inline. **DONE — see L14.** Commit: pending.
 - [x] **T2** — API: `src/auth.ts` (Better Auth instance + `bearer` + `admin`), secrets/config, `compatibility_date`, `ipAddressHeaders`, `backgroundTasks`, `/api/auth/*` mount outside the `/v1` OpenAPI doc. `S1`,`S14`. Route: inline. **DONE — see L15.** Commit: pending.
-- [ ] **T3** — API: `requireRole("admin")` middleware applied to the write endpoints; remove anonymous `POST`/`GET` `/v1/users`. `S5`,`S6`,`S7`. Route: inline. Commit: pending.
+- [ ] **T3** — API: `requireRole("admin")` on the curated-content writes, parsing the comma-separated `role` and treating NULL as non-admin; delete the anonymous `/v1/users` surface (routes, `user.service`, `sqlite-user.repository`, `user.mapper`) and update every test that asserts it, including T2's integration test that reads `/v1/users/{id}`; disable the admin-plugin endpoints we do not use (impersonation) through `disabledPaths`; seed the admin identity from S20. `S5`,`S6`,`S7`,`S20`. Route: inline. Commit: pending.
 - [ ] **T4** — API: email sender interface + dev logger implementation; wire `sendVerificationEmail` and `sendResetPassword` with `revokeSessionsOnPasswordReset`. `S2`,`S16`. The dev sender must refuse to run in production: it logs reset tokens (review finding R1-002). Route: inline. Commit: pending.
-- [ ] **T5** — API: CORS allowlist. `S15`. Route: inline. Commit: pending.
-- [ ] **T6** — Mobile: `expo-secure-store` + Better Auth Expo client, session provider replacing `auth-context`, sign-in screen, root gate. `S8`,`S9`,`S13`. Route: inline. Commit: pending.
-- [ ] **T7** — Mobile: one-time local claim of per-user rows on first sign-in. `S11`. Route: inline. Commit: pending.
-- [ ] **T8** — Tests for the whole slice, including the 401/403 matrix. `S17`. Route: inline. Commit: pending.
-- [ ] **T9** — Docs: update `AGENTS.md`/`README` for the auth surface and the vendor decision when closed. `S16`. Route: inline. Commit: pending.
+- [ ] **T5** — API: CORS allowlist covering both `/v1` and `/api/auth`, with credentials for the cookie transport the web target uses. `S15`,`S22`. Route: inline. Commit: pending.
+- [ ] **T6a** — Mobile: session provider replacing `auth-context`; `expo-secure-store` plus Bearer on native and in-memory plus cookie on web; sign-up and sign-in screens with the Google button; root session gate; sign-out in Settings. `S8`,`S9`,`S13`,`S22`. Route: inline. Commit: pending.
+- [ ] **T6b** — Mobile: password-reset screen and verification landing, both reached by deep link and wired to the auth client. `S2`,`S13`. Route: inline. Commit: pending.
+- **T7** — SUPERSEDED by D4 and rewritten in S11: the shared fixed `DEMO_USER_ID` removes the need for a claim step, so this is not implemented. Kept here so the numbering stays stable.
+- [ ] **T10** — Mobile: attribute new `reading_logs` rows to `session.user.id`; rows written before sign-in stay NULL and are never backfilled. `S12`,`S21`. Route: inline. Commit: pending.
+- [ ] **T11** — API: Google account-linking policy per S24, verified against the installed library. `S24`. Route: inline. Commit: pending.
+- [ ] **T8** — Tests for the whole slice: the 401/403 matrix, the auth flows and the mobile surfaces listed in S17. `S17`. Route: inline. Commit: pending.
+- [ ] **T9** — Docs: update `AGENTS.md`/`README` for the auth surface and the vendor decision when closed; close this document. `S16`. Route: inline. Commit: pending.
 
 ## Log
 
@@ -114,3 +127,19 @@ Checks (all green): `make check-types` 3/3 packages; `make check-lint` 3/3 packa
 **Two notes for the next tasks.** (1) `drizzleAdapter` is given the explicit `schema: authSchema` object exported from `packages/shared/src/modules/auth/index.ts`; the adapter falls back to `db._.fullSchema` when it is omitted (`config.schema || db._.fullSchema`), so omitting it did **not** fail in this repository — the explicit object pins the adapter to the four auth tables instead of accidentally depending on the whole shared schema, and it is what keeps the runtime aligned with the generator. (2) Nothing here sends email: `emailVerification.sendVerificationEmail` and `emailAndPassword.sendResetPassword` are left to T4 (S16), so a sign-up today returns a live session with `emailVerified: false`. T4 must not enable `requireEmailVerification` before the sender exists.
 
 Checks (all green): `make check-types` 3/3 packages; `make check-lint` 3/3 packages, 0 errors and the same 16 pre-existing mobile warnings; `make check-tests` 1038 pass / 0 fail (shared 101, api 126, mobile 811) — api was 109 before this task, +17 from `src/__tests__/auth.test.ts` and `src/routes/__tests__/auth.test.ts`.
+
+**L16** (user, verbatim): "corrigmaos la doc primero revisando el plan completo". Full plan review before starting T3, with these defects found and corrected in the specs and tasks above:
+
+1. **Nobody creates an admin.** S5 said the seed creates the first admin, but no task did it and both seeds write `role: "user"`, so enabling S6 in T3 would have left the app with no one able to write curated content. Added S20 and folded the admin seed into T3.
+2. **S11 still mandated the claim that D4 removed.** T1 replaced the claim with the shared fixed `DEMO_USER_ID`, and T7 was dropped in the todo while S11 kept requiring a remap. Rewrote S11 and marked T7 as superseded rather than silently deleting the number.
+3. **S13 named one screen where four are needed.** It said "sign-in screen", which would have deleted the only user-creation path in the app (`auth-context.tsx`'s `registerUser`) and left no way to sign up, to set a new password from the reset link, to land after verification, or to sign out. Rewrote S13 and split T6 into T6a (session, sign-up and sign-in, gate, sign-out) and T6b (reset and verification deep links).
+4. **S14 documented a configuration shape that does not work.** It specified `advanced.ipAddress.config.ipAddressHeaders`, while T2 proved the installed 1.7.28 silently ignores the nested shape and reads the flat one. A spec encoding a no-op is worse than no spec, so it now names the flat shape and the AsyncLocalStorage dispatch actually used.
+5. **Nothing wrote `reading_logs.user_id`.** S12 required attributable history, but the only place that would have passed the current user was T7, which is gone. Added S21 and T10.
+6. **The web target was unaddressed.** S9 mandated SecureStore, which does not exist on web, while S8 hand-waved "cookies for web" and no task configured it. Added S22 and widened T5 and T6a.
+7. **Email verification enforcement was undefined.** S2 sends a verification mail but nothing said whether an unverified user may sign in, and S16 leaves the sender unimplemented. Added S23: verification is not required in v1, and turning it on is gated on a real sender.
+8. **Google account linking was undefined.** Same email through password and Google is a takeover decision, not an implementation detail. Added S24 and T11.
+9. **S17 tested a claim that no longer exists** and said nothing about the mobile surfaces. Rewritten.
+10. **T5's scope was too narrow** for the cookie transport the web target will use. Widened.
+11. **T3 did not account for what deleting `/v1/users` breaks**, including T2's own integration test that reads `/v1/users/{id}`, nor for the admin-plugin endpoints we do not want exposed. Both folded into T3.
+
+Not changed by this review, and deliberately left open: the email vendor (S16), and whether a session lifetime policy is needed at all (the library default stands).
