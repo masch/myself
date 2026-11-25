@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { APIError } from "better-auth/api";
+import { decryptOAuthToken, setTokenUtil } from "better-auth/oauth2";
 import { entityIdSchema } from "@myself/shared";
 import { AppConfig, DEFAULT_AUTH_BASE_URL, resolveAuthConfig } from "../config";
 import { createAuth, runWithExecutionContext } from "../auth";
@@ -139,6 +141,152 @@ describe("Better Auth instance (S1, S14)", () => {
         }),
       ).not.toThrow();
     }
+  });
+});
+
+describe("user identity write hooks (S3)", () => {
+  type CreateHook = (
+    user: Record<string, unknown>,
+    ctx: null,
+  ) => Promise<unknown>;
+  type UpdateHook = (
+    data: Record<string, unknown>,
+    ctx: null,
+  ) => Promise<unknown>;
+
+  function hooksFor() {
+    const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
+    const create = auth.options.databaseHooks?.user?.create
+      ?.before as unknown as CreateHook;
+    const update = auth.options.databaseHooks?.user?.update
+      ?.before as unknown as UpdateHook;
+    return { create, update };
+  }
+
+  function identity(name: string, email: string) {
+    return {
+      id: "a0000000-0000-4000-8000-000000000001",
+      name,
+      email,
+      emailVerified: false,
+      image: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+
+  it("registers a create and an update hook for the user model", () => {
+    const { create, update } = hooksFor();
+
+    expect(typeof create).toBe("function");
+    expect(typeof update).toBe("function");
+  });
+
+  it("rejects a blank name on create with a 400 APIError", async () => {
+    const { create } = hooksFor();
+
+    const error = await create(identity("   ", "ada@example.com"), null).catch(
+      (thrown: unknown) => thrown,
+    );
+
+    expect(error).toBeInstanceOf(APIError);
+    expect((error as InstanceType<typeof APIError>).statusCode).toBe(400);
+    expect((error as InstanceType<typeof APIError>).body?.message).toBe(
+      "User name is required",
+    );
+  });
+
+  it("rejects a malformed email on create with a 400 APIError", async () => {
+    const { create } = hooksFor();
+
+    const error = await create(identity("Ada Lovelace", "nope"), null).catch(
+      (thrown: unknown) => thrown,
+    );
+
+    expect(error).toBeInstanceOf(APIError);
+    expect((error as InstanceType<typeof APIError>).statusCode).toBe(400);
+    expect((error as InstanceType<typeof APIError>).body?.message).toBe(
+      "Invalid email address",
+    );
+  });
+
+  it("lets a valid identity through on create", async () => {
+    const { create } = hooksFor();
+
+    expect(
+      create(identity("Ada Lovelace", "ada@example.com"), null),
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects a blank name on update with a 400 APIError", async () => {
+    const { update } = hooksFor();
+
+    const error = await update({ name: "   " }, null).catch(
+      (thrown: unknown) => thrown,
+    );
+
+    expect(error).toBeInstanceOf(APIError);
+    expect((error as InstanceType<typeof APIError>).statusCode).toBe(400);
+    expect((error as InstanceType<typeof APIError>).body?.message).toBe(
+      "User name is required",
+    );
+  });
+
+  it("rejects a malformed email on update", async () => {
+    const { update } = hooksFor();
+
+    const error = await update({ email: "not-an-email" }, null).catch(
+      (thrown: unknown) => thrown,
+    );
+
+    expect(error).toBeInstanceOf(APIError);
+    expect((error as InstanceType<typeof APIError>).body?.message).toBe(
+      "Invalid email address",
+    );
+  });
+
+  it("leaves updates that do not touch the identity fields alone", async () => {
+    const { update } = hooksFor();
+
+    // The admin plugin bans and the verification flow both update the `user` model
+    // without carrying `name` or `email`.
+    expect(
+      update({ name: undefined, image: null }, null),
+    ).resolves.toBeUndefined();
+    expect(update({ role: "admin" }, null)).resolves.toBeUndefined();
+  });
+
+  it("lets a valid name through on update", async () => {
+    const { update } = hooksFor();
+
+    expect(update({ name: "Ada Lovelace" }, null)).resolves.toBeUndefined();
+  });
+});
+
+describe("provider token encryption (S3)", () => {
+  it("enables encryptOAuthTokens in the Better Auth options", () => {
+    const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
+
+    expect(auth.options.account?.encryptOAuthTokens).toBe(true);
+  });
+
+  it("stores provider tokens as ciphertext that round-trips through the context", async () => {
+    const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
+    // The library types this parameter as its own `AuthContext`, which the
+    // plugin-augmented context type does not structurally satisfy.
+    type TokenContext = Parameters<typeof setTokenUtil>[1];
+    const ctx = (await auth.$context) as unknown as TokenContext;
+    const plaintext = "ya29.plaintext-google-access-token";
+
+    // `setTokenUtil` is the library's only write path for `account.access_token`
+    // and friends, so exercising it with this instance's own context observes the
+    // real storage shape rather than just the option flag.
+    const stored = await setTokenUtil(plaintext, ctx);
+
+    expect(typeof stored).toBe("string");
+    expect(stored).not.toBe(plaintext);
+    expect(stored).not.toContain(plaintext);
+    expect(await decryptOAuthToken(stored as string, ctx)).toBe(plaintext);
   });
 });
 

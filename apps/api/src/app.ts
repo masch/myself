@@ -53,6 +53,12 @@ export function createApp(
   // Deliberately mounted outside the /v1 sub-app and registered without OpenAPI
   // metadata: Better Auth owns its own contract, so none of its endpoints appear in
   // the /doc document and no /v1 versioning applies to them.
+  //
+  // Deliberate, scoped exception to the `ok`/`fail` response envelope: these responses
+  // are produced by Better Auth's own protocol, and wrapping them would break every
+  // Better Auth client (its error shape, `set-auth-token` header and redirects are all
+  // part of that protocol). The exception applies to /api/auth/* only; every /v1 route
+  // keeps the envelope.
   app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
   // System Routes (/, /health)

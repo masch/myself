@@ -109,7 +109,10 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
       process.env.TURSO_DATABASE_URL = ":memory:";
 
       try {
-        const config = AppConfig.from({ ENVIRONMENT: "staging" });
+        const config = AppConfig.from({
+          ENVIRONMENT: "staging",
+          BETTER_AUTH_SECRET: "unit-test-secret",
+        });
         expect(config.environment).toBe("staging");
         expect(config.database.url).toBe(":memory:");
       } finally {
@@ -125,6 +128,7 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
         ENVIRONMENT: Environments.STAGING,
         TURSO_DATABASE_URL: "libsql://example.turso.io",
         TURSO_AUTH_TOKEN: "secret-token",
+        BETTER_AUTH_SECRET: "unit-test-secret",
       });
 
       expect(config.environment).toBe(Environments.STAGING);
@@ -137,9 +141,59 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
       const config = AppConfig.from({
         ENVIRONMENT: Environments.STAGING,
         TURSO_DATABASE_URL: "libsql://example.turso.io",
+        BETTER_AUTH_SECRET: "unit-test-secret",
         PORT: "4000",
       });
       expect(config.port).toBe(4000);
+    });
+
+    it("rejects a staging config without a Better Auth secret", () => {
+      // Better Auth's own default-secret guard keys off NODE_ENV, which this app
+      // never sets, so `ENVIRONMENT=staging` would silently use its public default
+      // secret and make every session forgeable.
+      expect(
+        () =>
+          new AppConfig({
+            ENVIRONMENT: Environments.STAGING,
+            TURSO_DATABASE_URL: "libsql://example.turso.io",
+          }),
+      ).toThrow(/BETTER_AUTH_SECRET/);
+    });
+
+    it("rejects a blank Better Auth secret in production", () => {
+      expect(
+        () =>
+          new AppConfig({
+            ENVIRONMENT: Environments.PRODUCTION,
+            TURSO_DATABASE_URL: "libsql://example.turso.io",
+            BETTER_AUTH_SECRET: "   ",
+          }),
+      ).toThrow(/BETTER_AUTH_SECRET/);
+    });
+
+    it("boots without a secret in development, local and test", () => {
+      for (const environment of [Environments.DEVELOPMENT, Environments.TEST]) {
+        const config = new AppConfig({
+          ENVIRONMENT: environment,
+          TURSO_DATABASE_URL: ":memory:",
+        });
+        expect(config.auth.secret).toBeUndefined();
+      }
+    });
+
+    it("keeps Google independent of the secret requirement", () => {
+      const config = new AppConfig({
+        ENVIRONMENT: Environments.TEST,
+        TURSO_DATABASE_URL: ":memory:",
+        GOOGLE_CLIENT_ID: "client-id",
+        GOOGLE_CLIENT_SECRET: "client-secret",
+      });
+
+      expect(config.auth.secret).toBeUndefined();
+      expect(config.auth.google).toEqual({
+        clientId: "client-id",
+        clientSecret: "client-secret",
+      });
     });
 
     it("throws an explicit error when TURSO_DATABASE_URL is missing", () => {

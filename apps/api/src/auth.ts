@@ -1,8 +1,9 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { admin, bearer } from "better-auth/plugins";
-import { authSchema } from "@myself/shared";
+import { authSchema, userNameAndEmailSchema } from "@myself/shared";
 import type { AppConfig } from "./config";
 import { createDb } from "./infrastructure/persistence/client";
 
@@ -67,6 +68,37 @@ function dispatchBackgroundTask(promise: Promise<unknown>): void {
 }
 
 /**
+ * Rejects a `user` row the domain `User` would refuse (S3).
+ *
+ * Better Auth only type-checks `name` as a string, so `name: "   "` would be
+ * persisted and `mapUserRow` would then throw on every later read of that row,
+ * turning a user listing into a 500. The shared user-input schema is applied here,
+ * at the write boundary, and the rejection surfaces as a normal 400 instead.
+ *
+ * `partial` is for the update hook, which receives only the fields being written
+ * (a ban or a verification sets neither `name` nor `email`).
+ */
+function assertValidUserIdentity(
+  data: { name?: unknown; email?: unknown },
+  partial: boolean,
+): void {
+  for (const field of ["name", "email"] as const) {
+    const value = data[field];
+    if (partial && (value === undefined || value === null)) {
+      continue;
+    }
+    const parsed = userNameAndEmailSchema.shape[field].safeParse(value);
+    if (!parsed.success) {
+      throw new APIError("BAD_REQUEST", {
+        message:
+          parsed.error.issues[0]?.message ??
+          `Invalid user ${field}: expected a string`,
+      });
+    }
+  }
+}
+
+/**
  * The Better Auth instance (S1).
  *
  * Wiring notes that must not be lost:
@@ -77,6 +109,9 @@ function dispatchBackgroundTask(promise: Promise<unknown>): void {
  *   non-UUID id, which makes `mapUserRow` throw on real sign-ups.
  * - `ipAddressHeaders` is `cf-connecting-ip`: Workers do not send `X-Forwarded-For`,
  *   and without it the auth rate limiter collapses into a single bucket.
+ * - `account.encryptOAuthTokens` keeps Google access, refresh and ID tokens out of
+ *   the database in plaintext. It derives its key from `secret`, which is why it is
+ *   only safe because `resolveAuthConfig` refuses a secretless staging/production.
  * - Google is only registered when both credentials are configured, so a checkout
  *   without them still boots.
  */
@@ -95,6 +130,23 @@ export function createAuth(config: AppConfig) {
       enabled: true,
     },
     socialProviders: google ? { google } : undefined,
+    account: {
+      encryptOAuthTokens: true,
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (user) => {
+            assertValidUserIdentity(user, false);
+          },
+        },
+        update: {
+          before: async (data) => {
+            assertValidUserIdentity(data, true);
+          },
+        },
+      },
+    },
     plugins: [bearer(), admin()],
     advanced: {
       database: {

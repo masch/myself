@@ -4,6 +4,8 @@ import {
   initDatabase,
   resetDatabase,
   getUsers,
+  getUserById,
+  addUser,
   createUser,
   addAuthor,
   getAuthorById,
@@ -41,6 +43,55 @@ function createExpoSqliteAdapter(rawDb: Database): SQLiteDatabase {
     },
   } as unknown as SQLiteDatabase;
 }
+
+describe("addUser validation (S3)", () => {
+  let rawDb: Database;
+  let db: SQLiteDatabase;
+
+  beforeEach(async () => {
+    rawDb = new Database(":memory:");
+    db = createExpoSqliteAdapter(rawDb);
+    await initDatabase(db);
+  });
+
+  async function countUsers(): Promise<number> {
+    const row = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM "user"',
+    );
+    return Number(row?.count ?? 0);
+  }
+
+  it("rejects a blank name before the INSERT and writes no row", async () => {
+    const before = await countUsers();
+
+    expect(addUser(db, "   ", "blank@example.com")).rejects.toThrow(
+      "User name is required",
+    );
+
+    expect(await countUsers()).toBe(before);
+  });
+
+  it("rejects a malformed email before the INSERT and writes no row", async () => {
+    const before = await countUsers();
+
+    expect(addUser(db, "Ada Lovelace", "nope")).rejects.toThrow(
+      "Invalid email address",
+    );
+
+    expect(await countUsers()).toBe(before);
+  });
+
+  it("stores a trimmed name and email for valid input", async () => {
+    const before = await countUsers();
+
+    const id = await addUser(db, "  Ada Lovelace  ", "  ada@example.com  ");
+
+    expect(await countUsers()).toBe(before + 1);
+    const stored = await getUserById(db, id);
+    expect(stored?.name).toBe("Ada Lovelace");
+    expect(stored?.email).toBe("ada@example.com");
+  });
+});
 
 describe("Database Lifecycle & Reset", () => {
   let rawDb: Database;

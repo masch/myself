@@ -13,6 +13,7 @@ import {
   type MeditationReadingTranslation,
   type ReadingLog,
   type MeditationReadingWithAuthor,
+  userNameAndEmailSchema,
 } from "@myself/shared";
 import { seedDatabase } from "./seed";
 import { mapUserRow, type RawUserRecord } from "./mappers/user.mapper";
@@ -103,11 +104,22 @@ export async function addUser(
   email: string,
   imageUrl: string = "",
 ): Promise<string> {
+  // Same rules the domain `User` applies, applied before the row exists: a local
+  // row with a blank name or a malformed email is unreadable, because
+  // `mapUserRow` builds `User` and throws. Validating here keeps the table inside
+  // the domain's contract instead of persisting a row every read rejects.
+  const parsed = userNameAndEmailSchema.safeParse({ name, email });
+  if (!parsed.success) {
+    throw new Error(
+      parsed.error.issues[0]?.message ?? "Invalid user name or email",
+    );
+  }
+
   const id = generateUUID();
   const createdAt = DateTime.now().toMillis();
   await db.runAsync(
     'INSERT INTO "user" (id, name, email, image, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)',
-    [id, name, email, imageUrl, createdAt, createdAt],
+    [id, parsed.data.name, parsed.data.email, imageUrl, createdAt, createdAt],
   );
   return id;
 }

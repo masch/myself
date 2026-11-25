@@ -187,6 +187,68 @@ describe("POST /api/auth/* over HTTP (S1)", () => {
     expect(row.ipAddress).toBe("203.0.113.7");
   });
 
+  it("rejects a blank profile name at sign-up without storing a row (S3)", async () => {
+    const before = await db.select().from(user);
+
+    const res = await app.request(
+      jsonRequest("/api/auth/sign-up/email", {
+        email: "blank-name@example.com",
+        password: "a-long-enough-password",
+        name: "   ",
+      }),
+    );
+
+    // Better Auth only type-checks `name`, so without the database hook this row
+    // would be stored and every later read through the domain `User` would throw.
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { message?: string };
+    expect(JSON.stringify(body)).toContain("User name is required");
+
+    const after = await db.select().from(user);
+    expect(after.length).toBe(before.length);
+    expect(after.some((row) => row.email === "blank-name@example.com")).toBe(
+      false,
+    );
+  });
+
+  it("rejects a blank profile name on update-user and keeps the stored row (S3)", async () => {
+    const signUp = await app.request(
+      jsonRequest("/api/auth/sign-up/email", {
+        email: "grace.update@example.com",
+        password: "another-long-password",
+        name: "Grace Hopper",
+      }),
+    );
+    expect(signUp.status).toBe(200);
+    const token = signUp.headers.get("set-auth-token")!;
+    const created = (await signUp.json()) as { user: { id: string } };
+
+    const rejected = await app.request(
+      jsonRequest("/api/auth/update-user", { name: "   " }, token),
+    );
+    expect(rejected.status).toBe(400);
+    expect(
+      JSON.stringify((await rejected.json()) as Record<string, unknown>),
+    ).toContain("User name is required");
+
+    const [unchanged] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, created.user.id));
+    expect(unchanged.name).toBe("Grace Hopper");
+
+    // A valid name still goes through the same endpoint.
+    const accepted = await app.request(
+      jsonRequest("/api/auth/update-user", { name: "Grace B. Hopper" }, token),
+    );
+    expect(accepted.status).toBe(200);
+    const [updated] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, created.user.id));
+    expect(updated.name).toBe("Grace B. Hopper");
+  });
+
   it("keeps the seeded demo identity working through the real sign-in path", async () => {
     const res = await app.request(
       jsonRequest("/api/auth/sign-in/email", {

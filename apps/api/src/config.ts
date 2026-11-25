@@ -1,5 +1,5 @@
 import type { ApiBindings, Environment } from "./types";
-import { isValidEnvironment, VALID_ENVIRONMENTS } from "./types";
+import { Environments, isValidEnvironment, VALID_ENVIRONMENTS } from "./types";
 
 export interface DatabaseConfig {
   url: string;
@@ -58,14 +58,37 @@ export function resolvePort(raw?: string): number {
 
 export const DEFAULT_AUTH_BASE_URL = "http://localhost:8787";
 
+/**
+ * Environments where a missing Better Auth secret is fatal.
+ *
+ * Better Auth's own default-secret guard keys off `NODE_ENV === "production"`,
+ * which this app never sets — it uses `ENVIRONMENT`. Without this check,
+ * `ENVIRONMENT=staging` with no secret would silently sign sessions with Better
+ * Auth's public default secret, so every session token would be forgeable.
+ */
+export const SECRET_REQUIRED_ENVIRONMENTS: readonly Environment[] = [
+  Environments.STAGING,
+  Environments.PRODUCTION,
+];
+
 export function resolveAuthConfig(
   bindings: Partial<ApiBindings> = {},
+  environment: Environment = DEFAULT_ENVIRONMENT,
 ): AuthConfig {
   const clientId = bindings.GOOGLE_CLIENT_ID?.trim();
   const clientSecret = bindings.GOOGLE_CLIENT_SECRET?.trim();
+  const secret = bindings.BETTER_AUTH_SECRET?.trim() || undefined;
+
+  // Google stays independent of this check: a deployment without Google still
+  // needs the secret, and a Google deployment without it is just as fatal.
+  if (!secret && SECRET_REQUIRED_ENVIRONMENTS.includes(environment)) {
+    throw new Error(
+      `Missing required configuration: BETTER_AUTH_SECRET. ENVIRONMENT="${environment}" requires an explicit secret, because Better Auth otherwise signs sessions with its public default secret`,
+    );
+  }
 
   return {
-    secret: bindings.BETTER_AUTH_SECRET?.trim() || undefined,
+    secret,
     baseUrl: bindings.BETTER_AUTH_URL?.trim() || DEFAULT_AUTH_BASE_URL,
     google: clientId && clientSecret ? { clientId, clientSecret } : undefined,
   };
@@ -109,7 +132,7 @@ export class AppConfig {
   constructor(bindings: Partial<ApiBindings> = {}) {
     this.environment = resolveEnvironment(bindings.ENVIRONMENT);
     this.port = resolvePort(bindings.PORT);
-    this.auth = resolveAuthConfig(bindings);
+    this.auth = resolveAuthConfig(bindings, this.environment);
     this.database = resolveDatabaseConfig(
       bindings.TURSO_DATABASE_URL,
       bindings.TURSO_AUTH_TOKEN,

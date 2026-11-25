@@ -72,6 +72,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const stagingConfig = AppConfig.from({
         ENVIRONMENT: "staging",
         TURSO_DATABASE_URL: ":memory:",
+        // Staging refuses to boot without an explicit secret (Better Auth would
+        // otherwise sign sessions with its public default).
+        BETTER_AUTH_SECRET:
+          "dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWZvci1iZXR0ZXItYXV0aA==",
       });
       const stagingApp = createApp(stagingConfig, testRepos);
       const res = await stagingApp.request("/health");
