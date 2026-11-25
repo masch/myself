@@ -1,11 +1,68 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { signInAsAdmin } from "./helpers/session";
+
+/**
+ * Curated-content writes are admin-only since T3 (`requireRole("admin")`, S6), so every
+ * test here that writes drives the real sign-in form first. The credential comes from
+ * `./helpers/session`, which reads the value `playwright.config.ts` normalized for this
+ * run — the same one that seeds the admin identity the API serves.
+ *
+ * This spec deliberately does not use `./fixtures`: one of its tests proves what the gate
+ * does to a browser with no session, which an auto-sign-in fixture would hide.
+ */
+
+/**
+ * Opens the readings screen by clicking the tab, never by a fresh `page.goto` for a
+ * write the same test just made: the cookie survives a reload now (T5), but the in-test
+ * sequence is about the app, not about the browser.
+ */
+async function openReadingsTab(page: Page) {
+  // The web tab bar labels this tab with the screen title, not the native tab label.
+  await page.getByRole("tab", { name: "Meditation Readings" }).click();
+
+  await expect(
+    page.getByRole("tabpanel", { name: "Meditation Readings" }),
+  ).toBeVisible({ timeout: 15000 });
+}
 
 test.describe("E2E Browser Meditation Reading Flow", () => {
-  // Blocked on T6a: curated-content writes now require an admin session (T3), and the
-  // web client does not send an auth token yet because no call site wires
-  // HttpClientConfig.getAuthToken. Until then this UI write returns 401 and nothing
-  // reaches the backend. T6a re-enables this test as its acceptance criteria.
-  test.fixme("creates a new meditation reading via browser UI and persists to backend DB", async ({
+  test("sends an unauthenticated browser to the sign-in gate", async ({
+    page,
+  }) => {
+    await page.goto("/readings");
+
+    // The authenticated tree is not registered while there is no session (S13), so the
+    // URL the browser asked for resolves to the sign-in form instead.
+    await expect(page.getByLabel("Email address")).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByLabel("Password")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Add new reading" }),
+    ).toHaveCount(0);
+  });
+
+  test("keeps the session in the browser's cookie jar, so a page load stays signed in", async ({
+    page,
+  }) => {
+    await signInAsAdmin(page);
+
+    // T5's allowlist with credentials is what makes this possible: before it, the
+    // client had to ask for `same-origin` and the browser stored no cookie at all.
+    const cookies = await page.context().cookies();
+    expect(cookies.length).toBeGreaterThan(0);
+
+    await page.goto("/readings");
+
+    // A full page load: the in-memory token is gone, so the session can only come from
+    // the cookie the browser now sends.
+    await expect(
+      page.getByRole("tabpanel", { name: "Meditation Readings" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(page.getByLabel("Email address")).toHaveCount(0);
+  });
+
+  test("creates a new meditation reading via browser UI and persists to backend DB", async ({
     page,
     request,
   }) => {
@@ -20,9 +77,9 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
     const health = await request.get("http://localhost:8788/health");
     expect(health.ok()).toBe(true);
 
-    // 2. Open frontend in real browser
-    await page.goto("/readings");
-    await expect(page).toHaveTitle(/myself|Readings/i);
+    // 2. Sign in as the seeded admin, then open the readings screen in-app
+    await signInAsAdmin(page);
+    await openReadingsTab(page);
 
     // 3. Open New Reading Modal via accessible header button or hero card button
     const addReadingBtn = page
@@ -176,16 +233,14 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
       .toBe(true);
   });
 
-  // Blocked on the same T6a dependency, and more strictly: the offline write is queued
-  // locally and only leaves the device on a sync push, which has no session to send.
-  test.fixme("creates reading while offline, stores locally, and syncs to backend once back online", async ({
+  test("creates reading while offline, stores locally, and syncs to backend once back online", async ({
     page,
     request,
-    context,
   }) => {
-    // 1. Open frontend and navigate to readings
-    await page.goto("/readings");
-    await expect(page).toHaveTitle(/myself|Readings/i);
+    // 1. Sign in as the seeded admin, then open the readings screen in-app. The outbox
+    //    push this test drains sends the same bearer as any other curated write.
+    await signInAsAdmin(page);
+    await openReadingsTab(page);
 
     // 2. Open New Reading Modal via accessible header button or hero card button
     const addReadingBtn = page

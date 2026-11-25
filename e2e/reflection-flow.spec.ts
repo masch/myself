@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { signInAsAdmin } from "./helpers/session";
 import { TestClock } from "./helpers/clock";
 
 const SEEDED_IDS = {
@@ -27,6 +28,11 @@ test.describe("E2E Browser Personal Reflections Flow", () => {
 
     // 1b. Mock browser clock to registration day (2026-09-11 12:00 PM)
     const clock = await TestClock.install(page, "2026-09-11T12:00:00Z");
+
+    // The local identity is created under this clock: its creation date is what makes a
+    // day count as "missed", and a sign-in before the fake clock would date it in the
+    // future relative to the dates this test pretends to live in.
+    await signInAsAdmin(page);
 
     // 2. Navigate directly to reflections screen
     await page.goto("/reflections");

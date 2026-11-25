@@ -1,4 +1,6 @@
-import { test, expect } from "@playwright/test";
+// Signs in as the seeded admin before each test: the app tree is behind the session
+// gate (S13), so a visitor with no session would assert against the sign-in form.
+import { test, expect } from "./fixtures";
 
 test.describe("E2E Browser Program Preview Before Enrollment", () => {
   test("browses a program's steps and details from the open-cohort card without enrolling or answering", async ({

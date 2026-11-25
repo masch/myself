@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { signInAsAdmin } from "./helpers/session";
 
 /**
  * A second tab of the same origin cannot own the local database.
@@ -23,6 +24,10 @@ test.describe("E2E web second tab", () => {
     test.setTimeout(120000);
 
     const first = await context.newPage();
+    // Sign-in happens on the tab that will own the database. A separate page created by
+    // an auto fixture would hold the OPFS handles itself and make this tab the one that
+    // gets the "open elsewhere" screen, which is the opposite of what this test proves.
+    await signInAsAdmin(first);
     await first.goto("/");
     await expect(first.getByRole("button", { name: HOME_MARKER })).toBeVisible({
       timeout: 30000,
@@ -46,6 +51,10 @@ test.describe("E2E web second tab", () => {
     test.setTimeout(120000);
 
     const first = await context.newPage();
+    // Sign-in happens on the tab that will own the database. A separate page created by
+    // an auto fixture would hold the OPFS handles itself and make this tab the one that
+    // gets the "open elsewhere" screen, which is the opposite of what this test proves.
+    await signInAsAdmin(first);
     await first.goto("/");
     await expect(first.getByRole("button", { name: HOME_MARKER })).toBeVisible({
       timeout: 30000,

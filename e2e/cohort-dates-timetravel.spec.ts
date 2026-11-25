@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { TestClock } from "./helpers/clock";
+import { signInAsAdmin } from "./helpers/session";
 
 test.describe("E2E Cohort Program Dates & Time Travel", () => {
   test("enforces cohort programStartDate: locks question before start date and unlocks on start date", async ({
@@ -7,6 +8,11 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
   }) => {
     // 1. Install mock clock at 2026-09-13 (2 days BEFORE the Stoic cohort starts on 2026-09-15)
     const clock = await TestClock.install(page, "2026-09-13T12:00:00Z");
+
+    // The local identity is anchored to the clock this test just set (the device
+    // row's creation date is what makes a day count as "missed"), so the sign-in
+    // happens under the fake clock rather than before it.
+    await signInAsAdmin(page);
 
     // 2. Open reflections screen
     await page.goto("/reflections");
@@ -86,6 +92,11 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
 
     // 1. Install mock clock at 2026-09-13 (2 days before Stoic cohort starts on 2026-09-15)
     const clock = await TestClock.install(page, "2026-09-13T12:00:00Z");
+
+    // The local identity is anchored to the clock this test just set (the device
+    // row's creation date is what makes a day count as "missed"), so the sign-in
+    // happens under the fake clock rather than before it.
+    await signInAsAdmin(page);
 
     // 2. Open reflections screen
     await page.goto("/reflections");
@@ -229,6 +240,11 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
   }) => {
     // 1. Initial user registration on 2026-09-11
     const clock = await TestClock.install(page, "2026-09-11T12:00:00Z");
+
+    // The local identity is anchored to the clock this test just set (the device
+    // row's creation date is what makes a day count as "missed"), so the sign-in
+    // happens under the fake clock rather than before it.
+    await signInAsAdmin(page);
     await page.goto("/reflections");
     await expect(page.getByText("Rutina del Día").first()).toBeVisible({
       timeout: 10000,
@@ -258,6 +274,11 @@ test.describe("E2E Cohort Program Dates & Time Travel", () => {
   }) => {
     // 1. Time travel to 2026-09-17 (2 days after start date 2026-09-15, which is within the 2-day grace period)
     const clock = await TestClock.install(page, "2026-09-17T12:00:00Z");
+
+    // The local identity is anchored to the clock this test just set (the device
+    // row's creation date is what makes a day count as "missed"), so the sign-in
+    // happens under the fake clock rather than before it.
+    await signInAsAdmin(page);
     await page.goto("/reflections");
     await page.getByText("Programas").first().click();
 

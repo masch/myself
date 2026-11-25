@@ -1,4 +1,6 @@
-import { test, expect } from "@playwright/test";
+// Signs in as the seeded admin before each test: the app tree is behind the session
+// gate (S13), so a visitor with no session would assert against the sign-in form.
+import { test, expect } from "./fixtures";
 
 /**
  * A barter simulation tab has no local database, and says so instead of crashing.
