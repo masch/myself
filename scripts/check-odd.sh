@@ -11,6 +11,48 @@ fi
 
 FAILED=0
 
+# A document that declares itself open is legitimate while its work is in
+# progress, including across intermediate commits on a feature branch. Only a
+# top-level declaration in the document header counts: a quoted example or a
+# pasted log inside a fenced block, or an indented line, must not waive the gate
+# for the whole document.
+declares_open() {
+	local file="$1"
+	local line=""
+	local line_lc=""
+	local fence=''
+	local cand=''
+	local count=0
+
+	while IFS= read -r line; do
+		count=$((count + 1))
+		if [ "${count}" -gt 20 ]; then
+			break
+		fi
+		case "${line}" in
+			'```'* | '~~~'*)
+				cand="${line:0:1}"
+				if [ -z "${fence}" ]; then
+					fence="${cand}"
+				elif [ "${cand}" = "${fence}" ]; then
+					fence=''
+				fi
+				continue
+				;;
+		esac
+		if [ -n "${fence}" ]; then
+			continue
+		fi
+		line_lc="${line,,}"
+		line_lc="${line_lc%"${line_lc##*[![:space:]]}"}"
+		if [ "${line_lc}" = "- **status**: open" ]; then
+			return 0
+		fi
+	done <"$file"
+
+	return 1
+}
+
 echo "Verifying ODD task documents in odd/tasks/..."
 
 for file in "${ODD_DIR}"/*.md; do
@@ -18,10 +60,7 @@ for file in "${ODD_DIR}"/*.md; do
 	filename="$(basename "$file")"
 	file_errors=0
 
-	# A document that declares itself open is legitimate while its work is in
-	# progress, including across intermediate commits on a feature branch.
-	# Every other document in odd/tasks/ must be completed and closed.
-	if grep -Eqi "^[[:space:]]*-[[:space:]]*\*\*Status\*\*:[[:space:]]*open[[:space:]]*$" "$file"; then
+	if declares_open "$file"; then
 		echo "  ⏳ ${filename} declares 'Status: open'"
 		continue
 	fi
