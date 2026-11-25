@@ -56,6 +56,9 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       AUTH_SECRET: AUTH_SECRET,
       AUTH_URL: "http://localhost:8787",
       ADMIN_USER_PASSWORD: ADMIN_TEST_PASSWORD,
+      // T5 (S15, S22): the browser origin this suite exercises must be allowlisted,
+      // because an unlisted origin is now refused instead of granted `*`.
+      CORS_ALLOWED_ORIGINS: "http://localhost:8081",
     });
     await seedFromConfig(testConfig);
     app = createApp(testConfig, createRepositories(testConfig));
@@ -205,7 +208,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       expect(body.error).toBe("Endpoint not found");
     });
 
-    it("handles CORS headers on preflight requests", async () => {
+    it("grants CORS to the configured origin on preflight, with credentials and no wildcard", async () => {
       const res = await app.request("/v1/readings", {
         method: "OPTIONS",
         headers: {
@@ -214,7 +217,12 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
         },
       });
       expect(res.status).toBe(204);
-      expect(res.headers.get("access-control-allow-origin")).toBe("*");
+      // T5 replaced the wildcard with an explicit allowlist: the origin is echoed, a
+      // credentialed response is allowed, and `*` no longer appears anywhere.
+      expect(res.headers.get("access-control-allow-origin")).toBe(
+        "http://localhost:8081",
+      );
+      expect(res.headers.get("access-control-allow-credentials")).toBe("true");
     });
 
     it("handles unhandled exceptions via onError and returns 500", async () => {

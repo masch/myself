@@ -20,6 +20,21 @@ AUTH_SECRET="replace-with-a-random-32-byte-secret"
 # Defaults to http://localhost:8787 when unset.
 AUTH_URL="http://localhost:8787"
 
+# Origins allowed to call this API from a browser (S15, S22, S26), comma-separated and
+# explicit. Never a wildcard: the web session is a cookie, and a credential-bearing
+# response is only readable when the origin is named. It is also what Better Auth trusts
+# as `trustedOrigins`, so an origin missing here is answered with 403
+# "Origin not allowed" (before the request reaches any handler).
+#
+# Local development: `make dev-web` serves the app on port 8081, and the Playwright suite
+# on 8082. The API does not read this file on its own (`bun run dev` uses the process
+# environment), so export the value or run with `bun --env-file=.dev.vars`:
+#   export CORS_ALLOWED_ORIGINS="http://localhost:8081,http://localhost:8082"
+# Deployed environments must set it to the deployed web origin(s) — the EAS Hosting URL
+# of the web build plus any extra client origin. Native clients send no Origin and are
+# unaffected by this setting.
+CORS_ALLOWED_ORIGINS="http://localhost:8081,http://localhost:8082"
+
 # Google sign-in (S1). Both values are required to enable the provider; when either
 # is missing the provider is not registered and the API still boots, so leaving these
 # commented out is the normal state for a checkout without Google credentials.

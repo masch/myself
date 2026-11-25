@@ -184,6 +184,9 @@ export function createAuth(config: AppConfig) {
   return betterAuth({
     secret,
     baseURL: baseUrl,
+    // The browser's own origin must be trusted for Better Auth to accept its requests;
+    // without this the library answers `Invalid origin` before any credential is read.
+    trustedOrigins: config.cors.allowedOrigins,
     rateLimit,
     database: drizzleAdapter(db, {
       provider: "sqlite",

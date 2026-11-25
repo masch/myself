@@ -15,6 +15,7 @@ import {
   createSessionRoleResolver,
   requireRole,
 } from "./middleware/require-role";
+import { ErrorCode } from "@myself/shared";
 import { handleApiError } from "./errors";
 import { authorsRoute } from "./routes/authors";
 import { readingsRoute } from "./routes/readings";
@@ -36,7 +37,43 @@ export function createApp(
 
   // Global Middlewares
   app.use("*", logger());
-  app.use("*", cors());
+
+  /**
+   * An origin that is not on the allowlist is refused here, for every path.
+   *
+   * CORS alone only stops the browser from *reading* the response; the request would
+   * still run, which is the difference between a blocked read and a blocked action. A
+   * request with no `Origin` at all (native app, CLI, tests) has no cross-origin risk and
+   * is served normally.
+   */
+  app.use("*", async (c, next) => {
+    const origin = c.req.header("origin");
+    if (origin && !config.cors.allowedOrigins.includes(origin)) {
+      return fail(
+        c,
+        "Origin not allowed: CORS_ALLOWED_ORIGINS does not list this origin",
+        403,
+        ErrorCode.FORBIDDEN,
+      );
+    }
+    return next();
+  });
+
+  // CORS posture for the browser target (S15, S22, S26). An explicit allowlist, never a
+  // wildcard: the web session is a cookie, and `Access-Control-Allow-Credentials` cannot
+  // coexist with `*`. `set-auth-token` is exposed because the web client reads the token
+  // from that header, and the cookie is readable by the browser's own jar.
+  app.use(
+    "*",
+    cors({
+      origin: (origin) =>
+        config.cors.allowedOrigins.includes(origin) ? origin : null,
+      allowMethods: ["GET", "HEAD", "PUT", "POST", "DELETE", "PATCH"],
+      exposeHeaders: ["set-auth-token"],
+      credentials: true,
+      maxAge: 600,
+    }),
+  );
 
   // Expose the platform execution context to Better Auth's background dispatcher
   app.use("*", async (c, next) => {

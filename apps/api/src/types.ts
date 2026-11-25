@@ -25,6 +25,12 @@ export type ApiBindings = {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   /**
+   * Comma-separated list of origins allowed to call this API from a browser (S15,
+   * S22, S26). Never a wildcard: the web target authenticates with a cookie, and a
+   * credential-bearing response is only readable when the origin is named.
+   */
+  CORS_ALLOWED_ORIGINS?: string;
+  /**
    * Password of the single admin identity the seed creates (S20, R1-001). A secret:
    * the repository carries no admin credential, and an absent value means the seed
    * creates no admin at all.

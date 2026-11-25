@@ -6,6 +6,76 @@ export interface DatabaseConfig {
   authToken?: string;
 }
 
+/**
+ * The browser origins this API may be called from (S15, S22, S26).
+ *
+ * An explicit allowlist is what makes the cookie transport sound: `Access-Control-Allow-
+ * Credentials` and a wildcard origin cannot coexist, so the origin has to be named. The
+ * list is also handed to Better Auth as `trustedOrigins`, because the library rejects a
+ * request whose `Origin` it does not trust (it answered `Invalid origin` before this).
+ */
+export interface CorsConfig {
+  allowedOrigins: string[];
+}
+
+const WILDCARD_ORIGIN = "*";
+
+function parseOrigin(entry: string): string {
+  if (entry === WILDCARD_ORIGIN) {
+    throw new Error(
+      'Invalid CORS_ALLOWED_ORIGINS configuration: "*" is not allowed, because credentialed CORS cannot use a wildcard. Name each origin explicitly',
+    );
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(entry);
+  } catch {
+    throw new Error(
+      `Invalid CORS_ALLOWED_ORIGINS entry: "${entry}". Expected an origin such as https://app.example.com`,
+    );
+  }
+
+  // An origin is scheme + host + port, and nothing else: a path, a query or a
+  // trailing slash in the configuration would silently never match a request.
+  if (parsed.origin !== entry) {
+    throw new Error(
+      `Invalid CORS_ALLOWED_ORIGINS entry: "${entry}". Expected a bare origin with no path or trailing slash, such as https://app.example.com`,
+    );
+  }
+
+  return parsed.origin;
+}
+
+/**
+ * Reads the allowlist. An absent or blank value means "no browser origin is allowed",
+ * which is the fail-closed default: native clients send no `Origin` and are unaffected.
+ */
+export function resolveCorsConfig(
+  raw?: string,
+  environment: Environment = Environments.DEVELOPMENT,
+): CorsConfig {
+  const entries = (raw ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+
+  const allowedOrigins = entries.map(parseOrigin);
+
+  if (allowedOrigins.length === 0) {
+    // Not fatal (an API with no browser client is legitimate), but a deployment that
+    // forgot it would refuse every browser request, and that must not be a surprise
+    // discovered by a user. One line per boot, not per request.
+    if (SECRET_REQUIRED_ENVIRONMENTS.includes(environment)) {
+      console.warn(
+        "[cors] CORS_ALLOWED_ORIGINS is empty: no browser origin may call this API. Set it (comma-separated origins) for the web target.",
+      );
+    }
+  }
+
+  return { allowedOrigins };
+}
+
 export interface GoogleProviderConfig {
   clientId: string;
   clientSecret: string;
@@ -164,6 +234,7 @@ export function getProcessEnv(): Partial<ApiBindings> {
     AUTH_URL: process.env.AUTH_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    CORS_ALLOWED_ORIGINS: process.env.CORS_ALLOWED_ORIGINS,
     ADMIN_USER_PASSWORD: process.env.ADMIN_USER_PASSWORD,
   };
 }
@@ -200,6 +271,8 @@ export class AppConfig {
   readonly environment: Environment;
   readonly port: number;
   readonly auth: AuthConfig;
+  /** Browser origin allowlist (S15, S22, S26); empty means no browser origin. */
+  readonly cors: CorsConfig;
   /** Admin seed credential (S20, R1-001); `undefined` means "seed no admin". */
   readonly adminUserPassword?: string;
 
@@ -207,6 +280,10 @@ export class AppConfig {
     this.environment = resolveEnvironment(bindings.ENVIRONMENT);
     this.port = resolvePort(bindings.PORT);
     this.auth = resolveAuthConfig(this.environment, bindings);
+    this.cors = resolveCorsConfig(
+      bindings.CORS_ALLOWED_ORIGINS,
+      this.environment,
+    );
     this.database = resolveDatabaseConfig(
       bindings.TURSO_DATABASE_URL,
       bindings.TURSO_AUTH_TOKEN,
