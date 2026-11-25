@@ -72,18 +72,22 @@ export const SECRET_REQUIRED_ENVIRONMENTS: readonly Environment[] = [
 ];
 
 export function resolveAuthConfig(
+  environment: Environment,
   bindings: Partial<ApiBindings> = {},
-  environment: Environment = DEFAULT_ENVIRONMENT,
 ): AuthConfig {
+  // Required positionally, and re-resolved here so a caller that escapes the type
+  // system (plain JS, `as any`) cannot reach the staging/production secret guard
+  // with an environment nobody chose.
+  const resolvedEnvironment = resolveEnvironment(environment);
   const clientId = bindings.GOOGLE_CLIENT_ID?.trim();
   const clientSecret = bindings.GOOGLE_CLIENT_SECRET?.trim();
   const secret = bindings.BETTER_AUTH_SECRET?.trim() || undefined;
 
   // Google stays independent of this check: a deployment without Google still
   // needs the secret, and a Google deployment without it is just as fatal.
-  if (!secret && SECRET_REQUIRED_ENVIRONMENTS.includes(environment)) {
+  if (!secret && SECRET_REQUIRED_ENVIRONMENTS.includes(resolvedEnvironment)) {
     throw new Error(
-      `Missing required configuration: BETTER_AUTH_SECRET. ENVIRONMENT="${environment}" requires an explicit secret, because Better Auth otherwise signs sessions with its public default secret`,
+      `Missing required configuration: BETTER_AUTH_SECRET. ENVIRONMENT="${resolvedEnvironment}" requires an explicit secret, because Better Auth otherwise signs sessions with its public default secret`,
     );
   }
 
@@ -132,7 +136,7 @@ export class AppConfig {
   constructor(bindings: Partial<ApiBindings> = {}) {
     this.environment = resolveEnvironment(bindings.ENVIRONMENT);
     this.port = resolvePort(bindings.PORT);
-    this.auth = resolveAuthConfig(bindings, this.environment);
+    this.auth = resolveAuthConfig(this.environment, bindings);
     this.database = resolveDatabaseConfig(
       bindings.TURSO_DATABASE_URL,
       bindings.TURSO_AUTH_TOKEN,

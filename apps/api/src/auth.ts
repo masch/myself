@@ -76,7 +76,9 @@ function dispatchBackgroundTask(promise: Promise<unknown>): void {
  * at the write boundary, and the rejection surfaces as a normal 400 instead.
  *
  * `partial` is for the update hook, which receives only the fields being written
- * (a ban or a verification sets neither `name` nor `email`).
+ * (a ban or a verification sets neither `name` nor `email`). An absent field is
+ * skipped; an explicit `null` is not, because it is a caller asking for a null
+ * identity field, which the domain `User` refuses on every later read.
  */
 function assertValidUserIdentity(
   data: { name?: unknown; email?: unknown },
@@ -84,8 +86,13 @@ function assertValidUserIdentity(
 ): void {
   for (const field of ["name", "email"] as const) {
     const value = data[field];
-    if (partial && (value === undefined || value === null)) {
+    if (partial && value === undefined) {
       continue;
+    }
+    if (value === null) {
+      throw new APIError("BAD_REQUEST", {
+        message: `Invalid user ${field}: expected a string, received null`,
+      });
     }
     const parsed = userNameAndEmailSchema.shape[field].safeParse(value);
     if (!parsed.success) {
@@ -109,15 +116,27 @@ function assertValidUserIdentity(
  *   non-UUID id, which makes `mapUserRow` throw on real sign-ups.
  * - `ipAddressHeaders` is `cf-connecting-ip`: Workers do not send `X-Forwarded-For`,
  *   and without it the auth rate limiter collapses into a single bucket.
- * - `account.encryptOAuthTokens` keeps Google access, refresh and ID tokens out of
- *   the database in plaintext. It derives its key from `secret`, which is why it is
- *   only safe because `resolveAuthConfig` refuses a secretless staging/production.
+ * - `account.encryptOAuthTokens` keeps Google access, refresh and ID tokens out
+ *   of the database in plaintext, but only when a real `secret` is configured
+ *   (R1-001). The library derives its key from `secret` and falls back to a
+ *   publicly known default, so encrypting without one would claim a
+ *   confidentiality the deployment does not have. Fail-closed: never encrypt
+ *   under the default key, warn once at startup instead.
  * - Google is only registered when both credentials are configured, so a checkout
  *   without them still boots.
  */
 export function createAuth(config: AppConfig) {
   const db = createDb(config.database);
   const { secret, baseUrl, google } = config.auth;
+  const encryptOAuthTokens = Boolean(secret);
+
+  // One warning per boot (createAuth runs once, when the app is built), not per
+  // request: the operator needs to see it, but it must not flood the log.
+  if (!encryptOAuthTokens) {
+    console.warn(
+      "[auth] Provider tokens (Google access/refresh/ID tokens) are stored unencrypted because BETTER_AUTH_SECRET is not set. Set BETTER_AUTH_SECRET to encrypt them; encrypting without one would use Better Auth's publicly known default key.",
+    );
+  }
 
   return betterAuth({
     secret,
@@ -131,7 +150,7 @@ export function createAuth(config: AppConfig) {
     },
     socialProviders: google ? { google } : undefined,
     account: {
-      encryptOAuthTokens: true,
+      encryptOAuthTokens,
     },
     databaseHooks: {
       user: {

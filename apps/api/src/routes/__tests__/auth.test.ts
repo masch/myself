@@ -249,6 +249,64 @@ describe("POST /api/auth/* over HTTP (S1)", () => {
     expect(updated.name).toBe("Grace B. Hopper");
   });
 
+  it("rejects an explicit null name on update-user without storing it (R3-002)", async () => {
+    const signUp = await app.request(
+      jsonRequest("/api/auth/sign-up/email", {
+        email: "ada.null@example.com",
+        password: "another-long-password",
+        name: "Ada Null",
+      }),
+    );
+    expect(signUp.status).toBe(200);
+    const token = signUp.headers.get("set-auth-token")!;
+    const created = (await signUp.json()) as { user: { id: string } };
+
+    // `name: null` used to be skipped exactly like `undefined`, so the write reached
+    // the `NOT NULL` column and failed as an uncontrolled 500 (observed: SQLITE
+    // constraint on `user.name`) instead of the 400 the hook exists to produce.
+    const rejected = await app.request(
+      jsonRequest("/api/auth/update-user", { name: null }, token),
+    );
+    expect(rejected.status).toBe(400);
+    expect(
+      JSON.stringify((await rejected.json()) as Record<string, unknown>),
+    ).toContain("Invalid user name");
+
+    const [unchanged] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, created.user.id));
+    expect(unchanged.name).toBe("Ada Null");
+    // The stored row must still be readable through the domain mapper.
+    expect(() => mapUserRow(unchanged)).not.toThrow();
+  });
+
+  it("rejects explicit nulls for both identity fields on update-user (R3-002)", async () => {
+    const signUp = await app.request(
+      jsonRequest("/api/auth/sign-up/email", {
+        email: "both.null@example.com",
+        password: "another-long-password",
+        name: "Both Null",
+      }),
+    );
+    expect(signUp.status).toBe(200);
+    const token = signUp.headers.get("set-auth-token")!;
+    const created = (await signUp.json()) as { user: { id: string } };
+
+    const rejected = await app.request(
+      jsonRequest("/api/auth/update-user", { name: null, email: null }, token),
+    );
+    expect(rejected.status).toBe(400);
+
+    const [unchanged] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, created.user.id));
+    expect(unchanged.name).toBe("Both Null");
+    expect(unchanged.email).toBe("both.null@example.com");
+    expect(() => mapUserRow(unchanged)).not.toThrow();
+  });
+
   it("keeps the seeded demo identity working through the real sign-in path", async () => {
     const res = await app.request(
       jsonRequest("/api/auth/sign-in/email", {

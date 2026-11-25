@@ -16,7 +16,7 @@ function testConfig(bindings: Record<string, string> = {}): AppConfig {
 
 describe("auth configuration (S1, S14)", () => {
   it("defaults the auth base URL and leaves the secret unset when absent", () => {
-    const auth = resolveAuthConfig({});
+    const auth = resolveAuthConfig("test", {});
 
     expect(auth.baseUrl).toBe(DEFAULT_AUTH_BASE_URL);
     expect(DEFAULT_AUTH_BASE_URL).toBe("http://localhost:8787");
@@ -25,7 +25,7 @@ describe("auth configuration (S1, S14)", () => {
   });
 
   it("reads the secret and the base URL from the bindings", () => {
-    const auth = resolveAuthConfig({
+    const auth = resolveAuthConfig("test", {
       BETTER_AUTH_SECRET: "unit-test-secret",
       BETTER_AUTH_URL: "https://api.example.com",
     });
@@ -49,18 +49,53 @@ describe("auth configuration (S1, S14)", () => {
   });
 
   it("includes the Google provider only when both credentials are present", () => {
-    expect(resolveAuthConfig({ GOOGLE_CLIENT_ID: "client-id" }).google).toBe(
-      undefined,
-    );
     expect(
-      resolveAuthConfig({ GOOGLE_CLIENT_SECRET: "client-secret" }).google,
+      resolveAuthConfig("test", { GOOGLE_CLIENT_ID: "client-id" }).google,
     ).toBe(undefined);
     expect(
-      resolveAuthConfig({
+      resolveAuthConfig("test", { GOOGLE_CLIENT_SECRET: "client-secret" })
+        .google,
+    ).toBe(undefined);
+    expect(
+      resolveAuthConfig("test", {
         GOOGLE_CLIENT_ID: "client-id",
         GOOGLE_CLIENT_SECRET: "client-secret",
       }).google,
     ).toEqual({ clientId: "client-id", clientSecret: "client-secret" });
+  });
+
+  it("requires an explicit environment, so the secret guard cannot be skipped (R3-005)", () => {
+    // The environment is a required positional argument: omitting it is a compile
+    // error, which the directive below asserts — an unused `@ts-expect-error` fails
+    // `make check-types`, so this line is the compile-time proof. At runtime the
+    // same omission is refused too, so a caller that escapes the types still cannot
+    // reach the guard with an environment nobody chose.
+    // @ts-expect-error - the environment argument is required
+    expect(() => resolveAuthConfig()).toThrow(
+      /Missing required ENVIRONMENT configuration/,
+    );
+  });
+
+  it("refuses a missing or unknown environment at runtime (R3-005)", () => {
+    // Defence in depth for callers that escape the type system (JS, `as any`): the
+    // guard is unreachable without a resolved environment.
+    expect(() => resolveAuthConfig(undefined as unknown as "test", {})).toThrow(
+      /Missing required ENVIRONMENT configuration/,
+    );
+    expect(() =>
+      resolveAuthConfig("not-an-environment" as unknown as "test", {
+        BETTER_AUTH_SECRET: "unit-test-secret",
+      }),
+    ).toThrow(/Invalid ENVIRONMENT configuration/);
+  });
+
+  it("reaches the staging secret guard only with an explicit environment", () => {
+    expect(() => resolveAuthConfig("staging", {})).toThrow(
+      /BETTER_AUTH_SECRET/,
+    );
+    expect(() => resolveAuthConfig("production", {})).toThrow(
+      /BETTER_AUTH_SECRET/,
+    );
   });
 });
 
@@ -245,11 +280,41 @@ describe("user identity write hooks (S3)", () => {
     );
   });
 
+  it("rejects an explicit null name on update with a 400 APIError (R3-002)", async () => {
+    const { update } = hooksFor();
+
+    // `undefined` means "not being written"; `null` is a caller asking for a null
+    // identity field, which the domain `User` rejects on every later read.
+    const error = await update({ name: null }, null).catch(
+      (thrown: unknown) => thrown,
+    );
+
+    expect(error).toBeInstanceOf(APIError);
+    expect((error as InstanceType<typeof APIError>).statusCode).toBe(400);
+    expect((error as InstanceType<typeof APIError>).body?.message).toBe(
+      "Invalid user name: expected a string, received null",
+    );
+  });
+
+  it("rejects an explicit null email on update with a 400 APIError (R3-002)", async () => {
+    const { update } = hooksFor();
+
+    const error = await update({ email: null }, null).catch(
+      (thrown: unknown) => thrown,
+    );
+
+    expect(error).toBeInstanceOf(APIError);
+    expect((error as InstanceType<typeof APIError>).statusCode).toBe(400);
+    expect((error as InstanceType<typeof APIError>).body?.message).toBe(
+      "Invalid user email: expected a string, received null",
+    );
+  });
+
   it("leaves updates that do not touch the identity fields alone", async () => {
     const { update } = hooksFor();
 
     // The admin plugin bans and the verification flow both update the `user` model
-    // without carrying `name` or `email`.
+    // without carrying `name` or `email`, so an absent field stays skippable.
     expect(
       update({ name: undefined, image: null }, null),
     ).resolves.toBeUndefined();
@@ -264,10 +329,45 @@ describe("user identity write hooks (S3)", () => {
 });
 
 describe("provider token encryption (S3)", () => {
+  function warningsWhile<T>(fn: () => T): { result: T; warnings: string[] } {
+    const original = console.warn;
+    const warnings: string[] = [];
+    console.warn = (...args: unknown[]) => {
+      warnings.push(args.map((arg) => String(arg)).join(" "));
+    };
+    try {
+      return { result: fn(), warnings };
+    } finally {
+      console.warn = original;
+    }
+  }
+
   it("enables encryptOAuthTokens in the Better Auth options", () => {
     const auth = createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" }));
 
     expect(auth.options.account?.encryptOAuthTokens).toBe(true);
+  });
+
+  it("enables encryption when a secret is configured and warns about nothing (R1-001)", () => {
+    const { result: auth, warnings } = warningsWhile(() =>
+      createAuth(testConfig({ BETTER_AUTH_SECRET: "secret" })),
+    );
+
+    expect(auth.options.account?.encryptOAuthTokens).toBe(true);
+    expect(warnings).toEqual([]);
+  });
+
+  it("never encrypts under Better Auth's default secret and warns once instead (R1-001)", () => {
+    // Development and test boot without a secret, and Better Auth then derives the
+    // key from its publicly known default, so a ciphertext there is not confidential.
+    const { result: auth, warnings } = warningsWhile(() =>
+      createAuth(testConfig()),
+    );
+
+    expect(auth.options.account?.encryptOAuthTokens).toBe(false);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("BETTER_AUTH_SECRET");
+    expect(warnings[0]).toContain("unencrypted");
   });
 
   it("stores provider tokens as ciphertext that round-trips through the context", async () => {
