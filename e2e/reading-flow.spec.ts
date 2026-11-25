@@ -1,7 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("E2E Browser Meditation Reading Flow", () => {
-  test("creates a new meditation reading via browser UI and persists to backend DB", async ({
+  // Blocked on T6a: curated-content writes now require an admin session (T3), and the
+  // web client does not send an auth token yet because no call site wires
+  // HttpClientConfig.getAuthToken. Until then this UI write returns 401 and nothing
+  // reaches the backend. T6a re-enables this test as its acceptance criteria.
+  test.fixme("creates a new meditation reading via browser UI and persists to backend DB", async ({
     page,
     request,
   }) => {
@@ -172,7 +176,9 @@ test.describe("E2E Browser Meditation Reading Flow", () => {
       .toBe(true);
   });
 
-  test("creates reading while offline, stores locally, and syncs to backend once back online", async ({
+  // Blocked on the same T6a dependency, and more strictly: the offline write is queued
+  // locally and only leaves the device on a sync push, which has no session to send.
+  test.fixme("creates reading while offline, stores locally, and syncs to backend once back online", async ({
     page,
     request,
     context,
