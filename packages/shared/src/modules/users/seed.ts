@@ -1,8 +1,19 @@
 import type { EntityId } from "../../primitives";
+import {
+  DEMO_USER_EMAIL,
+  DEMO_USER_ID,
+  DEMO_USER_NAME,
+} from "../auth/demo-user";
 import type { SeedUser } from "./contracts";
 
+/**
+ * Device-local seed profiles. `MY_SELF` is the shared demo identity (D4): the server
+ * seed creates the same id, so no local claim step is needed on first sign-in.
+ * The other two profiles keep the existing device profile switcher populated until
+ * the session provider replaces it (T6).
+ */
 export const SEED_USER_IDS: Record<string, EntityId> = {
-  MY_SELF: "e0000000-0000-4000-8000-000000000001" as EntityId,
+  MY_SELF: DEMO_USER_ID,
   ELENA_GOMEZ: "e0000000-0000-4000-8000-000000000002" as EntityId,
   LUCAS_ROSSI: "e0000000-0000-4000-8000-000000000003" as EntityId,
 };
@@ -10,8 +21,8 @@ export const SEED_USER_IDS: Record<string, EntityId> = {
 export const SEED_USERS: SeedUser[] = [
   {
     id: SEED_USER_IDS.MY_SELF,
-    name: "My self",
-    email: "myself@example.com",
+    name: DEMO_USER_NAME,
+    email: DEMO_USER_EMAIL,
     tasks: [
       {
         title: "Setup Expo SDK 57 project",

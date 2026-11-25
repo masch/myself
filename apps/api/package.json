@@ -38,14 +38,17 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.7.28",
     "@hono/zod-openapi": "^1.6.2",
     "@libsql/client": "^0.18.0",
     "@myself/shared": "workspace:*",
     "@scalar/hono-api-reference": "^0.12.0",
+    "better-auth": "^1.7.28",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.7.2"
   },
   "devDependencies": {
+    "@better-auth/cli": "^1.4.21",
     "@cloudflare/workers-types": "^4.20250214.0",
     "@types/bun": "^1.4.0",
     "drizzle-kit": "^0.31.10",

@@ -1,12 +1,12 @@
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { users } from "../users/schema";
+import { user } from "../auth/schema";
 import type { TaskCategory } from "./types";
 
 export const tasks = sqliteTable("tasks", {
   id: text("id").primaryKey(),
   userId: text("user_id")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => user.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   category: text("category").$type<TaskCategory>().notNull(),
   description: text("description").default(""),

@@ -4,11 +4,17 @@ import {
   type EntityId,
 } from "../../../primitives";
 
+/**
+ * Domain user profile, independent of the Better Auth identity table (D3).
+ *
+ * The auth row stores `image` and millisecond timestamps; the persistence mappers
+ * are the only place that knows that shape and translate it into this entity.
+ */
 export interface UserProps {
   id: EntityId;
   name: string;
   email: string;
-  avatarUrl?: string;
+  imageUrl: string | null;
   createdAt: DateTime;
 }
 
@@ -24,12 +30,13 @@ export class User {
     if (!rawProps.email || !emailRegex.test(rawProps.email.trim())) {
       throw new Error("Invalid email address");
     }
+    const imageUrl = rawProps.imageUrl?.trim();
     this.props = {
       ...rawProps,
       id,
       name: rawProps.name.trim(),
       email: rawProps.email.trim(),
-      avatarUrl: rawProps.avatarUrl?.trim(),
+      imageUrl: imageUrl ? imageUrl : null,
     };
   }
 
@@ -45,8 +52,8 @@ export class User {
     return this.props.email;
   }
 
-  get avatarUrl(): string | undefined {
-    return this.props.avatarUrl;
+  get imageUrl(): string | null {
+    return this.props.imageUrl;
   }
 
   get createdAt(): DateTime {

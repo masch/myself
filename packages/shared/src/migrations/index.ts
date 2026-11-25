@@ -6,6 +6,7 @@ import m0002 from "./0002_item_list_reflections.sql";
 import m0003 from "./0003_add_readings_version.sql";
 import m0004 from "./0004_program_step_contents.sql";
 import m0005 from "./0005_program_step_resources.sql";
+import m0006 from "./0006_better_auth_identity.sql";
 
 export interface MigrationJournalEntry {
   idx: number;
@@ -35,5 +36,6 @@ export const SHARED_MIGRATIONS: SharedMigrationsBundle = {
     m0003,
     m0004,
     m0005,
+    m0006,
   },
 };

@@ -75,14 +75,14 @@ describe("Shared Kernel Domain Entities", () => {
       id: "550e8400-e29b-41d4-a716-446655440000" as EntityId,
       name: "Test User",
       email: "test@example.com",
-      avatarUrl: "https://example.com/avatar.png",
+      imageUrl: "https://example.com/avatar.png",
       createdAt: DateTime.now(),
     });
 
     expect(user.id).toBe("550e8400-e29b-41d4-a716-446655440000" as EntityId);
     expect(user.name).toBe("Test User");
     expect(user.email).toBe("test@example.com");
-    expect(user.avatarUrl).toBe("https://example.com/avatar.png");
+    expect(user.imageUrl).toBe("https://example.com/avatar.png");
   });
 
   it("should reject creating User with invalid email", () => {
@@ -92,6 +92,7 @@ describe("Shared Kernel Domain Entities", () => {
           id: "550e8400-e29b-41d4-a716-446655440000" as EntityId,
           name: "Invalid User",
           email: "not-an-email",
+          imageUrl: null,
           createdAt: DateTime.now(),
         }),
     ).toThrow();
@@ -113,6 +114,7 @@ describe("Shared Kernel Domain Entities", () => {
           id: "invalid-id" as EntityId,
           name: "Valid User",
           email: "user@example.com",
+          imageUrl: null,
           createdAt: DateTime.now(),
         }),
     ).toThrow();

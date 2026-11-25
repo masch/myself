@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import type { EntityId } from "../../primitives/entity-id";
-import { users } from "../users/schema";
+import { user } from "../auth/schema";
 import {
   COHORT_STATUSES,
   CYCLE_STATUSES,
@@ -100,7 +100,7 @@ export const userQuestionPreferences = sqliteTable(
     userId: text("user_id")
       .$type<EntityId>()
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => user.id, { onDelete: "cascade" }),
     questionId: text("question_id")
       .$type<EntityId>()
       .notNull()
@@ -126,7 +126,7 @@ export const userThemeProgress = sqliteTable("user_theme_progress", {
   userId: text("user_id")
     .$type<EntityId>()
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => user.id, { onDelete: "cascade" }),
   themeId: text("theme_id")
     .$type<EntityId>()
     .notNull()
@@ -154,7 +154,7 @@ export const userReflections = sqliteTable(
     userId: text("user_id")
       .$type<EntityId>()
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => user.id, { onDelete: "cascade" }),
     questionId: text("question_id")
       .$type<EntityId>()
       .notNull()

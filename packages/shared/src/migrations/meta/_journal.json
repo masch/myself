@@ -43,6 +43,13 @@
       "when": 1794000000000,
       "tag": "0005_program_step_resources",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1795000000000,
+      "tag": "0006_better_auth_identity",
+      "breakpoints": true
     }
   ]
 }

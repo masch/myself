@@ -1,21 +1,9 @@
-import { check, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
-import type { EntityId } from "../../primitives/entity-id";
-
-export const users = sqliteTable(
-  "users",
-  {
-    id: text("id").$type<EntityId>().primaryKey(),
-    name: text("name").notNull(),
-    email: text("email").notNull().unique(),
-    avatarUrl: text("avatar_url"),
-    createdAt: text("created_at").notNull(),
-  },
-  (table) => [
-    check("users_name_not_empty", sql`length(trim(${table.name})) > 0`),
-    check("users_email_not_empty", sql`length(trim(${table.email})) > 0`),
-  ],
-);
-
-export type UserRecord = typeof users.$inferSelect;
-export type NewUserRecord = typeof users.$inferInsert;
+/**
+ * Identity tables no longer live in this module (S3): Better Auth owns the
+ * `user`, `session`, `account` and `verification` tables in `../auth/schema.ts`.
+ *
+ * This module keeps only the domain types. Do not add a table definition back here;
+ * every foreign key that used to point at the legacy `users` table now points at
+ * `user.id` (S4).
+ */
+export {};
