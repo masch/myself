@@ -365,7 +365,9 @@ describe("provider token encryption (S3)", () => {
 
     expect(auth.options.account?.encryptOAuthTokens).toBe(false);
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain("AUTH_SECRET");
+    // Anchored on a fragment that cannot appear if the message still names the old
+    // variable: a bare name assertion is satisfied by any stale prefix that contains it.
+    expect(warnings[0]).toContain("Set AUTH_SECRET to encrypt");
     expect(warnings[0]).toContain("unencrypted");
   });
 
