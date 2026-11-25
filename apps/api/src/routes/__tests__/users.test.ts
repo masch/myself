@@ -75,6 +75,7 @@ describe("Users API Endpoints E2E Tests (HTTP -> SQLite Database)", () => {
           id: "a0000000-0000-4000-8000-000000000001" as any,
           name: "Marcus Aurelius",
           email: "marcus@rome.gov",
+          imageUrl: null,
           createdAt: DateTime.now(),
         }),
       );

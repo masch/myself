@@ -23,7 +23,7 @@ describe("UserService Domain Application Service Unit Tests", () => {
     expect(user.id).toBeDefined();
     expect(user.name).toBe("Marcus Aurelius");
     expect(user.email).toBe("marcus@rome.gov");
-    expect(user.avatarUrl).toBe("https://example.com/avatar.png");
+    expect(user.imageUrl).toBe("https://example.com/avatar.png");
     expect(user.createdAt).toBeDefined();
     expect(user.createdAt.toISOString()).toBeDefined();
 
@@ -41,7 +41,7 @@ describe("UserService Domain Application Service Unit Tests", () => {
       avatarUrl: "   ",
     });
 
-    expect(user.avatarUrl).toBeUndefined();
+    expect(user.imageUrl).toBeNull();
   });
 
   it("throws UserConflictError when email is already registered", async () => {

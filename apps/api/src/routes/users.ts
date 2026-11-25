@@ -20,7 +20,7 @@ function toUserDto(user: User): UserDto {
     id: user.id,
     name: user.name,
     email: user.email,
-    avatar_url: user.avatarUrl,
+    avatar_url: user.imageUrl ?? undefined,
     created_at: user.createdAt.toISOString(),
   };
 }

@@ -44,7 +44,7 @@ export class UserService {
       id,
       name: input.name.trim(),
       email,
-      avatarUrl,
+      imageUrl: avatarUrl ?? null,
       createdAt,
     });
 

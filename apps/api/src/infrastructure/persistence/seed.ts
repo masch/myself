@@ -1,12 +1,18 @@
 import { join } from "node:path";
 import { migrate } from "drizzle-orm/libsql/migrator";
+import { hashPassword } from "better-auth/crypto";
 import {
+  account,
   authors,
+  DEMO_USER_EMAIL,
+  DEMO_USER_ID,
+  DEMO_USER_NAME,
   meditationReadings,
   meditationReadingTranslations,
   readingLogs,
   SEED_AUTHORS,
   SEED_READINGS,
+  user,
 } from "@myself/shared";
 import {
   createDb,
@@ -16,7 +22,65 @@ import {
 } from "./client";
 import { AppConfig } from "../../config";
 
+/**
+ * Demo credential for the seeded demo account (D4). Development and staging only:
+ * the seed refuses to run in production, so this never reaches a deployed surface.
+ */
+export const DEMO_USER_PASSWORD = "myself-demo-password";
+
+function isDemoSeedAllowed(): boolean {
+  if (typeof process === "undefined" || !process.env) {
+    return false;
+  }
+  return process.env.ENVIRONMENT !== "production";
+}
+
+/**
+ * Seeds the demo identity shared with the device seed (D4).
+ *
+ * Coupling worth naming: the hash is produced by Better Auth's own
+ * `hashPassword` and the row mirrors what `signUpEmail` writes for the credential
+ * provider (`provider_id = "credential"`, `account_id = user.id`). The sign-in path
+ * verifies it with `verifyPassword`, so signing in as the demo user exercises the
+ * real credential flow instead of a shortcut.
+ */
+async function seedDemoIdentity(db: DbClient): Promise<void> {
+  const now = new Date();
+
+  await db
+    .insert(user)
+    .values({
+      id: DEMO_USER_ID,
+      name: DEMO_USER_NAME,
+      email: DEMO_USER_EMAIL,
+      emailVerified: true,
+      image: null,
+      role: "user",
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing();
+
+  await db
+    .insert(account)
+    .values({
+      id: `account-${DEMO_USER_ID}`,
+      accountId: DEMO_USER_ID,
+      providerId: "credential",
+      userId: DEMO_USER_ID,
+      password: await hashPassword(DEMO_USER_PASSWORD),
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing();
+}
+
 export async function seedDatabase(db: DbClient): Promise<void> {
+  // 0. Demo identity (dev/staging only)
+  if (isDemoSeedAllowed()) {
+    await seedDemoIdentity(db);
+  }
+
   // 1. Seed Authors
   for (const author of SEED_AUTHORS) {
     await db
