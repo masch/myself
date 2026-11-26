@@ -181,6 +181,32 @@ export function resolvePort(raw?: string): number {
 export const DEFAULT_AUTH_BASE_URL = "http://localhost:8787";
 
 /**
+ * Deep link a reset link is allowed to hand its token to (S2, S13).
+ *
+ * Better Auth validates a `redirectTo` against `trustedOrigins`, and it supports custom
+ * schemes (`matchesOriginPattern` parses `myapp://host` explicitly), so the app's own
+ * scheme can be named without loosening anything: `myself://reset-password` is one exact
+ * origin, not `myself://*`.
+ */
+export const RESET_PASSWORD_DEEP_LINK = "myself://reset-password";
+
+/** Deep link the verification endpoint lands on, with or without `?error=` (S2, S13). */
+export const VERIFY_EMAIL_DEEP_LINK = "myself://verify-email";
+
+/**
+ * The redirect targets the app clients can be sent to (S2, S13).
+ *
+ * Separate from the CORS allowlist on purpose: a deep link is not a browser origin, and
+ * it must never widen what a browser may call. `apps/mobile/src/infrastructure/auth/`
+ * sends these same two values, and `apps/api/src/__tests__/auth.test.ts` pins them to the
+ * scheme declared in `apps/mobile/app.json`.
+ */
+export const APP_DEEP_LINK_ORIGINS: readonly string[] = [
+  RESET_PASSWORD_DEEP_LINK,
+  VERIFY_EMAIL_DEEP_LINK,
+];
+
+/**
  * Environments where a missing Better Auth secret is fatal.
  *
  * Better Auth's own default-secret guard keys off `NODE_ENV === "production"`,

@@ -5,7 +5,12 @@ import { tmpdir } from "node:os";
 import { APIError } from "better-auth/api";
 import { decryptOAuthToken, setTokenUtil } from "better-auth/oauth2";
 import { DateTime, type EntityId, entityIdSchema, User } from "@myself/shared";
-import { AppConfig, DEFAULT_AUTH_BASE_URL, resolveAuthConfig } from "../config";
+import {
+  APP_DEEP_LINK_ORIGINS,
+  AppConfig,
+  DEFAULT_AUTH_BASE_URL,
+  resolveAuthConfig,
+} from "../config";
 import { createAuth, runWithExecutionContext } from "../auth";
 import { createTestDatabase } from "../infrastructure/persistence/test-db";
 
@@ -135,6 +140,50 @@ describe("Better Auth instance (S1, S14)", () => {
       clientId: "client-id",
       clientSecret: "client-secret",
     });
+  });
+
+  it("trusts the app's deep links as redirect targets, not only the browser origins (S2, S13)", async () => {
+    const auth = createAuth(
+      testConfig({
+        AUTH_SECRET: "secret",
+        CORS_ALLOWED_ORIGINS: "http://localhost:8082",
+      }),
+    );
+    const context = await auth.$context;
+    const decision = (url: string) =>
+      context.isTrustedOrigin(url, { allowRelativePaths: true });
+
+    // The browser origin stays; without it the web target cannot sign in (T5).
+    expect(decision("http://localhost:8082")).toBe(true);
+    // A custom scheme is only accepted when it is named: the email link redirects the
+    // user to the app, and Better Auth refuses an untrusted `redirectTo`/`callbackURL`.
+    // Asserted through the library's own matcher rather than over HTTP because Better
+    // Auth skips its origin check entirely when `NODE_ENV=test`
+    // (`advanced.disableOriginCheck` defaults to `isTest()`), so an HTTP assertion here
+    // would pass for the wrong reason.
+    for (const origin of APP_DEEP_LINK_ORIGINS) {
+      expect(decision(origin)).toBe(true);
+    }
+    expect(decision("https://attacker.example/reset")).toBe(false);
+    expect(decision("myself://some-other-route")).toBe(false);
+    // The CORS allowlist is what the origin guard reads; a deep link is not a browser
+    // origin and must not have widened it.
+    expect(
+      APP_DEEP_LINK_ORIGINS.some((origin) => origin.startsWith("http")),
+    ).toBe(false);
+  });
+
+  it("derives the deep links from the scheme the app is built with (S13)", async () => {
+    const appJson = JSON.parse(
+      await Bun.file(
+        new URL("../../../mobile/app.json", import.meta.url),
+      ).text(),
+    ) as { expo: { scheme: string } };
+
+    expect(APP_DEEP_LINK_ORIGINS.length).toBeGreaterThan(0);
+    for (const origin of APP_DEEP_LINK_ORIGINS) {
+      expect(origin.startsWith(`${appJson.expo.scheme}://`)).toBe(true);
+    }
   });
 
   it("reads client IPs from the Cloudflare Workers header (S14)", () => {

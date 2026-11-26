@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createEmailVerificationToken } from "better-auth/api";
 import { eq } from "drizzle-orm";
 import {
   ADMIN_ROLE,
@@ -18,7 +19,11 @@ import {
 } from "@myself/shared";
 import { createApp } from "../../app";
 import { createAuth } from "../../auth";
-import { AppConfig } from "../../config";
+import {
+  AppConfig,
+  RESET_PASSWORD_DEEP_LINK,
+  VERIFY_EMAIL_DEEP_LINK,
+} from "../../config";
 import {
   createDb,
   type DbClient,
@@ -44,6 +49,15 @@ function jsonRequest(path: string, body: unknown, token?: string): Request {
     headers,
     body: JSON.stringify(body),
   });
+}
+
+/** The link the development sender put on its own line of the message (S16). */
+function linkFrom(message: string): string {
+  const line = message.split("\n").find((entry) => entry.startsWith("http"));
+  if (!line) {
+    throw new Error(`No link in the message: ${message}`);
+  }
+  return line.trim();
 }
 
 function tokenFrom(message: string, pattern: RegExp): string {
@@ -254,6 +268,150 @@ describe("email flows over HTTP (S2, S16)", () => {
 
     expect((await signIn(email, OLD_PASSWORD)).status).toBe(401);
     expect((await signIn(email, NEW_PASSWORD)).status).toBe(200);
+  });
+
+  /**
+   * The reset link of T6b (S2, S13).
+   *
+   * The message carries the server's endpoint, which is what a mail client can open, and
+   * that endpoint is what hands the token to the app: the app's own deep link receives
+   * `?token=`, which is the only way a native client can complete the reset.
+   */
+  it("aims the reset link at the app deep link and refuses any other target (S2, S13)", async () => {
+    const email = "deep.link.reset@example.com";
+    expect(
+      (
+        await post("/api/auth/sign-up/email", {
+          email,
+          password: OLD_PASSWORD,
+          name: "Deep Link Reset",
+        })
+      ).status,
+    ).toBe(200);
+
+    // The allowlist is load-bearing: Better Auth validates `redirectTo` against
+    // `trustedOrigins`, and an unconfigured target is refused there (the both-directions
+    // decision is asserted in `apps/api/src/__tests__/auth.test.ts`, because the library
+    // skips its origin check when `NODE_ENV=test`). What this suite can observe is that the
+    // app's own deep link is an allowed target end to end.
+    const accepted = await post("/api/auth/request-password-reset", {
+      email,
+      redirectTo: RESET_PASSWORD_DEEP_LINK,
+    });
+    expect(accepted.status).toBe(200);
+
+    const message = await waitForEmail(
+      (text) =>
+        text.includes(`To: ${email}`) &&
+        text.includes("Subject: Reset your password"),
+    );
+    const link = linkFrom(message);
+    expect(link).toContain("/api/auth/reset-password/");
+    expect(new URL(link).searchParams.get("callbackURL")).toBe(
+      RESET_PASSWORD_DEEP_LINK,
+    );
+
+    const callback = await app.request(link);
+    expect(callback.status).toBe(302);
+    const location = callback.headers.get("location") ?? "";
+    expect(location.startsWith(`${RESET_PASSWORD_DEEP_LINK}?token=`)).toBe(
+      true,
+    );
+    const token = new URL(location).searchParams.get("token") ?? "";
+
+    expect(
+      (
+        await post("/api/auth/reset-password", {
+          newPassword: NEW_PASSWORD,
+          token,
+        })
+      ).status,
+    ).toBe(200);
+    expect((await signIn(email, OLD_PASSWORD)).status).toBe(401);
+    expect((await signIn(email, NEW_PASSWORD)).status).toBe(200);
+  });
+
+  /**
+   * The verification landing of T6b (S2, S13, S17).
+   *
+   * Verification is consumed by the endpoint the email points at, so the app's landing
+   * surface has exactly one thing to read: the `error` parameter, or its absence. An
+   * expired token must arrive as `TOKEN_EXPIRED`, never as silence the app would show as
+   * success.
+   */
+  it("lands verification on the app deep link and reports an expired token (S2, S13, S17)", async () => {
+    const email = "deep.link.verify@example.com";
+    const signUp = await post("/api/auth/sign-up/email", {
+      email,
+      password: OLD_PASSWORD,
+      name: "Deep Link Verify",
+      callbackURL: VERIFY_EMAIL_DEEP_LINK,
+    });
+    expect(signUp.status).toBe(200);
+    const created = (await signUp.json()) as { user: { id: string } };
+
+    const message = await waitForEmail(
+      (text) =>
+        text.includes(`To: ${email}`) && text.includes("/verify-email?token="),
+    );
+    const link = linkFrom(message);
+    expect(new URL(link).searchParams.get("callbackURL")).toBe(
+      VERIFY_EMAIL_DEEP_LINK,
+    );
+
+    const verified = await app.request(link);
+    expect(verified.status).toBe(302);
+    // No parameters on the success redirect: the token was consumed by the request above,
+    // so the app reports success by the absence of an `error`.
+    expect(verified.headers.get("location")).toBe(VERIFY_EMAIL_DEEP_LINK);
+
+    const [row] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, created.user.id));
+    expect(row.emailVerified).toBe(true);
+
+    const expiredToken = await createEmailVerificationToken(
+      AUTH_SECRET,
+      email,
+      undefined,
+      -60,
+    );
+    const expired = await app.request(
+      `/api/auth/verify-email?token=${encodeURIComponent(expiredToken)}&callbackURL=${encodeURIComponent(VERIFY_EMAIL_DEEP_LINK)}`,
+    );
+    expect(expired.status).toBe(302);
+    expect(expired.headers.get("location")).toBe(
+      `${VERIFY_EMAIL_DEEP_LINK}?error=TOKEN_EXPIRED`,
+    );
+  });
+
+  /**
+   * The deployed-environment answer T6b's forgot-password form has to render honestly
+   * (T4, S16, R1-002): the reset is disabled, not sent and not accepted.
+   */
+  it("answers that reset is disabled where no sender exists, with nothing written (T4)", async () => {
+    const config = AppConfig.from({
+      ENVIRONMENT: "production",
+      TURSO_DATABASE_URL: `file:${join(outbox, "..", "production.db")}`,
+      AUTH_SECRET,
+      EMAIL_OUTBOX_DIR: join(outbox, "..", "production-outbox"),
+    });
+    const production = createApp(config);
+    const before = readdirSync(outbox).length;
+
+    const answer = await production.request(
+      jsonRequest("/api/auth/request-password-reset", {
+        email: "anyone@example.com",
+        redirectTo: RESET_PASSWORD_DEEP_LINK,
+      }),
+    );
+
+    expect(answer.status).toBe(400);
+    expect(((await answer.json()) as { code?: string }).code).toBe(
+      "RESET_PASSWORD_DISABLED",
+    );
+    expect(readdirSync(outbox).length).toBe(before);
   });
 
   it("rotates the seeded admin credential through the reset flow (L21, T4)", async () => {

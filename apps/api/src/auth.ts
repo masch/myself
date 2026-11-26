@@ -4,7 +4,7 @@ import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { admin, bearer } from "better-auth/plugins";
 import { authSchema, userNameAndEmailSchema } from "@myself/shared";
-import type { AppConfig } from "./config";
+import { APP_DEEP_LINK_ORIGINS, type AppConfig } from "./config";
 import { createDb } from "./infrastructure/persistence/client";
 import {
   createEmailSender,
@@ -207,7 +207,11 @@ export function createAuth(config: AppConfig) {
     baseURL: baseUrl,
     // The browser's own origin must be trusted for Better Auth to accept its requests;
     // without this the library answers `Invalid origin` before any credential is read.
-    trustedOrigins: config.cors.allowedOrigins,
+    // The app's deep links are trusted too, and only those two: the reset and verification
+    // links hand a token to `myself://…` (S2, S13), and a custom scheme is accepted only
+    // when it is named here. They are not browser origins and do not widen the CORS
+    // allowlist the origin guard uses.
+    trustedOrigins: [...config.cors.allowedOrigins, ...APP_DEEP_LINK_ORIGINS],
     rateLimit,
     database: drizzleAdapter(db, {
       provider: "sqlite",
