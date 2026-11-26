@@ -1,4 +1,9 @@
 import { createAuthClient } from "better-auth/client";
+import { verifyEmailUrl } from "./deep-links";
+import type {
+  AuthRequestOutcome,
+  PasswordResetApiPort,
+} from "./password-reset-service";
 import {
   mapSessionUser,
   SESSION_TOKEN_STORAGE_FAILURE,
@@ -142,6 +147,33 @@ function transportFailure(error: unknown): AuthResult {
 }
 
 /**
+ * The same transport distinction for the requests that answer with no identity (S13).
+ *
+ * A reset request and a completed reset change a credential, they do not sign anybody in,
+ * so they only need to say whether the server refused and why. A thrown request becomes the
+ * status-0 answer, which is the one shape the callers already read as "no answer arrived".
+ */
+async function request(
+  operation: () => Promise<{
+    error?: { code?: string; message?: string; status?: number } | null;
+  }>,
+): Promise<AuthRequestOutcome> {
+  try {
+    const { error } = await operation();
+    if (!error) return { error: null };
+    return {
+      error: {
+        code: error.code,
+        message: error.message,
+        status: error.status,
+      },
+    };
+  } catch (error) {
+    return { error: transportFailure(error).error };
+  }
+}
+
+/**
  * The sign-in succeeded and the device could not keep the credential (T6c `m7`).
  *
  * Deliberately without a `status`: the request answered, so nothing here is a transport
@@ -174,7 +206,7 @@ export function createAuthApi({
   fetchImpl,
   requestTimeoutMs = AUTH_REQUEST_TIMEOUT_MS,
   credentials = COOKIE_MODE,
-}: AuthApiOptions): AuthApiPort {
+}: AuthApiOptions): AuthApiPort & PasswordResetApiPort {
   const client = createAuthClient({
     baseURL: baseUrl,
     fetchOptions: {
@@ -230,9 +262,33 @@ export function createAuthApi({
             name: input.name,
             email: input.email,
             password: input.password,
+            // Where the verification email lands (S13). Without it the library's default is
+            // `/`, i.e. the API's own base path, and the app would never hear the outcome.
+            callbackURL: verifyEmailUrl(),
           },
           { onSuccess },
         ),
+      );
+    },
+
+    /** Asks for a reset link the client can open; it never reveals whether the account
+     * exists, and the server answers the same either way (S2). */
+    requestPasswordReset(input: { email: string; redirectTo: string }) {
+      return request(() =>
+        client.requestPasswordReset({
+          email: input.email,
+          redirectTo: input.redirectTo,
+        }),
+      );
+    },
+
+    /** Sets the new password. The token arrives through the reset deep link (S13). */
+    resetPassword(input: { token: string; newPassword: string }) {
+      return request(() =>
+        client.resetPassword({
+          newPassword: input.newPassword,
+          token: input.token,
+        }),
       );
     },
 
