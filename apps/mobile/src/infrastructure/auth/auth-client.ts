@@ -65,18 +65,51 @@ export const COOKIE_MODE: RequestCredentials = "include";
 /** A transport failure, distinguished from an API answer by having no status. */
 const TRANSPORT_FAILURE_STATUS = 0;
 
+function asError(cause: unknown): Error {
+  return cause instanceof Error ? cause : new Error(String(cause));
+}
+
+/** The per-request hook that persists the credential of one response. */
+type TokenWriteHook = (context: { response: Response }) => Promise<void>;
+
 /**
- * A failed write to the platform credential store (T6c `m7`).
+ * The credential write, and its failure, of exactly one call (T6c `m7`).
  *
  * Captured out of the response hook rather than thrown out of it: the fetch layer turns a
  * hook rejection into its own `{ status: 500 }` answer and drops the reason, so a keychain
- * failure would reach the caller as an unexplained server error. Recording it here keeps
- * the cause, and `call` below turns it into a result with its own code. Scope: this is per
- * client instance and cleared before each call; if a write fails while two calls are in
- * flight, both report the local failure, which is the same condition for the device.
+ * failure would reach the caller as an unexplained server error. The recorded reason is
+ * turned into a result with its own code by `call` below.
+ *
+ * One of these belongs to one call, and its hook is handed to that call's own request, so
+ * a failure is visible only to the call whose response carried the token. A client-wide
+ * slot cannot express that: the hook fires while the request it belongs to is still in
+ * flight, so with two calls open the slot would hold one call's failure while the other
+ * read it, and a call whose response carried no token at all would inherit a failure it
+ * never triggered. Per-request options are what make the correlation structural rather
+ * than best-effort: `better-auth` merges them into that one request and awaits the hook
+ * before the request resolves.
  */
-function asError(cause: unknown): Error {
-  return cause instanceof Error ? cause : new Error(String(cause));
+interface TokenWrite {
+  failure: Error | null;
+  onSuccess: TokenWriteHook;
+}
+
+function createTokenWrite(storage: SessionTokenStorage): TokenWrite {
+  const write: TokenWrite = {
+    failure: null,
+    async onSuccess(context) {
+      const token = context.response.headers.get(SESSION_TOKEN_RESPONSE_HEADER);
+      if (!token) return;
+
+      try {
+        await storage.set(token);
+      } catch (error) {
+        // Recorded, not thrown: see the `TokenWrite` docstring for why.
+        write.failure = asError(error);
+      }
+    },
+  };
+  return write;
 }
 
 function toResult(raw: {
@@ -142,9 +175,6 @@ export function createAuthApi({
   requestTimeoutMs = AUTH_REQUEST_TIMEOUT_MS,
   credentials = COOKIE_MODE,
 }: AuthApiOptions): AuthApiPort {
-  /** The last failed write to the credential store, cleared at the start of every call. */
-  let storageFailure: Error | null = null;
-
   const client = createAuthClient({
     baseURL: baseUrl,
     fetchOptions: {
@@ -158,62 +188,58 @@ export function createAuthApi({
         type: "Bearer",
         token: async () => (await storage.get()) ?? undefined,
       },
-      onSuccess: async (context) => {
-        const token = context.response.headers.get(
-          SESSION_TOKEN_RESPONSE_HEADER,
-        );
-        if (!token) return;
-
-        try {
-          await storage.set(token);
-        } catch (error) {
-          // Recorded, not thrown: see `asError` above for why the throw would lose the
-          // reason, and `call` below for where it becomes a result.
-          storageFailure = asError(error);
-        }
-      },
     },
   });
 
   async function call(
-    operation: () => Promise<Parameters<typeof toResult>[0]>,
+    operation: (
+      onSuccess: TokenWriteHook,
+    ) => Promise<Parameters<typeof toResult>[0]>,
   ): Promise<AuthResult> {
-    storageFailure = null;
+    const write = createTokenWrite(storage);
 
     try {
-      const result = toResult(await operation());
+      const result = toResult(await operation(write.onSuccess));
       // A sign-in that answered but could not be remembered is a failure the user has to
       // see, even though the server part worked (T6c `m7`).
-      return storageFailure ? localStorageFailure(storageFailure) : result;
+      return write.failure ? localStorageFailure(write.failure) : result;
     } catch (error) {
-      return storageFailure
-        ? localStorageFailure(storageFailure)
+      return write.failure
+        ? localStorageFailure(write.failure)
         : transportFailure(error);
     }
   }
 
   return {
     signInEmail(input: SignInInput) {
-      return call(() =>
-        client.signIn.email({
-          email: input.email,
-          password: input.password,
-        }),
+      return call((onSuccess) =>
+        client.signIn.email(
+          {
+            email: input.email,
+            password: input.password,
+          },
+          { onSuccess },
+        ),
       );
     },
 
     signUpEmail(input: SignUpInput) {
-      return call(() =>
-        client.signUp.email({
-          name: input.name,
-          email: input.email,
-          password: input.password,
-        }),
+      return call((onSuccess) =>
+        client.signUp.email(
+          {
+            name: input.name,
+            email: input.email,
+            password: input.password,
+          },
+          { onSuccess },
+        ),
       );
     },
 
     getSession() {
-      return call(() => client.getSession());
+      return call((onSuccess) =>
+        client.getSession({ fetchOptions: { onSuccess } }),
+      );
     },
 
     async signOut() {

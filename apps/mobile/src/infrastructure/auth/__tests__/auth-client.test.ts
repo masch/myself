@@ -14,6 +14,7 @@ import {
 import {
   createAuthApi,
   AUTH_REQUEST_TIMEOUT_MS,
+  SESSION_TOKEN_RESPONSE_HEADER,
   type FetchLike,
 } from "../auth-client";
 import {
@@ -143,6 +144,38 @@ describe("auth client over the real API (S8 bearer transport)", () => {
     expect(session.user?.role).toBe("user");
   });
 
+  it("persists a token that arrives on a session lookup too", async () => {
+    // `getSession` is routed through the same capture as a sign-in: a server that rotates
+    // the credential on a lookup must not have that token dropped.
+    const { storage, state } = createStorage();
+    const api = createAuthApi({
+      baseUrl: BASE_URL,
+      storage,
+      fetchImpl: () =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              session: { id: "session-id", userId: "user-id" },
+              user: { id: "user-id", name: "N", email: "n@example.com" },
+            }),
+            {
+              status: 200,
+              headers: {
+                "content-type": "application/json",
+                [SESSION_TOKEN_RESPONSE_HEADER]: "rotated-token",
+              },
+            },
+          ),
+        ),
+    });
+
+    const result = await api.getSession();
+
+    expect(result.error).toBeNull();
+    expect(result.user?.id).toBe("user-id");
+    expect(state.token).toBe("rotated-token");
+  });
+
   it("reports a wrong password without storing a token", async () => {
     const { storage, state } = createStorage();
     const api = createAuthApi({
@@ -268,6 +301,70 @@ describe("auth client over the real API (S8 bearer transport)", () => {
       expect(message).toContain("could not save your session");
       expect(message).not.toContain("connection");
       expect(message).not.toContain("reach the server");
+    });
+
+    it("reports a failed write only to the call whose response carried the token (R3-001)", async () => {
+      // The keychain refuses the first write and accepts the next one, so only the first
+      // call has anything to report.
+      let writes = 0;
+      const state = { token: null as string | null };
+      const storage: SessionTokenStorage = {
+        async get() {
+          return state.token;
+        },
+        async set(token: string) {
+          writes += 1;
+          if (writes === 1) {
+            throw new Error("OSStatus error -34018: no keychain access");
+          }
+          state.token = token;
+        },
+        async clear() {
+          state.token = null;
+        },
+      };
+
+      // Hold the sign-up answer until the sign-in has already reported its own failed
+      // write: the interleaving a single shared failure slot cannot survive.
+      let releaseSignUp: () => void = () => {};
+      const signUpReleased = new Promise<void>((resolve) => {
+        releaseSignUp = resolve;
+      });
+      const fetchImpl: FetchLike = async (input, init) => {
+        if (String(input).includes("/sign-up")) await signUpReleased;
+        return inProcessFetch(input, init);
+      };
+
+      const api = createAuthApi({ baseUrl: BASE_URL, storage, fetchImpl });
+      const signUpEmail = `in-flight-${generateEntityId()}@example.com`;
+
+      const signIn = api.signInEmail({
+        email: DEMO_USER_EMAIL,
+        password: DEMO_USER_PASSWORD,
+      });
+      // Started while the sign-in is in flight, and answered only after it: this call's
+      // response carries its own token, and its own write succeeds.
+      const signUp = api.signUpEmail({
+        name: "In Flight Person",
+        email: signUpEmail,
+        password: "a-long-password",
+      });
+
+      const signInResult = await signIn;
+      // The call that caused the failure still reports it.
+      expect(signInResult.user).toBeNull();
+      expect(signInResult.error?.code).toBe(SESSION_TOKEN_STORAGE_FAILURE);
+      expect(writes).toBe(1);
+
+      releaseSignUp();
+      const signUpResult = await signUp;
+
+      // The server answered this call and its write worked; the earlier call's failure is
+      // not this call's to report.
+      expect(signUpResult.error).toBeNull();
+      expect(signUpResult.user?.email).toBe(signUpEmail);
+      expect(writes).toBe(2);
+      expect(state.token).toBeTruthy();
     });
 
     it("surfaces the local failure through the session service the screens call", async () => {
