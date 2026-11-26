@@ -30,6 +30,14 @@ export interface SignUpFormValues extends SignInFormValues {
   name: string;
 }
 
+export interface ForgotPasswordFormValues {
+  email: string;
+}
+
+export interface NewPasswordFormValues {
+  password: string;
+}
+
 /** Passwords are never trimmed: the leading/trailing spaces are part of the secret. */
 const signUpPasswordSchema = z
   .string()
@@ -53,6 +61,18 @@ const signUpSchema = userNameAndEmailSchema.extend({
 const signInSchema = userNameAndEmailSchema
   .pick({ email: true })
   .extend({ password: signInPasswordSchema });
+
+/** The forgot-password form asks for the address only; the rule is the shared one. */
+const forgotPasswordSchema = userNameAndEmailSchema.pick({ email: true });
+
+/**
+ * The new password of a reset (S13).
+ *
+ * The same rule as sign-up, and not a looser one: a reset is the only way back into an
+ * account, so it must not be able to set something sign-up would have refused. The server
+ * re-applies its own 8..128 limit, so this is a fail-fast copy, never the authority.
+ */
+const newPasswordSchema = z.object({ password: signUpPasswordSchema });
 
 function toErrors(
   issues: readonly { path: readonly PropertyKey[]; message: string }[],
@@ -95,4 +115,24 @@ export function validateSignInForm(
     ok: true,
     values: { email: parsed.data.email, password: parsed.data.password },
   };
+}
+
+export function validateForgotPasswordForm(
+  values: ForgotPasswordFormValues,
+): ValidationResult<ForgotPasswordFormValues> {
+  const parsed = forgotPasswordSchema.safeParse(values);
+  if (!parsed.success)
+    return { ok: false, errors: toErrors(parsed.error.issues) };
+
+  return { ok: true, values: { email: parsed.data.email } };
+}
+
+export function validateNewPasswordForm(
+  values: NewPasswordFormValues,
+): ValidationResult<NewPasswordFormValues> {
+  const parsed = newPasswordSchema.safeParse(values);
+  if (!parsed.success)
+    return { ok: false, errors: toErrors(parsed.error.issues) };
+
+  return { ok: true, values: { password: parsed.data.password } };
 }

@@ -219,6 +219,10 @@ function AppShell({ mode }: { mode: AppShellMode }) {
           <Stack.Protected guard={showAuthScreens}>
             <Stack.Screen name="sign-in" options={{ headerShown: false }} />
             <Stack.Screen name="sign-up" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="forgot-password"
+              options={{ headerTitle: "Reset password" }}
+            />
           </Stack.Protected>
           <Stack.Protected guard={showAppScreens}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -261,6 +265,26 @@ function AppShell({ mode }: { mode: AppShellMode }) {
               }}
             />
           </Stack.Protected>
+          {/*
+            The two deep-link landings belong to neither branch (S2, S13): a user
+            following a reset or verification link is usually one who cannot sign in, and a
+            signed-in client can receive one too, so neither guard may own them. Being
+            registered outside the guards also opens no app route — each screen only
+            reports an outcome and offers the way back.
+
+            Their position in this list is load-bearing, not cosmetic. expo-router builds
+            the navigator's route names from the declared children in order, and when a
+            guarded branch disappears (a sign-in removing the auth branch) React Navigation
+            focuses `routeNames[0]`. Declared before the app branch, this pair became first
+            and every sign-in landed on the reset screen; declared last, `(tabs)` keeps that
+            slot and the pair stays reachable in both states. Pinned by
+            `e2e/reading-flow.spec.ts`, which signs in and then uses the app.
+          */}
+          <Stack.Screen
+            name="reset-password"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="verify-email" options={{ headerShown: false }} />
         </Stack>
       </ToastProvider>
     </ThemeProvider>

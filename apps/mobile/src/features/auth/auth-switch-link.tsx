@@ -10,7 +10,7 @@ import { colors, spacing } from "@/theme";
  * announced as a link so it keeps that role for assistive technology and the browser.
  */
 export interface AuthSwitchLinkProps {
-  href: "/sign-in" | "/sign-up";
+  href: "/sign-in" | "/sign-up" | "/forgot-password";
   prompt: string;
   label: string;
 }

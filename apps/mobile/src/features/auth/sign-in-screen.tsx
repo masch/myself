@@ -108,6 +108,17 @@ export function SignInScreen() {
         onPress={handleSubmit}
       />
 
+      {/*
+        The reset request is one press from the only screen a signed-out user can reach
+        (S2, S13). Its form never says whether the address exists, and a server with no
+        email sender says so instead of pretending it sent a link.
+      */}
+      <AuthSwitchLink
+        href="/forgot-password"
+        prompt="Forgot your password?"
+        label="Reset it"
+      />
+
       <AuthSwitchLink
         href="/sign-up"
         prompt="No account yet?"
