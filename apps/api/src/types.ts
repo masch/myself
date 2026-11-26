@@ -36,6 +36,18 @@ export type ApiBindings = {
    * creates no admin at all.
    */
   ADMIN_USER_PASSWORD?: string;
+  /**
+   * Envelope sender of every verification and reset message (S16). A real vendor only
+   * sends from a verified domain, so this is deployment configuration; it defaults to a
+   * placeholder the development sender merely records.
+   */
+  EMAIL_FROM?: string;
+  /**
+   * Directory the development email sender writes messages to (S16), so a developer can
+   * open the link without a mail client. Absent means the sender's own default (the
+   * system temp directory); a deployed environment has no sender at all (R1-002).
+   */
+  EMAIL_OUTBOX_DIR?: string;
 };
 
 export type ApiVariables = {

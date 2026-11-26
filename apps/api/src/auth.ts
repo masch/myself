@@ -6,6 +6,11 @@ import { admin, bearer } from "better-auth/plugins";
 import { authSchema, userNameAndEmailSchema } from "@myself/shared";
 import type { AppConfig } from "./config";
 import { createDb } from "./infrastructure/persistence/client";
+import {
+  createEmailSender,
+  resetPasswordMessage,
+  verificationEmailMessage,
+} from "./services/email";
 
 /**
  * The slice of the Workers `ExecutionContext` this module needs.
@@ -162,6 +167,19 @@ export const ADMIN_DISABLED_PATHS = [
  *   the library only enables its limiter when `NODE_ENV` says production, which
  *   this app never sets, so leaving it unset kept sign-in throttling off in every
  *   environment, staging included.
+ * - `emailVerification.sendOnSignUp` and `emailAndPassword.sendResetPassword` are the
+ *   two messages of S2, both sent through the single `EmailSender` of S16. The library
+ *   hands both to `advanced.backgroundTasks` (`runInBackgroundOrAwait`), so the auth
+ *   response never waits for the send: sign-up and reset answer in the same time
+ *   whether or not the address exists, which is the timing-attack mitigation Better
+ *   Auth documents. `sendOnSignUp` is set explicitly because the library otherwise
+ *   follows `requireEmailVerification`, which stays off (S23).
+ * - `revokeSessionsOnPasswordReset` is on for every environment: completing a reset
+ *   revokes all of that user's sessions, and it is a property of the reset flow rather
+ *   than of the sender, so it does not depend on a vendor being configured.
+ * - The sender itself is chosen in `services/email` (S16). A deployed environment gets
+ *   no sender and one boot warning, because the only implementation that exists
+ *   refuses to run there (R1-002).
  * - `transaction` is enabled on the Drizzle adapter so Better Auth's
  *   `runWithTransaction` wraps a sign-up's `user` and `account` writes in one
  *   libSQL transaction (L22).
@@ -172,6 +190,9 @@ export function createAuth(config: AppConfig) {
   const db = createDb(config.database);
   const { secret, baseUrl, google, rateLimit } = config.auth;
   const encryptOAuthTokens = Boolean(secret);
+  // The only implementation today is the development one, so a deployed environment
+  // gets `undefined` here and one warning, never a sender that would log a token.
+  const emailSender = createEmailSender(config);
 
   // One warning per boot (createAuth runs once, when the app is built), not per
   // request: the operator needs to see it, but it must not flood the log.
@@ -198,7 +219,44 @@ export function createAuth(config: AppConfig) {
     }),
     emailAndPassword: {
       enabled: true,
+      // S2: completing a reset revokes every session of that user. Independent of the
+      // sender, so it stays on in a deployment that has no email vendor yet.
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword: emailSender
+        ? async (data: {
+            user: { email: string; name?: string | null };
+            url: string;
+          }) => {
+            await emailSender.send(
+              resetPasswordMessage({
+                from: config.email.from,
+                user: data.user,
+                url: data.url,
+              }),
+            );
+          }
+        : undefined,
     },
+    // S23 keeps `requireEmailVerification` off, so the message is requested through
+    // `sendOnSignUp` instead: verification is offered, never enforced, while the sender
+    // is the development implementation.
+    emailVerification: emailSender
+      ? {
+          sendOnSignUp: true,
+          sendVerificationEmail: async (data: {
+            user: { email: string; name?: string | null };
+            url: string;
+          }) => {
+            await emailSender.send(
+              verificationEmailMessage({
+                from: config.email.from,
+                user: data.user,
+                url: data.url,
+              }),
+            );
+          },
+        }
+      : undefined,
     socialProviders: google ? { google } : undefined,
     account: {
       encryptOAuthTokens,

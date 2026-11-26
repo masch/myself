@@ -193,6 +193,47 @@ export const SECRET_REQUIRED_ENVIRONMENTS: readonly Environment[] = [
   Environments.PRODUCTION,
 ];
 
+/**
+ * Environments that run as a deployed Worker (S16).
+ *
+ * The development email sender refuses to be constructed in any of them (R1-002): it
+ * writes verification and reset links to a file and to the log, and both links carry a
+ * live single-use token. Staging is included because it is a deployed Worker with a
+ * publicly reachable URL and no local filesystem, so its "written message" would be
+ * lost while the logged token would be exposed — the same leak, with a worse outcome.
+ */
+export const DEPLOYED_ENVIRONMENTS: readonly Environment[] = [
+  Environments.STAGING,
+  Environments.PRODUCTION,
+];
+
+/**
+ * The email sender's configuration (S16).
+ *
+ * `from` is configuration and not a template literal because every real vendor sends
+ * only from an address whose domain is verified on the account, so the value belongs
+ * to the deployment. `outboxDir` is a development detail: where the development sender
+ * writes the message a developer opens instead of using a mail client.
+ */
+export interface EmailConfig {
+  from: string;
+  outboxDir?: string;
+}
+
+/** Placeholder sender the development implementation records; no vendor accepts it. */
+export const DEFAULT_EMAIL_FROM = "no-reply@myself.local";
+
+export function resolveEmailConfig(
+  bindings: Partial<ApiBindings> = {},
+): EmailConfig {
+  return {
+    from: bindings.EMAIL_FROM?.trim() || DEFAULT_EMAIL_FROM,
+    // Absent means "the sender picks its own default" (the system temp directory),
+    // which is the right place for a file that must never be committed.
+    outboxDir: bindings.EMAIL_OUTBOX_DIR?.trim() || undefined,
+  };
+}
+
 export function resolveAuthConfig(
   environment: Environment,
   bindings: Partial<ApiBindings> = {},
@@ -236,6 +277,8 @@ export function getProcessEnv(): Partial<ApiBindings> {
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     CORS_ALLOWED_ORIGINS: process.env.CORS_ALLOWED_ORIGINS,
     ADMIN_USER_PASSWORD: process.env.ADMIN_USER_PASSWORD,
+    EMAIL_FROM: process.env.EMAIL_FROM,
+    EMAIL_OUTBOX_DIR: process.env.EMAIL_OUTBOX_DIR,
   };
 }
 
@@ -275,6 +318,8 @@ export class AppConfig {
   readonly cors: CorsConfig;
   /** Admin seed credential (S20, R1-001); `undefined` means "seed no admin". */
   readonly adminUserPassword?: string;
+  /** Email sender configuration (S16). */
+  readonly email: EmailConfig;
 
   constructor(bindings: Partial<ApiBindings> = {}) {
     this.environment = resolveEnvironment(bindings.ENVIRONMENT);
@@ -289,6 +334,7 @@ export class AppConfig {
       bindings.TURSO_AUTH_TOKEN,
     );
     this.adminUserPassword = resolveAdminUserPassword(bindings);
+    this.email = resolveEmailConfig(bindings);
   }
 
   static from(env?: Partial<ApiBindings>): AppConfig {

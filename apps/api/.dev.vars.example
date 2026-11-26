@@ -51,3 +51,24 @@ CORS_ALLOWED_ORIGINS="http://localhost:8081,http://localhost:8082"
 # a strong, unique value per environment and set it with
 # `wrangler secret put ADMIN_USER_PASSWORD` where the Worker needs it.
 ADMIN_USER_PASSWORD="replace-with-a-strong-admin-password"
+
+# Email sender (S16). No vendor is chosen yet, so the only implementation is the
+# development one: it prints the verification and password-reset link and writes the
+# whole message to a file, which is what lets a developer finish a reset without a mail
+# client. It needs no API key and no account.
+#
+# It refuses to be constructed in a deployed environment (R1-002): both links carry a
+# live single-use token, and a Worker log or a local file is not a delivery channel. In
+# staging and production the API therefore boots with no sender and one warning, its
+# verification and password-reset email are disabled, and completing a reset is still
+# wired to revoke every session of the user. Wire a real vendor in
+# apps/api/src/services/email/index.ts to turn both flows back on there.
+#
+# Envelope sender a real vendor would require (a verified domain). The development
+# sender only records it; it defaults to no-reply@myself.local.
+EMAIL_FROM="no-reply@myself.local"
+
+# Directory the development sender writes messages to. Absent means the system temp
+# directory (myself-emails/), which is deliberate: a message holds a reset token and must
+# never land in the repository. Any directory outside the worktree works.
+# EMAIL_OUTBOX_DIR="/tmp/myself-emails"
