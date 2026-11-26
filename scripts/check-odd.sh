@@ -22,6 +22,11 @@ FAILED=0
 # indented by up to three spaces, and it only closes on the same character, at a
 # length at least equal to the opener, with nothing but whitespace after it. Any
 # other fence-looking line stays inside the open fence.
+#
+# A backtick fence's info string may not contain a backtick: a line that starts
+# with three backticks and carries another backtick in its remainder is ordinary
+# text (typically a header line that begins with an inline code span), so it must
+# not open a fence. Tilde fences have no such restriction.
 FENCE_RE='^ {0,3}(`{3,}|~{3,})(.*)$'
 FENCE_TAIL_RE='^[[:space:]]*$'
 
@@ -52,15 +57,22 @@ declares_open() {
 			cand="${seq:0:1}"
 			len="${#seq}"
 			if [ -z "${fence_char}" ]; then
-				fence_char="${cand}"
-				fence_len="${len}"
-			elif [ "${cand}" = "${fence_char}" ] &&
-				[ "${len}" -ge "${fence_len}" ] &&
-				[[ "${rest}" =~ ${FENCE_TAIL_RE} ]]; then
-				fence_char=''
-				fence_len=0
+				# A backtick in the remainder disqualifies a backtick fence, so the line is
+				# validated below as ordinary header text instead of opening a block.
+				if [ "${cand}" != '`' ] || [[ "${rest}" != *'`'* ]]; then
+					fence_char="${cand}"
+					fence_len="${len}"
+					continue
+				fi
+			else
+				if [ "${cand}" = "${fence_char}" ] &&
+					[ "${len}" -ge "${fence_len}" ] &&
+					[[ "${rest}" =~ ${FENCE_TAIL_RE} ]]; then
+					fence_char=''
+					fence_len=0
+				fi
+				continue
 			fi
-			continue
 		fi
 
 		if [ -n "${fence_char}" ]; then
