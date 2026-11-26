@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { Stack, router, useFocusEffect } from "expo-router";
 import { View, StyleSheet } from "react-native";
 import { useReadings } from "@/hooks/use-readings";
 import { type MeditationReadingWithAuthor } from "@/infrastructure/persistence/database";
@@ -13,6 +12,11 @@ import {
   ThemedText,
 } from "@/components";
 import { ReadingCard } from "@/features/readings/components/reading-card";
+import {
+  Stack,
+  router,
+  useFocusEffect,
+} from "@/features/readings/readings-navigation";
 import { canCurateContent } from "@/features/readings/curation-access";
 import { useSession } from "@/context/session-context";
 import { confirmDelete } from "@/features/readings/confirm-delete";
@@ -148,12 +152,14 @@ export default function ReadingsScreen() {
           </View>
         </View>
 
-        <AppButton
-          title="Add New Reading"
-          icon="sf:plus.circle.fill"
-          variant="purple"
-          onPress={() => router.push("/reading-modal")}
-        />
+        {canCurate ? (
+          <AppButton
+            title="Add New Reading"
+            icon="sf:plus.circle.fill"
+            variant="purple"
+            onPress={() => router.push("/reading-modal")}
+          />
+        ) : null}
       </Card>
 
       {/* Unread Readings Section */}
@@ -213,11 +219,13 @@ export default function ReadingsScreen() {
           description="Add inspiring passages and philosophical quotes to read right before meditating."
           style={{ marginTop: spacing.lg - 4 }}
           action={
-            <AppButton
-              title="Create First Reading"
-              variant="purple"
-              onPress={() => router.push("/reading-modal")}
-            />
+            canCurate ? (
+              <AppButton
+                title="Create First Reading"
+                variant="purple"
+                onPress={() => router.push("/reading-modal")}
+              />
+            ) : undefined
           }
         />
       )}
