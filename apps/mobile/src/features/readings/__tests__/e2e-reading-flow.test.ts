@@ -139,7 +139,8 @@ describe("E2E Vertical Integration: Mobile Front ➔ SQLite Outbox ➔ Hono API 
       CREATE TABLE IF NOT EXISTS reading_logs (
         id TEXT PRIMARY KEY NOT NULL,
         reading_id TEXT NOT NULL,
-        read_at TEXT DEFAULT (datetime('now'))
+        read_at TEXT DEFAULT (datetime('now')),
+        user_id TEXT
       );
 
       CREATE TABLE IF NOT EXISTS sync_outbox (
@@ -156,7 +157,10 @@ describe("E2E Vertical Integration: Mobile Front ➔ SQLite Outbox ➔ Hono API 
     `);
 
     frontExpoDb = createExpoSqliteAdapter(frontRawDb);
-    frontRepository = new SqliteReadingRepository(frontExpoDb);
+    // This suite writes curated content, not read history, so no session is involved.
+    frontRepository = new SqliteReadingRepository(frontExpoDb, {
+      currentUserId: () => null,
+    });
   });
 
   afterEach(() => {

@@ -6,7 +6,10 @@ import {
   type SupportedLocale,
   type ReadingTranslationsMap,
 } from "@myself/shared";
-import type { IReadingRepository } from "../domain/reading.repository";
+import type {
+  CurrentUserPort,
+  IReadingRepository,
+} from "../domain/reading.repository";
 import { generateUUID } from "@/utils/uuid";
 
 interface RawReadingRecord {
@@ -29,7 +32,10 @@ interface RawLogRecord {
 }
 
 export class SqliteReadingRepository implements IReadingRepository {
-  constructor(private readonly db: SQLiteDatabase) {}
+  constructor(
+    private readonly db: SQLiteDatabase,
+    private readonly currentUser: CurrentUserPort,
+  ) {}
 
   async getAll(locale: SupportedLocale = "es"): Promise<Reading[]> {
     const rawReadings = await this.db.getAllAsync<RawReadingRecord>(
@@ -266,13 +272,20 @@ export class SqliteReadingRepository implements IReadingRepository {
     const logId = generateUUID();
     const outboxId = generateUUID();
     const now = DateTime.now().toISOString();
+    // Resolved per insert, never captured at construction: the same repository writes
+    // before and after a sign-in, and read history is a local counter that must not be
+    // lost because nobody is signed in (S21). The outbox payload is unchanged — the
+    // reading_log push branch is still a no-op (S10).
+    const userId = this.currentUser.currentUserId();
     const payload = JSON.stringify({ id: logId, readingId, readAt: now });
 
     await this.db.withTransactionAsync(async () => {
-      await this.db.runAsync(
-        "INSERT INTO reading_logs (id, reading_id, read_at) VALUES (?, ?, ?)",
-        [logId, readingId, now],
-      );
+      await this.insertLogWithAttribution({
+        logId,
+        readingId,
+        readAt: now,
+        userId,
+      });
 
       await this.db.runAsync(
         `INSERT INTO sync_outbox (id, entity, entity_id, operation, payload, status, created_at)
@@ -282,6 +295,87 @@ export class SqliteReadingRepository implements IReadingRepository {
     });
 
     return logId;
+  }
+
+  /**
+   * Writes one log row with its owner when the owner can be referenced, and unattributed
+   * otherwise (S21).
+   *
+   * A read is never lost: `reading_logs.user_id` is a foreign key with
+   * `PRAGMA foreign_keys = ON`, so a session whose local identity mirror refused to write a
+   * row (`invalid-id`, `invalid-profile`, `email-owned-by-another-profile`) would otherwise
+   * fail the insert and take the read with it. Losing a read is worse than losing its
+   * attribution, so the row is written with `user_id` NULL and the loss is reported through
+   * the repository's warning seam rather than swallowed.
+   *
+   * The check is one primary-key probe inside the caller's transaction, and only when a
+   * session exists: the signed-out case writes NULL without asking. The healthy path adds
+   * that single lookup — no exception, no second statement, no retry. The probe cannot close
+   * the gap between reading the answer and writing the row, so an attributed insert that
+   * still fails falls back to the unattributed write it was probing for instead of
+   * propagating a constraint error; the retry is the `ABORT` rollback of one statement, which
+   * leaves the surrounding transaction usable, and it is only reached when the row is gone.
+   */
+  private async insertLogWithAttribution(log: {
+    logId: string;
+    readingId: EntityId;
+    readAt: string;
+    userId: string | null;
+  }): Promise<void> {
+    const { userId } = log;
+
+    if (userId === null) {
+      await this.insertLog(log, null);
+      return;
+    }
+
+    const owner = await this.db.getFirstAsync<{ id: string }>(
+      'SELECT id FROM "user" WHERE id = ?',
+      [userId],
+    );
+
+    if (!owner) {
+      await this.insertLog(log, null);
+      this.warnUnattributed(log, 'it has no row in the device "user" table');
+      return;
+    }
+
+    try {
+      await this.insertLog(log, userId);
+    } catch {
+      await this.insertLog(log, null);
+      this.warnUnattributed(
+        log,
+        'its row in the device "user" table disappeared before the insert could reference it',
+      );
+    }
+  }
+
+  /** One insert, in one place, so the attributed and unattributed writes cannot drift. */
+  private async insertLog(
+    log: { logId: string; readingId: EntityId; readAt: string },
+    userId: string | null,
+  ): Promise<void> {
+    await this.db.runAsync(
+      "INSERT INTO reading_logs (id, reading_id, read_at, user_id) VALUES (?, ?, ?, ?)",
+      [log.logId, log.readingId, log.readAt, userId],
+    );
+  }
+
+  /**
+   * Says out loud that a read was recorded without its owner.
+   *
+   * `console.warn` is what this codebase already uses for a degraded-but-continuing write
+   * (`HttpReadingApiAdapter` warns the same way), so this stays a warning and not an error:
+   * the read was stored, only its attribution was not.
+   */
+  private warnUnattributed(
+    log: { logId: string; readingId: EntityId; userId: string | null },
+    reason: string,
+  ): void {
+    console.warn(
+      `[SqliteReadingRepository] Read ${log.logId} of reading ${log.readingId} was recorded with user_id NULL: the signed-in user ${log.userId} cannot be referenced because ${reason}.`,
+    );
   }
 
   async deleteLastLog(readingId: EntityId): Promise<void> {
