@@ -2,8 +2,6 @@
 
 The auth feature (`odd/tasks/user-authentication-and-roles.md`) closed with four residuals. This document carries the three that are code, and nothing else: the email vendor stays issue #171 and is explicitly out of scope.
 
-- **Status**: open
-
 ## Specs
 
 **S1.** `podemos antes hacer funcionar los que faltan` — the remaining auth surfaces are made to work now; `el envío de email lo dejamos para más adelante`, so `S16`/`#171` is untouched: no vendor, no verification enforcement, and the deployed `RESET_PASSWORD_DISABLED` answer stays exactly as it is.
@@ -21,7 +19,7 @@ The auth feature (`odd/tasks/user-authentication-and-roles.md`) closed with four
 - [x] **T1** — **DONE — see L4.** API: the cookie posture as validated configuration (`Lax` default; `None` requires `Secure`; a startup refusal otherwise), wired into the auth instance, with the deployment note. `S2`. Route: one bounded `gentle-ai-worker`.
 - [x] **T2** — **DONE — see L5.** Mobile: a sign-out outcome that distinguishes "the server ended the session" from "it could not be reached", surfaced on the settings screen with a retry, and never reported as a clean sign-out. `S3`, `S5`. Route: one bounded `gentle-ai-worker`, plus one follow-up round and one re-run of it for the storage capability. Commit: pending.
 - [x] **T3** — **DONE — see L6.** Mobile: the Google button behind a per-platform client ID, exchanging the id token through the existing auth client, with the human-facing instructions for creating the OAuth clients. `S4`. Route: one bounded `gentle-ai-worker` after the Expo/doc check. Commit: pending.
-- [ ] **T4** — Close this document with its evidence and delivery record. `S5`. Route: inline.
+- [x] **T4** — **DONE — see L7.** Close this document with its evidence and delivery record. `S5`. Route: inline.
 
 ## Log
 
@@ -64,3 +62,13 @@ Checks: `make check-types` 3/3; `make check-lint` 3/3, 0 errors, the same 16 pre
 **Evidence.** RED in four places, each a real absence rather than a manufactured failure: the provider module missing, `service.signInWithGoogle is not a function` (5 cases), `signInWithGoogle is not a function` on the client (2), and the screen failing to load its provider module. GREEN **17 pass / 0 fail** on the two suites re-run here and **68 pass / 0 fail** across the five files the worker ran, with mobile going 986 → 1005. Two added PRESERVE cases pin that an email sign-in still posts `/api/auth/sign-in/email` and never takes the social path. The GIS script itself is not tested, which is stated rather than implied: that needs a real client ID and a browser.
 
 **What the human has to do, and it is now written where they will look.** The README's auth section carries the variable name, where the client ID comes from (OAuth client of type _Web application_, the web origin under authorized JavaScript origins, no redirect URI), that it must equal the API's `GOOGLE_CLIENT_ID` because that is the `aud` the server checks, that the secret never leaves the server, and that a rebuild is needed because the value is inlined. The mobile environment example file was the intended home and could not be created: the harness safety policy refuses every environment-file path, for reading and writing alike. The README carries it instead, and the variable's empty default means "not configured", which means "no button".
+
+**L7** (T4 — closure. The three code residuals of the auth feature are delivered; the email vendor stays issue #171 and is untouched by this document, exactly as `L1` scoped it.)
+
+**What this document delivered.** The cookie posture became validated configuration with `lax` as the default, so a cross-site deployment opts in deliberately and an unsound combination is refused at startup instead of reaching a browser that would silently drop it (`S2`, `L4`). A sign-out that never reached the server stopped being reported as a sign-out, the settings screen says so with one retry, and the decision to stay signed in is read from the storage contract's own answer about whether clearing ends the session — never from the platform (`S3`, `L5`). The Google button exists where it can work: the web target obtains an ID token from Google Identity Services, exchanges it through the auth client already in place, and native stays absent until its own client IDs and module exist (`S4`, `L6`). Nothing in `S16`/`#171` moved: no vendor, no verification enforcement, and a deployed reset still answers `RESET_PASSWORD_DISABLED`.
+
+**Evidence.** `make check-types` 3/3 packages; `make check-lint` 3/3 packages, 0 errors and the same 16 pre-existing mobile warnings; `make check-format` clean; `make check-tests` **1350 pass / 0 fail** (shared 108, api 237, mobile 1005 — api up from 226 with the cookie configuration and instance cases, mobile up from 964 with the sign-out, storage-capability and Google cases). `make check-e2e-web` was not re-run for this document and that is stated rather than implied: no browser spec exercises the cookie posture, the sign-out notice or the Google button, which are covered at the unit and screen level; the last full browser run is L40's 53/53.
+
+**Two honest limits recorded here so they are not rediscovered.** The web Google path is proven structurally — availability, refusal, exchange, screen wiring — but the GIS script itself needs a real client ID and a browser, so its first real proof is the human's first configured build. And the native Google half refuses by construction: it must read its own client ID variable and answer from it when the native module lands, which is `S27`'s Apple shape applied to Google.
+
+- **Completion & Delivery**: delivered in three commits on `feat/user-authentication` (`53c6b61` cookie configuration, `cd1c1a1` sign-out honesty, `24faa5c` the Google button), pushed. Approved native review receipts for this branch remain those recorded in the feature document; this document adds no high-risk surface beyond the cookie posture, which is configuration with a refusing default. Deferred and tracked: #171 (email vendor), the native Google clients and module, and the decision on shared-registrable-domain vs `SameSite=None` for the deployment.
