@@ -237,10 +237,16 @@ export const ACCOUNT_LINKING_POLICY = {
  *   libSQL transaction (L22).
  * - Google is only registered when both credentials are configured, so a checkout
  *   without them still boots.
+ * - `advanced.defaultCookieAttributes` is the resolved cookie posture of S2, not
+ *   Better Auth's implicit one. The library builds the session cookie as
+ *   `{ secure, sameSite: "lax", path: "/", httpOnly: true, ...defaultCookieAttributes }`
+ *   (`better-auth/dist/cookies/index.mjs:34-40`), so passing the whole object states
+ *   `SameSite`, `Secure`, `HttpOnly` and `Path` explicitly instead of inheriting four
+ *   defaults; `config.auth.cookies` is the only place they are decided.
  */
 export function createAuth(config: AppConfig) {
   const db = createDb(config.database);
-  const { secret, baseUrl, google, rateLimit } = config.auth;
+  const { secret, baseUrl, google, rateLimit, cookies } = config.auth;
   const encryptOAuthTokens = Boolean(secret);
   // The only implementation today is the development one, so a deployed environment
   // gets `undefined` here and one warning, never a sender that would log a token.
@@ -335,6 +341,7 @@ export function createAuth(config: AppConfig) {
     plugins: [bearer(), admin()],
     disabledPaths: ADMIN_DISABLED_PATHS,
     advanced: {
+      defaultCookieAttributes: cookies,
       database: {
         generateId: () => crypto.randomUUID(),
       },

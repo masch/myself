@@ -20,6 +20,28 @@ AUTH_SECRET="replace-with-a-random-32-byte-secret"
 # Defaults to http://localhost:8787 when unset.
 AUTH_URL="http://localhost:8787"
 
+# SameSite policy of the session cookie (S2): lax (default), strict or none.
+#
+# `lax` is what every environment gets unless this is set, and it is the right value when
+# the web target and this API share a registrable domain — including the local setup,
+# where both are on localhost. `/v1/auth/*` is called cross-origin but same-site there,
+# so the cookie is sent and nothing has to be loosened.
+#
+# `none` is only needed when the web target and the API are not on the same registrable
+# domain (for example an EAS Hosting web build calling a Worker on *.workers.dev): the
+# cookie then has to travel cross-site, and `SameSite=None; Secure` is the only
+# combination a browser accepts. Those two go together here: `none` is refused at startup
+# in an environment whose cookie is not `Secure`, so it can only be selected in staging or
+# production, where the cookie is always Secure. Nothing silently half-works: a browser
+# drops `SameSite=None` without `Secure`, which would look like a session that logs itself
+# out.
+#
+# Opting in means the browser no longer withholds the session cookie on cross-site
+# requests, so CSRF rests on Better Auth's own origin check: every credentialed request
+# carries an `Origin` that must match `CORS_ALLOWED_ORIGINS` (trustedOrigins) above — the
+# reason that list must name the web origin exactly and never be left empty.
+# AUTH_COOKIE_SAME_SITE="lax"
+
 # Origins allowed to call this API from a browser (S15, S22, S26), comma-separated and
 # explicit. Never a wildcard: the web session is a cookie, and a credential-bearing
 # response is only readable when the origin is named. It is also what Better Auth trusts

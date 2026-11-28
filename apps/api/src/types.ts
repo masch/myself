@@ -22,6 +22,12 @@ export type ApiBindings = {
   PORT?: string;
   AUTH_SECRET?: string;
   AUTH_URL?: string;
+  /**
+   * The `SameSite` policy of the session cookie (S2): `lax` (default), `strict`, or
+   * `none`. `none` is only accepted in an environment whose cookie is `Secure`
+   * (staging, production) and is refused at startup anywhere else.
+   */
+  AUTH_COOKIE_SAME_SITE?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   /**

@@ -486,6 +486,42 @@ describe("account linking policy (S24, T11)", () => {
   });
 });
 
+describe("session cookie posture on the instance (S2)", () => {
+  it("resolves SameSite=Lax with HttpOnly into the session cookie it will send", async () => {
+    const auth = createAuth(testConfig({ AUTH_SECRET: "secret" }));
+
+    // `getCookies` builds the attributes the instance actually writes
+    // (`cookies/index.mjs:34-40`), and `advanced.defaultCookieAttributes` is spread
+    // into them — so this observes the resolved cookie, not the constant we passed.
+    const { attributes } = (await auth.$context).authCookies.sessionToken;
+    expect(attributes).toMatchObject({
+      sameSite: "lax",
+      secure: false,
+      httpOnly: true,
+      path: "/",
+    });
+  });
+
+  it("resolves SameSite=None; Secure into the session cookie when a deployment asks for it (S2)", async () => {
+    const auth = createAuth(
+      AppConfig.from({
+        ENVIRONMENT: "production",
+        TURSO_DATABASE_URL: ":memory:",
+        AUTH_SECRET: "cookie-unit-test-secret",
+        AUTH_URL: "https://api.example.com",
+        AUTH_COOKIE_SAME_SITE: "none",
+      }),
+    );
+
+    const { attributes } = (await auth.$context).authCookies.sessionToken;
+    expect(attributes).toMatchObject({
+      sameSite: "none",
+      secure: true,
+      httpOnly: true,
+    });
+  });
+});
+
 describe("auth rate limiting (S14, L22)", () => {
   const RATE_LIMIT_SECRET = "rate-limit-unit-test-secret";
 

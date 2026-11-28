@@ -82,6 +82,85 @@ export interface GoogleProviderConfig {
 }
 
 /**
+ * The `SameSite` values a session cookie may carry (S2).
+ *
+ * Lower case on purpose: it is the exact token Better Auth's own cookie builder
+ * writes (`better-auth/dist/cookies/index.mjs:35`).
+ */
+export const COOKIE_SAME_SITE_VALUES = ["lax", "strict", "none"] as const;
+
+export type CookieSameSite = (typeof COOKIE_SAME_SITE_VALUES)[number];
+
+/** Nothing weakens unless it is asked for (S2): the default is the same everywhere. */
+export const DEFAULT_COOKIE_SAME_SITE: CookieSameSite = "lax";
+
+/**
+ * The session cookie's attributes, resolved from the environment (S2, S22).
+ *
+ * `httpOnly` and `path` are part of the resolved shape rather than inherited: a cookie
+ * a script can read is the thing S22 forbids, so it is stated here and handed to the
+ * library as `advanced.defaultCookieAttributes`, where Better Auth spreads it over its
+ * own defaults (`better-auth/dist/cookies/index.mjs:34-40`).
+ */
+export interface CookieConfig {
+  sameSite: CookieSameSite;
+  secure: boolean;
+  httpOnly: true;
+  path: "/";
+}
+
+/**
+ * Resolves the cookie posture (S2).
+ *
+ * Two rules, and both are startup errors rather than something the browser will quietly
+ * undo:
+ *
+ * - `SameSite=None` requires `Secure`, because a browser drops `None` without `Secure`
+ *   (Chromium and Safari both do), which is a web session that silently stops working.
+ *   No local environment can choose `none`: only the deployed environments are served
+ *   over https, so only they are ever `Secure`.
+ * - A value outside `lax|strict|none` is refused. It is matched exactly, because a typo
+ *   that fell back to a default would be a posture nobody chose.
+ *
+ * Absent or blank means the default, which is what keeps `lax` in every environment a
+ * deployment has not explicitly widened.
+ */
+export function resolveCookieConfig(
+  environment: Environment,
+  bindings: Partial<ApiBindings> = {},
+): CookieConfig {
+  // Re-resolved here for the same reason as `resolveAuthConfig`: a caller that escapes
+  // the type system must not reach the `None`/`Secure` rule with an environment nobody
+  // chose.
+  const resolvedEnvironment = resolveEnvironment(environment);
+  const requested = bindings.AUTH_COOKIE_SAME_SITE?.trim();
+  const sameSite: string = requested || DEFAULT_COOKIE_SAME_SITE;
+
+  if (!(COOKIE_SAME_SITE_VALUES as readonly string[]).includes(sameSite)) {
+    throw new Error(
+      `Invalid AUTH_COOKIE_SAME_SITE configuration: "${sameSite}". Expected one of: ${COOKIE_SAME_SITE_VALUES.join(", ")}`,
+    );
+  }
+
+  // A deployed Worker is https-only, so its cookie is always `Secure`; a local one is
+  // plain http, so it is not.
+  const secure = DEPLOYED_ENVIRONMENTS.includes(resolvedEnvironment);
+
+  if (sameSite === "none" && !secure) {
+    throw new Error(
+      `Invalid AUTH_COOKIE_SAME_SITE configuration: "none" requires a Secure cookie. ENVIRONMENT="${resolvedEnvironment}" is not a deployed environment, so the session cookie is not Secure there, and a browser drops SameSite=None without Secure — the web session would silently stop working. Use "lax" or "strict" here, or set "none" in staging or production`,
+    );
+  }
+
+  return {
+    sameSite: sameSite as CookieSameSite,
+    secure,
+    httpOnly: true,
+    path: "/",
+  };
+}
+
+/**
  * Everything the Better Auth instance needs from the environment (S1).
  *
  * Google is optional as a whole: a checkout without Google credentials must still
@@ -92,6 +171,8 @@ export interface AuthConfig {
   baseUrl: string;
   google?: GoogleProviderConfig;
   rateLimit: AuthRateLimitConfig;
+  /** Session cookie posture (S2, S22), handed to the instance as-is. */
+  cookies: CookieConfig;
 }
 
 /**
@@ -285,6 +366,7 @@ export function resolveAuthConfig(
     baseUrl: bindings.AUTH_URL?.trim() || DEFAULT_AUTH_BASE_URL,
     google: clientId && clientSecret ? { clientId, clientSecret } : undefined,
     rateLimit: resolveRateLimitConfig(resolvedEnvironment),
+    cookies: resolveCookieConfig(resolvedEnvironment, bindings),
   };
 }
 
@@ -299,6 +381,7 @@ export function getProcessEnv(): Partial<ApiBindings> {
     PORT: process.env.PORT,
     AUTH_SECRET: process.env.AUTH_SECRET,
     AUTH_URL: process.env.AUTH_URL,
+    AUTH_COOKIE_SAME_SITE: process.env.AUTH_COOKIE_SAME_SITE,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     CORS_ALLOWED_ORIGINS: process.env.CORS_ALLOWED_ORIGINS,
