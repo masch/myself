@@ -6,6 +6,7 @@ import { createHookHarness } from "@/context/__tests__/hook-harness";
 import {
   AuthenticationError,
   type SessionService,
+  type SignUpInput,
 } from "@/infrastructure/auth/session-service";
 import { AuthField } from "../auth-field";
 
@@ -45,6 +46,14 @@ const unusedService: SessionService = {
   async restore() {
     return { status: "unauthenticated" };
   },
+};
+
+/** The identity a successful sign-up would produce. */
+const SESSION_USER = {
+  id: "11111111-1111-4111-8111-111111111111",
+  name: "Ada Lovelace",
+  email: "ada@example.com",
+  role: null,
 };
 
 /** A service whose sign-in always fails the way an invalid password does. */
@@ -175,6 +184,53 @@ describe("sign-up screen", () => {
     expect(buttonLabels(html)).toEqual(["Create account"]);
     expect(html).toContain("Sign in");
     expect(html).toContain('role="link"');
+  });
+
+  it("creates an account with exactly what the form collected (S17)", async () => {
+    // S17's mobile clause: sign-up creates an account. A static render never presses
+    // anything, so this drives the control a person presses and asserts what reached the
+    // service — the screen's whole job is to hand the collected fields over unaltered.
+    const signUps: SignUpInput[] = [];
+    const recordingService: SessionService = {
+      ...unusedService,
+      async signUp(input) {
+        signUps.push(input);
+        return SESSION_USER;
+      },
+    };
+
+    const harness = createHookHarness();
+    harness.render(
+      <SessionProvider service={recordingService}>
+        <SignUpScreen />
+      </SessionProvider>,
+    );
+    await harness.flush();
+
+    fillField(harness, "Full name", "Ada Lovelace");
+    fillField(harness, "Email address", "ada@example.com");
+    fillField(harness, "Password", "a-long-enough-password");
+    await harness.flush();
+
+    const submit = harness
+      .components()
+      .find(
+        (component) =>
+          component.type === AppButton &&
+          component.props.title === "Create account",
+      );
+    expect(submit).toBeDefined();
+
+    await (submit!.props.onPress as () => Promise<void>)();
+    await harness.flush();
+
+    expect(signUps).toEqual([
+      {
+        name: "Ada Lovelace",
+        email: "ada@example.com",
+        password: "a-long-enough-password",
+      },
+    ]);
   });
 });
 

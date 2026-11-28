@@ -140,6 +140,28 @@ describe("development email sender (S16, R1-002)", () => {
 });
 
 describe("email messages (S2)", () => {
+  it("escapes the user's name and the link out of the HTML body", () => {
+    // The name is whatever the person typed at sign-up, and this body is HTML a mail
+    // client renders: interpolated raw, it is an injection into the message. The link is
+    // ours, but its query separators still need escaping, or an `&` opens an entity.
+    const message = verificationEmailMessage({
+      from: "no-reply@myself.local",
+      user: {
+        email: "ada@example.com",
+        name: `<img src=x onerror="alert(1)"> O'Brien & Sons`,
+      },
+      url: "http://localhost:8787/verify-email?token=a&callbackURL=myself://verify-email",
+    });
+
+    expect(message.html).not.toContain("<img");
+    expect(message.html).toContain("&lt;img");
+    expect(message.html).toContain("O&#39;Brien &amp; Sons");
+    expect(message.html).toContain("token=a&amp;callbackURL=");
+
+    // The plain-text alternative is not HTML, so the name stays exactly as typed there.
+    expect(message.text).toContain("<img");
+  });
+
   it("gives both messages an HTML body that carries the link", () => {
     // Vendors deliver HTML, so the plain-text link alone is not enough; the text and the
     // subject are already observed end to end by the flows suite, through the file the

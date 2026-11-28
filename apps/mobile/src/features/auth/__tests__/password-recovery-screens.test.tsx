@@ -84,6 +84,8 @@ beforeAll(async () => {
 function fakeResetService(answers: {
   request?: PasswordResetRequestOutcome;
   complete?: PasswordResetOutcome;
+  /** Makes the named call reject, the way a transport defect would. */
+  throws?: "request" | "complete";
 }) {
   const calls: {
     request: string[];
@@ -93,10 +95,12 @@ function fakeResetService(answers: {
   const service: PasswordResetService = {
     async request(email) {
       calls.request.push(email);
+      if (answers.throws === "request") throw new Error("transport exploded");
       return answers.request ?? { status: "sent" };
     },
     async complete(token, newPassword) {
       calls.complete.push({ token, newPassword });
+      if (answers.throws === "complete") throw new Error("transport exploded");
       return answers.complete ?? { status: "reset" };
     },
   };
@@ -192,6 +196,22 @@ describe("forgot password (S2, S13)", () => {
     expect(calls.request).toEqual(["someone@example.com"]);
     const message = textAt(harness, "reset-request-sent") ?? "";
     expect(message).toContain("If an account exists");
+  });
+
+  it("reports a request that throws instead of swallowing it into a dead form", async () => {
+    // The service maps every answer it can see to an outcome, so a rejection is a defect
+    // rather than a case it models. Without a `catch` the press rejects with nothing
+    // rendered and the person is left on a form that did nothing.
+    const { service } = fakeResetService({ throws: "request" });
+    const harness = harnessFor(<ForgotPasswordScreen service={service} />);
+
+    fill(harness, "Email address", "someone@example.com");
+    await press(harness, "Send reset link");
+
+    expect(textAt(harness, "auth-error")).toBe(
+      "Authentication failed. Please try again.",
+    );
+    expect(textAt(harness, "reset-request-sent")).toBeNull();
   });
 
   it("reports a server without an email sender honestly instead of as a sent mail (T4)", async () => {
@@ -291,6 +311,21 @@ describe("reset password (S2, S13)", () => {
     expect(textAt(harness, "reset-complete")?.toLowerCase()).toContain(
       "sign in",
     );
+  });
+
+  it("reports a completion that throws instead of leaving the link dead", async () => {
+    const { service } = fakeResetService({ throws: "complete" });
+    const harness = harnessFor(
+      <ResetPasswordScreen service={service} params={{ token: "the-token" }} />,
+    );
+
+    fill(harness, "New password", "a-long-enough-password");
+    await press(harness, "Set new password");
+
+    expect(textAt(harness, "auth-error")).toBe(
+      "Authentication failed. Please try again.",
+    );
+    expect(textAt(harness, "reset-complete")).toBeNull();
   });
 
   it("reports a token the server no longer accepts", async () => {

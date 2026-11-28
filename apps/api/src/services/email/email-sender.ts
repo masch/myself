@@ -33,8 +33,36 @@ function greeting(name: string | null | undefined): string {
   return trimmed.length > 0 ? trimmed : "there";
 }
 
+/**
+ * The five characters that can change an HTML document or open an entity.
+ *
+ * Both messages interpolate a user-controlled value — the name typed at sign-up — and a
+ * URL into an HTML body, so the escaping lives in the one place that builds the body
+ * instead of at each call site: a template that forgets is invisible until a mail client
+ * renders it.
+ */
+const HTML_ESCAPES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+function escapeHtml(value: string): string {
+  // One pass with a map, so an escaped `&` is never escaped again.
+  return value.replace(
+    /[&<>"']/g,
+    (character) => HTML_ESCAPES[character] ?? character,
+  );
+}
+
 function htmlBody(intro: string, url: string): string {
-  return [`<p>${intro}</p>`, `<p><a href="${url}">${url}</a></p>`].join("\n");
+  const href = escapeHtml(url);
+  return [
+    `<p>${escapeHtml(intro)}</p>`,
+    `<p><a href="${href}">${href}</a></p>`,
+  ].join("\n");
 }
 
 /** The sign-up message (S2). */

@@ -9,6 +9,7 @@ import {
 } from "@/components";
 import { useSession } from "@/context/session-context";
 import { passwordResetService } from "@/infrastructure/auth/password-reset-service-instance";
+import { describeAuthFailure } from "@/infrastructure/auth/session-service";
 import type {
   PasswordResetOutcome,
   PasswordResetService,
@@ -72,6 +73,10 @@ export function ResetPasswordScreen({
     setIsSubmitting(true);
     try {
       setOutcome(await service.complete(token, result.values.password));
+    } catch {
+      // Same as the request above: a rejection here would leave the link dead with no
+      // message, and a reset that did not happen must never look like one that did.
+      setOutcome({ status: "failed", message: describeAuthFailure(null) });
     } finally {
       setIsSubmitting(false);
     }

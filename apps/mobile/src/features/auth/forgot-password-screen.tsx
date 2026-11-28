@@ -2,6 +2,7 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { AppButton, ScreenContainer, ThemedText } from "@/components";
 import { passwordResetService } from "@/infrastructure/auth/password-reset-service-instance";
+import { describeAuthFailure } from "@/infrastructure/auth/session-service";
 import type {
   PasswordResetRequestOutcome,
   PasswordResetService,
@@ -50,6 +51,11 @@ export function ForgotPasswordScreen({
     setIsSubmitting(true);
     try {
       setOutcome(await service.request(result.values.email));
+    } catch {
+      // The service maps every answer it can see to an outcome, so a rejection is a
+      // defect, not a case it models. Left uncaught it rejects the press with nothing
+      // rendered and the person is on a form that did nothing.
+      setOutcome({ status: "failed", message: describeAuthFailure(null) });
     } finally {
       setIsSubmitting(false);
     }

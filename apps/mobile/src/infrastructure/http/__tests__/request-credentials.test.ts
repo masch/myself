@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { HttpClient } from "../http-client";
-import { REQUEST_CREDENTIALS as NATIVE_REQUEST_CREDENTIALS } from "../request-credentials";
-import { REQUEST_CREDENTIALS as WEB_REQUEST_CREDENTIALS } from "../request-credentials.web";
+// Loaded dynamically, not imported at the top: eslint resolves `../request-credentials`
+// to its `.web.ts` twin, so two static imports of the same pair read as duplicates.
+async function nativeCredentials(): Promise<RequestCredentials | undefined> {
+  return (await import("../request-credentials")).REQUEST_CREDENTIALS;
+}
+
+async function webCredentials(): Promise<RequestCredentials | undefined> {
+  return (await import("../request-credentials.web")).REQUEST_CREDENTIALS;
+}
 
 /**
  * The credential mode the curated-content client runs with (S8, S22, S26).
@@ -49,12 +56,12 @@ async function sourceOf(relativePath: string): Promise<string> {
 describe("web transport (S22, S26)", () => {
   it("sends the session cookie on a write", async () => {
     // The web build resolves the `include` module, not the native `undefined` one.
-    expect(WEB_REQUEST_CREDENTIALS).toBe("include");
+    expect(await webCredentials()).toBe("include");
 
     const calls = captureFetch();
     const client = new HttpClient({
       baseUrl: BASE_URL,
-      credentials: WEB_REQUEST_CREDENTIALS,
+      credentials: await webCredentials(),
       getAuthToken: () => null,
     });
 
@@ -78,7 +85,7 @@ describe("web transport (S22, S26)", () => {
 
 describe("native transport (S8)", () => {
   it("keeps the bearer header and asks for no credentials", async () => {
-    expect(NATIVE_REQUEST_CREDENTIALS).toBeUndefined();
+    expect(await nativeCredentials()).toBeUndefined();
 
     const calls = captureFetch();
     const client = new HttpClient({
