@@ -306,6 +306,73 @@ describe("SessionProvider (T6c M3)", () => {
   });
 });
 
+describe("sign-out and a replacement identity (L37)", () => {
+  it("does not reauthenticate when the launch restore settles after sign-out", async () => {
+    const { harness, pendingRestores, probe } = setup();
+
+    // The launch restore is still in flight when the user signs out.
+    await probe.latest().signOut();
+    await harness.flush();
+
+    // It answered for the credential that sign-out just removed, so it may not put the
+    // previous identity back: settling late must not undo the sign-out.
+    pendingRestores[0].resolve({ status: "authenticated", user: USER });
+    await harness.flush();
+
+    expect(probe.latest().user).toBeNull();
+    expect(probe.latest().restoreProblem).toBeNull();
+    expect(deriveSessionGate(probe.latest())).toBe("unauthenticated");
+  });
+
+  it("clears the loading flag on sign-out even when no restore ever answers", async () => {
+    const { harness, probe } = setup();
+    expect(probe.latest().isLoading).toBe(true);
+
+    // The launch restore never settles at all: nothing will clear the flag except
+    // sign-out itself, and a flag left on would hold the gate on `loading` forever.
+    await probe.latest().signOut();
+    await harness.flush();
+
+    expect(probe.latest().isLoading).toBe(false);
+    expect(deriveSessionGate(probe.latest())).toBe("unauthenticated");
+  });
+
+  it("clears the loading flag on sign-out even when the service rejects", async () => {
+    const { harness, probe } = setup({ signOutRejects: true });
+
+    await probe
+      .latest()
+      .signOut()
+      .catch(() => undefined);
+    await harness.flush();
+
+    expect(probe.latest().isLoading).toBe(false);
+    expect(probe.latest().user).toBeNull();
+    expect(deriveSessionGate(probe.latest())).toBe("unauthenticated");
+  });
+
+  for (const transition of ["signIn", "signUp"] as const) {
+    it(`lets a stale restore lose to the identity ${transition} establishes`, async () => {
+      const { harness, pendingRestores, probe } = setup();
+
+      await probe.latest()[transition]({
+        email: "ada@example.com",
+        password: "correct horse",
+      } as never);
+      await harness.flush();
+      expect(probe.latest().user).toEqual(USER);
+
+      // The launch restore predates this identity. Its answer is about the previous
+      // credential, so it may not overwrite the one that just signed in.
+      pendingRestores[0].resolve({ status: "unauthenticated" });
+      await harness.flush();
+
+      expect(probe.latest().user).toEqual(USER);
+      expect(deriveSessionGate(probe.latest())).toBe("authenticated");
+    });
+  }
+});
+
 describe("foreground revalidation (T6c m6)", () => {
   it("asks the server again when the app returns to the foreground", async () => {
     const { harness, calls, pendingRestores, probe, foreground } = setup();

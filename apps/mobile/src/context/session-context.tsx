@@ -31,6 +31,11 @@ import type {
  * cannot reach an answer leaves the gate in `unavailable`, which keeps the stored token,
  * shows a retry and offers a way to sign in anyway. Neither a deadline nor an unreachable
  * server may be rendered as "signed out".
+ *
+ * Every transition that changes who the session belongs to — sign-in, sign-up, sign-out —
+ * invalidates any restore still in flight, and every path out of the loading state clears
+ * the flag. Without that, a restore that settled late could reauthenticate the provider
+ * after the user signed out, or overwrite the identity a sign-in had just established (L37).
  */
 export interface SessionContextValue {
   /** The signed-in identity, or `null` when nobody is signed in. */
@@ -123,9 +128,23 @@ export function SessionProvider({
     [],
   );
 
+  /**
+   * Makes every restore still in flight stale, so none of them may write state.
+   *
+   * A restore is judged against the credential that was stored when it started. Once that
+   * credential is gone — the user signed out, or a new sign-in or sign-up replaced it —
+   * its answer describes a session nobody is using anymore, and applying it would undo
+   * the transition that superseded it. The generation is what carries that: `applyOutcome`
+   * and the revalidation both compare against it before every write.
+   */
+  const supersedeRestores = useCallback(() => {
+    restoreGeneration.current += 1;
+  }, []);
+
   const runRestore = useCallback(() => {
     // Every start supersedes whatever is still in flight.
-    const generation = (restoreGeneration.current += 1);
+    supersedeRestores();
+    const generation = restoreGeneration.current;
 
     return service.restore().then(
       (outcome) => applyOutcome(outcome, generation),
@@ -144,7 +163,7 @@ export function SessionProvider({
         );
       },
     );
-  }, [service, applyOutcome]);
+  }, [service, applyOutcome, supersedeRestores]);
 
   useEffect(() => {
     isActive.current = true;
@@ -180,7 +199,9 @@ export function SessionProvider({
   const revalidate = useCallback(() => {
     if (!currentUser.current) return;
 
-    const generation = (restoreGeneration.current += 1);
+    // This check is the newest restore, so the launch and any earlier check are stale.
+    supersedeRestores();
+    const generation = restoreGeneration.current;
 
     void service.restore().then(
       (outcome) => {
@@ -195,7 +216,7 @@ export function SessionProvider({
         console.warn("[session] Failed to re-check the stored session:", error);
       },
     );
-  }, [service, applyOutcome]);
+  }, [service, applyOutcome, supersedeRestores]);
 
   useEffect(
     () => subscribeToForeground(revalidate),
@@ -204,31 +225,50 @@ export function SessionProvider({
 
   const signIn = useCallback(
     async (input: SignInInput) => {
-      setUser(await service.signIn(input));
-      setRestoreProblem(null);
+      // The identity established here is the newest one, so anything the launch restore
+      // still has in flight is stale from this point on. The loading flag is cleared on
+      // both paths: a sign-in that failed leaves the auth tree in place, not a gate stuck
+      // on `loading`.
+      supersedeRestores();
+      try {
+        setUser(await service.signIn(input));
+        setRestoreProblem(null);
+      } finally {
+        setIsLoading(false);
+      }
     },
-    [service],
+    [service, supersedeRestores],
   );
 
   const signUp = useCallback(
     async (input: SignUpInput) => {
-      setUser(await service.signUp(input));
-      setRestoreProblem(null);
+      supersedeRestores();
+      try {
+        setUser(await service.signUp(input));
+        setRestoreProblem(null);
+      } finally {
+        setIsLoading(false);
+      }
     },
-    [service],
+    [service, supersedeRestores],
   );
 
   const signOut = useCallback(async () => {
+    // Nothing that was in flight when sign-out started may reauthenticate the provider:
+    // a launch restore settling late would otherwise put the signed-out identity back.
+    supersedeRestores();
     try {
       await service.signOut();
     } finally {
       // The stored token is already gone at this point — the service clears it before it
       // asks the server to revoke anything (T6c `m2`) — so clearing the state is what moves
-      // the gate back to the auth tree, and it happens even if the local clear failed.
+      // the gate back to the auth tree, and it happens even if the local clear failed. The
+      // loading flag is cleared here too: with the restore invalidated, nothing else would.
       setUser(null);
       setRestoreProblem(null);
+      setIsLoading(false);
     }
-  }, [service]);
+  }, [service, supersedeRestores]);
 
   const retryRestore = useCallback(() => {
     // Set here, not in the effect that calls the restore: the launch already starts
