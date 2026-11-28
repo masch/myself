@@ -8,10 +8,12 @@ import type { SessionTokenStorage } from "./session-token-storage.contract";
  * that is a credential any script on the origin could exfiltrate later.
  *
  * So the web client keeps the token for the lifetime of the page and relies on the
- * browser's own cookie jar across reloads. Consequence, recorded rather than hidden:
- * until the cookie transport is usable cross-origin (T5's credentialed CORS
- * allowlist), the browser presents the session through this in-memory bearer token,
- * so a full page reload signs the user out. The platform split is what keeps
+ * browser's own cookie jar across reloads. Since T5 landed the credentialed CORS
+ * allowlist the cookie is the session that survives a page load, and the app's HTTP
+ * client asks for it (`REQUEST_CREDENTIALS` in `infrastructure/http/request-credentials
+ * .web.ts`); this in-memory token is what a request made during the same page lifetime
+ * presents as a bearer header, which is the transport native uses unconditionally. The
+ * platform split is what keeps
  * `expo-secure-store` out of the web bundle: the bundler resolves this file instead
  * of `session-token-storage.ts`, so neither the module nor its native dependency is
  * ever imported on web.
