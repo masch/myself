@@ -9,7 +9,7 @@ import {
   SESSION_TOKEN_STORAGE_FAILURE,
   type AuthApiPort,
   type AuthResult,
-  type SignInInput,
+  type EmailSignInInput,
   type SignUpInput,
 } from "./session-service";
 import type { SessionTokenStorage } from "./session-token-storage.contract";
@@ -243,12 +243,34 @@ export function createAuthApi({
   }
 
   return {
-    signInEmail(input: SignInInput) {
+    signInEmail(input: EmailSignInInput) {
       return call((onSuccess) =>
         client.signIn.email(
           {
             email: input.email,
             password: input.password,
+          },
+          { onSuccess },
+        ),
+      );
+    },
+
+    /**
+     * Exchanges a Google ID token for a session (S4).
+     *
+     * The same client, the same `set-auth-token` capture and the same `AuthResult` as a
+     * password sign-in: only the request changes. The body field is `idToken: { token }`,
+     * not a bare string — read out of the installed library's `socialSignInBodySchema`
+     * (`better-auth/dist/api/routes/sign-in.mjs:61`) and proven against the real API in
+     * `apps/api/src/routes/__tests__/google-sign-in.test.ts`. No redirect is involved, so
+     * no browser session and no deep link is either.
+     */
+    signInWithGoogle(idToken: string) {
+      return call((onSuccess) =>
+        client.signIn.social(
+          {
+            provider: "google",
+            idToken: { token: idToken },
           },
           { onSuccess },
         ),

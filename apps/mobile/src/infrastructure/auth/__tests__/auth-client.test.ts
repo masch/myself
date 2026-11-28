@@ -387,6 +387,123 @@ describe("auth client over the real API (S8 bearer transport)", () => {
   });
 });
 
+describe("Google ID token exchange through the auth client (S4)", () => {
+  /** One request the client made, with the body it sent. */
+  interface SeenRequest {
+    path: string;
+    body: unknown;
+  }
+
+  /** Answers `signIn.social` the way the API does when it accepts the ID token. */
+  function acceptingFetch(seen: SeenRequest[]): FetchLike {
+    return (input, init) => {
+      seen.push({
+        path: new URL(String(input)).pathname,
+        body: init?.body ? JSON.parse(String(init.body)) : null,
+      });
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            redirect: false,
+            token: "session-token",
+            user: {
+              id: "google-user-id",
+              name: "Ada Lovelace",
+              email: "ada@example.com",
+            },
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+              [SESSION_TOKEN_RESPONSE_HEADER]: "session-token",
+            },
+          },
+        ),
+      );
+    };
+  }
+
+  it("posts the ID token to the social sign-in route and keeps the session credential", async () => {
+    const seen: SeenRequest[] = [];
+    const { storage, state } = createStorage();
+    const api = createAuthApi({
+      baseUrl: BASE_URL,
+      storage,
+      fetchImpl: acceptingFetch(seen),
+    });
+
+    const result = await api.signInWithGoogle("google-id-token-1");
+
+    // The route and the body are the ones the API already accepts (proven against a
+    // mocked IdP in apps/api): no redirect, no browser, just the token.
+    expect(seen).toEqual([
+      {
+        path: "/api/auth/sign-in/social",
+        body: { provider: "google", idToken: { token: "google-id-token-1" } },
+      },
+    ]);
+    expect(result.error).toBeNull();
+    expect(result.user).toEqual({
+      id: "google-user-id",
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+      role: null,
+    });
+    // The same header capture the password sign-in uses: one credential path, not two.
+    expect(state.token).toBe("session-token");
+  });
+
+  it("keeps no credential when the server refuses to link the account", async () => {
+    const { storage, state } = createStorage();
+    const api = createAuthApi({
+      baseUrl: BASE_URL,
+      storage,
+      fetchImpl: () =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              code: "OAUTH_LINK_ERROR",
+              message: "account not linked",
+            }),
+            { status: 401, headers: { "content-type": "application/json" } },
+          ),
+        ),
+    });
+
+    const result = await api.signInWithGoogle("google-id-token-2");
+
+    expect(result.user).toBeNull();
+    expect(result.error).toMatchObject({
+      code: "OAUTH_LINK_ERROR",
+      message: "account not linked",
+    });
+    expect(state.token).toBeNull();
+  });
+
+  it("still sends an email sign-in to the email route with the email and the password", async () => {
+    // The social path is additive: the request a password sign-in produces is unchanged.
+    const seen: SeenRequest[] = [];
+    const api = createAuthApi({
+      baseUrl: BASE_URL,
+      storage: createStorage().storage,
+      fetchImpl: acceptingFetch(seen),
+    });
+
+    await api.signInEmail({
+      email: "ada@example.com",
+      password: "a-long-password",
+    });
+
+    expect(seen).toEqual([
+      {
+        path: "/api/auth/sign-in/email",
+        body: { email: "ada@example.com", password: "a-long-password" },
+      },
+    ]);
+  });
+});
+
 describe("restore behaviour end to end (T6c M1, M2)", () => {
   /** The gate state the provider derives from one restore outcome. */
   function gateFor(outcome: SessionRestore) {

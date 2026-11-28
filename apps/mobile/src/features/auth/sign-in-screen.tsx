@@ -3,6 +3,11 @@ import { StyleSheet, View } from "react-native";
 import { AppButton, ScreenContainer, ThemedText } from "@/components";
 import { useSession } from "@/context/session-context";
 import {
+  GoogleSignInError,
+  type GoogleIdTokenProvider,
+} from "@/features/auth/google/google-id-token-provider.contract";
+import { googleIdTokenProvider } from "@/features/auth/google/google-id-token-provider";
+import {
   AuthenticationError,
   describeAuthFailure,
 } from "@/infrastructure/auth/session-service";
@@ -12,23 +17,50 @@ import { AuthSwitchLink } from "./auth-switch-link";
 import { validateSignInForm, type AuthFormErrors } from "./validation";
 
 /**
- * Email + password sign-in (S13).
+ * Email + password sign-in, plus Google where Google can actually complete (S4, S13).
  *
- * There is deliberately no Google button yet: S8's federated path needs a native
- * module and real per-platform client IDs that do not exist in this repository, and a
- * button that cannot work is worse than no button. Where it goes: inside this form,
- * between the password field and the submit button, calling
- * `signIn.social({ provider: "google", idToken })` with a token obtained from that
- * native module — it needs no other change here, because the ID-token exchange returns
- * the same `set-auth-token` header as password sign-in.
+ * The Google control exists on the screen — between the submit button and the links — but
+ * only renders when the platform's `GoogleIdTokenProvider` reports `available`, which is
+ * driven by that platform's own client ID and nothing else. On native today that answer is
+ * always `false` (no client ID, no module that mints an ID token), so this screen renders
+ * exactly what it rendered before: no dead button. On web, a build with
+ * `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` set renders it, and pressing it sends the token
+ * through `signIn`, the same transition the email form uses — the exchange returns the
+ * same `set-auth-token` header, so nothing about the session path is duplicated here.
  */
-export function SignInScreen() {
+export interface SignInScreenProps {
+  /**
+   * Test seam: where this platform's ID token comes from.
+   *
+   * Defaults to the bundler-resolved platform module, so the app's tree never passes it;
+   * a test can hand in a fake and prove the wiring without touching Google's script.
+   */
+  googleProvider?: GoogleIdTokenProvider;
+}
+
+/**
+ * The text a person sees for a failed press.
+ *
+ * Both errors carry a message written for a person: `AuthenticationError` for a refusal
+ * from this app's server, `GoogleSignInError` for a Google window that never produced a
+ * token. Anything else is a bug and gets the generic line rather than a library message.
+ */
+function describeSignInFailure(error: unknown): string {
+  if (error instanceof AuthenticationError) return error.message;
+  if (error instanceof GoogleSignInError) return error.message;
+  return describeAuthFailure(null);
+}
+
+export function SignInScreen({
+  googleProvider = googleIdTokenProvider,
+}: SignInScreenProps = {}) {
   const { signIn } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<AuthFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
@@ -46,13 +78,30 @@ export function SignInScreen() {
     try {
       await signIn(result.values);
     } catch (error) {
-      setFormError(
-        error instanceof AuthenticationError
-          ? error.message
-          : describeAuthFailure(null),
-      );
+      setFormError(describeSignInFailure(error));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  /**
+   * Asks the platform for one ID token, then signs in with it through `signIn` (S4).
+   *
+   * A press that produces no token signs nobody in: the provider's refusal is shown in the
+   * same error element the email form uses, and the identity in the session is untouched.
+   */
+  const handleGooglePress = async () => {
+    if (isSubmitting || isGoogleSubmitting) return;
+
+    setErrors({});
+    setFormError(null);
+    setIsGoogleSubmitting(true);
+    try {
+      await signIn({ idToken: await googleProvider.requestIdToken() });
+    } catch (error) {
+      setFormError(describeSignInFailure(error));
+    } finally {
+      setIsGoogleSubmitting(false);
     }
   };
 
@@ -107,6 +156,20 @@ export function SignInScreen() {
         disabled={isSubmitting}
         onPress={handleSubmit}
       />
+
+      {/*
+        Rendered only when this platform can actually complete a Google sign-in (S4).
+        `available` is the whole gate: nothing else about the platform may decide it, and
+        an unconfigured build renders nothing here at all.
+      */}
+      {googleProvider.available ? (
+        <AppButton
+          title={isGoogleSubmitting ? "Connecting…" : "Continue with Google"}
+          variant="secondary"
+          disabled={isSubmitting || isGoogleSubmitting}
+          onPress={handleGooglePress}
+        />
+      ) : null}
 
       {/*
         The reset request is one press from the only screen a signed-out user can reach

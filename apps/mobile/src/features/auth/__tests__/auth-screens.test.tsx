@@ -6,8 +6,14 @@ import { createHookHarness } from "@/context/__tests__/hook-harness";
 import {
   AuthenticationError,
   type SessionService,
+  type SessionUser,
+  type SignInInput,
   type SignUpInput,
 } from "@/infrastructure/auth/session-service";
+import {
+  GoogleSignInError,
+  type GoogleIdTokenProvider,
+} from "@/features/auth/google/google-id-token-provider.contract";
 import { AuthField } from "../auth-field";
 
 /**
@@ -68,9 +74,15 @@ mock.module("@/infrastructure/auth/session-service-instance", () => ({
   sessionService: unusedService,
 }));
 
-const { SessionProvider } = await import("@/context/session-context");
+const { SessionProvider, useSession } =
+  await import("@/context/session-context");
 
-type ScreenComponent = React.ComponentType<Record<string, never>>;
+/**
+ * What a screen may be given here: the sign-in screen's one test seam (S4). Every other
+ * screen ignores it, which is what lets one type cover both.
+ */
+type ScreenProps = { googleProvider?: GoogleIdTokenProvider };
+type ScreenComponent = React.ComponentType<ScreenProps>;
 let SignInScreen: ScreenComponent;
 let SignUpScreen: ScreenComponent;
 
@@ -163,6 +175,155 @@ describe("sign-in screen", () => {
     await harness.flush();
 
     expect(errorElement(harness)).toBe("Email or password is incorrect.");
+  });
+});
+
+/**
+ * The Google control (S4).
+ *
+ * The screen's whole job here is to ask the platform port for one ID token and hand it to
+ * the same transition the email form uses, so the port is what is faked: the token a fake
+ * provider hands back is the token a real one hands back. Google's own script is not
+ * exercised anywhere — it only runs in a browser, after a person presses a button.
+ *
+ * The case above ("renders no dead Google button") stays as it was, and it is the
+ * unconfigured half of the same rule: with the platform provider, which is the native one
+ * in this run, nothing is configured and nothing is rendered.
+ */
+const GOOGLE_ID_TOKEN = "google-id-token-from-the-browser";
+
+/** A port that hands out one token, and counts how often it was asked to. */
+function fakeGoogleProvider(
+  overrides: Partial<GoogleIdTokenProvider> = {},
+): GoogleIdTokenProvider & { requests: () => number } {
+  let requests = 0;
+  return {
+    available: true,
+    async requestIdToken() {
+      requests += 1;
+      return GOOGLE_ID_TOKEN;
+    },
+    ...overrides,
+    requests: () => requests,
+  };
+}
+
+/** Every identity the session holds, as the provider renders it (oldest first). */
+let sessionUsers: (SessionUser | null)[] = [];
+
+function SessionProbe() {
+  const { user } = useSession();
+  sessionUsers.push(user);
+  return null;
+}
+
+describe("sign-in screen and the Google control (S4)", () => {
+  it("renders the control when the platform can complete it", () => {
+    const html = renderToString(
+      <SessionProvider service={unusedService}>
+        <SignInScreen googleProvider={fakeGoogleProvider()} />
+      </SessionProvider>,
+    );
+
+    // The copy a person reads, and the label a screen reader announces.
+    expect(buttonLabels(html)).toEqual(["Sign in", "Continue with Google"]);
+  });
+
+  it("renders no control at all when the platform reports it cannot complete one", () => {
+    const html = renderToString(
+      <SessionProvider service={unusedService}>
+        <SignInScreen
+          googleProvider={fakeGoogleProvider({ available: false })}
+        />
+      </SessionProvider>,
+    );
+
+    expect(html).not.toContain("Google");
+    expect(buttonLabels(html)).toEqual(["Sign in"]);
+  });
+
+  it("exchanges the provider's token for the session the screen then holds", async () => {
+    const provider = fakeGoogleProvider();
+    const signIns: SignInInput[] = [];
+    const service: SessionService = {
+      ...unusedService,
+      async signIn(input) {
+        signIns.push(input);
+        return SESSION_USER;
+      },
+    };
+
+    sessionUsers = [];
+    const harness = createHookHarness();
+    harness.render(
+      <SessionProvider service={service}>
+        <SessionProbe />
+        <SignInScreen googleProvider={provider} />
+      </SessionProvider>,
+    );
+    await harness.flush();
+
+    const control = harness
+      .components()
+      .find(
+        (component) =>
+          component.type === AppButton &&
+          component.props.title === "Continue with Google",
+      );
+    expect(control).toBeDefined();
+
+    await (control!.props.onPress as () => Promise<void>)();
+    await harness.flush();
+
+    // Asked once, handed over exactly as received, and the identity it bought is the one
+    // the session now renders. Nothing about this path is Google-specific.
+    expect(provider.requests()).toBe(1);
+    expect(signIns).toEqual([{ idToken: GOOGLE_ID_TOKEN }]);
+    expect(sessionUsers.at(-1)).toEqual(SESSION_USER);
+  });
+
+  it("shows the provider's refusal and signs nobody in when no token arrives", async () => {
+    const refusal = new GoogleSignInError(
+      "This browser could not show the Google sign-in window. Allow third-party sign-in, or use your email and password.",
+    );
+    const provider = fakeGoogleProvider({
+      async requestIdToken() {
+        throw refusal;
+      },
+    });
+    const signIns: SignInInput[] = [];
+    const service: SessionService = {
+      ...unusedService,
+      async signIn(input) {
+        signIns.push(input);
+        return SESSION_USER;
+      },
+    };
+
+    sessionUsers = [];
+    const harness = createHookHarness();
+    harness.render(
+      <SessionProvider service={service}>
+        <SessionProbe />
+        <SignInScreen googleProvider={provider} />
+      </SessionProvider>,
+    );
+    await harness.flush();
+
+    const control = harness
+      .components()
+      .find(
+        (component) =>
+          component.type === AppButton &&
+          component.props.title === "Continue with Google",
+      );
+    await (control!.props.onPress as () => Promise<void>)();
+    await harness.flush();
+
+    expect(errorElement(harness)).toBe(refusal.message);
+    expect(signIns).toEqual([]);
+    expect(provider.requests()).toBe(0);
+    expect(sessionUsers.at(-1)).toBeNull();
   });
 });
 

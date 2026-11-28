@@ -15,12 +15,33 @@ export interface SessionUser {
   role: string | null;
 }
 
-export interface SignInInput {
+export interface EmailSignInInput {
   email: string;
   password: string;
 }
 
-export interface SignUpInput extends SignInInput {
+/**
+ * A Google sign-in, reduced to the one thing the server needs (S4).
+ *
+ * The ID token is obtained by the platform (the browser's Google Identity Services, or a
+ * native module once one exists) and is sent unchanged; the API verifies its signature and
+ * audience and answers with the same session a password sign-in gets.
+ */
+export interface GoogleSignInInput {
+  idToken: string;
+}
+
+/**
+ * Everything a sign-in may carry (S4).
+ *
+ * A union rather than a second transition: the screens call one `signIn`, the provider
+ * exposes one, and the shape of the input says which credential to exchange. The email
+ * member keeps its exact previous shape, so every existing caller is unchanged and no
+ * screen has to learn a new transition to offer Google.
+ */
+export type SignInInput = EmailSignInInput | GoogleSignInInput;
+
+export interface SignUpInput extends EmailSignInInput {
   name: string;
 }
 
@@ -73,7 +94,14 @@ export type SessionRestore =
  * adapter is the only place that knows the library's response shape.
  */
 export interface AuthApiPort {
-  signInEmail(input: SignInInput): Promise<AuthResult>;
+  signInEmail(input: EmailSignInInput): Promise<AuthResult>;
+  /**
+   * Exchanges a provider ID token for a session (S4).
+   *
+   * No redirect and no browser: the token is the whole request, which is what lets the same
+   * path serve a web page and, later, a native client.
+   */
+  signInWithGoogle(idToken: string): Promise<AuthResult>;
   signUpEmail(input: SignUpInput): Promise<AuthResult>;
   getSession(): Promise<AuthResult>;
   signOut(): Promise<void>;
@@ -113,6 +141,15 @@ export interface SessionRevoke {
 }
 
 export interface SessionService {
+  /**
+   * Signs in with an email and a password, or with a Google ID token (S4, S13).
+   *
+   * The social credential travels the same transition as the password one: a
+   * {@link GoogleSignInInput} goes to the auth client's `signIn.social`, which verifies it
+   * with the server and captures the same `set-auth-token` credential it captures for a
+   * password sign-in. A refusal arrives as an {@link AuthenticationError} whose message is
+   * the app's, not the server's.
+   */
   signIn(input: SignInInput): Promise<SessionUser>;
   signUp(input: SignUpInput): Promise<SessionUser>;
   /**
@@ -149,6 +186,11 @@ const FAILURE_MESSAGES: Record<string, string> = {
   USER_ALREADY_EXISTS: "An account with this email already exists.",
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL:
     "An account with this email already exists.",
+  // The library refused to link the provider identity to a local account (S4). Its own
+  // words are "account not linked", which tells a person nothing they can act on, so the
+  // app says what the refusal means and what still works.
+  OAUTH_LINK_ERROR:
+    "This Google account cannot be linked to an existing account here. Sign in with your email and password instead.",
   PASSWORD_TOO_SHORT: "Password must be at least 8 characters.",
   PASSWORD_TOO_LONG: "Password must be at most 128 characters.",
   INVALID_EMAIL: "Enter a valid email address.",
@@ -380,8 +422,15 @@ export function createSessionService({
     throw new AuthenticationError(describeAuthFailure(result.error));
   }
 
+  async function signInWithGoogle(idToken: string): Promise<SessionUser> {
+    return authenticate(await api.signInWithGoogle(idToken));
+  }
+
   return {
     async signIn(input) {
+      // One transition, two credential sources (S4). Detected structurally, so the email
+      // shape every existing caller passes keeps taking the email path unchanged.
+      if ("idToken" in input) return signInWithGoogle(input.idToken);
       return authenticate(await api.signInEmail(input));
     },
 

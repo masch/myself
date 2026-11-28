@@ -22,6 +22,16 @@ const UNREACHABLE_MESSAGE =
   "Could not reach the server. Check your connection and try again.";
 
 /**
+ * The message a refused Google link must produce (S4).
+ *
+ * Written out here rather than imported: the assertion is that a person gets readable
+ * English, not that the module and the test happen to agree on a constant. The server's
+ * own words for this refusal are "account not linked", which is why they are not enough.
+ */
+const REFUSED_LINK_MESSAGE =
+  "This Google account cannot be linked to an existing account here. Sign in with your email and password instead.";
+
+/**
  * Awaits `promise`, or reports that it never settled.
  *
  * The deadline tests can only fail their expectation by hanging, so the sentinel turns a
@@ -66,9 +76,16 @@ function createStorage(
 
 function createApi(overrides: Partial<AuthApiPort> = {}) {
   const calls: string[] = [];
+  /** Every ID token the service handed to the client, in order (S4). */
+  const tokens: string[] = [];
   const api: AuthApiPort = {
     async signInEmail() {
       calls.push("signInEmail");
+      return { user: USER, error: null } satisfies AuthResult;
+    },
+    async signInWithGoogle(idToken) {
+      calls.push("signInWithGoogle");
+      tokens.push(idToken);
       return { user: USER, error: null } satisfies AuthResult;
     },
     async signUpEmail() {
@@ -84,7 +101,7 @@ function createApi(overrides: Partial<AuthApiPort> = {}) {
     },
     ...overrides,
   };
-  return { api, calls };
+  return { api, calls, tokens };
 }
 
 describe("createSessionService", () => {
@@ -151,6 +168,98 @@ describe("createSessionService", () => {
       expect((failure as Error).message).toBe(
         "An account with this email already exists.",
       );
+    });
+  });
+
+  describe("Google sign-in (S4)", () => {
+    it("returns the identity and hands the ID token to the client unchanged", async () => {
+      const { api, tokens } = createApi();
+      const { storage, state } = createStorage("token-from-client");
+      const service = createSessionService({ api, storage });
+
+      const user = await service.signIn({ idToken: "google-id-token-1" });
+
+      expect(user).toEqual(USER);
+      expect(tokens).toEqual(["google-id-token-1"]);
+      // The client persists the session credential it receives (S8); the service must not
+      // invent one, and must not clear the one that is there.
+      expect(state.clears).toBe(0);
+      expect(state.sets).toEqual([]);
+      expect(await storage.get()).toBe("token-from-client");
+    });
+
+    it("signs in through the transition the screens already use, with the token as its only input", async () => {
+      // The screen has one transition — `useSession().signIn` — so the social credential
+      // reaches the service through it, not around it.
+      const { api, calls, tokens } = createApi();
+      const { storage } = createStorage();
+      const service = createSessionService({ api, storage });
+
+      expect(await service.signIn({ idToken: "google-id-token-2" })).toEqual(
+        USER,
+      );
+      expect(calls).toEqual(["signInWithGoogle"]);
+      expect(tokens).toEqual(["google-id-token-2"]);
+    });
+
+    it("turns a refused link into the app's own readable message", async () => {
+      const { api } = createApi({
+        async signInWithGoogle() {
+          return {
+            user: null,
+            error: {
+              code: "OAUTH_LINK_ERROR",
+              message: "account not linked",
+              status: 401,
+            },
+          };
+        },
+      });
+      const { storage, state } = createStorage();
+      const service = createSessionService({ api, storage });
+
+      const failure = await service
+        .signIn({ idToken: "google-id-token-3" })
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(AuthenticationError);
+      expect((failure as Error).message).toBe(REFUSED_LINK_MESSAGE);
+      // The server's own words say nothing a person can act on.
+      expect((failure as Error).message).not.toBe("account not linked");
+      expect(state.sets).toEqual([]);
+      expect(await storage.get()).toBeNull();
+    });
+
+    it("reports a Google sign-in that never reached the server the same way a password one does", async () => {
+      const { api } = createApi({
+        async signInWithGoogle() {
+          return { user: null, error: { status: 0, message: "fetch failed" } };
+        },
+      });
+      const { storage } = createStorage();
+      const service = createSessionService({ api, storage });
+
+      const failure = await service
+        .signIn({ idToken: "google-id-token-4" })
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(AuthenticationError);
+      expect((failure as Error).message).toBe(UNREACHABLE_MESSAGE);
+    });
+
+    it("still signs an email and a password in through the email call", async () => {
+      // The union `SignInInput` is only a wider input shape: an email sign-in must not
+      // have started travelling through the social path.
+      const { api, calls } = createApi();
+      const { storage } = createStorage();
+      const service = createSessionService({ api, storage });
+
+      await service.signIn({
+        email: "myself@example.com",
+        password: "demo-password",
+      });
+
+      expect(calls).toEqual(["signInEmail"]);
     });
   });
 
@@ -543,6 +652,16 @@ describe("describeAuthFailure", () => {
     expect(describeAuthFailure({ code: "INVALID_EMAIL" })).toBe(
       "Enter a valid email address.",
     );
+  });
+
+  it("explains a refused Google link in the app's own words", () => {
+    expect(
+      describeAuthFailure({
+        code: "OAUTH_LINK_ERROR",
+        message: "account not linked",
+        status: 401,
+      }),
+    ).toBe(REFUSED_LINK_MESSAGE);
   });
 
   it("explains an unreachable server instead of showing a library message", () => {
