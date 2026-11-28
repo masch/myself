@@ -242,7 +242,11 @@ export const ACCOUNT_LINKING_POLICY = {
  *   `{ secure, sameSite: "lax", path: "/", httpOnly: true, ...defaultCookieAttributes }`
  *   (`better-auth/dist/cookies/index.mjs:34-40`), so passing the whole object states
  *   `SameSite`, `Secure`, `HttpOnly` and `Path` explicitly instead of inheriting four
- *   defaults; `config.auth.cookies` is the only place they are decided.
+ *   defaults. It is not the *only* place `Secure` is decided: the library forces it
+ *   whenever the cookie gets the `__Secure-` prefix (a deployed environment, or any
+ *   `https` base URL), so a local run against an `https` AUTH_URL is secure on the wire
+ *   while this object says otherwise. What this object decides is the policy a person
+ *   chose; the prefix is the library's own floor under it.
  */
 export function createAuth(config: AppConfig) {
   const db = createDb(config.database);
