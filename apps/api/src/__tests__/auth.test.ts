@@ -451,6 +451,41 @@ describe("provider token encryption (S3)", () => {
   });
 });
 
+describe("account linking policy (S24, T11)", () => {
+  it("states the implicit-linking guard explicitly instead of inheriting it", () => {
+    // Every field here is load-bearing for S24, and each one is a library default that
+    // a minor bump could move. `link-account.mjs:170-176` reads exactly these:
+    // `enabled === false` and `disableImplicitLinking === true` refuse every implicit
+    // link, `requireLocalEmailVerified` refuses one when the *local* row is unverified,
+    // and an empty `trustedProviders` is what stops Google's `email_verified` claim
+    // from being taken as ownership proof on its own.
+    const auth = createAuth(testConfig({ AUTH_SECRET: "secret" }));
+
+    expect(auth.options.account?.accountLinking).toEqual({
+      enabled: true,
+      disableImplicitLinking: false,
+      requireLocalEmailVerified: true,
+      allowDifferentEmails: false,
+      trustedProviders: [],
+    });
+  });
+
+  it("trusts no social provider by name, so a provider's email claim is never enough (S24)", async () => {
+    const auth = createAuth(
+      testConfig({
+        AUTH_SECRET: "secret",
+        GOOGLE_CLIENT_ID: "client-id",
+        GOOGLE_CLIENT_SECRET: "client-secret",
+      }),
+    );
+
+    // `getTrustedProviders` (`context/helpers.mjs:153-157`) resolves the option into
+    // the context, and that resolved list is what the link gate reads
+    // (`link-account.mjs:170`), so this asserts the context and not just the input.
+    expect((await auth.$context).trustedProviders).not.toContain("google");
+  });
+});
+
 describe("auth rate limiting (S14, L22)", () => {
   const RATE_LIMIT_SECRET = "rate-limit-unit-test-secret";
 

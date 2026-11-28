@@ -145,6 +145,56 @@ export const ADMIN_DISABLED_PATHS = [
 ];
 
 /**
+ * The implicit-linking policy for social sign-in (S24).
+ *
+ * The risk S24 names is a takeover: an attacker pre-registers a password account at a
+ * victim's address, the victim later signs in with Google, and the identity gets
+ * attached to the attacker-owned row. Better Auth 1.7.28 can express exactly that
+ * guard, so it is configured here rather than inherited:
+ *
+ * - `requireLocalEmailVerified: true` — implicit linking is refused unless the
+ *   **existing local row** proved ownership of its address (`link-account.mjs:171-172`).
+ *   A password account created today is unverified (S23 keeps verification off), which
+ *   is the pre-registered-attacker state, so a Google sign-in whose email matches one
+ *   fails with `401 { code: "OAUTH_LINK_ERROR", message: "account not linked" }`
+ *   instead of signing in as that account. The option is documented `@deprecated` with
+ *   "the gate will become unconditional"
+ *   (`@better-auth/core/dist/types/init-options.d.mts:1124`; `enabled` is declared at
+ *   `:1094`), so setting it explicitly is safe in both directions: today it selects the
+ *   gate, and once the gate is unconditional the same value stays correct.
+ * - `trustedProviders: []` — defence in depth for the other half of the same condition
+ *   (`!isTrustedProvider && !userInfo.emailVerified`, `link-account.mjs:170-172`),
+ *   resolved into the context by `context/helpers.mjs:153-157` through
+ *   `create-context.mjs:129`, so an empty list is literally what the gate reads. It is
+ *   **not** what carries S24: with `requireLocalEmailVerified` true, an unverified local
+ *   row is refused whether or not Google is trusted (observed by flipping this list),
+ *   because the local half of the condition is checked first. It stays empty because it
+ *   is the field that would silently widen the *weaker* half — a trusted provider makes
+ *   its own `email_verified` claim enough for a row whose local address never proved
+ *   itself.
+ * - `allowDifferentEmails: false` — linking an identity whose email differs from the
+ *   local row's is a different attack surface with no feature behind it; the library
+ *   warns enabling it "might lead to account takeovers" (`init-options.d.mts:1154`).
+ * - `enabled: true` with `disableImplicitLinking: false` — implicit linking stays on,
+ *   because the guard above is what S24 asks for. The documented safe path is kept: a
+ *   local row whose email *is* verified has proven ownership of the address, so the
+ *   Google identity is attached to it and the person signs in as that same account
+ *   instead of getting a second account with the same email. Disabling implicit linking
+ *   entirely would satisfy S24 too, but would turn every existing verified email into
+ *   an error for no security gain; the decision is recorded in the tests, not inferred.
+ *
+ * Not set, deliberately: `allowUnlinkingAll` (no unlink feature) and
+ * `updateUserInfoOnLink` (a link must not rewrite the local profile).
+ */
+export const ACCOUNT_LINKING_POLICY = {
+  enabled: true,
+  disableImplicitLinking: false,
+  requireLocalEmailVerified: true,
+  allowDifferentEmails: false,
+  trustedProviders: [] as string[],
+} as const;
+
+/**
  * The Better Auth instance (S1).
  *
  * Wiring notes that must not be lost:
@@ -163,6 +213,8 @@ export const ADMIN_DISABLED_PATHS = [
  *   default, so encrypting without one would claim a confidentiality the
  *   deployment does not have. Fail-closed: never encrypt under the default key,
  *   warn once at startup instead.
+ * - `account.accountLinking` is S24's policy, stated explicitly in
+ *   `ACCOUNT_LINKING_POLICY` above (see the comment there for each field).
  * - `rateLimit.enabled` is set explicitly from the resolved `ENVIRONMENT` (L22):
  *   the library only enables its limiter when `NODE_ENV` says production, which
  *   this app never sets, so leaving it unset kept sign-in throttling off in every
@@ -264,6 +316,7 @@ export function createAuth(config: AppConfig) {
     socialProviders: google ? { google } : undefined,
     account: {
       encryptOAuthTokens,
+      accountLinking: ACCOUNT_LINKING_POLICY,
     },
     databaseHooks: {
       user: {
