@@ -23,7 +23,7 @@ import {
 } from "@/theme";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useState } from "react";
 import { Alert, Platform, StyleSheet, View } from "react-native";
@@ -54,9 +54,22 @@ const LANGUAGES = [
   { id: "fr", label: "Français" },
 ];
 
+/**
+ * What the screen says when the server could not end the session (T2, S3).
+ *
+ * The web target is why the rule exists — there the browser owns the cookie and no local
+ * code can clear it — but the copy is the same on every platform on purpose: a device that
+ * dropped its token while the server kept the session has the same live session waiting for
+ * its expiry, so saying "signed out" would be untrue there too.
+ */
+const SIGN_OUT_INCOMPLETE_MESSAGE =
+  "Your session may still be active: the server could not be reached to end it.";
+const SIGN_OUT_RETRY_LABEL = "Try again";
+
 export default function SettingsScreen() {
   const db = useSQLiteContext();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { user, signOut } = useSession();
 
   // State for controls
@@ -68,10 +81,11 @@ export default function SettingsScreen() {
   const [selectedLanguage, setSelectedLanguage] = useState<string>("en");
   const [isAboutSheetOpen, setIsAboutSheetOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutIncomplete, setSignOutIncomplete] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
   /**
-   * Sign out (S13): clears the stored token, drops the session state, and the root
+   * Sign out (S13, S3): clears the stored token, drops the session state, and the root
    * gate then sends this client back to the sign-in screen on its own. The device
    * database is untouched — local rows stay on the device, and the seeded profiles
    * stay in the `user` table even though no UI path reaches them any more.
@@ -79,6 +93,12 @@ export default function SettingsScreen() {
    * The query cache is cleared by `signOutAndClearCache` in a `finally` of its own
    * (T6c `m2`): it used to be cleared after `await signOut()`, so a sign-out that
    * rejected skipped it and left the previous identity's server state in memory.
+   *
+   * Since T2 the outcome also says what the server did. When the revoke never reached it,
+   * the session is still live — on the web the cookie is the session and nothing local can
+   * clear it — so this screen stops offering the ordinary sign-out and says what actually
+   * happened, with one control that asks again. The same press does both, because it is the
+   * same sign-out.
    */
   const handleSignOut = async () => {
     if (isSigningOut) return;
@@ -95,6 +115,15 @@ export default function SettingsScreen() {
         Alert.alert("Error", "Could not sign out. Please try again.");
       }
 
+      if (outcome.revoke === "unreachable") {
+        // The session may still be active, so nothing here reads as a completed sign-out.
+        console.error(
+          "Sign-out did not reach the server, so the session may still be active:",
+          outcome.revokeError,
+        );
+      }
+      setSignOutIncomplete(outcome.revoke === "unreachable");
+
       if (outcome.cache === "partial") {
         // The cache was emptied; what failed is the reset that cancels in-flight refetches
         // first, so a refetch started just before the sign-out may still resolve into it.
@@ -107,6 +136,16 @@ export default function SettingsScreen() {
       setIsSigningOut(false);
     }
   };
+
+  /**
+   * The label of the Account control: the ordinary sign-out, or the retry once the server
+   * could not be reached (T2, S3).
+   */
+  const signOutActionLabel = isSigningOut
+    ? "Signing out…"
+    : signOutIncomplete
+      ? SIGN_OUT_RETRY_LABEL
+      : "Sign out";
 
   const handleResetDatabase = () => {
     const executeReset = async () => {
@@ -182,14 +221,29 @@ export default function SettingsScreen() {
               <ListItem
                 leading={
                   <Image
-                    source="sf:rectangle.portrait.and.arrow.right.fill"
-                    style={[styles.icon, { tintColor: colors.systemRed }]}
+                    source={
+                      signOutIncomplete
+                        ? "sf:exclamationmark.triangle.fill"
+                        : "sf:rectangle.portrait.and.arrow.right.fill"
+                    }
+                    style={[
+                      styles.icon,
+                      {
+                        tintColor: signOutIncomplete
+                          ? colors.systemOrange
+                          : colors.systemRed,
+                      },
+                    ]}
                   />
                 }
-                supportingText="Clears the session stored on this device"
+                supportingText={
+                  signOutIncomplete
+                    ? SIGN_OUT_INCOMPLETE_MESSAGE
+                    : "Clears the session stored on this device"
+                }
                 onPress={handleSignOut}
               >
-                {isSigningOut ? "Signing out…" : "Sign out"}
+                {signOutActionLabel}
               </ListItem>
             </FieldGroup.Section>
 
@@ -425,14 +479,37 @@ export default function SettingsScreen() {
           <View style={styles.actionRow}>
             {/* Sign-out replaces the device-local profile switcher (S13). The seeded
                 profiles and their rows stay in the local database; no UI path reaches
-                them any more, which is recorded in L27. */}
-            <ChipButton
-              title={isSigningOut ? "Signing out…" : "Sign out"}
-              icon="sf:rectangle.portrait.and.arrow.right.fill"
-              variant="destructive"
-              disabled={isSigningOut}
-              onPress={handleSignOut}
-            />
+                them any more, which is recorded in L27.
+
+                A sign-out the server did not end keeps this screen up (T2, S3): what is
+                offered is the retry, not the ordinary sign-out, and the text says why. */}
+            {signOutIncomplete ? (
+              <View style={styles.signOutIncomplete}>
+                <ThemedText
+                  variant="caption1"
+                  color={colors.systemOrange}
+                  style={styles.signOutNotice}
+                  testID="sign-out-incomplete"
+                >
+                  {SIGN_OUT_INCOMPLETE_MESSAGE}
+                </ThemedText>
+                <ChipButton
+                  title={signOutActionLabel}
+                  icon="sf:arrow.clockwise"
+                  variant="destructive"
+                  disabled={isSigningOut}
+                  onPress={handleSignOut}
+                />
+              </View>
+            ) : (
+              <ChipButton
+                title={signOutActionLabel}
+                icon="sf:rectangle.portrait.and.arrow.right.fill"
+                variant="destructive"
+                disabled={isSigningOut}
+                onPress={handleSignOut}
+              />
+            )}
           </View>
         </View>
       </View>
@@ -705,6 +782,13 @@ const styles = StyleSheet.create({
   actionRow: {
     paddingVertical: 10,
     paddingLeft: 36,
+  },
+  signOutIncomplete: {
+    gap: 8,
+    alignItems: "flex-start",
+  },
+  signOutNotice: {
+    fontSize: fontSizes.sm,
   },
   aboutModalCard: {
     alignItems: "center",

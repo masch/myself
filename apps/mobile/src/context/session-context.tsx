@@ -13,6 +13,7 @@ import { sessionService } from "@/infrastructure/auth/session-service-instance";
 import type {
   SessionRestore,
   SessionRestoreProblem,
+  SessionRevoke,
   SessionService,
   SessionUser,
   SignInInput,
@@ -49,7 +50,16 @@ export interface SessionContextValue {
   restoreProblem: SessionRestoreProblem | null;
   signIn: (input: SignInInput) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<void>;
-  signOut: () => Promise<void>;
+  /**
+   * Signs out and reports what the server half did (T2).
+   *
+   * The identity is dropped once the session ended here, unless the store it was cleared from
+   * says that clearing did not end the session (T2 follow-up, `S3`): on the web the browser
+   * owns the cookie, the session is still live, and the screen that says so needs the tree to
+   * stay up. That answer is the store's, never the platform's, and a store that cannot say it
+   * loses the identity like a native one does.
+   */
+  signOut: () => Promise<SessionRevoke | void>;
   /** Runs the restore again from the retry state (T6c `M1`, `M2`). */
   retryRestore: () => void;
   /** Leaves the retry state for the auth tree, for a user who would rather sign in. */
@@ -253,21 +263,47 @@ export function SessionProvider({
     [service, supersedeRestores],
   );
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (): Promise<SessionRevoke | void> => {
     // Nothing that was in flight when sign-out started may reauthenticate the provider:
     // a launch restore settling late would otherwise put the signed-out identity back.
     supersedeRestores();
+
+    let outcome: SessionRevoke | void;
     try {
-      await service.signOut();
-    } finally {
-      // The stored token is already gone at this point — the service clears it before it
-      // asks the server to revoke anything (T6c `m2`) — so clearing the state is what moves
-      // the gate back to the auth tree, and it happens even if the local clear failed. The
-      // loading flag is cleared here too: with the restore invalidated, nothing else would.
+      outcome = await service.signOut();
+    } catch (error) {
+      // The local clear is the half that failed, and it is still the end of this tree: the
+      // stored token is already gone (the service clears it before it asks the server
+      // anything, T6c `m2`), so leaving the identity up would show a session the device no
+      // longer holds. The loading flag goes with it, because the restore it belonged to was
+      // just invalidated and nothing else would clear it.
       setUser(null);
       setRestoreProblem(null);
       setIsLoading(false);
+      throw error;
     }
+
+    if (outcome?.revoke === "unreachable") {
+      if (outcome.endsSessionOnClear === false) {
+        // The server never ended the session and the store says clearing the token did not
+        // either — the browser cookie on web — so this is not a completed sign-out (T2, S3):
+        // keep the identity and leave the screen that offers the retry in front of the person.
+        // The loading flag is still cleared for the same reason as above.
+        setIsLoading(false);
+        return outcome;
+      }
+
+      // The store says clearing the token ended the session, or it cannot say. Keeping an
+      // identity whose only credential was just removed would show a signed-in tree that
+      // every request answers 401 to, so the safe reading of an unknown wins: the identity
+      // goes with the token (S3). Telling the truth about the live server session is the
+      // screen's job and outlives this decision.
+    }
+
+    setUser(null);
+    setRestoreProblem(null);
+    setIsLoading(false);
+    return outcome;
   }, [service, supersedeRestores]);
 
   const retryRestore = useCallback(() => {

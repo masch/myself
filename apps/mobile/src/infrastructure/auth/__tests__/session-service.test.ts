@@ -42,9 +42,13 @@ async function settleWithin<T>(
   }
 }
 
-function createStorage(initial: string | null = null) {
+function createStorage(
+  initial: string | null = null,
+  capability: { endsSessionOnClear?: boolean } = {},
+) {
   const state = { token: initial, clears: 0, sets: [] as string[] };
   const storage: SessionTokenStorage = {
+    ...capability,
     async get() {
       return state.token;
     },
@@ -365,6 +369,129 @@ describe("createSessionService", () => {
       expect(state.clears).toBe(1);
       expect(await storage.get()).toBeNull();
     });
+
+    /**
+     * The server half is reported, not swallowed (T2, S3).
+     *
+     * The revoke used to be best-effort and silent: a session the server still held came
+     * back to the caller as a completed sign-out. On the web the cookie is the session and
+     * no local code can clear it, so that silence is what kept a live session alive behind
+     * a "signed out" screen.
+     */
+    it("reports that the server ended the session", async () => {
+      const { api, calls } = createApi();
+      const { storage } = createStorage("token-abc");
+      const service = createSessionService({ api, storage });
+
+      expect(await service.signOut()).toEqual({ revoke: "revoked" });
+      expect(calls).toContain("signOut");
+    });
+
+    it("reports an unreachable server with the failure it threw", async () => {
+      const failure = new Error("fetch failed");
+      const { api } = createApi({
+        async signOut() {
+          throw failure;
+        },
+      });
+      const { storage, state } = createStorage("token-abc");
+      const service = createSessionService({ api, storage });
+
+      // The local clear still happened, so the device no longer holds the credential; what
+      // did not happen is the revoke, and the reason travels with the answer.
+      expect(await service.signOut()).toEqual({
+        revoke: "unreachable",
+        revokeError: failure,
+      });
+      expect(state.clears).toBe(1);
+      expect(await storage.get()).toBeNull();
+    });
+
+    it("reports a revoke that outlived its deadline as unreachable", async () => {
+      const { api } = createApi({
+        async signOut() {
+          return new Promise<void>(() => {});
+        },
+      });
+      const { storage } = createStorage("token-abc");
+      const service = createSessionService({
+        api,
+        storage,
+        revokeDeadlineMs: 20,
+      });
+
+      const outcome = await settleWithin(service.signOut(), 1000);
+
+      expect(outcome).not.toBe("never settled");
+      if (outcome === "never settled" || !outcome) {
+        throw new Error("signOut never reported what the server did");
+      }
+      expect(outcome.revoke).toBe("unreachable");
+      expect((outcome.revokeError as Error).message).toBe(
+        "The sign-out request was not answered in time.",
+      );
+    });
+  });
+});
+
+/**
+ * The store's answer travels with the revoke (T2 follow-up, S3).
+ *
+ * Whether the identity may stay after a revoke that never arrived is a fact about the
+ * store: on the web the browser owns the cookie and nothing local ended it, on native the
+ * cleared token was the only proof. The service does not decide that — it carries the
+ * store's own answer, so no caller has to guess it from the platform.
+ *
+ * The service is tested here without a platform at all, so the answer is a plain fact:
+ * the store declares it or it does not.
+ */
+describe("signOut and the store's answer about the session (S3)", () => {
+  const failure = new Error("fetch failed");
+
+  it("carries a store that says clearing the token does not end the session", async () => {
+    const { api } = createApi({
+      async signOut() {
+        throw failure;
+      },
+    });
+    const { storage } = createStorage("token-abc", {
+      endsSessionOnClear: false,
+    });
+    const service = createSessionService({ api, storage });
+
+    expect(await service.signOut()).toEqual({
+      revoke: "unreachable",
+      revokeError: failure,
+      endsSessionOnClear: false,
+    });
+  });
+
+  it("carries a store that says clearing the token ends the session, on a completed revoke too", async () => {
+    const { api } = createApi();
+    const { storage } = createStorage("token-abc", {
+      endsSessionOnClear: true,
+    });
+    const service = createSessionService({ api, storage });
+
+    // The answer is a property of the store, not of this attempt: it travels with a
+    // revoke that reached the server just as it does with one that did not.
+    expect(await service.signOut()).toEqual({
+      revoke: "revoked",
+      endsSessionOnClear: true,
+    });
+  });
+
+  it("reports no answer at all when the store does not declare one", async () => {
+    const { api } = createApi();
+    const { storage } = createStorage("token-abc");
+    const service = createSessionService({ api, storage });
+
+    const outcome = await service.signOut();
+
+    // Absence is a fact too: the store could not say, so the caller gets no answer to
+    // read instead of an invented `false`.
+    expect(outcome).toEqual({ revoke: "revoked" });
+    expect(outcome).not.toHaveProperty("endsSessionOnClear");
   });
 });
 

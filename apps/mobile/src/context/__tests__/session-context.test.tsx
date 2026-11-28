@@ -4,6 +4,7 @@ import { deriveSessionGate } from "../session-gate";
 import { createHookHarness } from "./hook-harness";
 import type {
   SessionRestore,
+  SessionRevoke,
   SessionService,
   SessionUser,
 } from "@/infrastructure/auth/session-service";
@@ -47,10 +48,17 @@ interface PendingRestore {
 
 /**
  * A service whose `restore()` never answers on its own, so each test chooses the outcome
- * the launch sees. `signOut` can be made to reject without touching `restore`.
+ * the launch sees. `signOut` can be made to reject without touching `restore`, and it can
+ * be scripted to report what the server half did (`signOutRevokes`, T2).
  */
-function createControlledService(options: { signOutRejects?: boolean } = {}) {
+function createControlledService(
+  options: {
+    signOutRejects?: boolean;
+    signOutRevokes?: (SessionRevoke | void)[];
+  } = {},
+) {
   const calls = { restore: 0, signOut: 0 };
+  const revokes = [...(options.signOutRevokes ?? [])];
   const pendingRestores: PendingRestore[] = [];
   const service: SessionService = {
     async signIn() {
@@ -62,6 +70,7 @@ function createControlledService(options: { signOutRejects?: boolean } = {}) {
     async signOut() {
       calls.signOut += 1;
       if (options.signOutRejects) throw new Error("keychain unavailable");
+      return revokes.shift();
     },
     restore() {
       calls.restore += 1;
@@ -122,7 +131,10 @@ function createForeground() {
   };
 }
 
-function setup(options?: { signOutRejects?: boolean }) {
+function setup(options?: {
+  signOutRejects?: boolean;
+  signOutRevokes?: (SessionRevoke | void)[];
+}) {
   const harness = createHookHarness();
   const { service, calls, pendingRestores } = createControlledService(options);
   const probe = createProbe();
@@ -369,6 +381,182 @@ describe("sign-out and a replacement identity (L37)", () => {
 
       expect(probe.latest().user).toEqual(USER);
       expect(deriveSessionGate(probe.latest())).toBe("authenticated");
+    });
+  }
+});
+
+describe("sign-out and the server half (T2, S3)", () => {
+  it("keeps the session up when the server could not end it, and hands the answer back", async () => {
+    const failure = new Error("fetch failed");
+    const { harness, pendingRestores, probe } = setup({
+      signOutRevokes: [
+        {
+          revoke: "unreachable",
+          revokeError: failure,
+          endsSessionOnClear: false,
+        },
+      ],
+    });
+
+    pendingRestores[0].resolve({ status: "authenticated", user: USER });
+    await harness.flush();
+
+    const outcome = await probe.latest().signOut();
+    await harness.flush();
+
+    // The screen is what says so and offers the retry, so it has to still be there: a
+    // provider that dropped the identity here would send the person to the sign-in screen,
+    // which is exactly the "completed sign-out" S3 forbids.
+    expect(outcome).toEqual({
+      revoke: "unreachable",
+      revokeError: failure,
+      endsSessionOnClear: false,
+    });
+    expect(probe.latest().user).toEqual(USER);
+    expect(probe.latest().isLoading).toBe(false);
+    expect(deriveSessionGate(probe.latest())).toBe("authenticated");
+  });
+
+  it("drops the identity once the retried sign-out ends the session", async () => {
+    const { harness, calls, pendingRestores, probe } = setup({
+      signOutRevokes: [
+        {
+          revoke: "unreachable",
+          revokeError: new Error("fetch failed"),
+          endsSessionOnClear: false,
+        },
+        { revoke: "revoked" },
+      ],
+    });
+
+    pendingRestores[0].resolve({ status: "authenticated", user: USER });
+    await harness.flush();
+
+    await probe.latest().signOut();
+    await harness.flush();
+    expect(probe.latest().user).toEqual(USER);
+
+    // The retry asks again, and this time the server ended the session: only then does the
+    // gate leave the authenticated tree.
+    await probe.latest().signOut();
+    await harness.flush();
+
+    expect(calls.signOut).toBe(2);
+    expect(probe.latest().user).toBeNull();
+    expect(deriveSessionGate(probe.latest())).toBe("unauthenticated");
+  });
+});
+
+/**
+ * Whether the identity survives a revoke that never arrived is a fact about the store
+ * (S3, S5), and the provider reads that fact instead of the platform.
+ *
+ * On the web the browser owns the session cookie, so nothing local ended the session: the
+ * identity is still the session the person is using, and dropping it would hide the screen
+ * that reports the truth. On native the cleared token was the only proof the device held,
+ * so keeping the identity would show a session every request answers 401 to. A store that
+ * does not report the capability cannot say, and the safe reading of an unknown is that the
+ * session may be over: the identity goes with the token.
+ */
+describe("sign-out and what the store says clearing did (S3, S5)", () => {
+  const failure = new Error("fetch failed");
+
+  it("keeps the identity when clearing the token does not end the session", async () => {
+    const { harness, pendingRestores, probe } = setup({
+      signOutRevokes: [
+        {
+          revoke: "unreachable",
+          revokeError: failure,
+          endsSessionOnClear: false,
+        },
+      ],
+    });
+
+    pendingRestores[0].resolve({ status: "authenticated", user: USER });
+    await harness.flush();
+
+    const outcome = await probe.latest().signOut();
+    await harness.flush();
+
+    // Nothing local ended the session and only the server can, so the tree stays up for
+    // the screen that says so and offers the retry.
+    expect(outcome).toEqual({
+      revoke: "unreachable",
+      revokeError: failure,
+      endsSessionOnClear: false,
+    });
+    expect(probe.latest().user).toEqual(USER);
+    expect(deriveSessionGate(probe.latest())).toBe("authenticated");
+  });
+
+  it("drops the identity when clearing the token ends the session", async () => {
+    const { harness, pendingRestores, probe } = setup({
+      signOutRevokes: [
+        {
+          revoke: "unreachable",
+          revokeError: failure,
+          endsSessionOnClear: true,
+        },
+      ],
+    });
+
+    pendingRestores[0].resolve({ status: "authenticated", user: USER });
+    await harness.flush();
+    expect(probe.latest().user).toEqual(USER);
+
+    await probe.latest().signOut();
+    await harness.flush();
+
+    // The device no longer holds the credential, so the identity is not provable: keeping
+    // it would show a signed-in tree whose every request answers 401.
+    expect(probe.latest().user).toBeNull();
+    expect(deriveSessionGate(probe.latest())).toBe("unauthenticated");
+  });
+
+  it("drops the identity when the store cannot say what clearing did", async () => {
+    const { harness, pendingRestores, probe } = setup({
+      signOutRevokes: [{ revoke: "unreachable", revokeError: failure }],
+    });
+
+    pendingRestores[0].resolve({ status: "authenticated", user: USER });
+    await harness.flush();
+    expect(probe.latest().user).toEqual(USER);
+
+    await probe.latest().signOut();
+    await harness.flush();
+
+    // Absence is read as "the session may be over", which is the safe reading: no answer
+    // is not a licence to keep an identity the app may no longer be able to present.
+    expect(probe.latest().user).toBeNull();
+    expect(deriveSessionGate(probe.latest())).toBe("unauthenticated");
+  });
+
+  for (const endsSessionOnClear of [false, true] as const) {
+    it(`drops the identity on the retry that ends the session (clearing ends it: ${endsSessionOnClear})`, async () => {
+      const { harness, calls, pendingRestores, probe } = setup({
+        signOutRevokes: [
+          { revoke: "unreachable", revokeError: failure, endsSessionOnClear },
+          { revoke: "revoked", endsSessionOnClear },
+        ],
+      });
+
+      pendingRestores[0].resolve({ status: "authenticated", user: USER });
+      await harness.flush();
+
+      await probe.latest().signOut();
+      await harness.flush();
+      // Either the session was never ended here (web) or the identity was already
+      // unprovable (native); both leave the tree exactly as its store allows.
+      expect(probe.latest().user).toEqual(endsSessionOnClear ? null : USER);
+
+      await probe.latest().signOut();
+      await harness.flush();
+
+      // The retry reached the server, so this is a completed sign-out on both shapes.
+      expect(calls.signOut).toBe(2);
+      expect(probe.latest().user).toBeNull();
+      expect(probe.latest().isLoading).toBe(false);
+      expect(deriveSessionGate(probe.latest())).toBe("unauthenticated");
     });
   }
 });

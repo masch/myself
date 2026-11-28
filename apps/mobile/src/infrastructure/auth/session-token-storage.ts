@@ -19,6 +19,12 @@ export const SESSION_TOKEN_STORAGE_KEY = "myself.session-token";
  * live server session with no token to present it.
  */
 export const sessionTokenStorage: SessionTokenStorage = {
+  /**
+   * The keychain token is the only credential a native build presents, so clearing it ends
+   * the session for this client (S3): nothing else here carries it.
+   */
+  endsSessionOnClear: true,
+
   async get() {
     return SecureStore.getItemAsync(SESSION_TOKEN_STORAGE_KEY);
   },

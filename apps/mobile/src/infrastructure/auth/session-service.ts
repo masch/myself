@@ -87,10 +87,41 @@ export class AuthenticationError extends Error {
   }
 }
 
+/**
+ * What the server half of a sign-out did (T2, S3).
+ *
+ * `"unreachable"` is not a rejection of the sign-out: the local credential is already
+ * cleared, and what did not happen is the revoke. On the web the browser owns the session
+ * cookie and only the server can end it, so a revoke that never arrived leaves the session
+ * live and the caller must not report a completed sign-out. The same answer is worth
+ * reporting on native, where the session survives on the server until its expiry, so
+ * nothing about this is decided per platform.
+ */
+export interface SessionRevoke {
+  revoke: "revoked" | "unreachable";
+  /** Why the server could not be reached, when `revoke` is `"unreachable"`. */
+  revokeError?: unknown;
+  /**
+   * The cleared store's answer to "did clearing the token end the session?" (S3).
+   *
+   * Carried from the store so the caller decides on a fact instead of on the platform: `true`
+   * where the token was the session, `false` where something outside the app owns it. Absent
+   * when the store cannot say, which must be read the way the contract reads it — the session
+   * may still be live — and never as a licence to keep an identity.
+   */
+  endsSessionOnClear?: boolean;
+}
+
 export interface SessionService {
   signIn(input: SignInInput): Promise<SessionUser>;
   signUp(input: SignUpInput): Promise<SessionUser>;
-  signOut(): Promise<void>;
+  /**
+   * Clears the local credential and reports what the server did (T2).
+   *
+   * `void` is tolerated for a service that reports nothing, and callers must read it as
+   * "unknown" rather than as a completed revoke.
+   */
+  signOut(): Promise<SessionRevoke | void>;
   restore(): Promise<SessionRestore>;
 }
 
@@ -198,6 +229,15 @@ type RestoreAttempt =
   | { kind: "threw" }
   | { kind: "deadline" };
 
+/** How one revoke call ended, before it is read as a `SessionRevoke`. */
+type RevokeAttempt =
+  | { kind: "revoked" }
+  | { kind: "failed"; error: unknown }
+  | { kind: "deadline" };
+
+/** The reason carried for a revoke that outlived its deadline (T2). */
+const REVOKE_TIMED_OUT = "The sign-out request was not answered in time.";
+
 /**
  * Runs `operation` and settles no later than `deadlineMs`.
  *
@@ -295,6 +335,32 @@ function classifyRestore(attempt: RestoreAttempt): SessionRestore {
   };
 }
 
+/** Reads one attempt as the revoke outcome it means (T2, S3). */
+function classifyRevoke(attempt: RevokeAttempt): SessionRevoke {
+  if (attempt.kind === "revoked") return { revoke: "revoked" };
+
+  return {
+    revoke: "unreachable",
+    revokeError:
+      attempt.kind === "failed" ? attempt.error : new Error(REVOKE_TIMED_OUT),
+  };
+}
+
+/**
+ * Attaches the store's answer about what clearing the token did (S3).
+ *
+ * The answer is a property of the store, not of this attempt, so it travels with every
+ * revoke; it is written only when the store declares one, because an absent answer means "this
+ * store cannot say" and inventing `false` would hide that from the caller.
+ */
+function withStoreCapability(
+  outcome: SessionRevoke,
+  storage: SessionTokenStorage,
+): SessionRevoke {
+  if (storage.endsSessionOnClear === undefined) return outcome;
+  return { ...outcome, endsSessionOnClear: storage.endsSessionOnClear };
+}
+
 /**
  * Orchestrates the session lifecycle (S13).
  *
@@ -324,26 +390,38 @@ export function createSessionService({
     },
 
     /**
-     * Signs out (T6c `m2`).
+     * Signs out (T6c `m2`, T2).
      *
      * The local decision is authoritative and comes first: the stored token is cleared
      * before anything is asked of the server, so an interruption between the two can never
      * leave a live credential on the device while the UI shows the signed-in tree.
      *
-     * The revoke is best-effort afterwards — bounded by its own deadline and swallowing
-     * both a failure and an unanswered request — so it can neither block the local
-     * sign-out nor fail the caller's cleanup. A session the server never revoked survives
-     * until its expiry, which is why S25 records the lifetime. A failure of the local clear
-     * itself still propagates: that is the one outcome the caller must not mistake for a
-     * completed sign-out.
+     * The revoke that follows is bounded by its own deadline, but it is no longer silent:
+     * it resolves with what the server did, and a server that could not be reached is
+     * reported as `"unreachable"` with its reason instead of being folded into a completed
+     * sign-out (T2). That is the web target's whole session — the browser owns the cookie
+     * and only the revoke ends it — and it is worth saying on native too. A failure of the
+     * local clear itself still propagates: that is the one outcome the caller must not
+     * mistake for a completed sign-out.
+     *
+     * The answer also carries what the store itself says about clearing the token (S3), so
+     * whoever keeps or drops the identity reads a fact about the store rather than guessing
+     * it from the platform.
      */
-    async signOut() {
+    async signOut(): Promise<SessionRevoke> {
       await storage.clear();
-      await bounded(
-        () => api.signOut().then(() => undefined),
+
+      const attempt = await bounded<RevokeAttempt>(
+        () =>
+          api.signOut().then(
+            (): RevokeAttempt => ({ kind: "revoked" }),
+            (error: unknown): RevokeAttempt => ({ kind: "failed", error }),
+          ),
         revokeDeadlineMs,
-        () => undefined,
+        () => ({ kind: "deadline" }),
       );
+
+      return withStoreCapability(classifyRevoke(attempt), storage);
     },
 
     /**

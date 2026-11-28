@@ -21,6 +21,12 @@ import type { SessionTokenStorage } from "./session-token-storage.contract";
 let memoryToken: string | null = null;
 
 export const sessionTokenStorage: SessionTokenStorage = {
+  /**
+   * Clearing this token does not end the session (S3): the browser owns the session cookie
+   * and no local code can clear it, so only the server revoke ends it.
+   */
+  endsSessionOnClear: false,
+
   async get() {
     return memoryToken;
   },

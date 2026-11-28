@@ -89,3 +89,57 @@ describe("signOutAndClearCache (T6c m2, L31 review)", () => {
     expect(calls).toEqual(["resetQueries", "clear"]);
   });
 });
+
+/**
+ * The other half of a sign-out (T2, S3).
+ *
+ * `local: "cleared"` is a statement about this device, not about the session the server
+ * holds. On the web the browser owns the cookie and no local code can clear it, so a
+ * revoke that never arrived leaves the session live: the outcome has to carry that instead
+ * of reading as a completed sign-out. `local` and `cache` keep the meanings they had.
+ */
+describe("signOutAndClearCache and the server session (T2, S3)", () => {
+  it("reports that the server ended the session", async () => {
+    const { cache, calls } = createCache();
+
+    const outcome = await signOutAndClearCache({
+      signOut: async () => {
+        calls.push("signOut");
+        return { revoke: "revoked" };
+      },
+      cache,
+    });
+
+    expect(outcome).toEqual({
+      local: "cleared",
+      revoke: "revoked",
+      cache: "cleared",
+    });
+    expect(calls).toEqual(["signOut", "resetQueries", "clear"]);
+  });
+
+  it("reports an unreachable server with its reason, and still drops the cache", async () => {
+    const { cache, calls } = createCache();
+    const failure = new Error("fetch failed");
+
+    const outcome = await signOutAndClearCache({
+      signOut: async () => {
+        calls.push("signOut");
+        return { revoke: "unreachable", revokeError: failure };
+      },
+      cache,
+    });
+
+    // The cache belongs to the identity that is leaving, so it is dropped either way; and
+    // the local clear did happen, which is why `local` keeps its meaning instead of being
+    // turned into a local failure. What is new is the third answer: the server did not end
+    // the session, so nothing here may read as a completed sign-out.
+    expect(outcome).toEqual({
+      local: "cleared",
+      revoke: "unreachable",
+      revokeError: failure,
+      cache: "cleared",
+    });
+    expect(calls).toEqual(["signOut", "resetQueries", "clear"]);
+  });
+});

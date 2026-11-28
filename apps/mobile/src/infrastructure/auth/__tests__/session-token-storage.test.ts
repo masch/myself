@@ -60,6 +60,13 @@ describe("sessionTokenStorage (native, expo-secure-store)", () => {
     expect(keychain.size).toBe(0);
   });
 
+  it("declares that clearing the token ends the session (S3)", () => {
+    // The keychain token is the only credential this build presents: nothing else carries
+    // the session, so clearing it ends it and an unreachable revoke leaves the app with no
+    // proof of the identity it was showing.
+    expect(sessionTokenStorage.endsSessionOnClear).toBe(true);
+  });
+
   it("propagates a keychain failure instead of pretending there is no session", async () => {
     state.failing = true;
 

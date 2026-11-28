@@ -44,6 +44,12 @@ describe("sessionTokenStorage (web, in-memory)", () => {
     expect(await sessionTokenStorage.get()).toBeNull();
   });
 
+  it("declares that clearing the token does not end the session (S3)", () => {
+    // The browser owns the session cookie and no local code can clear it, so clearing the
+    // in-memory token leaves the session live until the server revoke ends it.
+    expect(webStorageModule.sessionTokenStorage.endsSessionOnClear).toBe(false);
+  });
+
   it("imports no native module and no browser persistent storage", async () => {
     const source = await sourceOf(
       "infrastructure/auth/session-token-storage.web.ts",
