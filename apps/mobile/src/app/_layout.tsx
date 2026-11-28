@@ -1,8 +1,19 @@
 import "@/infrastructure/crypto/polyfill";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 
-import { AppButton, EmptyState, ToastProvider } from "@/components";
-import { AuthProvider } from "@/context/auth-context";
+import { AppButton, EmptyState, Spinner, ToastProvider } from "@/components";
+import {
+  LocalIdentityNotice,
+  LocalSessionUser,
+  isMirrorPending,
+  type LocalMirrorPhase,
+} from "@/context/local-session-user";
+import { SessionProvider, useSession } from "@/context/session-context";
+import {
+  appShellScreens,
+  deriveSessionGate,
+  type AppShellMode,
+} from "@/context/session-gate";
 import { isBarterSimulationTab } from "@/features/barter/simulation-tab";
 import { initDatabase } from "@/infrastructure/persistence/database";
 import { isDatabaseInUseError } from "@/infrastructure/persistence/database-open-error";
@@ -14,9 +25,9 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "expo-router/react-navigation";
-import { SQLiteProvider } from "expo-sqlite";
+import { SQLiteProvider, useSQLiteContext } from "expo-sqlite";
 import { useCallback, useState } from "react";
-import { Platform, useColorScheme } from "react-native";
+import { Platform, StyleSheet, useColorScheme, View } from "react-native";
 
 /**
  * Global Error Boundary for Expo Router.
@@ -41,7 +52,9 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   );
 }
 
-/** Name of the SQLite database that persists across app launches. */
+/**
+ * Name of the SQLite database that persists across app launches.
+ */
 const PERSISTED_DATABASE_NAME = "myself.db";
 
 /**
@@ -119,12 +132,81 @@ function DatabaseGate() {
 }
 
 /**
+ * Shown while the stored session is being restored, instead of a sign-in flash.
+ *
+ * It also covers the one tick between a resolved session and its local mirror settling
+ * (T6c `m5`): the tree waits for the mirror, so a write issued immediately after sign-in
+ * cannot reach the database before the identity has a local row.
+ */
+function SessionLoadingScreen() {
+  return (
+    <EmptyState
+      testID="session-loading-screen"
+      icon="sf:person.crop.circle.badge.questionmark"
+      iconColor={colors.secondaryLabel}
+      iconSize={48}
+      title="Restoring your session"
+      description="One moment…"
+      action={<Spinner size="md" label="Loading" />}
+      style={styles.gateScreen}
+    />
+  );
+}
+
+/**
+ * Shown when the stored session could not be checked (T6c `M1`, `M2`).
+ *
+ * Offline is not signed out: the token is still stored, so this screen offers a retry and,
+ * secondarily, a way into the auth tree for a user who would rather sign in. It is
+ * deliberately not a sign-in form — asking a user with a valid session for a password does
+ * not work against a server that is not answering.
+ */
+function SessionUnavailableScreen() {
+  const { restoreProblem, retryRestore, signInAnyway } = useSession();
+
+  return (
+    <EmptyState
+      testID="session-unavailable-screen"
+      icon="sf:wifi.exclamationmark"
+      iconColor={colors.systemOrange}
+      iconSize={48}
+      title="Can't reach the server"
+      description={
+        restoreProblem?.message ??
+        "Your session could not be restored. Try again, or sign in again."
+      }
+      action={
+        <View style={styles.gateActions}>
+          <AppButton
+            title="Try again"
+            variant="primary"
+            onPress={retryRestore}
+          />
+          <AppButton
+            title="Sign in anyway"
+            variant="secondary"
+            onPress={signInAnyway}
+          />
+        </View>
+      }
+      style={styles.gateScreen}
+    />
+  );
+}
+
+/**
  * Renders the app's route stack with color-scheme theming and shared toast
  * notifications. It deliberately excludes the providers that own the SQLite
  * database, so a barter simulation tab can render without opening one.
  */
-function AppShell() {
+function AppShell({ mode }: { mode: AppShellMode }) {
   const colorScheme = useColorScheme();
+
+  // The guards are what enforce the gate: a screen tree whose guard is false is not
+  // registered in the navigator, so an unauthenticated client has no app route to reach
+  // and a signed-in one has no auth route to land on. Which branch each mode opens is a
+  // named decision (T6c `m3`), never a negation of the signed-out state.
+  const { app: showAppScreens, auth: showAuthScreens } = appShellScreens(mode);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -134,45 +216,75 @@ function AppShell() {
             contentStyle: { backgroundColor: colors.transparent },
           }}
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Protected guard={showAuthScreens}>
+            <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+            <Stack.Screen name="sign-up" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="forgot-password"
+              options={{ headerTitle: "Reset password" }}
+            />
+          </Stack.Protected>
+          <Stack.Protected guard={showAppScreens}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="modal"
+              options={{
+                presentation: "modal",
+                headerTitle: "New Task",
+              }}
+            />
+            <Stack.Screen
+              name="reading-modal"
+              options={{
+                presentation: "modal",
+                headerTitle: "Meditation Reading",
+              }}
+            />
+            <Stack.Screen
+              name="dev-showcase"
+              options={{
+                headerTitle: "Design System",
+              }}
+            />
+            <Stack.Screen
+              name="barter"
+              options={{
+                headerTitle: "Mercado de productores",
+              }}
+            />
+            <Stack.Screen
+              name="barter-inbox"
+              options={{
+                headerTitle: "Bandeja de Trueques",
+              }}
+            />
+            <Stack.Screen
+              name="barter-trade/[id]"
+              options={{
+                headerTitle: "Entrega de Trueque",
+              }}
+            />
+          </Stack.Protected>
+          {/*
+            The two deep-link landings belong to neither branch (S2, S13): a user
+            following a reset or verification link is usually one who cannot sign in, and a
+            signed-in client can receive one too, so neither guard may own them. Being
+            registered outside the guards also opens no app route — each screen only
+            reports an outcome and offers the way back.
+
+            Their position in this list is load-bearing, not cosmetic. expo-router builds
+            the navigator's route names from the declared children in order, and when a
+            guarded branch disappears (a sign-in removing the auth branch) React Navigation
+            focuses `routeNames[0]`. Declared before the app branch, this pair became first
+            and every sign-in landed on the reset screen; declared last, `(tabs)` keeps that
+            slot and the pair stays reachable in both states. Pinned by
+            `e2e/reading-flow.spec.ts`, which signs in and then uses the app.
+          */}
           <Stack.Screen
-            name="modal"
-            options={{
-              presentation: "modal",
-              headerTitle: "New Task",
-            }}
+            name="reset-password"
+            options={{ headerShown: false }}
           />
-          <Stack.Screen
-            name="reading-modal"
-            options={{
-              presentation: "modal",
-              headerTitle: "Meditation Reading",
-            }}
-          />
-          <Stack.Screen
-            name="dev-showcase"
-            options={{
-              headerTitle: "Design System",
-            }}
-          />
-          <Stack.Screen
-            name="barter"
-            options={{
-              headerTitle: "Mercado de productores",
-            }}
-          />
-          <Stack.Screen
-            name="barter-inbox"
-            options={{
-              headerTitle: "Bandeja de Trueques",
-            }}
-          />
-          <Stack.Screen
-            name="barter-trade/[id]"
-            options={{
-              headerTitle: "Entrega de Trueque",
-            }}
-          />
+          <Stack.Screen name="verify-email" options={{ headerShown: false }} />
         </Stack>
       </ToastProvider>
     </ThemeProvider>
@@ -180,14 +292,67 @@ function AppShell() {
 }
 
 /**
- * Renders the app's route stack with authentication, color-scheme theming,
- * and shared toast notifications.
+ * The root session gate (S13, T6c `M1`/`M2`).
+ *
+ * Four states, one navigator tree: while the stored session is being restored the app
+ * shows a loading surface (never the sign-in form, which would flash at a signed-in user);
+ * a resolved session opens the app screens; no session opens only the sign-up and sign-in
+ * screens; and a restore that could not answer opens a retry surface that keeps the token.
+ * It sits below `SQLiteProvider` on purpose — the database gate still runs first, so a
+ * device without a usable database reports that before any session work happens — and
+ * outside `DatabaseGate` for the barter simulation tab, which renders without either.
+ */
+function SessionGate() {
+  const { user, isLoading, restoreProblem } = useSession();
+  const state = deriveSessionGate({ user, isLoading, restoreProblem });
+
+  if (state === "loading") {
+    return <SessionLoadingScreen />;
+  }
+
+  if (state === "unavailable") {
+    return <SessionUnavailableScreen />;
+  }
+
+  return <AppShell mode={state} />;
+}
+
+/**
+ * The tree a signed-in client sees, withheld until the mirror of its identity settles
+ * (T6c `m5`).
+ *
+ * The mirror used to be fire-and-forget: the tree opened in the same commit the write
+ * started, so a task or reflection created immediately after sign-in could reach the
+ * database before the identity had a local row and fail its foreign key. Waiting for the
+ * phase instead keeps the race out of the product, and it waits for the *write*, not for
+ * its success: a mirror that failed still opens the tree (`m1`) and shows the notice, so a
+ * local ownership problem never locks a signed-in user out of the content that does work.
+ */
+function SessionTree() {
+  const db = useSQLiteContext();
+  const { user } = useSession();
+  const [mirror, setMirror] = useState<LocalMirrorPhase>({ phase: "none" });
+  const isWaitingForMirror = isMirrorPending(mirror, user);
+  const notice =
+    !isWaitingForMirror && mirror.phase === "settled" ? mirror.message : null;
+
+  return (
+    <View style={styles.appRoot}>
+      <LocalSessionUser db={db} onMirror={setMirror} />
+      {isWaitingForMirror ? <SessionLoadingScreen /> : <SessionGate />}
+      {notice ? <LocalIdentityNotice message={notice} /> : null}
+    </View>
+  );
+}
+
+/**
+ * Wraps the app in the session the whole authenticated tree reads (`S13`).
  */
 function AppNavigation() {
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <SessionProvider>
+      <SessionTree />
+    </SessionProvider>
   );
 }
 
@@ -210,7 +375,7 @@ export default function RootLayout() {
   if (isBarterSimulationTab()) {
     return (
       <QueryClientProvider client={queryClient}>
-        <AppShell />
+        <AppShell mode="ungated" />
       </QueryClientProvider>
     );
   }
@@ -221,3 +386,18 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  appRoot: {
+    flex: 1,
+  },
+  gateScreen: {
+    flex: 1,
+    backgroundColor: colors.systemBackground,
+    padding: spacing.xl,
+    justifyContent: "center",
+  },
+  gateActions: {
+    gap: spacing.sm,
+  },
+});

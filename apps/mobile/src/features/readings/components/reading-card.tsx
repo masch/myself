@@ -23,6 +23,13 @@ export interface ReadingCardProps {
   onDelete: (reading: MeditationReadingWithAuthor) => void;
   onRecordRead: (readingId: string) => void;
   onUndoRead?: (readingId: string) => void;
+  /**
+   * Whether this session may edit or delete curated content (S6). Defaults to `true` so
+   * the card keeps its current shape for callers that do not gate on a role; the
+   * readings screen passes the session's real capability, so a non-admin session is
+   * never offered a write the API would refuse with 403.
+   */
+  canEdit?: boolean;
 }
 
 export function ReadingCard({
@@ -31,6 +38,7 @@ export function ReadingCard({
   onDelete,
   onRecordRead,
   onUndoRead,
+  canEdit = true,
 }: ReadingCardProps) {
   const isCompleted = reading.times_read > 0;
 
@@ -60,22 +68,24 @@ export function ReadingCard({
           </View>
         </View>
 
-        <View style={styles.cardActionsRow}>
-          <IconButton
-            icon="sf:pencil"
-            color={colors.systemBlue}
-            size="medium"
-            accessibilityLabel={`Edit reading ${reading.title || reading.id}`}
-            onPress={() => onEdit(reading)}
-          />
-          <IconButton
-            icon="sf:trash"
-            color={colors.systemRed}
-            size="medium"
-            accessibilityLabel={`Delete reading ${reading.title || reading.id}`}
-            onPress={() => onDelete(reading)}
-          />
-        </View>
+        {canEdit ? (
+          <View style={styles.cardActionsRow}>
+            <IconButton
+              icon="sf:pencil"
+              color={colors.systemBlue}
+              size="medium"
+              accessibilityLabel={`Edit reading ${reading.title || reading.id}`}
+              onPress={() => onEdit(reading)}
+            />
+            <IconButton
+              icon="sf:trash"
+              color={colors.systemRed}
+              size="medium"
+              accessibilityLabel={`Delete reading ${reading.title || reading.id}`}
+              onPress={() => onDelete(reading)}
+            />
+          </View>
+        ) : null}
       </View>
 
       {/* Quote Content */}

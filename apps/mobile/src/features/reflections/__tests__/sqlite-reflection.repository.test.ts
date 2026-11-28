@@ -63,7 +63,7 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
     // Create a test user in DB (created 2026-09-01)
     testUserId = generateEntityId();
     await db.runAsync(
-      "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, '2026-09-01T00:00:00Z')",
+      `INSERT INTO "user" (id, name, email, created_at, updated_at) VALUES (?, ?, ?, strftime('%s', '2026-09-01T00:00:00Z') * 1000, strftime('%s', '2026-09-01T00:00:00Z') * 1000)`,
       [testUserId, "Test User", "test@example.com"],
     );
 
@@ -320,7 +320,7 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
       // Enrolling 1 day after cutoff date (2026-09-19) for another user rejects
       const otherUserId = generateEntityId();
       await db.runAsync(
-        "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, datetime('now'))",
+        `INSERT INTO "user" (id, name, email, created_at, updated_at) VALUES (?, ?, ?, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000)`,
         [otherUserId, "Other User", "other@example.com"],
       );
       expect(
@@ -920,7 +920,7 @@ describe("SqliteReflectionRepository & ExpoNotificationAdapter", () => {
     it("does not return missed questions for dates before user registration", async () => {
       const freshUserId = generateEntityId();
       await db.runAsync(
-        "INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, '2026-09-15T10:00:00Z')",
+        `INSERT INTO "user" (id, name, email, created_at, updated_at) VALUES (?, ?, ?, strftime('%s', '2026-09-15T10:00:00Z') * 1000, strftime('%s', '2026-09-15T10:00:00Z') * 1000)`,
         [freshUserId, "Fresh User", "fresh@example.com"],
       );
       const today = "2026-09-15";

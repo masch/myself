@@ -7,8 +7,30 @@ import {
 } from "@myself/shared";
 import { createApiClient } from "../../../infrastructure/http";
 import { appConfig, type MobileConfig } from "../../../infrastructure/config";
+import type { SessionTokenStorage } from "../../../infrastructure/auth/session-token-storage.contract";
 
 const REQUEST_TIMEOUT_MS = 10_000;
+
+/**
+ * Resolves the bearer token for a curated-content write (S8).
+ *
+ * The platform storage module is the only source: on native it reads the keychain,
+ * on web the bundler swaps in the in-memory store. Resolved per request, so a session
+ * established after this adapter was constructed still applies.
+ */
+export type AuthTokenProvider = () => Promise<string | null>;
+
+const readStoredSessionToken: AuthTokenProvider = async () => {
+  // Resolved on first use instead of at import time. The platform store is the keychain
+  // on native, which no host without a device can load, and callers that supply their
+  // own provider (the test suites) must not have to stub it. The specifier is a literal,
+  // so Metro still bundles the module and the platform split still selects the web
+  // implementation on web.
+  const { sessionTokenStorage }: { sessionTokenStorage: SessionTokenStorage } =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require("../../../infrastructure/auth/session-token-storage");
+  return sessionTokenStorage.get();
+};
 
 export interface RemoteReadingDto {
   id: EntityId;
@@ -23,7 +45,10 @@ export interface RemoteReadingDto {
 export class HttpReadingApiAdapter {
   private client: ReturnType<typeof createApiClient>;
 
-  constructor(configOrBaseUrl: MobileConfig | string = appConfig) {
+  constructor(
+    configOrBaseUrl: MobileConfig | string = appConfig,
+    getAuthToken: AuthTokenProvider = readStoredSessionToken,
+  ) {
     const baseUrl =
       typeof configOrBaseUrl === "string"
         ? configOrBaseUrl
@@ -33,7 +58,9 @@ export class HttpReadingApiAdapter {
         ? REQUEST_TIMEOUT_MS
         : configOrBaseUrl.apiTimeoutMs;
 
-    this.client = createApiClient({ baseUrl, timeoutMs });
+    // The token hook is what makes the curated-content writes authorized: without it
+    // the admin gate (T3) answers every POST/PUT/DELETE with 401.
+    this.client = createApiClient({ baseUrl, timeoutMs, getAuthToken });
   }
 
   async fetchReadings(): Promise<Reading[]> {

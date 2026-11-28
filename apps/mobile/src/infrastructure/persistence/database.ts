@@ -4,17 +4,20 @@ import { generateUUID } from "@/utils/uuid";
 import {
   SHARED_MIGRATIONS,
   DateTime,
+  entityIdSchema,
   generateAuthorId,
   type SupportedLocale,
-  type UserDto as User,
+  type User,
   type TaskItem,
   type AuthorDto as Author,
   type MeditationReading,
   type MeditationReadingTranslation,
   type ReadingLog,
   type MeditationReadingWithAuthor,
+  userNameAndEmailSchema,
 } from "@myself/shared";
 import { seedDatabase } from "./seed";
+import { mapUserRow, type RawUserRecord } from "./mappers/user.mapper";
 import { MOBILE_MIGRATIONS } from "./migrations";
 import { runMigrations } from "./migrator";
 
@@ -40,7 +43,7 @@ export async function initDatabase(db: SQLiteDatabase) {
 
   await db.execAsync("PRAGMA foreign_keys = ON;");
 
-  // 1. Apply shared domain migrations (authors, readings, users, tasks)
+  // 1. Apply shared domain migrations (auth, authors, readings, tasks, reflections)
   await runMigrations(db, SHARED_MIGRATIONS);
 
   // 2. Apply mobile local infrastructure migrations (sync_outbox)
@@ -73,38 +76,206 @@ export async function resetDatabase(db: SQLiteDatabase): Promise<void> {
 }
 
 /**
- * User Operations
+ * User Operations (Better Auth `user` table, mapped into the domain entity)
  */
 
+const USER_COLUMNS = `id, name, email, image, created_at`;
+
 export async function getUsers(db: SQLiteDatabase): Promise<User[]> {
-  return await db.getAllAsync<User>(
-    "SELECT * FROM users ORDER BY created_at ASC",
+  const rows = await db.getAllAsync<RawUserRecord>(
+    `SELECT ${USER_COLUMNS} FROM "user" ORDER BY created_at ASC`,
   );
+  return rows.map(mapUserRow);
 }
 
 export async function getUserById(
   db: SQLiteDatabase,
   id: string,
 ): Promise<User | null> {
-  return await db.getFirstAsync<User>("SELECT * FROM users WHERE id = ?", [id]);
+  const row = await db.getFirstAsync<RawUserRecord>(
+    `SELECT ${USER_COLUMNS} FROM "user" WHERE id = ?`,
+    [id],
+  );
+  return row ? mapUserRow(row) : null;
 }
 
 export async function addUser(
   db: SQLiteDatabase,
   name: string,
   email: string,
-  avatarUrl: string = "",
+  imageUrl: string = "",
 ): Promise<string> {
+  // Same rules the domain `User` applies, applied before the row exists: a local
+  // row with a blank name or a malformed email is unreadable, because
+  // `mapUserRow` builds `User` and throws. Validating here keeps the table inside
+  // the domain's contract instead of persisting a row every read rejects.
+  const parsed = userNameAndEmailSchema.safeParse({ name, email });
+  if (!parsed.success) {
+    throw new Error(
+      parsed.error.issues[0]?.message ?? "Invalid user name or email",
+    );
+  }
+
   const id = generateUUID();
-  const createdAt = DateTime.now().toISOString();
+  const createdAt = DateTime.now().toMillis();
   await db.runAsync(
-    "INSERT INTO users (id, name, email, avatar_url, created_at) VALUES (?, ?, ?, ?, ?)",
-    [id, name, email, avatarUrl, createdAt],
+    'INSERT INTO "user" (id, name, email, image, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)',
+    [id, parsed.data.name, parsed.data.email, imageUrl, createdAt, createdAt],
   );
   return id;
 }
 
 export const createUser = addUser;
+
+/**
+ * What a mirror attempt did (T6c `m1`).
+ *
+ * Returned rather than thrown, and never reduced to a log line: a mirror that did not
+ * happen means the signed-in identity has no local owner, so the first local write for
+ * that user fails its foreign key. That is a condition the code which depends on the
+ * mirror has to handle, not a diagnostic to write down and forget.
+ */
+export type SessionUserMirrorResult =
+  | { status: "mirrored" }
+  /** The id the read boundary would reject (`User` parses the same schema). */
+  | { status: "invalid-id"; message: string }
+  /** A blank name or a malformed email, as every other local user write refuses. */
+  | { status: "invalid-profile"; message: string }
+  /**
+   * `user.email` is UNIQUE and another local row already owns this address, so the row
+   * cannot be written without stealing it. Nothing is written and no duplicate is made.
+   */
+  | {
+      status: "email-owned-by-another-profile";
+      message: string;
+      ownerId: string;
+    };
+
+/**
+ * Writes the signed-in identity into the local `user` table (S13).
+ *
+ * Every per-user row on the device — tasks, reflections, preferences, theme progress —
+ * owns a `user_id` foreign key, and the identity of a session lives on the server. The
+ * admin, and any account created a moment ago, therefore has no local row, so the first
+ * local write would fail the constraint. This mirror keeps the FK owner present for
+ * whoever is authenticated, and it is an upsert so signing in again only refreshes the
+ * profile fields: `created_at` is never rewritten, and a seeded row (the demo identity)
+ * keeps its id, its content and its insertion time.
+ *
+ * The id goes through `entityIdSchema` — the same rule `User` applies on read — because
+ * `getUsers()` maps the whole table: a single row with a non-UUID id makes every user
+ * read for everybody throw. Name and email go through the same schema as every other
+ * local write, and the email is checked against the rows that already exist before the
+ * insert, because `user.email` is UNIQUE and the seeded profiles own two of them.
+ *
+ * That check is a pre-check, not a guarantee: it reads and the insert writes, so another
+ * caller could take the address between the two, and there is no transaction here to stop
+ * it (the identity mirror runs on a single connection but not in a single statement). The
+ * residual is stated instead of implied: the check is advisory, `user.email`'s UNIQUE
+ * constraint is the authority, and a write that loses that race is mapped to the same
+ * `email-owned-by-another-profile` outcome instead of escaping as a driver error.
+ * `email_verified` is written as 0: verification state is the server's (`S23`), nothing on
+ * the device reads the column, and claiming `1` here would be a lie.
+ *
+ * Never throws for a refused identity: every outcome is the returned {@link
+ * SessionUserMirrorResult}, so a caller cannot report success by accident (T6c `m1`).
+ */
+export async function upsertSessionUser(
+  db: SQLiteDatabase,
+  sessionUser: {
+    id: string;
+    name: string;
+    email: string;
+    /** Mirrored for faithfulness; nothing on the device reads the column (L20). */
+    role?: string | null;
+    imageUrl?: string | null;
+  },
+): Promise<SessionUserMirrorResult> {
+  const id = entityIdSchema.safeParse(sessionUser.id);
+  if (!id.success) {
+    return {
+      status: "invalid-id",
+      message: id.error.issues[0]?.message ?? "Invalid ID format",
+    };
+  }
+
+  const parsed = userNameAndEmailSchema.safeParse({
+    name: sessionUser.name,
+    email: sessionUser.email,
+  });
+  if (!parsed.success) {
+    return {
+      status: "invalid-profile",
+      message: parsed.error.issues[0]?.message ?? "Invalid user name or email",
+    };
+  }
+
+  // Checked before the write as well as enforced by it: an upsert that violates UNIQUE
+  // throws away the whole statement, so the identity would keep no local row and the caller
+  // would only see a driver error. The pre-check produces the good message; the constraint
+  // below is what actually decides, because between the read and the insert another caller
+  // can take the address.
+  const owner = await findEmailOwner(db, parsed.data.email);
+  if (owner && owner.id !== id.data) {
+    return emailOwnedByAnotherProfile(parsed.data.email, owner.id);
+  }
+
+  const now = DateTime.now().toMillis();
+  try {
+    await db.runAsync(
+      `INSERT INTO "user" (id, name, email, image, email_verified, role, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 0, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         name = excluded.name,
+         email = excluded.email,
+         image = COALESCE(excluded.image, "user".image),
+         role = COALESCE(excluded.role, "user".role),
+         updated_at = excluded.updated_at`,
+      [
+        id.data,
+        parsed.data.name,
+        parsed.data.email,
+        sessionUser.imageUrl ?? null,
+        sessionUser.role ?? null,
+        now,
+        now,
+      ],
+    );
+  } catch (error) {
+    // The write lost the race the pre-check cannot close: report the owner instead of
+    // letting a constraint error look like a broken database to the caller.
+    const racingOwner = await findEmailOwner(db, parsed.data.email);
+    if (racingOwner && racingOwner.id !== id.data) {
+      return emailOwnedByAnotherProfile(parsed.data.email, racingOwner.id);
+    }
+    throw error;
+  }
+
+  return { status: "mirrored" };
+}
+
+/** The local row that owns an address, if any (the authority behind the UNIQUE constraint). */
+async function findEmailOwner(
+  db: SQLiteDatabase,
+  email: string,
+): Promise<{ id: string } | null> {
+  return db.getFirstAsync<{ id: string }>(
+    'SELECT id FROM "user" WHERE email = ?',
+    [email],
+  );
+}
+
+/** One outcome, built in one place so both the pre-check and the constraint say it alike. */
+function emailOwnedByAnotherProfile(
+  email: string,
+  ownerId: string,
+): SessionUserMirrorResult {
+  return {
+    status: "email-owned-by-another-profile",
+    ownerId,
+    message: `The address ${email} already belongs to another profile on this device, so the signed-in identity has no local owner.`,
+  };
+}
 
 /**
  * Task Operations

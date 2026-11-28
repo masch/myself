@@ -65,7 +65,8 @@ describe("SqliteReadingRepository: Outbox Mutation Coalescing", () => {
       CREATE TABLE IF NOT EXISTS reading_logs (
         id TEXT PRIMARY KEY,
         reading_id TEXT NOT NULL,
-        read_at TEXT NOT NULL
+        read_at TEXT NOT NULL,
+        user_id TEXT
       );
       CREATE TABLE IF NOT EXISTS sync_outbox (
         id TEXT PRIMARY KEY,
@@ -85,7 +86,7 @@ describe("SqliteReadingRepository: Outbox Mutation Coalescing", () => {
     );
 
     db = createExpoSqliteAdapter(rawDb);
-    repo = new SqliteReadingRepository(db);
+    repo = new SqliteReadingRepository(db, { currentUserId: () => null });
   });
 
   it("Scenario 1: CREATE + DELETE cancels out and purges pending outbox record locally", async () => {

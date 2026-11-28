@@ -2,11 +2,16 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "myself-api",
   "main": "src/index.ts",
-  "compatibility_date": "2025-02-01",
+  "compatibility_date": "2025-04-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true,
   },
+  // CORS_ALLOWED_ORIGINS is a public value, not a secret: it belongs in `vars` per
+  // environment, set to the deployed web origin(s) that may call this API from a browser
+  // (S15, S22, S26). It is deliberately absent here instead of guessed: naming the wrong
+  // origin would be a silent misconfiguration, and the API now refuses every unlisted
+  // origin with 403 "Origin not allowed".
   "vars": {
     "ENVIRONMENT": "production",
   },

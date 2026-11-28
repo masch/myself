@@ -1,0 +1,365 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
+import { admin, bearer } from "better-auth/plugins";
+import { authSchema, userNameAndEmailSchema } from "@myself/shared";
+import { APP_DEEP_LINK_ORIGINS, type AppConfig } from "./config";
+import { createDb } from "./infrastructure/persistence/client";
+import {
+  createEmailSender,
+  resetPasswordMessage,
+  verificationEmailMessage,
+} from "./services/email";
+
+/**
+ * The slice of the Workers `ExecutionContext` this module needs.
+ *
+ * It is declared structurally so the same dispatch code runs on Bun (where Hono has
+ * no execution context) and on workerd, without importing `cloudflare:workers` —
+ * that specifier cannot be loaded by the Bun test runner.
+ */
+export interface BackgroundTaskContext {
+  waitUntil(promise: Promise<unknown>): void;
+}
+
+/**
+ * Carries the per-request execution context to Better Auth's background dispatcher.
+ *
+ * The dispatcher has no access to the request, so the context travels out of band.
+ * `AsyncLocalStorage` keeps it per-request instead of in a module-level variable,
+ * which would leak the context of a concurrent request.
+ */
+const backgroundContext = new AsyncLocalStorage<BackgroundTaskContext>();
+
+/**
+ * Runs `fn` with `ctx` available to `dispatchBackgroundTask`.
+ *
+ * A missing context (local Bun dev, tests) is expected, not an error: it simply
+ * means nothing can be deferred past the response.
+ */
+export function runWithExecutionContext<T>(
+  ctx: BackgroundTaskContext | undefined,
+  fn: () => T,
+): T {
+  if (!ctx) {
+    return fn();
+  }
+  return backgroundContext.run(ctx, fn);
+}
+
+/**
+ * `advanced.backgroundTasks.handler` (S14).
+ *
+ * Verification and reset emails are dispatched here so the auth response does not
+ * wait for them, which is what keeps sign-up and reset response times independent of
+ * whether an address exists (timing-attack mitigation). On Workers the promise is
+ * handed to `waitUntil`, which keeps the isolate alive until it settles.
+ *
+ * Degrading safely: without an execution context the task is still started, just not
+ * tied to a request lifetime, and a rejection is logged instead of surfacing as an
+ * unhandled rejection.
+ */
+function dispatchBackgroundTask(promise: Promise<unknown>): void {
+  const ctx = backgroundContext.getStore();
+  if (ctx) {
+    ctx.waitUntil(promise);
+    return;
+  }
+
+  promise.catch((error: unknown) => {
+    console.error("[auth] Background task failed:", error);
+  });
+}
+
+/**
+ * Rejects a `user` row the domain `User` would refuse (S3).
+ *
+ * Better Auth only type-checks `name` as a string, so `name: "   "` would be
+ * persisted and `mapUserRow` would then throw on every later read of that row,
+ * turning a user listing into a 500. The shared user-input schema is applied here,
+ * at the write boundary, and the rejection surfaces as a normal 400 instead.
+ *
+ * `partial` is for the update hook, which receives only the fields being written
+ * (a ban or a verification sets neither `name` nor `email`). An absent field is
+ * skipped; an explicit `null` is not, because it is a caller asking for a null
+ * identity field, which the domain `User` refuses on every later read.
+ */
+function assertValidUserIdentity(
+  data: { name?: unknown; email?: unknown },
+  partial: boolean,
+): void {
+  for (const field of ["name", "email"] as const) {
+    const value = data[field];
+    if (partial && value === undefined) {
+      continue;
+    }
+    if (value === null) {
+      throw new APIError("BAD_REQUEST", {
+        message: `Invalid user ${field}: expected a string, received null`,
+      });
+    }
+    const parsed = userNameAndEmailSchema.shape[field].safeParse(value);
+    if (!parsed.success) {
+      throw new APIError("BAD_REQUEST", {
+        message:
+          parsed.error.issues[0]?.message ??
+          `Invalid user ${field}: expected a string`,
+      });
+    }
+  }
+}
+
+/**
+ * The admin-plugin endpoints this app does not use (S5, S7, S20).
+ *
+ * `disabledPaths` is read by Better Auth's own router before the endpoint runs, so a
+ * disabled path is a plain 404 and cannot be reached with any credentials. Only the
+ * two read-only identity lookups S7 needs stay enabled (`/admin/list-users` and
+ * `/admin/get-user`); everything else is a mutating identity surface with no feature
+ * behind it, and disabling `/admin/set-role` is what makes S20's "no endpoint can
+ * grant the admin role" true even for an admin caller.
+ *
+ * Scope note: this blocks the HTTP surface only. Server-side `auth.api.*` calls (the
+ * seed, the tests) do not pass through the router.
+ */
+export const ADMIN_DISABLED_PATHS = [
+  // Impersonation: no such feature, and it is the highest-risk surface here.
+  "/admin/impersonate-user",
+  "/admin/stop-impersonating",
+  // Roles: the seed is the only producer of `admin` (S20), so nothing may set one.
+  "/admin/set-role",
+  "/admin/has-permission",
+  // Identity lifecycle: accounts come from sign-up, not from an admin call.
+  "/admin/create-user",
+  "/admin/update-user",
+  "/admin/remove-user",
+  "/admin/set-user-password",
+  // Moderation: v1 has no ban feature.
+  "/admin/ban-user",
+  "/admin/unban-user",
+  // Session administration: reset revocation belongs to the reset flow (S2, T4).
+  "/admin/list-user-sessions",
+  "/admin/revoke-user-session",
+  "/admin/revoke-user-sessions",
+];
+
+/**
+ * The implicit-linking policy for social sign-in (S24).
+ *
+ * The risk S24 names is a takeover: an attacker pre-registers a password account at a
+ * victim's address, the victim later signs in with Google, and the identity gets
+ * attached to the attacker-owned row. Better Auth 1.7.28 can express exactly that
+ * guard, so it is configured here rather than inherited:
+ *
+ * - `requireLocalEmailVerified: true` — implicit linking is refused unless the
+ *   **existing local row** proved ownership of its address (`link-account.mjs:171-172`).
+ *   A password account created today is unverified (S23 keeps verification off), which
+ *   is the pre-registered-attacker state, so a Google sign-in whose email matches one
+ *   fails with `401 { code: "OAUTH_LINK_ERROR", message: "account not linked" }`
+ *   instead of signing in as that account. The option is documented `@deprecated` with
+ *   "the gate will become unconditional"
+ *   (`@better-auth/core/dist/types/init-options.d.mts:1124`; `enabled` is declared at
+ *   `:1094`), so setting it explicitly is safe in both directions: today it selects the
+ *   gate, and once the gate is unconditional the same value stays correct.
+ * - `trustedProviders: []` — defence in depth for the other half of the same condition
+ *   (`!isTrustedProvider && !userInfo.emailVerified`, `link-account.mjs:170-172`),
+ *   resolved into the context by `context/helpers.mjs:153-157` through
+ *   `create-context.mjs:129`, so an empty list is literally what the gate reads. It is
+ *   **not** what carries S24: with `requireLocalEmailVerified` true, an unverified local
+ *   row is refused whether or not Google is trusted (observed by flipping this list),
+ *   because the local half of the condition is checked first. It stays empty because it
+ *   is the field that would silently widen the *weaker* half — a trusted provider makes
+ *   its own `email_verified` claim enough for a row whose local address never proved
+ *   itself.
+ * - `allowDifferentEmails: false` — linking an identity whose email differs from the
+ *   local row's is a different attack surface with no feature behind it; the library
+ *   warns enabling it "might lead to account takeovers" (`init-options.d.mts:1154`).
+ * - `enabled: true` with `disableImplicitLinking: false` — implicit linking stays on,
+ *   because the guard above is what S24 asks for. The documented safe path is kept: a
+ *   local row whose email *is* verified has proven ownership of the address, so the
+ *   Google identity is attached to it and the person signs in as that same account
+ *   instead of getting a second account with the same email. Disabling implicit linking
+ *   entirely would satisfy S24 too, but would turn every existing verified email into
+ *   an error for no security gain; the decision is recorded in the tests, not inferred.
+ *
+ * Not set, deliberately: `allowUnlinkingAll` (no unlink feature) and
+ * `updateUserInfoOnLink` (a link must not rewrite the local profile).
+ */
+export const ACCOUNT_LINKING_POLICY = {
+  enabled: true,
+  disableImplicitLinking: false,
+  requireLocalEmailVerified: true,
+  allowDifferentEmails: false,
+  trustedProviders: [] as string[],
+} as const;
+
+/**
+ * The Better Auth instance (S1).
+ *
+ * Wiring notes that must not be lost:
+ * - `schema` is mandatory for `drizzleAdapter`, otherwise it fails with
+ *   `SCHEMA_MISMATCH`.
+ * - `advanced.database.generateId` returns UUIDs because the domain `User` validates
+ *   `entityIdSchema`; Better Auth's default generator returns a 32-character
+ *   non-UUID id, which makes `mapUserRow` throw on real sign-ups.
+ * - `ipAddressHeaders` is `cf-connecting-ip`: Workers do not send `X-Forwarded-For`,
+ *   and without it the auth rate limiter collapses into a single bucket.
+ * - `account.encryptOAuthTokens` keeps the Google access and refresh tokens out of
+ *   the database in plaintext, but only when a real `secret` is configured
+ *   (R1-001). Better Auth 1.7.28 encrypts exactly those two token columns and
+ *   writes `idToken` through unchanged, so no claim beyond them is made. The
+ *   library derives its key from `secret` and falls back to a publicly known
+ *   default, so encrypting without one would claim a confidentiality the
+ *   deployment does not have. Fail-closed: never encrypt under the default key,
+ *   warn once at startup instead.
+ * - `account.accountLinking` is S24's policy, stated explicitly in
+ *   `ACCOUNT_LINKING_POLICY` above (see the comment there for each field).
+ * - `rateLimit.enabled` is set explicitly from the resolved `ENVIRONMENT` (L22):
+ *   the library only enables its limiter when `NODE_ENV` says production, which
+ *   this app never sets, so leaving it unset kept sign-in throttling off in every
+ *   environment, staging included.
+ * - `emailVerification.sendOnSignUp` and `emailAndPassword.sendResetPassword` are the
+ *   two messages of S2, both sent through the single `EmailSender` of S16. The library
+ *   hands both to `advanced.backgroundTasks` (`runInBackgroundOrAwait`), so the auth
+ *   response never waits for the send: sign-up and reset answer in the same time
+ *   whether or not the address exists, which is the timing-attack mitigation Better
+ *   Auth documents. `sendOnSignUp` is set explicitly because the library otherwise
+ *   follows `requireEmailVerification`, which stays off (S23).
+ * - `revokeSessionsOnPasswordReset` is on for every environment: completing a reset
+ *   revokes all of that user's sessions, and it is a property of the reset flow rather
+ *   than of the sender, so it does not depend on a vendor being configured.
+ * - The sender itself is chosen in `services/email` (S16). A deployed environment gets
+ *   no sender and one boot warning, because the only implementation that exists
+ *   refuses to run there (R1-002).
+ * - `transaction` is enabled on the Drizzle adapter so Better Auth's
+ *   `runWithTransaction` wraps a sign-up's `user` and `account` writes in one
+ *   libSQL transaction (L22).
+ * - Google is only registered when both credentials are configured, so a checkout
+ *   without them still boots.
+ * - `advanced.defaultCookieAttributes` is the resolved cookie posture of S2, not
+ *   Better Auth's implicit one. The library builds the session cookie as
+ *   `{ secure, sameSite: "lax", path: "/", httpOnly: true, ...defaultCookieAttributes }`
+ *   (`better-auth/dist/cookies/index.mjs:34-40`), so passing the whole object states
+ *   `SameSite`, `Secure`, `HttpOnly` and `Path` explicitly instead of inheriting four
+ *   defaults. It is not the *only* place `Secure` is decided: the library forces it
+ *   whenever the cookie gets the `__Secure-` prefix (a deployed environment, or any
+ *   `https` base URL), so a local run against an `https` AUTH_URL is secure on the wire
+ *   while this object says otherwise. What this object decides is the policy a person
+ *   chose; the prefix is the library's own floor under it.
+ */
+export function createAuth(config: AppConfig) {
+  const db = createDb(config.database);
+  const { secret, baseUrl, google, rateLimit, cookies } = config.auth;
+  const encryptOAuthTokens = Boolean(secret);
+  // The only implementation today is the development one, so a deployed environment
+  // gets `undefined` here and one warning, never a sender that would log a token.
+  const emailSender = createEmailSender(config);
+
+  // One warning per boot (createAuth runs once, when the app is built), not per
+  // request: the operator needs to see it, but it must not flood the log.
+  if (!encryptOAuthTokens) {
+    console.warn(
+      "[auth] Provider tokens (Google access and refresh tokens) are stored unencrypted because AUTH_SECRET is not set. Set AUTH_SECRET to encrypt them; encrypting without one would use Better Auth's publicly known default key.",
+    );
+  }
+
+  return betterAuth({
+    secret,
+    baseURL: baseUrl,
+    // The browser's own origin must be trusted for Better Auth to accept its requests;
+    // without this the library answers `Invalid origin` before any credential is read.
+    // The app's deep links are trusted too, and only those two: the reset and verification
+    // links hand a token to `myself://…` (S2, S13), and a custom scheme is accepted only
+    // when it is named here. They are not browser origins and do not widen the CORS
+    // allowlist the origin guard uses.
+    trustedOrigins: [...config.cors.allowedOrigins, ...APP_DEEP_LINK_ORIGINS],
+    rateLimit,
+    database: drizzleAdapter(db, {
+      provider: "sqlite",
+      schema: authSchema,
+      // Better Auth wraps a sign-up in `runWithTransaction`; with the adapter's
+      // default this option is `false` and those writes are applied one by one, so
+      // a failed credential insert left an orphan user that blocked the retry.
+      transaction: true,
+    }),
+    emailAndPassword: {
+      enabled: true,
+      // S2: completing a reset revokes every session of that user. Independent of the
+      // sender, so it stays on in a deployment that has no email vendor yet.
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword: emailSender
+        ? async (data: {
+            user: { email: string; name?: string | null };
+            url: string;
+          }) => {
+            await emailSender.send(
+              resetPasswordMessage({
+                from: config.email.from,
+                user: data.user,
+                url: data.url,
+              }),
+            );
+          }
+        : undefined,
+    },
+    // S23 keeps `requireEmailVerification` off, so the message is requested through
+    // `sendOnSignUp` instead: verification is offered, never enforced, while the sender
+    // is the development implementation.
+    emailVerification: emailSender
+      ? {
+          sendOnSignUp: true,
+          sendVerificationEmail: async (data: {
+            user: { email: string; name?: string | null };
+            url: string;
+          }) => {
+            await emailSender.send(
+              verificationEmailMessage({
+                from: config.email.from,
+                user: data.user,
+                url: data.url,
+              }),
+            );
+          },
+        }
+      : undefined,
+    socialProviders: google ? { google } : undefined,
+    account: {
+      encryptOAuthTokens,
+      accountLinking: ACCOUNT_LINKING_POLICY,
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (user) => {
+            assertValidUserIdentity(user, false);
+          },
+        },
+        update: {
+          before: async (data) => {
+            assertValidUserIdentity(data, true);
+          },
+        },
+      },
+    },
+    plugins: [bearer(), admin()],
+    disabledPaths: ADMIN_DISABLED_PATHS,
+    advanced: {
+      defaultCookieAttributes: cookies,
+      database: {
+        generateId: () => crypto.randomUUID(),
+      },
+      ipAddress: {
+        // Better Auth 1.7 reads the headers from this flat field; the older nested
+        // `ipAddress.config.ipAddressHeaders` shape is accepted but ignored, which
+        // silently falls back to `x-forwarded-for` on Workers.
+        ipAddressHeaders: ["cf-connecting-ip"],
+      },
+      backgroundTasks: {
+        handler: dispatchBackgroundTask,
+      },
+    },
+  });
+}
+
+export type Auth = ReturnType<typeof createAuth>;

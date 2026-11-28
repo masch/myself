@@ -50,6 +50,16 @@ You can start developing by editing the files inside the **app** directory. This
 
 ---
 
+## Authentication & Roles
+
+Identity is server-authoritative and self-hosted: a Better Auth 1.7 instance mounted at `/api/auth` on the Workers API. No third-party auth provider (Auth0, Clerk, Firebase Auth, Supabase Auth).
+
+- **Transport is chosen per client class.** A native client sends `Authorization: Bearer` with a token from `expo-secure-store`; the web target relies on the `HttpOnly` session cookie Better Auth sets, asks for it with `credentials: "include"`, and keeps no token anywhere a script could read. The HTTP client takes that mode from a platform-split module (`infrastructure/http/request-credentials{,.web}.ts`), so no caller has to know which class it is.
+- **Mobile** reads identity from `SessionProvider` / `useSession` (`src/context/session-context.tsx`): `session.user`, `signIn`, `signUp`, `signOut`, and a restore that can come back `unavailable` with a retry instead of pretending to be signed out. Per-user domain data stays on the device; new `reading_logs` rows carry `session.user.id` and rows written before sign-in stay `NULL`.
+- **Roles** come from the session only, never from a request body. The admin plugin holds one seeded admin; `POST`/`PUT`/`DELETE /v1/readings` and `POST /v1/authors` require it, reads stay public, and no endpoint can grant the role.
+- **Verification and reset** links land on the app deep links `myself://verify-email` and `myself://reset-password`. Those two routes are registered **outside** the session gate on purpose: the person following one usually cannot sign in. They only report an outcome.
+- **Deployment** needs `AUTH_SECRET`, `AUTH_URL` and a `CORS_ALLOWED_ORIGINS` allowlist that fails closed (an empty value refuses every browser origin); `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are optional and enable the provider only when both are present. The Google button on the **web** target additionally needs `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (a client ID is not a secret) set to that same value; create it in Google Cloud as an OAuth client of type _Web application_ with the web origin under authorized JavaScript origins — no redirect URI, because the ID token comes back to the page callback. It is inlined at build time, so restart the build after changing it. Until then the button is absent, not dead: native is hidden by construction, because it needs its own iOS/Android client IDs and a native module that can mint an ID token. There is **no email vendor yet**: a deployed environment sends no verification or reset mail and answers `RESET_PASSWORD_DISABLED` until [#171](https://github.com/masch/myself/issues/171) lands.
+
 ## Meditation Session Architecture (Multiplatform SDD)
 
 Software Design Document (SDD) specifying session lifecycle, background execution, and lockscreen notifications across Android, iOS, and Web.

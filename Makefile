@@ -117,7 +117,7 @@ check-format-staged: ## Check code formatting on staged files using prettier
 	@git diff --cached --name-only -z --diff-filter=d 2>/dev/null | xargs -0 -r bun prettier --check --ignore-unknown --
 
 .PHONY: check-odd
-check-odd: ## Verify all ODD task documents are completed and closed
+check-odd: ## Verify ODD task documents are closed (respects 'Status: open')
 	@./scripts/check-odd.sh
 
 .PHONY: check-odd-doc

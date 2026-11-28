@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { Stack, router, useFocusEffect } from "expo-router";
 import { View, StyleSheet } from "react-native";
 import { useReadings } from "@/hooks/use-readings";
 import { type MeditationReadingWithAuthor } from "@/infrastructure/persistence/database";
@@ -13,11 +12,23 @@ import {
   ThemedText,
 } from "@/components";
 import { ReadingCard } from "@/features/readings/components/reading-card";
+import {
+  Stack,
+  router,
+  useFocusEffect,
+} from "@/features/readings/readings-navigation";
+import { canCurateContent } from "@/features/readings/curation-access";
+import { useSession } from "@/context/session-context";
 import { confirmDelete } from "@/features/readings/confirm-delete";
 import { colors, fontWeights, letterSpacings, spacing } from "@/theme";
 import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
 
 export default function ReadingsScreen() {
+  // Curated-content writes are admin-only (S6, S20); a normal session gets the catalog
+  // read-only instead of buttons the API would answer with 403.
+  const { user } = useSession();
+  const canCurate = canCurateContent(user?.role);
+
   const {
     readings,
     isLoading,
@@ -73,15 +84,17 @@ export default function ReadingsScreen() {
           title: "Meditation Readings",
           headerLargeTitle: true,
           headerShadowVisible: false,
-          headerRight: () => (
-            <IconButton
-              icon="sf:plus"
-              color={colors.systemBlue}
-              size="large"
-              accessibilityLabel="Add new reading"
-              onPress={() => router.push("/reading-modal")}
-            />
-          ),
+          headerRight: canCurate
+            ? () => (
+                <IconButton
+                  icon="sf:plus"
+                  color={colors.systemBlue}
+                  size="large"
+                  accessibilityLabel="Add new reading"
+                  onPress={() => router.push("/reading-modal")}
+                />
+              )
+            : undefined,
         }}
       />
 
@@ -139,12 +152,14 @@ export default function ReadingsScreen() {
           </View>
         </View>
 
-        <AppButton
-          title="Add New Reading"
-          icon="sf:plus.circle.fill"
-          variant="purple"
-          onPress={() => router.push("/reading-modal")}
-        />
+        {canCurate ? (
+          <AppButton
+            title="Add New Reading"
+            icon="sf:plus.circle.fill"
+            variant="purple"
+            onPress={() => router.push("/reading-modal")}
+          />
+        ) : null}
       </Card>
 
       {/* Unread Readings Section */}
@@ -164,6 +179,7 @@ export default function ReadingsScreen() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onRecordRead={recordRead}
+              canEdit={canCurate}
             />
           ))}
         </View>
@@ -187,6 +203,7 @@ export default function ReadingsScreen() {
               onDelete={handleDelete}
               onRecordRead={recordRead}
               onUndoRead={removeLastRead}
+              canEdit={canCurate}
             />
           ))}
         </View>
@@ -202,11 +219,13 @@ export default function ReadingsScreen() {
           description="Add inspiring passages and philosophical quotes to read right before meditating."
           style={{ marginTop: spacing.lg - 4 }}
           action={
-            <AppButton
-              title="Create First Reading"
-              variant="purple"
-              onPress={() => router.push("/reading-modal")}
-            />
+            canCurate ? (
+              <AppButton
+                title="Create First Reading"
+                variant="purple"
+                onPress={() => router.push("/reading-modal")}
+              />
+            ) : undefined
           }
         />
       )}

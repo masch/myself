@@ -40,5 +40,18 @@ export const createUserSchema = userPropsSchema.pick({
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 
+/**
+ * The identity fields every path that writes a `user` row must validate (S3).
+ *
+ * The domain `User` refuses a blank name and a malformed email, so a row written
+ * with either one becomes unreadable: every later read throws. Better Auth only
+ * type-checks `name` as a string, so the auth hooks and the device insert reuse
+ * these rules at the write boundary instead of relying on the type.
+ */
+export const userNameAndEmailSchema = userPropsSchema.pick({
+  name: true,
+  email: true,
+});
+
 export const listUsersQuerySchema = paginationQuerySchema;
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;

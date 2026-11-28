@@ -7,7 +7,7 @@ import {
   deleteTask as dbDeleteTask,
   type TaskItem,
 } from "@/infrastructure/persistence/database";
-import { useAuth } from "@/context/auth-context";
+import { useSession } from "@/context/session-context";
 
 export interface CreateTaskInput {
   title: string;
@@ -21,12 +21,12 @@ export interface CreateTaskInput {
  */
 export function useTasks() {
   const db = useSQLiteContext();
-  const { currentUser } = useAuth();
+  const { user } = useSession();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshTasks = useCallback(async () => {
-    if (!currentUser) {
+    if (!user) {
       setTasks([]);
       setIsLoading(false);
       return;
@@ -34,20 +34,20 @@ export function useTasks() {
 
     try {
       setIsLoading(true);
-      const data = await getTasksByUserId(db, currentUser.id);
+      const data = await getTasksByUserId(db, user.id);
       setTasks(data);
     } catch (error) {
       console.error("Failed to load user tasks:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [db, currentUser]);
+  }, [db, user]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadInitialTasks() {
-      if (!currentUser) {
+      if (!user) {
         if (isMounted) {
           setTasks([]);
           setIsLoading(false);
@@ -56,7 +56,7 @@ export function useTasks() {
       }
 
       try {
-        const data = await getTasksByUserId(db, currentUser.id);
+        const data = await getTasksByUserId(db, user.id);
         if (isMounted) {
           setTasks(data);
         }
@@ -74,17 +74,17 @@ export function useTasks() {
     return () => {
       isMounted = false;
     };
-  }, [db, currentUser]);
+  }, [db, user]);
 
   const addTask = useCallback(
     async (input: CreateTaskInput) => {
-      if (!currentUser) {
+      if (!user) {
         throw new Error("Cannot add task without an active user");
       }
 
       const id = await dbAddTask(
         db,
-        currentUser.id,
+        user.id,
         input.title,
         input.category ?? "General",
         input.description ?? "",
@@ -92,7 +92,7 @@ export function useTasks() {
       await refreshTasks();
       return id;
     },
-    [db, currentUser, refreshTasks],
+    [db, user, refreshTasks],
   );
 
   const toggleTask = useCallback(
@@ -112,7 +112,7 @@ export function useTasks() {
   );
 
   return {
-    currentUser,
+    user,
     tasks,
     isLoading,
     refreshTasks,

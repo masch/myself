@@ -16,14 +16,8 @@ import { colors, fontWeights, letterSpacings, spacing } from "@/theme";
 import { appErrorHandler } from "@/infrastructure/errors/mobile-error-handler";
 
 export default function HomeScreen() {
-  const {
-    currentUser,
-    tasks,
-    isLoading,
-    refreshTasks,
-    toggleTask,
-    deleteTask,
-  } = useTasks();
+  const { user, tasks, isLoading, refreshTasks, toggleTask, deleteTask } =
+    useTasks();
 
   useFocusEffect(
     useCallback(() => {
@@ -69,10 +63,10 @@ export default function HomeScreen() {
           />
           <View style={{ flex: 1 }}>
             <ThemedText variant="title2">
-              {currentUser ? currentUser.name : "Mindful User"}
+              {user ? user.name : "Mindful User"}
             </ThemedText>
             <ThemedText variant="caption1" color={colors.secondaryLabel}>
-              {currentUser ? currentUser.email : "Local-First Storage Active"}
+              {user ? user.email : "Local-First Storage Active"}
             </ThemedText>
           </View>
         </View>

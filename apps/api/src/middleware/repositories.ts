@@ -2,19 +2,13 @@ import { createMiddleware } from "hono/factory";
 import type { AppEnv, ApiBindings } from "../types";
 import { createDb } from "../infrastructure/persistence/client";
 import type { AppConfig } from "../config";
-import type {
-  AuthorRepository,
-  ReadingRepository,
-  UserRepository,
-} from "../ports";
+import type { AuthorRepository, ReadingRepository } from "../ports";
 import { SqliteAuthorRepository } from "../infrastructure/persistence/repositories/sqlite-author.repository";
 import { SqliteReadingRepository } from "../infrastructure/persistence/repositories/sqlite-reading.repository";
-import { SqliteUserRepository } from "../infrastructure/persistence/repositories/sqlite-user.repository";
 
 export interface RepositoriesDependencies {
   authorRepo: AuthorRepository;
   readingRepo: ReadingRepository;
-  userRepo: UserRepository;
 }
 
 export type RepositoriesProvider = (
@@ -30,7 +24,6 @@ export function createRepositories(
   return {
     authorRepo: new SqliteAuthorRepository(db),
     readingRepo: new SqliteReadingRepository(db),
-    userRepo: new SqliteUserRepository(db),
   };
 }
 
@@ -50,7 +43,6 @@ export function repositoriesMiddleware(
     const deps = resolve(c.env);
     c.set("authorRepo", deps.authorRepo);
     c.set("readingRepo", deps.readingRepo);
-    c.set("userRepo", deps.userRepo);
     await next();
   });
 }

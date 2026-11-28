@@ -2,17 +2,16 @@ import {
   AppBottomSheetModal,
   AppButton,
   ChipButton,
-  IconButton,
   ScreenContainer,
   NativeFieldGroup,
   NativeListItem,
   NativeSwitch,
   NativePicker,
   ThemedText,
-  ThemedTextInput,
 } from "@/components";
 
-import { useAuth } from "@/context/auth-context";
+import { useSession } from "@/context/session-context";
+import { signOutAndClearCache } from "@/features/auth/sign-out";
 import { resetDatabase } from "@/infrastructure/persistence/database";
 import {
   colors,
@@ -24,10 +23,10 @@ import {
 } from "@/theme";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Platform, StyleSheet, View } from "react-native";
 
 // Only import @expo/ui on platforms that fully support it without Compose SlotView crashes
 import {
@@ -55,11 +54,23 @@ const LANGUAGES = [
   { id: "fr", label: "Français" },
 ];
 
+/**
+ * What the screen says when the server could not end the session (T2, S3).
+ *
+ * The web target is why the rule exists — there the browser owns the cookie and no local
+ * code can clear it — but the copy is the same on every platform on purpose: a device that
+ * dropped its token while the server kept the session has the same live session waiting for
+ * its expiry, so saying "signed out" would be untrue there too.
+ */
+const SIGN_OUT_INCOMPLETE_MESSAGE =
+  "Your session may still be active: the server could not be reached to end it.";
+const SIGN_OUT_RETRY_LABEL = "Try again";
+
 export default function SettingsScreen() {
   const db = useSQLiteContext();
   const queryClient = useQueryClient();
-  const { currentUser, users, switchUser, registerUser, refreshAuth } =
-    useAuth();
+  const router = useRouter();
+  const { user, signOut } = useSession();
 
   // State for controls
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -69,34 +80,78 @@ export default function SettingsScreen() {
   const [selectedTheme, setSelectedTheme] = useState<string>("system");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("en");
   const [isAboutSheetOpen, setIsAboutSheetOpen] = useState(false);
-  const [isNewUserSheetOpen, setIsNewUserSheetOpen] = useState(false);
-  const [newUserName, setNewUserName] = useState("");
-  const [newUserEmail, setNewUserEmail] = useState("");
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutIncomplete, setSignOutIncomplete] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
-  const handleCreateUser = async () => {
-    if (!newUserName.trim() || !newUserEmail.trim()) {
-      Alert.alert("Required fields", "Please enter both name and email.");
-      return;
-    }
+  /**
+   * Sign out (S13, S3): clears the stored token, drops the session state, and the root
+   * gate then sends this client back to the sign-in screen on its own. The device
+   * database is untouched — local rows stay on the device, and the seeded profiles
+   * stay in the `user` table even though no UI path reaches them any more.
+   *
+   * The query cache is cleared by `signOutAndClearCache` in a `finally` of its own
+   * (T6c `m2`): it used to be cleared after `await signOut()`, so a sign-out that
+   * rejected skipped it and left the previous identity's server state in memory.
+   *
+   * Since T2 the outcome also says what the server did. When the revoke never reached it,
+   * the session is still live — on the web the cookie is the session and nothing local can
+   * clear it — so this screen stops offering the ordinary sign-out and says what actually
+   * happened, with one control that asks again. The same press does both, because it is the
+   * same sign-out.
+   */
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
 
     try {
-      await registerUser(newUserName.trim(), newUserEmail.trim());
-      setNewUserName("");
-      setNewUserEmail("");
-      setIsNewUserSheetOpen(false);
-    } catch (error) {
-      console.error("Failed to create user:", error);
-      Alert.alert("Error", "Email must be unique.");
+      const outcome = await signOutAndClearCache({
+        signOut,
+        cache: queryClient,
+      });
+
+      if (outcome.local === "failed") {
+        console.error("Failed to sign out:", outcome.localError);
+        Alert.alert("Error", "Could not sign out. Please try again.");
+      }
+
+      if (outcome.revoke === "unreachable") {
+        // The session may still be active, so nothing here reads as a completed sign-out.
+        console.error(
+          "Sign-out did not reach the server, so the session may still be active:",
+          outcome.revokeError,
+        );
+      }
+      setSignOutIncomplete(outcome.revoke === "unreachable");
+
+      if (outcome.cache === "partial") {
+        // The cache was emptied; what failed is the reset that cancels in-flight refetches
+        // first, so a refetch started just before the sign-out may still resolve into it.
+        console.error(
+          "Sign-out emptied the query cache without cancelling its refetches:",
+          outcome.cacheError,
+        );
+      }
+    } finally {
+      setIsSigningOut(false);
     }
   };
+
+  /**
+   * The label of the Account control: the ordinary sign-out, or the retry once the server
+   * could not be reached (T2, S3).
+   */
+  const signOutActionLabel = isSigningOut
+    ? "Signing out…"
+    : signOutIncomplete
+      ? SIGN_OUT_RETRY_LABEL
+      : "Sign out";
 
   const handleResetDatabase = () => {
     const executeReset = async () => {
       try {
         setIsResetting(true);
         await resetDatabase(db);
-        await refreshAuth();
         await queryClient.resetQueries();
         queryClient.clear();
 
@@ -149,8 +204,8 @@ export default function SettingsScreen() {
       <ScreenContainer.Tab>
         <Host style={{ flex: 1 }}>
           <FieldGroup>
-            {/* Active Profile Section */}
-            <FieldGroup.Section title="Active Profile">
+            {/* Account Section: the session, not a device-local profile switcher */}
+            <FieldGroup.Section title="Account">
               <ListItem
                 leading={
                   <Image
@@ -158,49 +213,37 @@ export default function SettingsScreen() {
                     style={[styles.icon, { tintColor: colors.systemBlue }]}
                   />
                 }
-                supportingText={currentUser?.email ?? "No email"}
+                supportingText={user?.email ?? "No email"}
               >
-                {currentUser?.name ?? "No user"}
+                {user?.name ?? "No user"}
               </ListItem>
-
-              {users.length > 1 && (
-                <ListItem
-                  leading={
-                    <Image
-                      source="sf:person.2.fill"
-                      style={[styles.icon, { tintColor: colors.systemGreen }]}
-                    />
-                  }
-                  trailing={
-                    <ExpoPicker
-                      selectedValue={currentUser?.id ?? ""}
-                      onValueChange={(val) => switchUser(String(val))}
-                      appearance="menu"
-                    >
-                      {users.map((u) => (
-                        <ExpoPicker.Item
-                          key={u.id}
-                          label={u.name}
-                          value={u.id}
-                        />
-                      ))}
-                    </ExpoPicker>
-                  }
-                >
-                  Switch Account
-                </ListItem>
-              )}
 
               <ListItem
                 leading={
                   <Image
-                    source="sf:person.badge.plus"
-                    style={[styles.icon, { tintColor: colors.systemBlue }]}
+                    source={
+                      signOutIncomplete
+                        ? "sf:exclamationmark.triangle.fill"
+                        : "sf:rectangle.portrait.and.arrow.right.fill"
+                    }
+                    style={[
+                      styles.icon,
+                      {
+                        tintColor: signOutIncomplete
+                          ? colors.systemOrange
+                          : colors.systemRed,
+                      },
+                    ]}
                   />
                 }
-                onPress={() => setIsNewUserSheetOpen(true)}
+                supportingText={
+                  signOutIncomplete
+                    ? SIGN_OUT_INCOMPLETE_MESSAGE
+                    : "Clears the session stored on this device"
+                }
+                onPress={handleSignOut}
               >
-                Add New User Account
+                {signOutActionLabel}
               </ListItem>
             </FieldGroup.Section>
 
@@ -371,36 +414,6 @@ export default function SettingsScreen() {
             </FieldGroup.Section>
           </FieldGroup>
 
-          {/* Native BottomSheet for New User */}
-          <BottomSheet
-            isPresented={isNewUserSheetOpen}
-            onDismiss={() => setIsNewUserSheetOpen(false)}
-            snapPoints={["half"]}
-          >
-            <Column>
-              <ExpoText>Create User Profile</ExpoText>
-              <View style={styles.sheetInputWrapper}>
-                <ThemedTextInput
-                  accessibilityLabel="Full name"
-                  placeholder="Full Name (e.g. Maria Perez)"
-                  value={newUserName}
-                  onChangeText={setNewUserName}
-                />
-                <ThemedTextInput
-                  accessibilityLabel="Email address"
-                  placeholder="Email (e.g. maria@example.com)"
-                  value={newUserEmail}
-                  onChangeText={setNewUserEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-              <ExpoButton onPress={handleCreateUser}>
-                Create & Switch
-              </ExpoButton>
-            </Column>
-          </BottomSheet>
-
           {/* Native BottomSheet for About Modal */}
           <BottomSheet
             isPresented={isAboutSheetOpen}
@@ -435,7 +448,7 @@ export default function SettingsScreen() {
           color={colors.secondaryLabel}
           style={styles.sectionTitle}
         >
-          ACTIVE PROFILE
+          ACCOUNT
         </ThemedText>
         <View
           style={[
@@ -450,58 +463,53 @@ export default function SettingsScreen() {
             />
             <View style={styles.rowContent}>
               <ThemedText variant="body" style={styles.rowTitle}>
-                {currentUser?.name ?? "No user"}
+                {user?.name ?? "No user"}
               </ThemedText>
               <ThemedText
                 variant="caption1"
                 color={colors.secondaryLabel}
                 style={styles.rowSubtitle}
               >
-                {currentUser?.email ?? "No email"}
+                {user?.email ?? "No email"}
               </ThemedText>
             </View>
           </View>
 
-          {users.length > 1 && (
-            <>
-              <View style={styles.divider} />
-              <View style={styles.accountsContainer}>
-                <ThemedText
-                  variant="caption2"
-                  color={colors.secondaryLabel}
-                  style={styles.subheading}
-                >
-                  Switch Account:
-                </ThemedText>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.chipsRow}
-                >
-                  {users.map((u) => {
-                    const isSelected = u.id === currentUser?.id;
-                    return (
-                      <ChipButton
-                        key={u.id}
-                        title={u.name}
-                        icon="sf:person.fill"
-                        variant={isSelected ? "blue" : "secondary"}
-                        onPress={() => switchUser(u.id)}
-                      />
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            </>
-          )}
-
           <View style={styles.divider} />
           <View style={styles.actionRow}>
-            <ChipButton
-              title="+ Add New User Profile"
-              variant="blue"
-              onPress={() => setIsNewUserSheetOpen(true)}
-            />
+            {/* Sign-out replaces the device-local profile switcher (S13). The seeded
+                profiles and their rows stay in the local database; no UI path reaches
+                them any more, which is recorded in L27.
+
+                A sign-out the server did not end keeps this screen up (T2, S3): what is
+                offered is the retry, not the ordinary sign-out, and the text says why. */}
+            {signOutIncomplete ? (
+              <View style={styles.signOutIncomplete}>
+                <ThemedText
+                  variant="caption1"
+                  color={colors.systemOrange}
+                  style={styles.signOutNotice}
+                  testID="sign-out-incomplete"
+                >
+                  {SIGN_OUT_INCOMPLETE_MESSAGE}
+                </ThemedText>
+                <ChipButton
+                  title={signOutActionLabel}
+                  icon="sf:arrow.clockwise"
+                  variant="destructive"
+                  disabled={isSigningOut}
+                  onPress={handleSignOut}
+                />
+              </View>
+            ) : (
+              <ChipButton
+                title={signOutActionLabel}
+                icon="sf:rectangle.portrait.and.arrow.right.fill"
+                variant="destructive"
+                disabled={isSigningOut}
+                onPress={handleSignOut}
+              />
+            )}
           </View>
         </View>
       </View>
@@ -679,51 +687,6 @@ export default function SettingsScreen() {
         </NativeListItem>
       </NativeFieldGroup.Section>
 
-      {/* Modal for New User (Android / Web) */}
-      <AppBottomSheetModal.Scroll
-        visible={isNewUserSheetOpen}
-        onClose={() => setIsNewUserSheetOpen(false)}
-        maxWidth={460}
-      >
-        <View style={styles.modalHeaderRow}>
-          <ThemedText variant="headline" style={styles.modalTitle}>
-            Create User Profile
-          </ThemedText>
-          <IconButton
-            icon="sf:xmark"
-            color={colors.secondaryLabel}
-            size="small"
-            accessibilityLabel="Close"
-            onPress={() => setIsNewUserSheetOpen(false)}
-          />
-        </View>
-
-        <View style={styles.modalBody}>
-          <ThemedTextInput
-            accessibilityLabel="Full name"
-            placeholder="Full Name (e.g. Maria Perez)"
-            value={newUserName}
-            onChangeText={setNewUserName}
-          />
-          <ThemedTextInput
-            accessibilityLabel="Email address"
-            placeholder="Email (e.g. maria@example.com)"
-            value={newUserEmail}
-            onChangeText={setNewUserEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={{ marginTop: 16 }}>
-          <AppButton
-            title="Create & Switch"
-            variant="primary"
-            onPress={handleCreateUser}
-          />
-        </View>
-      </AppBottomSheetModal.Scroll>
-
       {/* Modal for About (Android / Web) */}
       <AppBottomSheetModal.Scroll
         visible={isAboutSheetOpen}
@@ -775,11 +738,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
   },
-  sheetInputWrapper: {
-    width: "100%",
-    gap: 10,
-    marginVertical: 12,
-  },
   section: {
     gap: 8,
   },
@@ -821,47 +779,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.systemGray20,
     marginLeft: 36,
   },
-  accountsContainer: {
-    paddingVertical: 10,
-    gap: 8,
-  },
-  subheading: {
-    fontSize: typography.caption1.fontSize,
-    fontWeight: fontWeights.semibold,
-    marginLeft: 36,
-  },
-  chipsRow: {
-    flexDirection: "row",
-    gap: 8,
-    paddingLeft: 36,
-    paddingVertical: 2,
-  },
   actionRow: {
     paddingVertical: 10,
     paddingLeft: 36,
   },
-  selectorRow: {
-    paddingVertical: 12,
-    gap: 10,
+  signOutIncomplete: {
+    gap: 8,
+    alignItems: "flex-start",
   },
-  selectorHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  modalHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  modalTitle: {
-    fontSize: typography.title2.fontSize,
-    fontWeight: fontWeights.bold,
-  },
-  modalBody: {
-    gap: 12,
-    marginTop: 8,
+  signOutNotice: {
+    fontSize: fontSizes.sm,
   },
   aboutModalCard: {
     alignItems: "center",

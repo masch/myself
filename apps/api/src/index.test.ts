@@ -1,5 +1,9 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
+  ADMIN_USER_EMAIL,
   APP_NAME,
   SEED_AUTHORS,
   SEED_AUTHOR_IDS,
@@ -12,23 +16,80 @@ import { createApp } from "./index";
 import { AppConfig } from "./config";
 import { createRepositories } from "./middleware/repositories";
 import { createTestRepositories } from "./infrastructure/persistence/test-db";
+import { seedFromConfig } from "./infrastructure/persistence/seed";
+
+// Throwaway value for the API's own test instance: it only guards a database created
+// in the system temp directory and deleted when this file finishes.
+const AUTH_SECRET =
+  "dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWZvci10aGUtZ2F0ZXdheS1zdWl0ZQ==";
+
+/**
+ * The admin credential is deployment configuration (R1-001), so this suite supplies its
+ * own value through the app's environment instead of importing one from the seed.
+ */
+const ADMIN_TEST_PASSWORD = "gateway-suite-admin-password";
+
+/**
+ * The curated-content writes need an admin session (S6), and Better Auth reads that
+ * session from the same database the repositories use. `:memory:` gives each client its
+ * own empty database, so this suite uses one throwaway libSQL file for both.
+ */
+function createTempDatabase(): { url: string; cleanup: () => void } {
+  const dir = mkdtempSync(join(tmpdir(), "myself-gateway-"));
+  return {
+    url: `file:${join(dir, "gateway.db")}`,
+    cleanup: () => rmSync(dir, { recursive: true, force: true }),
+  };
+}
 
 describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", () => {
   let app: ReturnType<typeof createApp>;
   let testConfig: AppConfig;
+  let database: ReturnType<typeof createTempDatabase>;
+  let adminToken: string;
 
   beforeAll(async () => {
+    database = createTempDatabase();
     testConfig = AppConfig.from({
       ENVIRONMENT: "test",
-      TURSO_DATABASE_URL: ":memory:",
+      TURSO_DATABASE_URL: database.url,
+      AUTH_SECRET: AUTH_SECRET,
+      AUTH_URL: "http://localhost:8787",
+      ADMIN_USER_PASSWORD: ADMIN_TEST_PASSWORD,
+      // T5 (S15, S22): the browser origin this suite exercises must be allowlisted,
+      // because an unlisted origin is now refused instead of granted `*`.
+      CORS_ALLOWED_ORIGINS: "http://localhost:8081",
     });
-    const repos = await createTestRepositories({ seed: true });
-    app = createApp(testConfig, repos);
+    await seedFromConfig(testConfig);
+    app = createApp(testConfig, createRepositories(testConfig));
+    adminToken = await signInAsAdmin(app);
   });
+
+  afterAll(() => {
+    database.cleanup();
+  });
+
+  async function signInAsAdmin(target: ReturnType<typeof createApp>) {
+    const res = await target.request("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: ADMIN_USER_EMAIL,
+        password: ADMIN_TEST_PASSWORD,
+      }),
+    });
+    expect(res.status).toBe(200);
+    const token = res.headers.get("set-auth-token");
+    expect(typeof token).toBe("string");
+    return token!;
+  }
 
   describe("Root & System Health", () => {
     it("createApp supports passing custom required dependencies directly", async () => {
-      const testRepos = await createTestRepositories({ seed: true });
+      const testRepos = await createTestRepositories({
+        seed: true,
+        adminPassword: ADMIN_TEST_PASSWORD,
+      });
       const customApp = createApp(testConfig, testRepos);
       const res = await customApp.request("/v1/authors");
       expect(res.status).toBe(200);
@@ -68,10 +129,16 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
     });
 
     it("GET /health reflects app environment from configuration", async () => {
-      const testRepos = await createTestRepositories({ seed: true });
+      const testRepos = await createTestRepositories({
+        seed: true,
+        adminPassword: ADMIN_TEST_PASSWORD,
+      });
       const stagingConfig = AppConfig.from({
         ENVIRONMENT: "staging",
         TURSO_DATABASE_URL: ":memory:",
+        // Staging refuses to boot without an explicit secret (Better Auth would
+        // otherwise sign sessions with its public default).
+        AUTH_SECRET: "dGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWZvci1iZXR0ZXItYXV0aA==",
       });
       const stagingApp = createApp(stagingConfig, testRepos);
       const res = await stagingApp.request("/health");
@@ -117,7 +184,8 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       };
       expect(doc.openapi).toBe("3.1.0");
       expect(doc.info.title).toBe("myself API");
-      expect(doc.paths["/v1/users"]).toBeDefined();
+      // S7 removed the anonymous users surface, so it is no longer published.
+      expect(doc.paths["/v1/users"]).toBeUndefined();
       expect(doc.paths["/v1/authors"]).toBeDefined();
       expect(doc.paths["/v1/readings"]).toBeDefined();
     });
@@ -140,7 +208,7 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       expect(body.error).toBe("Endpoint not found");
     });
 
-    it("handles CORS headers on preflight requests", async () => {
+    it("grants CORS to the configured origin on preflight, with credentials and no wildcard", async () => {
       const res = await app.request("/v1/readings", {
         method: "OPTIONS",
         headers: {
@@ -149,7 +217,12 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
         },
       });
       expect(res.status).toBe(204);
-      expect(res.headers.get("access-control-allow-origin")).toBe("*");
+      // T5 replaced the wildcard with an explicit allowlist: the origin is echoed, a
+      // credentialed response is allowed, and `*` no longer appears anywhere.
+      expect(res.headers.get("access-control-allow-origin")).toBe(
+        "http://localhost:8081",
+      );
+      expect(res.headers.get("access-control-allow-credentials")).toBe("true");
     });
 
     it("handles unhandled exceptions via onError and returns 500", async () => {
@@ -228,7 +301,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       const uniqueName = `Test Author ${Date.now()}`;
       const res = await app.request("/v1/authors", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({
           name: uniqueName,
           bio: "Functional test author biography",
@@ -247,7 +323,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
     it("POST /v1/authors rejects empty or missing name with 400 Bad Request", async () => {
       const resEmpty = await app.request("/v1/authors", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({
           name: "   ",
         }),
@@ -341,7 +420,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
 
       const res = await app.request("/v1/readings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify(payload),
       });
       expect(res.status).toBe(201);
@@ -385,7 +467,10 @@ describe("myself API Gateway - Full E2E Test Suite (HTTP -> SQLite Database)", (
       for (const payload of invalidPayloads) {
         const res = await app.request("/v1/readings", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            authorization: `Bearer ${adminToken}`,
+          },
           body: JSON.stringify(payload),
         });
         expect(res.status).toBe(400);

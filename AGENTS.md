@@ -38,6 +38,13 @@ Docs: https://docs.expo.dev/eas/index.md
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
 
+## Auth
+
+- Identity comes from `SessionProvider` / `useSession` (`src/context/session-context.tsx`). There is no device-local profile store any more; do not reintroduce one.
+- A session token never goes in `expo-sqlite`: native stores it in `expo-secure-store`, and the web target keeps nothing because the `HttpOnly` cookie is the session.
+- Curated-content writes (`POST`/`PUT`/`DELETE /v1/readings`, `POST /v1/authors`) require the admin role, and the role is read from the session only — never from a request body. Reads stay public.
+- `reset-password` and `verify-email` are registered outside the session gate deliberately. Registering them inside it locks out the person who follows those links.
+
 ## Component Architecture & UI Guidelines
 
 1. **Compound Components over Boolean Flags**:

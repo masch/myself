@@ -1,8 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
   AppConfig,
+  COOKIE_SAME_SITE_VALUES,
+  DEFAULT_COOKIE_SAME_SITE,
   DEFAULT_PORT,
   getProcessEnv,
+  resolveCookieConfig,
   resolveDatabaseConfig,
   resolveEnvironment,
   resolvePort,
@@ -89,6 +92,126 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
     });
   });
 
+  describe("session cookie posture (S2)", () => {
+    it("defaults to SameSite=Lax everywhere and only secures the deployed environments", () => {
+      // Nothing weakens unless it is asked for: the default is the same in every
+      // environment, and `None` is a deployment's explicit decision (S2).
+      expect(DEFAULT_COOKIE_SAME_SITE).toBe("lax");
+
+      for (const environment of [Environments.DEVELOPMENT, Environments.TEST]) {
+        const cookie = resolveCookieConfig(environment);
+        expect(cookie.sameSite).toBe("lax");
+        expect(cookie.secure).toBe(false);
+      }
+
+      for (const environment of [
+        Environments.STAGING,
+        Environments.PRODUCTION,
+      ]) {
+        const cookie = resolveCookieConfig(environment);
+        expect(cookie.sameSite).toBe("lax");
+        // A deployed Worker is only reachable over https, so its cookie is Secure.
+        expect(cookie.secure).toBe(true);
+      }
+    });
+
+    it("keeps HttpOnly and the cookie path in the resolved attributes (S22)", () => {
+      // A cookie a script can read is the thing S22 forbids, so `httpOnly` is part of
+      // the resolved attributes rather than left to the library's default.
+      const cookie = resolveCookieConfig(Environments.PRODUCTION);
+      expect(cookie.httpOnly).toBe(true);
+      expect(cookie.path).toBe("/");
+    });
+
+    it("selects the policy from AUTH_COOKIE_SAME_SITE", () => {
+      expect(
+        resolveCookieConfig(Environments.PRODUCTION, {
+          AUTH_COOKIE_SAME_SITE: "strict",
+        }).sameSite,
+      ).toBe("strict");
+
+      const crossSite = resolveCookieConfig(Environments.PRODUCTION, {
+        AUTH_COOKIE_SAME_SITE: "none",
+      });
+      expect(crossSite.sameSite).toBe("none");
+      // `None` is only meaningful with `Secure`, and a deployed environment has it.
+      expect(crossSite.secure).toBe(true);
+    });
+
+    it("refuses SameSite=None without Secure, naming the value and the rule (S2)", () => {
+      for (const environment of [Environments.DEVELOPMENT, Environments.TEST]) {
+        // A browser drops `SameSite=None` without `Secure`, which is a web session
+        // that silently stops working, so it must be a startup refusal instead.
+        expect(() =>
+          resolveCookieConfig(environment, { AUTH_COOKIE_SAME_SITE: "none" }),
+        ).toThrow(
+          /Invalid AUTH_COOKIE_SAME_SITE configuration: "none" requires a Secure cookie/,
+        );
+        expect(() =>
+          resolveCookieConfig(environment, { AUTH_COOKIE_SAME_SITE: "none" }),
+        ).toThrow(new RegExp(`ENVIRONMENT="${environment}"`));
+      }
+    });
+
+    it("refuses a SameSite value outside lax|strict|none (S2)", () => {
+      for (const value of ["nullable", "cross-site", "laxx", "Lax"]) {
+        expect(() =>
+          resolveCookieConfig(Environments.PRODUCTION, {
+            AUTH_COOKIE_SAME_SITE: value,
+          }),
+        ).toThrow(/Invalid AUTH_COOKIE_SAME_SITE configuration/);
+      }
+
+      // The message names the offending value and the rule, so a deployment can fix
+      // it without reading the source.
+      expect(() =>
+        resolveCookieConfig(Environments.PRODUCTION, {
+          AUTH_COOKIE_SAME_SITE: "nullable",
+        }),
+      ).toThrow(
+        /Invalid AUTH_COOKIE_SAME_SITE configuration: "nullable"\. Expected one of: lax, strict, none/,
+      );
+      expect(COOKIE_SAME_SITE_VALUES).toEqual(["lax", "strict", "none"]);
+    });
+
+    it("exposes the posture through the resolved auth configuration (S2)", () => {
+      const config = new AppConfig({
+        ENVIRONMENT: Environments.TEST,
+        TURSO_DATABASE_URL: ":memory:",
+      });
+
+      expect(config.auth.cookies).toEqual({
+        sameSite: "lax",
+        secure: false,
+        httpOnly: true,
+        path: "/",
+      });
+
+      expect(
+        () =>
+          new AppConfig({
+            ENVIRONMENT: Environments.TEST,
+            TURSO_DATABASE_URL: ":memory:",
+            AUTH_COOKIE_SAME_SITE: "none",
+          }),
+      ).toThrow(/requires a Secure cookie/);
+    });
+
+    it("maps AUTH_COOKIE_SAME_SITE from process.env", () => {
+      const original = process.env.AUTH_COOKIE_SAME_SITE;
+      process.env.AUTH_COOKIE_SAME_SITE = "strict";
+      try {
+        expect(getProcessEnv().AUTH_COOKIE_SAME_SITE).toBe("strict");
+      } finally {
+        if (original === undefined) {
+          delete process.env.AUTH_COOKIE_SAME_SITE;
+        } else {
+          process.env.AUTH_COOKIE_SAME_SITE = original;
+        }
+      }
+    });
+  });
+
   describe("getProcessEnv", () => {
     it("returns bindings extracted from process.env", () => {
       const originalEnv = process.env.ENVIRONMENT;
@@ -109,7 +232,10 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
       process.env.TURSO_DATABASE_URL = ":memory:";
 
       try {
-        const config = AppConfig.from({ ENVIRONMENT: "staging" });
+        const config = AppConfig.from({
+          ENVIRONMENT: "staging",
+          AUTH_SECRET: "unit-test-secret",
+        });
         expect(config.environment).toBe("staging");
         expect(config.database.url).toBe(":memory:");
       } finally {
@@ -117,14 +243,62 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
         process.env.TURSO_DATABASE_URL = originalUrl;
       }
     });
+
+    it("maps ADMIN_USER_PASSWORD from process.env (R1-001)", () => {
+      const original = process.env.ADMIN_USER_PASSWORD;
+      process.env.ADMIN_USER_PASSWORD = "admin-password-from-the-environment";
+      try {
+        expect(getProcessEnv().ADMIN_USER_PASSWORD).toBe(
+          "admin-password-from-the-environment",
+        );
+      } finally {
+        if (original === undefined) {
+          delete process.env.ADMIN_USER_PASSWORD;
+        } else {
+          process.env.ADMIN_USER_PASSWORD = original;
+        }
+      }
+    });
   });
 
   describe("AppConfig", () => {
+    it("keeps the admin seed password optional, trimmed and never defaulted (R1-001)", () => {
+      // The developer's own environment must not decide what this test observes.
+      const original = process.env.ADMIN_USER_PASSWORD;
+      delete process.env.ADMIN_USER_PASSWORD;
+      try {
+        const absent = AppConfig.from({
+          ENVIRONMENT: "test",
+          TURSO_DATABASE_URL: ":memory:",
+        });
+        expect(absent.adminUserPassword).toBeUndefined();
+
+        const blank = AppConfig.from({
+          ENVIRONMENT: "test",
+          TURSO_DATABASE_URL: ":memory:",
+          ADMIN_USER_PASSWORD: "   ",
+        });
+        expect(blank.adminUserPassword).toBeUndefined();
+
+        const supplied = AppConfig.from({
+          ENVIRONMENT: "test",
+          TURSO_DATABASE_URL: ":memory:",
+          ADMIN_USER_PASSWORD: "  supplied-by-the-operator  ",
+        });
+        expect(supplied.adminUserPassword).toBe("supplied-by-the-operator");
+      } finally {
+        if (original !== undefined) {
+          process.env.ADMIN_USER_PASSWORD = original;
+        }
+      }
+    });
+
     it("loads config from explicit bindings", () => {
       const config = AppConfig.from({
         ENVIRONMENT: Environments.STAGING,
         TURSO_DATABASE_URL: "libsql://example.turso.io",
         TURSO_AUTH_TOKEN: "secret-token",
+        AUTH_SECRET: "unit-test-secret",
       });
 
       expect(config.environment).toBe(Environments.STAGING);
@@ -137,9 +311,59 @@ describe("AppConfig & resolveEnvironment Unit Tests", () => {
       const config = AppConfig.from({
         ENVIRONMENT: Environments.STAGING,
         TURSO_DATABASE_URL: "libsql://example.turso.io",
+        AUTH_SECRET: "unit-test-secret",
         PORT: "4000",
       });
       expect(config.port).toBe(4000);
+    });
+
+    it("rejects a staging config without a Better Auth secret", () => {
+      // Better Auth's own default-secret guard keys off NODE_ENV, which this app
+      // never sets, so `ENVIRONMENT=staging` would silently use its public default
+      // secret and make every session forgeable.
+      expect(
+        () =>
+          new AppConfig({
+            ENVIRONMENT: Environments.STAGING,
+            TURSO_DATABASE_URL: "libsql://example.turso.io",
+          }),
+      ).toThrow(/AUTH_SECRET/);
+    });
+
+    it("rejects a blank Better Auth secret in production", () => {
+      expect(
+        () =>
+          new AppConfig({
+            ENVIRONMENT: Environments.PRODUCTION,
+            TURSO_DATABASE_URL: "libsql://example.turso.io",
+            AUTH_SECRET: "   ",
+          }),
+      ).toThrow(/AUTH_SECRET/);
+    });
+
+    it("boots without a secret in development, local and test", () => {
+      for (const environment of [Environments.DEVELOPMENT, Environments.TEST]) {
+        const config = new AppConfig({
+          ENVIRONMENT: environment,
+          TURSO_DATABASE_URL: ":memory:",
+        });
+        expect(config.auth.secret).toBeUndefined();
+      }
+    });
+
+    it("keeps Google independent of the secret requirement", () => {
+      const config = new AppConfig({
+        ENVIRONMENT: Environments.TEST,
+        TURSO_DATABASE_URL: ":memory:",
+        GOOGLE_CLIENT_ID: "client-id",
+        GOOGLE_CLIENT_SECRET: "client-secret",
+      });
+
+      expect(config.auth.secret).toBeUndefined();
+      expect(config.auth.google).toEqual({
+        clientId: "client-id",
+        clientSecret: "client-secret",
+      });
     });
 
     it("throws an explicit error when TURSO_DATABASE_URL is missing", () => {

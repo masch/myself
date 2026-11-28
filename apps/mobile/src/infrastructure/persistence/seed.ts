@@ -128,20 +128,22 @@ export async function seedDatabase(
     }
   }
 
-  // 2. Seed Users & Tasks if users are empty
+  // 2. Seed the device profiles (Better Auth `user`) and their tasks when empty.
+  //    SEED_USERS[0] is the shared demo identity (DEMO_USER_ID): the server seed
+  //    writes the same id, so local rows already belong to the signed-in demo user.
   const existingUsers = await db.getAllAsync<{ id: string }>(
-    "SELECT id FROM users LIMIT 1",
+    'SELECT id FROM "user" LIMIT 1',
   );
 
   if (existingUsers.length === 0) {
     const userCreatedAt = options?.baseDateStr
-      ? `${options.baseDateStr}T00:00:00.000Z`
-      : DateTime.now().toISOString();
+      ? Date.parse(`${options.baseDateStr}T00:00:00.000Z`)
+      : DateTime.now().toMillis();
 
     for (const user of SEED_USERS) {
       await db.runAsync(
-        "INSERT OR IGNORE INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)",
-        [user.id, user.name, user.email, userCreatedAt],
+        'INSERT OR IGNORE INTO "user" (id, name, email, image, email_verified, created_at, updated_at) VALUES (?, ?, ?, NULL, 1, ?, ?)',
+        [user.id, user.name, user.email, userCreatedAt, userCreatedAt],
       );
 
       for (const task of user.tasks) {

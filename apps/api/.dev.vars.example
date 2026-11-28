@@ -1,6 +1,9 @@
 # Local development environment secrets for Cloudflare Workers (wrangler dev)
 # Copy this file to .dev.vars to configure your remote or local Turso database credentials.
 #
+# Never commit a real .dev.vars. In deployment these values are set with
+# `wrangler secret put <NAME>` and are deliberately absent from wrangler.jsonc `vars`.
+#
 # Turso Database URL:
 # - Cloud database: libsql://myself-db-<org>.turso.io
 # - Local Turso server ('turso dev'): http://127.0.0.1:8080
@@ -8,3 +11,86 @@ TURSO_DATABASE_URL="libsql://myself-db-<org>.turso.io"
 
 # Turso Database Authentication Token (optional when using local 'turso dev')
 TURSO_AUTH_TOKEN="your-turso-auth-token"
+
+# Better Auth session signing secret (generate with `bunx auth secret`).
+# Required in staging and production: auth refuses to issue sessions without it.
+AUTH_SECRET="replace-with-a-random-32-byte-secret"
+
+# Public base URL of this API, used to build verification and reset links.
+# Defaults to http://localhost:8787 when unset.
+AUTH_URL="http://localhost:8787"
+
+# SameSite policy of the session cookie (S2): lax (default), strict or none.
+#
+# `lax` is what every environment gets unless this is set, and it is the right value when
+# the web target and this API share a registrable domain — including the local setup,
+# where both are on localhost. `/v1/auth/*` is called cross-origin but same-site there,
+# so the cookie is sent and nothing has to be loosened.
+#
+# `none` is only needed when the web target and the API are not on the same registrable
+# domain (for example an EAS Hosting web build calling a Worker on *.workers.dev): the
+# cookie then has to travel cross-site, and `SameSite=None; Secure` is the only
+# combination a browser accepts. Those two go together here: `none` is refused at startup
+# in an environment whose cookie is not `Secure`, so it can only be selected in staging or
+# production, where the cookie is always Secure. Nothing silently half-works: a browser
+# drops `SameSite=None` without `Secure`, which would look like a session that logs itself
+# out.
+#
+# Opting in means the browser no longer withholds the session cookie on cross-site
+# requests, so CSRF rests on Better Auth's own origin check: every credentialed request
+# carries an `Origin` that must match `CORS_ALLOWED_ORIGINS` (trustedOrigins) above — the
+# reason that list must name the web origin exactly and never be left empty.
+# AUTH_COOKIE_SAME_SITE="lax"
+
+# Origins allowed to call this API from a browser (S15, S22, S26), comma-separated and
+# explicit. Never a wildcard: the web session is a cookie, and a credential-bearing
+# response is only readable when the origin is named. It is also what Better Auth trusts
+# as `trustedOrigins`, so an origin missing here is answered with 403
+# "Origin not allowed" (before the request reaches any handler).
+#
+# Local development: `make dev-web` serves the app on port 8081, and the Playwright suite
+# on 8082. The API does not read this file on its own (`bun run dev` uses the process
+# environment), so export the value or run with `bun --env-file=.dev.vars`:
+#   export CORS_ALLOWED_ORIGINS="http://localhost:8081,http://localhost:8082"
+# Deployed environments must set it to the deployed web origin(s) — the EAS Hosting URL
+# of the web build plus any extra client origin. Native clients send no Origin and are
+# unaffected by this setting.
+CORS_ALLOWED_ORIGINS="http://localhost:8081,http://localhost:8082"
+
+# Google sign-in (S1). Both values are required to enable the provider; when either
+# is missing the provider is not registered and the API still boots, so leaving these
+# commented out is the normal state for a checkout without Google credentials.
+# GOOGLE_CLIENT_ID="<google-oauth-client-id>.apps.googleusercontent.com"
+# GOOGLE_CLIENT_SECRET="<google-oauth-client-secret>"
+
+# Password of the single admin identity the seed creates (S20).
+# The seed runs only when `ENVIRONMENT` is not "production" — the exact condition in
+# seed.ts is `process.env.ENVIRONMENT !== "production"`, so an unset variable counts as
+# non-production. It skips the admin identity whenever this is unset, printing one
+# warning that names this variable. There is no default: the repository deliberately
+# carries no admin credential, so a deploy that seeds without ADMIN_USER_PASSWORD has no
+# admin and nothing can write curated content until the seed is re-run with it. Generate
+# a strong, unique value per environment and set it with
+# `wrangler secret put ADMIN_USER_PASSWORD` where the Worker needs it.
+ADMIN_USER_PASSWORD="replace-with-a-strong-admin-password"
+
+# Email sender (S16). No vendor is chosen yet, so the only implementation is the
+# development one: it prints the verification and password-reset link and writes the
+# whole message to a file, which is what lets a developer finish a reset without a mail
+# client. It needs no API key and no account.
+#
+# It refuses to be constructed in a deployed environment (R1-002): both links carry a
+# live single-use token, and a Worker log or a local file is not a delivery channel. In
+# staging and production the API therefore boots with no sender and one warning, its
+# verification and password-reset email are disabled, and completing a reset is still
+# wired to revoke every session of the user. Wire a real vendor in
+# apps/api/src/services/email/index.ts to turn both flows back on there.
+#
+# Envelope sender a real vendor would require (a verified domain). The development
+# sender only records it; it defaults to no-reply@myself.local.
+EMAIL_FROM="no-reply@myself.local"
+
+# Directory the development sender writes messages to. Absent means the system temp
+# directory (myself-emails/), which is deliberate: a message holds a reset token and must
+# never land in the repository. Any directory outside the worktree works.
+# EMAIL_OUTBOX_DIR="/tmp/myself-emails"

@@ -1,4 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
+// Signs in as the seeded admin before each test: the app tree is behind the session
+// gate (S13), so a visitor with no session would assert against the sign-in form.
+import { test, expect, type Page } from "./fixtures";
+import { signInAsAdmin } from "./helpers/session";
 
 /**
  * The reflections section and the previewed program live in the address, so
@@ -49,6 +52,10 @@ test("a device that does not know the program opens the section without a sheet"
   try {
     const otherPage = await other.newPage();
     await otherPage.setViewportSize(PHONE);
+    // A different device is still a signed-in person: the app tree is behind the session
+    // gate (S13), and this test is about the program the device does not know, not about
+    // being signed out. The assertions below are unchanged.
+    await signInAsAdmin(otherPage);
     await otherPage.goto("/reflections?seccion=cohorts&cohorte=some-program");
 
     await expect(otherPage.getByText("Programas", { exact: true })).toBeVisible(

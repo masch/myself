@@ -15,6 +15,7 @@ import {
 } from "@myself/shared";
 import { SqliteReadingRepository } from "../infrastructure/sqlite-reading.repository";
 import { SyncEngine } from "@/infrastructure/sync/sync-engine";
+import { useSession } from "@/context/session-context";
 import { safeAsync } from "@/infrastructure/errors/safe-async";
 import { generateUUID } from "@/utils/uuid";
 import {
@@ -41,8 +42,20 @@ export interface UpdateReadingInput {
 export function useReadings(locale: SupportedLocale = "es") {
   const db = useSQLiteContext();
   const queryClient = useQueryClient();
+  // The one place the reading feature learns who is signed in (S12, S21). The repository
+  // takes it as a port and resolves it per insert, so a sign-in or sign-out after this
+  // render still attributes the next read correctly; `userId` is in the deps so the
+  // resolver reads the current value rather than a stale one.
+  const { user } = useSession();
+  const userId = user?.id ?? null;
 
-  const repository = useMemo(() => new SqliteReadingRepository(db), [db]);
+  const repository = useMemo(
+    () =>
+      new SqliteReadingRepository(db, {
+        currentUserId: () => userId,
+      }),
+    [db, userId],
+  );
   const syncEngine = useMemo(() => new SyncEngine(db), [db]);
 
   // Initial and lifecycle sync in background, and automatic sync upon network reconnection

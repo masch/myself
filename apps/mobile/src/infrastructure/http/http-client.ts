@@ -4,6 +4,7 @@ import {
   ApiNetworkError,
   ApiTimeoutError,
 } from "./errors";
+import { REQUEST_CREDENTIALS } from "./request-credentials";
 
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -17,6 +18,15 @@ export interface HttpClientConfig {
   timeoutMs?: number;
   defaultHeaders?: Record<string, string>;
   getAuthToken?: () => Promise<string | null> | string | null;
+  /**
+   * The fetch credential mode, defaulting to this platform's (S8, S22).
+   *
+   * Native presents its session as the bearer header and sends no cookie; web presents the
+   * `HttpOnly` session cookie and must ask for it, or a write after a page reload goes out
+   * with no credential at all. The platform module is what decides, so no caller has to
+   * know which client class it is running as.
+   */
+  credentials?: RequestCredentials;
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -25,6 +35,7 @@ export class HttpClient {
   readonly baseUrl: string;
   readonly defaultTimeoutMs: number;
   readonly defaultHeaders: Record<string, string>;
+  readonly credentials: RequestCredentials | undefined;
   private readonly getAuthToken?: () => Promise<string | null> | string | null;
 
   constructor(config: HttpClientConfig) {
@@ -36,6 +47,7 @@ export class HttpClient {
       ...config.defaultHeaders,
     };
     this.getAuthToken = config.getAuthToken;
+    this.credentials = config.credentials ?? REQUEST_CREDENTIALS;
   }
 
   request(path: string, options?: RequestOptions): Promise<void>;
@@ -90,6 +102,9 @@ export class HttpClient {
           headers,
           body: serializedBody,
           signal: controller.signal,
+          // Omitted entirely when this platform has no cookie transport, so a native
+          // request is unchanged from before the web target existed.
+          ...(this.credentials ? { credentials: this.credentials } : {}),
         });
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") {

@@ -4,8 +4,9 @@ export default defineConfig({
   schema: [
     "../../packages/shared/src/modules/authors/schema.ts",
     "../../packages/shared/src/modules/readings/schema.ts",
-    "../../packages/shared/src/modules/users/schema.ts",
+    "../../packages/shared/src/modules/auth/schema.ts",
     "../../packages/shared/src/modules/tasks/schema.ts",
+    "../../packages/shared/src/modules/reflections/schema.ts",
   ],
   out: "../../packages/shared/src/migrations",
   dialect: "turso",
